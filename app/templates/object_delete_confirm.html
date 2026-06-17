@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block layout_mode %}objects{% endblock %}
+{% block title %}Удаление объекта{% endblock %}
+{% block content %}
+<section class="confirm-modal-page">
+  <div class="confirm-modal-backdrop" aria-hidden="true"></div>
+  <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="deleteObjectTitle">
+    <a class="confirm-modal-close" href="{{ url_for('main.objects') }}" aria-label="Закрыть">
+      <i class="bi bi-x-lg"></i>
+    </a>
+    <div class="confirm-modal-icon">
+      <i class="bi bi-trash3"></i>
+    </div>
+    <p class="confirm-modal-kicker">Необратимое действие</p>
+    <h1 id="deleteObjectTitle">Удалить объект?</h1>
+    <p class="confirm-modal-text">
+      Объект «{{ project.name }}» будет удалён вместе со всеми квартирами, коммерцией, задачами и историей внутри него.
+    </p>
+    <div class="confirm-modal-warning">
+      <i class="bi bi-exclamation-triangle"></i>
+      <span>После подтверждения восстановить данные через интерфейс не получится.</span>
+    </div>
+    <form method="post" action="{{ url_for('main.object_delete', project_id=project.id) }}" class="confirm-modal-actions">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.objects') }}">Отмена</a>
+      <button class="btn btn-danger" type="submit">Удалить</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

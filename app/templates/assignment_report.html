@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Ежедневный отчет по задачам{% endblock %}
+{% block content %}
+<div class="page-head remarks-page-head assignment-report-hero">
+  <div>
+    <h1 class="page-title">Ежедневный отчет по задачам</h1>
+    <p class="page-subtitle"></p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.work_report') }}"><i class="bi bi-arrow-left me-2"></i>Назад в отчет</a>
+</div>
+
+<div class="assignment-report-summary mb-3">
+  <div class="assignment-report-metric">
+    <span><i class="bi bi-people"></i></span>
+    <div>
+      <small>Работников с задачами</small>
+      <b>{{ report_totals.workers }}</b>
+    </div>
+  </div>
+  <div class="assignment-report-metric">
+    <span><i class="bi bi-list-check"></i></span>
+    <div>
+      <small>Всего задач</small>
+      <b>{{ report_totals.tasks }}</b>
+    </div>
+  </div>
+  <div class="assignment-report-metric done">
+    <span><i class="bi bi-check2-circle"></i></span>
+    <div>
+      <small>Выполнено</small>
+      <b>{{ report_totals.done }}</b>
+    </div>
+  </div>
+  <div class="assignment-report-metric left">
+    <span><i class="bi bi-hourglass-split"></i></span>
+    <div>
+      <small>Осталось</small>
+      <b>{{ report_totals.left }}</b>
+    </div>
+  </div>
+</div>
+
+<div class="card content-card assignment-report-filter-card mb-3">
+  <div class="card-body">
+    <form method="get" class="assignment-report-filter-form">
+      <div>
+        <label class="form-label">Дата</label>
+        <input class="form-control" type="date" name="date" value="{{ report_date.isoformat() }}">
+      </div>
+      <div>
+        <label class="form-label">Исполнитель</label>
+        <select class="form-select" name="user_id">
+          <option value="">Все</option>
+          {% for user in users %}
+          <option value="{{ user.id }}" {% if selected_user_id == user.id %}selected{% endif %}>{{ user.full_name or user.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="assignment-report-filter-actions">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search me-2"></i>Показать</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.assignments_report') }}">Сегодня</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="assignment-report-grid">
+  {% for group in grouped %}
+  <div class="card content-card assignment-report-card {% if group.tasks|length == 0 %}is-empty{% endif %}">
+    <div class="card-body">
+      <div class="assignment-user-head assignment-report-user-head">
+        <div class="assignment-report-user-main">
+          <div class="assignment-report-avatar"><i class="bi bi-person-badge"></i></div>
+          <div>
+            <div class="assignment-user-name">{{ group.user.full_name or group.user.username }}</div>
+            <div class="text-muted small">{{ ROLE_LABELS.get(group.user.role, group.user.role) }}</div>
+          </div>
+        </div>
+        <div class="assignment-counters assignment-counters-actions">
+          <span class="badge bg-success">выполнено {{ group.done }}</span>
+          <span class="badge bg-secondary">осталось {{ group.left }}</span>
+          <a class="btn btn-sm btn-outline-success assignment-worker-pdf" href="{{ url_for('main.assignments_report_worker_pdf', user_id=group.user.id, date=report_date.isoformat()) }}">
+            <i class="bi bi-file-earmark-excel me-1"></i>Excel
+          </a>
+        </div>
+      </div>
+
+      {% if group.tasks %}
+      <div class="assignment-report-table-wrap">
+        <table class="table assignment-report-table mb-0">
+          <colgroup>
+            <col class="assignment-report-col-room">
+            <col class="assignment-report-col-point">
+            <col class="assignment-report-col-task">
+            <col class="assignment-report-col-status">
+            <col class="assignment-report-col-action">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>№</th>
+              <th>Пункт</th>
+              <th>Задача</th>
+              <th>Статус</th>
+              <th>Действие</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for task in group.tasks %}
+            <tr class="{% if task.is_done %}is-done{% endif %}">
+              <td class="assignment-report-room-cell"><span class="assignment-room-pill"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else '—' }}</span></td>
+              <td>{{ task.work_point.point_number if task.work_point else '—' }}</td>
+              <td>{{ remark_text(task.description or task.source_cell_value) }}</td>
+              <td><span class="badge bg-{{ task.status_class() }}">{{ task.status_label() }}</span></td>
+              <td class="assignment-report-status-actions">
+                {% if task.status == STATUS_DONE %}
+                <form method="post" action="{{ url_for('main.my_task_return', task_id=task.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-arrow-counterclockwise me-1"></i>Вернуть</button>
+                </form>
+                {% else %}
+                <form method="post" action="{{ url_for('main.my_task_done', task_id=task.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-success" type="submit"><i class="bi bi-check2-circle me-1"></i>Выполнено</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="assignment-report-empty">
+        <i class="bi bi-inbox"></i>
+        <span>На эту дату задач нет.</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

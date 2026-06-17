@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Для разработчика — логи удалений{% endblock %}
+{% block content %}
+<div class="page-head remarks-page-head">
+  <div>
+    <h1 class="page-title">Для разработчика</h1>
+    <p class="page-subtitle">Здесь отображаются действия удаления, которые можно проверить и при необходимости отменить.</p>
+  </div>
+</div>
+
+<div class="developer-section-tabs">
+  <a class="developer-section-tab" href="{{ url_for('main.site_errors') }}">
+    <i class="bi bi-inbox"></i><span>Сообщения</span>
+  </a>
+  <a class="developer-section-tab active" href="{{ url_for('main.developer_delete_logs') }}">
+    <i class="bi bi-clock-history"></i><span>Логи удалений</span>
+  </a>
+</div>
+
+<div class="developer-delete-log-list">
+  {% for log in logs %}
+  <article class="card content-card developer-delete-log-card {% if log.is_undone %}is-undone{% endif %}">
+    <div class="card-body">
+      <div class="developer-delete-log-head">
+        <div>
+          <span class="badge bg-danger-subtle text-danger developer-delete-log-badge">
+            <i class="bi bi-trash3 me-1"></i>Удаление
+          </span>
+          {% if log.is_undone %}
+          <span class="badge bg-success-subtle text-success developer-delete-log-badge">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Отменено
+          </span>
+          {% else %}
+          <span class="badge bg-warning-subtle text-warning-emphasis developer-delete-log-badge">
+            <i class="bi bi-exclamation-circle me-1"></i>Можно отменить
+          </span>
+          {% endif %}
+        </div>
+        <div class="text-muted small">{{ log.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+      </div>
+
+      <h3 class="developer-delete-log-title">{{ log.entity_title or 'Удалённое действие' }}</h3>
+      <p class="developer-delete-log-text">{{ log.description or 'Действие удаления зафиксировано в журнале.' }}</p>
+
+      <div class="developer-delete-log-meta">
+        <span><i class="bi bi-person me-1"></i>{% if log.user %}{{ log.user.full_name or log.user.username }}{% else %}Система{% endif %}</span>
+        {% if log.project %}<span><i class="bi bi-building me-1"></i>{{ log.project.name }}</span>{% endif %}
+        <span><i class="bi bi-code-square me-1"></i>{{ log.entity_type }}</span>
+        {% if log.undone_at %}
+        <span><i class="bi bi-check2-circle me-1"></i>Отменено: {{ log.undone_at.strftime('%d.%m.%Y %H:%M') }}</span>
+        {% endif %}
+      </div>
+
+      <div class="developer-delete-log-actions">
+        {% if not log.is_undone and log.action_key in ['assignment_delete_from_employee', 'site_error_delete'] %}
+        <form method="post" action="{{ url_for('main.developer_delete_log_undo', log_id=log.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-primary btn-sm" type="submit">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Отменить действие
+          </button>
+        </form>
+        {% elif log.is_undone %}
+        <span class="developer-delete-log-done"><i class="bi bi-check2 me-1"></i>Действие уже отменено</span>
+        {% else %}
+        <span class="developer-delete-log-done muted"><i class="bi bi-info-circle me-1"></i>Отмена недоступна</span>
+        {% endif %}
+      </div>
+    </div>
+  </article>
+  {% else %}
+  <div class="card content-card">
+    <div class="card-body text-center text-muted py-5">
+      Логов удалений пока нет.
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

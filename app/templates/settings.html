@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block layout_mode %}settings{% endblock %}
+{% block title %}Настройки{% endblock %}
+{% block content %}
+<div class="page-head settings-page-head">
+  <div>
+    <h1 class="page-title">Настройки</h1>
+  </div>
+</div>
+
+<form method="post" class="settings-grid">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <article class="card content-card settings-card">
+    <div class="card-body">
+      <div class="settings-card-head">
+        <div class="settings-card-icon"><i class="bi bi-files"></i></div>
+        <div>
+          <h2 class="section-title mb-1">Документы</h2>
+        </div>
+      </div>
+      <label class="settings-switch-row mt-3" for="hide-documents-setting">
+        <span>
+          <b>Скрыть раздел документы</b>
+        </span>
+        <input class="form-check-input settings-switch" id="hide-documents-setting" type="checkbox" name="hide_documents_section" value="1" {% if hide_documents_section %}checked{% endif %}>
+      </label>
+    </div>
+  </article>
+
+  <article class="card content-card settings-card">
+    <div class="card-body">
+      <div class="settings-card-head">
+        <div class="settings-card-icon"><i class="bi bi-phone"></i></div>
+        <div>
+          <h2 class="section-title mb-1">Мобильная версия</h2>
+        </div>
+      </div>
+      <label class="settings-switch-row mt-3" for="mobile-dev-setting">
+        <span>
+          <b>Мобильная версия — в разработке</b>
+        </span>
+        <input class="form-check-input settings-switch" id="mobile-dev-setting" type="checkbox" name="mobile_version_under_development" value="1" {% if mobile_version_under_development %}checked{% endif %}>
+      </label>
+    </div>
+  </article>
+
+  <article class="card content-card settings-card settings-card-warning">
+    <div class="card-body">
+      <div class="settings-card-head">
+        <div class="settings-card-icon"><i class="bi bi-cone-striped"></i></div>
+        <div>
+          <h2 class="section-title mb-1">Технические работы</h2>
+        </div>
+      </div>
+      <label class="settings-switch-row mt-3" for="site-maintenance-setting">
+        <span>
+          <b>Включить тех работы</b>
+          <small>Если включено, пользователи увидят красивое уведомление о технических работах вместо разделов сайта.</small>
+        </span>
+        <input class="form-check-input settings-switch" id="site-maintenance-setting" type="checkbox" name="site_maintenance_mode" value="1" {% if site_maintenance_mode %}checked{% endif %}>
+      </label>
+    </div>
+  </article>
+
+  <article class="card content-card settings-card settings-card-wide settings-card-locks">
+    <div class="card-body">
+      <div class="settings-card-head">
+        <div class="settings-card-icon"><i class="bi bi-lock"></i></div>
+        <div>
+          <h2 class="section-title mb-1">Заблокировать отдельные разделы</h2>
+          <p class="text-muted mb-0">Можно временно закрыть любой раздел сайта для всех пользователей</p>
+        </div>
+      </div>
+
+      <div class="settings-section-lock-grid mt-3">
+        {% for section in section_lock_choices %}
+        <label class="settings-section-lock {% if section.key in blocked_site_sections %}is-active{% endif %}" for="section-lock-{{ section.key }}">
+          <span class="settings-section-lock-icon"><i class="bi {{ section.icon }}"></i></span>
+          <span class="settings-section-lock-copy">
+            <b>{{ section.label }}</b>
+            <small>{% if section.key in blocked_site_sections %}Сейчас раздел закрыт{% else %}Раздел открыт{% endif %}</small>
+          </span>
+          <input class="form-check-input settings-switch" id="section-lock-{{ section.key }}" type="checkbox" name="blocked_site_sections" value="{{ section.key }}" {% if section.key in blocked_site_sections %}checked{% endif %}>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </article>
+
+  <div class="settings-actions">
+    <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Сохранить</button>
+  </div>
+</form>
+{% endblock %}

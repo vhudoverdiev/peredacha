@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Мои задачи{% endblock %}
+{% block content %}
+<section class="worker-page worker-page-minimal">
+  <div class="worker-day-head">
+    <div>
+      <p class="worker-person-name">{{ current_user.full_name or current_user.username }}</p>
+      <h1>Задачи на сегодня</h1>
+      <p>{{ format_ru_weekday(today) }} · {{ format_ru_date(today) }}</p>
+    </div>
+    <div class="worker-day-counts" aria-label="Статистика задач">
+      <span><b data-worker-left-count>{{ counters.left }}</b> осталось</span>
+      <span><b data-worker-done-count>{{ counters.done }}</b> выполнено</span>
+    </div>
+  </div>
+
+  <div class="worker-task-list worker-task-list-minimal" data-worker-task-list>
+    {% for task in tasks %}
+    <article class="worker-task-card worker-task-card-minimal {% if task.status == STATUS_DONE %}done{% endif %}" data-worker-task-card data-task-id="{{ task.id }}">
+      <div class="worker-task-main">
+        <div class="worker-task-meta-minimal">
+          <span class="worker-room">{{ task.apartment.label() if task.apartment else '—' }}</span>
+          {% if task.planned_date %}<span>{{ task.planned_date.strftime('%d.%m.%Y') }}</span>{% endif %}
+        </div>
+        <div class="worker-task-text">{{ remark_text(task.description or task.source_cell_value) }}</div>
+      </div>
+      <div class="worker-task-status-zone">
+        <span class="worker-status-pill badge bg-{{ task.status_class() }}" data-worker-status-pill>{{ task.status_label() }}</span>
+        {% if task.status != STATUS_DONE %}
+        <form method="post" action="{{ url_for('main.my_task_done', task_id=task.id) }}" class="worker-status-form worker-status-form-minimal" data-worker-status-form data-next-action="return" data-next-url="{{ url_for('main.my_task_return', task_id=task.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn worker-status-btn worker-status-btn-done" type="submit"><i class="bi bi-check2"></i><span>Выполнено</span></button>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('main.my_task_return', task_id=task.id) }}" class="worker-status-form worker-status-form-minimal" data-worker-status-form data-next-action="done" data-next-url="{{ url_for('main.my_task_done', task_id=task.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn worker-status-btn worker-status-btn-return" type="submit"><i class="bi bi-arrow-counterclockwise"></i><span>Не выполнено</span></button>
+        </form>
+        {% endif %}
+      </div>
+    </article>
+    {% else %}
+    <div class="worker-empty-card">
+      <i class="bi bi-check2-circle"></i>
+      <h2>На сегодня задач нет</h2>
+      <p>Когда инженер выдаст задачи на день, они появятся здесь.</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

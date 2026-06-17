@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}{{ apartment.label() }}{% endblock %}
+{% block content %}
+{% set status_labels = {'not_started': 'не выполнено', 'done': 'выполнено', 'finishers': 'чистовики', 'contractor': 'подрядчик', 'problem': 'проблема'} %}
+{% set status_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'problem': 'status-pill-danger'} %}
+{% set field_labels = {'status': 'Статус', 'comment': 'Комментарий', 'description': 'Текст замечания', 'responsible_id': 'Ответственный', 'planned_date': 'Плановая дата', 'is_missing_in_latest_sync': 'Отсутствует в последней синхронизации'} %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ apartment.label() }}</h1>
+    <p class="page-subtitle">Вся информация по помещению из разделов CRM.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.apartments') }}">Назад к помещениям</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-4">
+    <div class="card content-card mb-3">
+      <div class="card-body">
+        <h2 class="section-title">Данные помещения</h2>
+        {% if row.group_count and row.group_count > 1 %}<div class="small text-muted mb-2">Данные объединены по номеру помещения из {{ row.group_count }} строк.</div>{% endif %}
+        <div class="apartment-data-list">
+          <div class="apartment-data-row">
+            <span>Помещение</span>
+            <b>{{ apartment.label() }}</b>
+          </div>
+          {% if apartment.premise_type != 'commercial' %}
+          <div class="apartment-data-row">
+            <span>Отделка</span>
+            <b>{{ apartment.finishing_type or '—' }}</b>
+          </div>
+          {% endif %}
+          <div class="apartment-data-row">
+            <span>Режим</span>
+            <b>
+              {% if row.mode == 'АПП' %}<span class="status-pill status-pill-success">АПП</span>
+              {% elif row.mode == 'не продана' %}<span class="status-pill status-pill-muted">не продана</span>
+              {% else %}<span class="status-pill status-pill-warning">не принята</span>{% endif %}
+            </b>
+          </div>
+          {% if row.inspection_status %}
+          <div class="apartment-data-row">
+            <span>Осмотр</span>
+            <b><span class="status-pill {{ 'status-pill-success' if row.inspection_status == 'Был' else 'status-pill-danger' }}">{{ row.inspection_status }}</span></b>
+          </div>
+          {% endif %}
+          {% if current_user.role != 'viewer' and row.mode != 'не продана' %}
+          <form method="post" action="{{ url_for('main.update_apartment_inspection_status', apartment_id=apartment.id) }}" class="apartment-inspection-status-form apartment-inspection-status-form-detail mb-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <span class="apartment-inspection-status-label">Изменить осмотр</span>
+            <div class="apartment-inspection-status-actions">
+              <input class="btn-check" type="radio" name="inspection_status" id="inspection-detail-was-{{ apartment.id }}" value="was" {% if row.inspection_status == 'Был' %}checked{% endif %} onchange="this.form.submit()">
+              <label class="inspection-option inspection-option-was" for="inspection-detail-was-{{ apartment.id }}">Был</label>
+              <input class="btn-check" type="radio" name="inspection_status" id="inspection-detail-not-was-{{ apartment.id }}" value="not_was" {% if row.inspection_status != 'Был' %}checked{% endif %} onchange="this.form.submit()">
+              <label class="inspection-option inspection-option-not-was" for="inspection-detail-not-was-{{ apartment.id }}">Не был</label>
+            </div>
+          </form>
+          {% elif row.mode == 'не продана' %}
+          <div class="apartment-inspection-static-note mb-3">
+            <i class="bi bi-info-circle"></i> Для непроданной квартиры осмотр фиксируется автоматически: <b>Был</b>.
+          </div>
+          {% endif %}
+
+          {% if row.mode == 'АПП' %}
+          <div class="apartment-data-row apartment-data-deadline-row">
+            <span>Срок устранения</span>
+            <b>
+              {{ row.remark_deadline_display }}
+              {% if row.remark_deadline_status %}
+                <span class="deadline-badge deadline-badge-{{ row.remark_deadline_status.class }} ms-2">{{ row.remark_deadline_status.label }}</span>
+              {% endif %}
+            </b>
+          </div>
+          {% endif %}
+          {% if row.show_avr %}
+          <div class="apartment-data-row">
+            <span>АВР</span>
+            <b>
+              {% if row.avr_status == avr_status_signed %}
+                <span class="badge-avr-signed">Подписан{% if row.avr_signed_date %} от {{ row.avr_signed_date.strftime('%d.%m.%Y') }}{% endif %}</span>
+              {% else %}
+                <span class="badge-avr-needed">Нужен</span>
+              {% endif %}
+            </b>
+          </div>
+          {% if current_user.role != 'viewer' %}
+          <form method="post" action="{{ url_for('main.update_apartment_avr_status', apartment_id=apartment.id) }}" class="apartment-avr-form mb-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="form-label mb-0">Изменить АВР</label>
+            <div class="apartment-avr-actions">
+              <button class="btn btn-sm {{ 'btn-primary' if row.avr_status == avr_status_needed else 'btn-outline-primary' }}" type="submit" name="avr_status" value="{{ avr_status_needed }}">Нужен</button>
+              <button class="btn btn-sm {{ 'btn-success' if row.avr_status == avr_status_signed else 'btn-outline-success' }}" type="submit" name="avr_status" value="{{ avr_status_signed }}">Подписан</button>
+              <input class="form-control form-control-sm" type="date" name="avr_signed_date" value="{{ row.avr_signed_date.isoformat() if row.avr_signed_date else today.isoformat() }}" title="Дата подписания АВР">
+            </div>
+          </form>
+          {% endif %}
+          {% endif %}
+          {% if row.mode == 'АПП' %}
+          <div class="apartment-data-note">
+            <span>Комментарий</span>
+            <p>{{ row.manual_comment or '—' }}</p>
+          </div>
+          {% elif row.mode == 'не принята' %}
+          <div class="apartment-data-note">
+            <span>Комментарий</span>
+            <p>{{ row.inspection_comment or '—' }}</p>
+          </div>
+          {% endif %}
+          {% if row.mode == 'АПП' and current_user.role != 'viewer' %}
+          <form method="post" action="{{ url_for('main.update_apartment_comment', apartment_id=apartment.id) }}" class="inspection-note-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="form-label" for="apartment-comment-{{ apartment.id }}">Комментарий</label>
+            <textarea class="form-control" id="apartment-comment-{{ apartment.id }}" name="apartment_comment" rows="3" placeholder="Например: Собственник не подписывает АВР">{{ row.manual_comment or '' }}</textarea>
+            <button class="btn btn-primary btn-sm" type="submit">Сохранить</button>
+          </form>
+          {% elif row.mode == 'не принята' and current_user.role != 'viewer' %}
+          <form method="post" action="{{ url_for('main.update_apartment_inspection_note', apartment_id=apartment.id) }}" class="inspection-note-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="form-label" for="inspection-note-{{ apartment.id }}">Комментарий</label>
+            <textarea class="form-control" id="inspection-note-{{ apartment.id }}" name="inspection_note" rows="3">{{ row.inspection_comment or '' }}</textarea>
+            <button class="btn btn-primary btn-sm" type="submit">Сохранить</button>
+          </form>
+          {% endif %}
+          {% if row.po_status %}
+          <div class="apartment-data-po">
+            <span>ПО</span>
+            <form method="post" action="{{ url_for('main.update_apartment_po_status', apartment_id=apartment.id) }}" class="apartment-po-form apartment-po-form-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="apartment-po-row apartment-po-options">
+              {% if current_user.role != 'viewer' %}
+                {% for value, label in po_status_labels.items() %}
+                <input class="btn-check" type="radio" name="po_status" id="po-detail-{{ apartment.id }}-{{ value }}" value="{{ value }}" {% if row.po_status == value %}checked{% endif %} onchange="this.form.submit()">
+                <label class="po-option po-option-{{ value }}" for="po-detail-{{ apartment.id }}-{{ value }}">{{ label }}</label>
+                {% endfor %}
+              {% else %}
+                <span class="po-option po-option-{{ row.po_status }} is-static">{{ po_status_labels.get(row.po_status, row.po_status) }}</span>
+              {% endif %}
+              </div>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card content-card mb-3">
+      <div class="card-body">
+        <h2 class="section-title">Статистика</h2>
+        <div class="apartment-big-progress">
+          <div class="apartment-progress-head"><span>Готовность</span><b>{{ row.percent }}%</b></div>
+          <div class="progress slim-progress"><div class="progress-bar" style="width: {{ row.percent }}%"></div></div>
+        </div>
+        <div class="apartment-summary-grid mt-3">
+          <div><span>Всего</span><b>{{ row.total }}</b></div>
+          <div><span>Выполнено</span><b>{{ row.done }}</b></div>
+          <div><span>Осталось</span><b>{{ row.left }}</b></div>
+          <div><span>Проблемы</span><b>{{ row.problem }}</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-8">
+    <div class="card content-card mb-3">
+      <div class="card-body">
+        <h2 class="section-title">Все замечания помещения</h2>
+        {% if row.tasks %}
+        <div class="apartment-task-list">
+          {% for task in row.tasks %}
+          {% set point_name = task.work_point.display_name | replace(task.work_point.point_number ~ '. ', '') | replace(task.work_point.point_number ~ '.', '') if task.work_point else 'Без пункта' %}
+          <div class="apartment-task-item task-row-link {% if task.is_done %}is-done{% endif %}" data-href="{{ url_for('main.task_detail', task_id=task.id) }}">
+            <div class="apartment-task-head">
+              <span class="apartment-task-point">{{ point_name }}</span>
+              {% if current_user.role != 'viewer' %}
+              {% set toggle_status = 'not_started' if task.is_done else 'done' %}
+              <form class="apartment-task-status-form" method="post" action="{{ url_for('main.quick_status', task_id=task.id, status=toggle_status) }}" data-apartment-status-toggle data-reload-after-status="1" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }} apartment-task-status-btn" type="submit" data-status-pill title="Нажмите, чтобы переключить выполнено / не выполнено">{{ status_labels.get(task.status, task.status) }}</button>
+              </form>
+              {% else %}
+              <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }}" data-status-pill>{{ status_labels.get(task.status, task.status) }}</span>
+              {% endif %}
+            </div>
+            <div class="apartment-task-text">{{ remark_text(task.description or task.source_cell_value or '—') }}</div>
+            <div class="apartment-task-meta">
+              <span>Пункт: {{ task.work_point.point_number if task.work_point else '—' }}</span>
+              <span>Раздел: {% for category in task.work_point.categories %}{{ category.name }}{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</span>
+              <span>Ответственный: {{ task.responsible.full_name or task.responsible.username if task.responsible else '—' }}</span>
+              {% if task.is_missing_in_latest_sync %}<span class="text-warning">нет в последней синхронизации</span>{% endif %}
+              {% if task.is_archived %}<span class="text-muted">архив</span>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-info-box">По этому помещению замечаний нет. Информация отображается только из карточки помещения.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card content-card mb-3">
+      <div class="card-body">
+        <h2 class="section-title">Комментарии по замечаниям</h2>
+        {% if row.comments %}
+        <div class="apartment-activity-list">
+          {% for item in row.comments %}
+          {% set task = item.task %}
+          {% set comment = item.comment %}
+          <div class="apartment-activity-item">
+            <div class="small text-muted">{{ comment.created_at.strftime('%d.%m.%Y %H:%M') }} · {{ comment.user.full_name if comment.user else 'пользователь' }}</div>
+            <b>{{ task.work_point.display_name if task.work_point else 'Задача' }}</b>
+            <div>{{ comment.body }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted">Комментариев по замечаниям помещения нет.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card content-card">
+      <div class="card-body">
+        <h2 class="section-title">История изменений по помещению</h2>
+        {% if row.changes %}
+        <div class="timeline">
+          {% for item in row.changes %}
+          {% set task = item.task %}
+          {% set change = item.change %}
+          <div class="timeline-item">
+            <div class="small text-muted">{{ change.created_at.strftime('%d.%m.%Y %H:%M') }} · {{ change.user.full_name if change.user else 'система' }} · {{ task.work_point.display_name if task.work_point else 'задача' }}</div>
+            {% if change.action == 'status_change' %}
+              <b>Статус изменен</b>:
+              с <span class="status-pill {{ status_classes.get(change.old_value, 'status-pill-muted') }}">{{ status_labels.get(change.old_value, change.old_value or 'не задано') }}</span>
+              на <span class="status-pill {{ status_classes.get(change.new_value, 'status-pill-muted') }}">{{ status_labels.get(change.new_value, change.new_value or 'не задано') }}</span>
+            {% elif change.action == 'field_update' %}
+              <b>{{ field_labels.get(change.field_name, change.field_name or 'Поле') }} изменен(о)</b>:
+              с <span class="text-muted">{{ status_labels.get(change.old_value, change.old_value or 'не задано') }}</span>
+              на <span>{{ status_labels.get(change.new_value, change.new_value or 'не задано') }}</span>
+            {% elif change.action == 'comment_added' %}
+              <b>Добавлен комментарий</b>: {{ change.new_value }}
+            {% elif change.action == 'missing_in_latest_sync' %}
+              <b>Задача отсутствует в последней синхронизации</b>
+            {% else %}
+              <b>Изменение</b>: {{ change.action }}
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted">Истории изменений по помещению нет.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

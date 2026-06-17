@@ -1,0 +1,13 @@
+[Unit]
+Description=Synchronize crm_flask with Google Sheets
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/crm_flask
+Environment="PATH=/var/www/crm_flask/venv/bin"
+EnvironmentFile=/var/www/crm_flask/.env
+ExecStart=/var/www/crm_flask/venv/bin/flask sync-sheets

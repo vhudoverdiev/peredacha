@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Несостыковки{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Синхронизация</h1>
+    <p class="page-subtitle">Здесь показаны несостыковки добавленной таблицы.</p>
+  </div>
+  {% if conflicts %}
+  <div class="d-flex gap-2 flex-wrap">
+    <form method="post" action="{{ url_for('main.resolve_conflicts_bulk', action='keep_old') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-outline-secondary">Оставить всё старое</button>
+    </form>
+    <form method="post" action="{{ url_for('main.resolve_conflicts_bulk', action='apply_new') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-primary">Принять всё новое</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card table-shell">
+  <div class="card-body p-0 table-responsive">
+  <table class="table table-sm table-hover align-middle">
+    <thead>
+      <tr>
+        <th>Помещение</th>
+        <th>Было</th>
+        <th>Стало</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for c in conflicts %}
+      <tr>
+        <td>
+          <div><b>{{ c.apartment.label() if c.apartment else (c.task.apartment.label() if c.task and c.task.apartment else '—') }}</b></div>
+          <div class="text-muted small">{{ c.field_label or 'Ячейка замечания' }}</div>
+          <div class="text-muted small">{{ c.sheet_name }} · {{ c.cell_address or '' }}</div>
+        </td>
+        <td style="min-width:320px;max-width:520px;white-space:normal;overflow-wrap:anywhere;">{{ c.old_value or '' }}</td>
+        <td style="min-width:320px;max-width:520px;white-space:normal;overflow-wrap:anywhere;">{{ c.new_value or '' }}</td>
+        <td>
+          <div class="d-flex gap-2 flex-wrap">
+            <form method="post" action="{{ url_for('main.resolve_conflict', conflict_id=c.id, action='keep_old') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-secondary">Оставить старое</button>
+            </form>
+            <form method="post" action="{{ url_for('main.resolve_conflict', conflict_id=c.id, action='apply_new') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-primary">Принять новое</button>
+            </form>
+            {% if c.task %}
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.task_detail', task_id=c.task.id) }}">Карточка</a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="text-center text-muted py-5">Несостыковок нет</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

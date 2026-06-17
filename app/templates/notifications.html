@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Уведомления{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Уведомления</h1>
+    <p class="page-subtitle">Квартиры, требующие внимания перед передачей и по срокам.</p>
+  </div>
+</div>
+
+<ul class="nav crm-tabs mb-3">
+  <li class="nav-item"><a class="nav-link {% if tab == 'po' %}active{% endif %}" href="{{ url_for('main.notifications', tab='po') }}">ПО</a></li>
+  <li class="nav-item"><a class="nav-link {% if tab == '60' %}active{% endif %}" href="{{ url_for('main.notifications', tab='60') }}">60 к.д.</a></li>
+  <li class="nav-item"><a class="nav-link {% if tab == 'archive' %}active{% endif %}" href="{{ url_for('main.notifications', tab='archive') }}">Архив</a></li>
+</ul>
+
+<div class="notification-list">
+  {% for row in rows %}
+  <details class="card content-card notification-card">
+    <summary>
+      <span>
+        <b>{{ row.apartment.label() if row.apartment else '—' }}</b>
+        {% if tab == 'po' %}
+        <em>почти готова к ПО</em>
+        {% elif tab == 'archive' and row.apartment.avr_archived_at %}
+        <em>АВР отмечен {{ row.apartment.avr_archived_at.strftime('%d.%m.%Y') }}</em>
+        {% elif row.apartment.app_deadline_date %}
+        <em>{{ 'истёк' if row.apartment.app_deadline_date < today else 'истекает' }}: {{ row.apartment.app_deadline_date.strftime('%d.%m.%Y') }}</em>
+        {% endif %}
+      </span>
+      <span class="notification-counts">
+        <span class="status-pill status-pill-success">устранено {{ row.done|length }}</span>
+        <span class="status-pill status-pill-warning">осталось {{ row.left|length }}</span>
+      </span>
+    </summary>
+    <div class="notification-details">
+      <h2>Устранены</h2>
+      {% for task in row.done %}
+      <p><b>{{ task.work_point.display_name }}</b>: {{ remark_text(task.description or task.source_cell_value) }}</p>
+      {% else %}
+      <p class="text-muted">Нет устраненных замечаний.</p>
+      {% endfor %}
+      <h2>Остались</h2>
+      {% for task in row.left %}
+      <p><b>{{ task.work_point.display_name }}</b>: {{ remark_text(task.description or task.source_cell_value) }}</p>
+      {% else %}
+      <p class="text-muted">Оставшихся замечаний нет.</p>
+      {% endfor %}
+      {% if tab == '60' and row.apartment.app_deadline_date %}
+      <form method="post" action="{{ url_for('main.archive_apartment_avr', apartment_id=row.apartment.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-outline-danger" type="submit">АВР</button>
+      </form>
+      {% endif %}
+    </div>
+  </details>
+  {% else %}
+  <div class="card content-card"><div class="card-body text-muted">Уведомлений нет.</div></div>
+  {% endfor %}
+</div>
+{% endblock %}

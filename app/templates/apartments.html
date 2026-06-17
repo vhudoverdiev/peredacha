@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Квартиры{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Квартиры</h1>
+    <p class="page-subtitle">Данные, замечания, комментарии и история изменений.</p>
+  </div>
+</div>
+
+<div class="card content-card mb-3">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end apartments-filter-form">
+      <div class="col-12 col-lg-4">
+        <label class="form-label">Поиск</label>
+        <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите цифру" inputmode="numeric" pattern="[0-9]*" data-digits-only="1">
+      </div>
+      <div class="col-12 col-sm-6 col-lg-2">
+        <label class="form-label">Осмотр</label>
+        <select class="form-select" name="inspection_status">
+          <option value="">Все</option>
+          <option value="was" {% if args.get('inspection_status') == 'was' %}selected{% endif %}>Был</option>
+          <option value="not_was" {% if args.get('inspection_status') == 'not_was' %}selected{% endif %}>Не был</option>
+        </select>
+      </div>
+      <div class="col-12 col-sm-6 col-lg-2">
+        <label class="form-label">АПП</label>
+        <select class="form-select" name="app_status">
+          <option value="">Все</option>
+          <option value="accepted" {% if args.get('app_status') == 'accepted' %}selected{% endif %}>АПП</option>
+          <option value="not_accepted" {% if args.get('app_status') == 'not_accepted' %}selected{% endif %}>Не принята</option>
+        </select>
+      </div>
+      <div class="col-12 col-sm-6 col-lg-2">
+        <label class="form-label">ПО</label>
+        <select class="form-select" name="po_status">
+          <option value="">Все</option>
+          <option value="to_throw" {% if args.get('po_status') == 'to_throw' or po_only %}selected{% endif %}>Кинуть</option>
+          <option value="thrown" {% if args.get('po_status') == 'thrown' %}selected{% endif %}>Кинуто</option>
+          <option value="po" {% if args.get('po_status') == 'po' %}selected{% endif %}>ПО</option>
+        </select>
+      </div>
+      <div class="col-12 col-lg-2 filter-actions">
+        <button class="btn btn-primary" type="submit">Применить</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.apartments') }}">Сброс</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div class="text-muted">Найдено квартир / помещений: <b>{{ total_count }}</b></div>
+</div>
+
+<div class="apartments-grid">
+  {% for row in rows %}
+  {% set apartment = row.apartment %}
+  <article class="apartment-card">
+    <a class="apartment-card-link" href="{{ url_for('main.apartment_detail', apartment_id=apartment.id) }}">
+    <div class="apartment-card-top">
+      <div>
+        <div class="apartment-card-label apartment-card-full-label">{{ apartment.full_label() if apartment.premise_type == 'commercial' else apartment.label() }}</div>
+      </div>
+      {% if row.mode == 'АПП' %}
+        <span class="status-pill status-pill-success">АПП</span>
+      {% elif row.mode == 'не продана' %}
+        <span class="status-pill status-pill-muted">не продана</span>
+      {% else %}
+        <span class="status-pill status-pill-warning">не принята</span>
+      {% endif %}
+      {% if row.inspection_status %}
+        <span class="status-pill {{ 'status-pill-success' if row.inspection_status == 'Был' else 'status-pill-danger' }}">Осмотр: {{ row.inspection_status }}</span>
+      {% endif %}
+      {% if row.has_replaced_glass %}<span class="glass-ordered-badge glass-replaced-badge" title="Стекла поменяны">Стекла поменяны</span>{% elif row.has_ordered_glass %}<span class="glass-ordered-badge" title="Стекла заказаны">Стекла заказаны</span>{% endif %}
+    </div>
+
+    <div class="apartment-card-info">
+      {% if apartment.premise_type != 'commercial' %}
+      <span><i class="bi bi-brush"></i>{{ apartment.finishing_type or 'отделка не указана' }}</span>
+      {% endif %}
+      {% if row.mode == 'АПП' %}
+      <span class="apartment-deadline-line">
+        <i class="bi bi-calendar2-check"></i>
+        Срок устранения: {{ row.remark_deadline_display }}
+        {% if row.remark_deadline_status %}
+          <b class="deadline-badge deadline-badge-{{ row.remark_deadline_status.class }}">{{ row.remark_deadline_status.label }}</b>
+        {% endif %}
+      </span>
+      {% endif %}
+      {% if row.show_avr %}
+      <span class="apartment-avr-line">
+        <i class="bi bi-file-earmark-check"></i>
+        АВР:
+        {% if row.avr_status == avr_status_signed %}
+          <b class="badge-avr-signed">Подписан{% if row.avr_signed_date %} от {{ row.avr_signed_date.strftime('%d.%m.%Y') }}{% endif %}</b>
+        {% else %}
+          <b class="badge-avr-needed">Нужен</b>
+        {% endif %}
+      </span>
+      {% endif %}
+      <span><i class="bi bi-list-check"></i>Замечаний: {{ row.total }}</span>
+      {% if row.mode == 'АПП' %}
+        <span><i class="bi bi-chat-left-text"></i>Комментарий: {{ row.manual_comment or '—' }}</span>
+      {% elif row.mode == 'не принята' %}
+        <span><i class="bi bi-chat-left-text"></i>Комментарий: {{ row.inspection_comment or '—' }}</span>
+      {% endif %}
+    </div>
+    </a>
+
+
+    {% if row.po_status %}
+    <form method="post" action="{{ url_for('main.update_apartment_po_status', apartment_id=apartment.id) }}" class="apartment-po-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-label">ПО</label>
+      <div class="apartment-po-row apartment-po-options">
+        {% if current_user.role != 'viewer' %}
+          {% for value, label in po_status_labels.items() %}
+          <input class="btn-check" type="radio" name="po_status" id="po-{{ apartment.id }}-{{ value }}" value="{{ value }}" {% if row.po_status == value %}checked{% endif %} onchange="this.form.submit()">
+          <label class="po-option po-option-{{ value }}" for="po-{{ apartment.id }}-{{ value }}">{{ label }}</label>
+          {% endfor %}
+        {% else %}
+          <span class="po-option po-option-{{ row.po_status }} is-static">{{ po_status_labels.get(row.po_status, row.po_status) }}</span>
+        {% endif %}
+      </div>
+    </form>
+    {% endif %}
+
+    <div class="apartment-progress">
+      <div class="apartment-progress-head">
+        <span>Готовность</span>
+        <b>{{ row.percent }}%</b>
+      </div>
+      <div class="progress slim-progress">
+        <div class="progress-bar" role="progressbar" style="width: {{ row.percent }}%"></div>
+      </div>
+    </div>
+
+    <div class="apartment-stat-row">
+      <span>Всего <b>{{ row.total }}</b></span>
+      <span>Выполнено <b>{{ row.done }}</b></span>
+      <span>Осталось <b>{{ row.left }}</b></span>
+    </div>
+  </article>
+  {% else %}
+  <div class="card content-card"><div class="card-body text-muted">Квартир по этому фильтру нет.</div></div>
+  {% endfor %}
+</div>
+
+<a class="po-notification-widget" href="{{ url_for('main.apartments', po='1') }}">
+  <span>ПО</span>
+  <b>{{ po_alert_count }}</b>
+</a>
+{% endblock %}

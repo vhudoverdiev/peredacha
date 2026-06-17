@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Вход в систему{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <div class="card login-card shadow-sm">
+    <div class="login-card-glow" aria-hidden="true"></div>
+    <div class="card-body p-4">
+      <form method="post" class="login-form">
+        {{ form.hidden_tag() }}
+        {% if request.args.get('next') %}
+        <input type="hidden" name="next" value="{{ request.args.get('next') }}">
+        {% endif %}
+        <div class="mb-3 login-field">
+          {{ form.username.label(class="form-label") }}
+          <div class="login-input-wrap">
+            <i class="bi bi-person"></i>
+            {{ form.username(class="form-control", autocomplete="username", placeholder="Введите логин") }}
+          </div>
+        </div>
+        <div class="mb-3 login-field">
+          {{ form.password.label(class="form-label") }}
+          <div class="login-input-wrap password-field">
+            <i class="bi bi-key"></i>
+            {{ form.password(class="form-control", data_toggle_password="1", autocomplete="current-password", placeholder="Введите пароль") }}
+            <button class="password-toggle" type="button" aria-label="Показать пароль"><i class="bi bi-eye"></i></button>
+          </div>
+        </div>
+        <div class="login-form-row">
+          <div class="form-check">{{ form.remember(class="form-check-input") }} {{ form.remember.label(class="form-check-label") }}</div>
+        </div>
+        {{ form.submit(class="btn btn-primary w-100 login-submit") }}
+        <button class="btn btn-outline-primary w-100 login-register-button" type="button" data-bs-toggle="modal" data-bs-target="#registrationRequestModal">
+          <i class="bi bi-person-plus me-2"></i>Регистрация
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="registrationRequestModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content registration-request-modal" method="post" action="{{ url_for('auth.registration_request') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-body">
+        <div class="registration-modal-icon"><i class="bi bi-person-plus"></i></div>
+
+        <div class="mb-3 login-field">
+          <label class="form-label" for="registrationName">Ваше имя</label>
+          <div class="login-input-wrap">
+            <i class="bi bi-person"></i>
+            <input class="form-control" id="registrationName" name="name" type="text" maxlength="160" placeholder="Например: Иван" autocomplete="name" required>
+          </div>
+        </div>
+        <div class="mb-3 login-field">
+          <label class="form-label" for="registrationEmail">Email</label>
+          <div class="login-input-wrap">
+            <i class="bi bi-envelope"></i>
+            <input class="form-control" id="registrationEmail" name="email" type="email" maxlength="180" placeholder="example@mail.com" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="mb-3 login-field registration-captcha-field">
+          <label class="form-label" for="registrationCaptcha">Проверка</label>
+          <div class="registration-captcha-question">
+            <i class="bi bi-shield-check"></i>
+            <span>Сколько будет: <b>{{ registration_captcha_question or '2 + 2' }}</b>?</span>
+          </div>
+          <div class="login-input-wrap mt-2">
+            <i class="bi bi-check2-circle"></i>
+            <input class="form-control" id="registrationCaptcha" name="captcha_answer" type="text" inputmode="numeric" maxlength="10" placeholder="Введите ответ" required>
+          </div>
+        </div>
+
+        <div class="registration-modal-actions">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-send me-2"></i>Зарегистрироваться</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

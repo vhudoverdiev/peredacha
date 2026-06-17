@@ -1,0 +1,17 @@
+[Unit]
+Description=Gunicorn instance for crm_flask
+Requires=gunicorn.socket
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/crm_flask
+Environment="PATH=/var/www/crm_flask/venv/bin"
+EnvironmentFile=/var/www/crm_flask/.env
+ExecStart=/var/www/crm_flask/venv/bin/gunicorn --workers 3 --bind unix:/run/gunicorn-crm_flask.sock wsgi:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

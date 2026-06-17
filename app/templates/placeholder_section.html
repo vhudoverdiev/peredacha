@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="page-subtitle">{{ subtitle }}</p>
+  </div>
+  {% if back_url %}
+  <a class="btn btn-outline-secondary" href="{{ back_url }}">{{ back_label }}</a>
+  {% endif %}
+</div>
+
+<div class="card content-card empty-section-card">
+  <div class="card-body text-center py-5">
+    <div class="empty-section-icon"><i class="bi bi-folder2-open"></i></div>
+    <h2 class="section-title mb-2">Пока пусто</h2>
+    <p class="text-muted mb-0">Раздел добавлен в меню. Логику и данные можно подключить следующим шагом.</p>
+  </div>
+</div>
+{% endblock %}

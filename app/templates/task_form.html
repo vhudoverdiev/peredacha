@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Добавить замечание{% endblock %}
+{% block content %}
+<div class="page-head remarks-page-head">
+  <div>
+    <h1 class="page-title">Добавить работу</h1>
+    <p class="page-subtitle">Работа будет добавлена в CRM и попадёт в экспорт Excel.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.task_list') }}">Назад</a>
+</div>
+
+<form method="post" class="card content-card task-manual-form compact-task-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">Квартира / коммерция</label>
+        <select class="form-select" name="apartment_id" required>
+          <option value="">Выберите квартиру / коммерцию</option>
+          {% for apartment in apartments %}
+            <option value="{{ apartment.id }}">{{ apartment.full_label() if apartment.premise_type == 'commercial' else apartment.label() }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Перечень работ</label>
+        <textarea class="form-control" name="description" rows="4" required placeholder="Например: Исправлена регулировка входной двери"></textarea>
+      </div>
+    </div>
+    <div class="material-form-footer mt-4">
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Добавить</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.task_list') }}">Отмена</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Добавить заявку{% endblock %}
+{% block content %}
+{% set material_presets = [
+  ('Ротбанд', 'меш'),
+  ('Плитонит b', 'меш'),
+  ('Ветонит (LR)', 'меш'),
+  ('Ветонит (KR)', 'меш'),
+  ('Наливной пол', 'меш'),
+  ('Стеклопакет', 'шт'),
+  ('Стекло', 'шт'),
+  ('Рама', 'шт')
+] %}
+<div class="page-head remarks-page-head materials-page-head">
+  <div>
+    <h1 class="page-title">Добавить заявку</h1>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='requests') }}">Назад</a>
+</div>
+
+<form method="post" class="card content-card material-form-card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card-body">
+
+    <div class="row g-3 mb-3">
+      <div class="col-12 col-lg-8">
+        <label class="form-label">Название заявки</label>
+        <input class="form-control" name="title" placeholder="Например: Материалы для витражников / заказ стеклопакетов">
+      </div>
+      <div class="col-12 col-lg-4">
+        <label class="form-label">Дата заявки</label>
+        <input class="form-control" type="date" name="request_date" value="{{ today.isoformat() if today else '' }}">
+      </div>
+    </div>
+
+    <div class="material-quick-box mb-3">
+      <div class="material-form-title mb-2">Быстрый выбор</div>
+      <div class="material-quick-list">
+        {% for name, unit in material_presets %}
+          <button class="btn btn-sm btn-outline-primary material-preset-btn" type="button" data-name="{{ name }}" data-unit="{{ unit }}">{{ name }} <span>{{ unit }}</span></button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <datalist id="request-material-presets">
+      {% for name, unit in material_presets %}
+        <option value="{{ name }}"></option>
+      {% endfor %}
+    </datalist>
+
+    <div class="table-responsive">
+      <table class="table align-middle material-edit-table">
+        <thead>
+          <tr>
+            <th style="width:52px">№</th>
+            <th>Наименование</th>
+            <th style="width:180px">Количество</th>
+            <th style="width:190px">Ед.измерения</th>
+          </tr>
+        </thead>
+        <tbody data-max-rows="{{ max_rows }}">
+        {% for i in range(1, 2) %}
+          <tr>
+            <td class="text-muted">{{ i }}</td>
+            <td><input class="form-control material-name-input" name="name[]" list="request-material-presets" placeholder="Например: Ротбанд"></td>
+            <td><input class="form-control" name="quantity[]" inputmode="decimal" placeholder="Например: 5"></td>
+            <td><input class="form-control material-unit-input" name="unit[]" placeholder="меш / кг / шт / м²"></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button class="btn btn-outline-primary material-add-row-btn js-material-request-add-row" type="button">
+      <i class="bi bi-plus-lg me-2"></i>Добавить
+    </button>
+    <div class="material-form-footer">
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Сохранить заявку</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='requests') }}">Отмена</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

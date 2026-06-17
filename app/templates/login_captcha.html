@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Антибот-проверка{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <div class="card login-card shadow-sm">
+    <div class="login-card-glow" aria-hidden="true"></div>
+    <div class="card-body p-4">
+      <form method="post" class="login-form">
+        {{ form.hidden_tag() }}
+        <div class="mb-3 login-captcha-box login-captcha-box-standalone">
+          <div class="captcha-title">
+            <span><i class="bi bi-robot"></i> Антибот-проверка</span>
+          </div>
+          <label class="captcha-question" for="{{ form.captcha_answer.id }}">{{ captcha_question }} = ?</label>
+          <div class="login-input-wrap captcha-answer-wrap">
+            <i class="bi bi-calculator"></i>
+            {{ form.captcha_answer(class="form-control", inputmode="numeric", autocomplete="off", placeholder="Введите ответ", autofocus=true) }}
+          </div>
+        </div>
+        <div class="login-form-row login-captcha-actions">
+          <a class="btn btn-outline-secondary" href="{{ url_for('auth.login') }}">Назад</a>
+          {{ form.submit(class="btn btn-primary login-submit") }}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Ручное списание{% endblock %}
+{% block content %}
+<div class="page-head remarks-page-head materials-page-head">
+  <div>
+    <h1 class="page-title">Ручное списание</h1>
+    <p class="page-subtitle">Ручная строка расхода. Материал выбирается только из остатков на балансе.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='task') }}">Назад</a>
+</div>
+
+<form method="post" class="card content-card material-form-card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">Наименование задачи / замечания</label>
+        <textarea class="form-control" name="task_name" rows="4" required placeholder="Например: Исправлена установка уплотнительных резинок остекления"></textarea>
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label">Дата</label>
+        <input class="form-control" type="date" name="writeoff_date" value="{{ today.isoformat() if today else '' }}">
+      </div>
+      <div class="col-12 col-md-6">
+        <label class="form-label">Материал с баланса</label>
+        {% if balance_options %}
+        <select class="form-select" name="material_key" required>
+          <option value="">Выберите материал</option>
+          {% for row in balance_options %}<option value="{{ row.key }}">{{ row.label }}</option>{% endfor %}
+        </select>
+        {% else %}
+        <div class="empty-info-box">Нет материалов на балансе. Сначала добавьте материал на баланс.</div>
+        {% endif %}
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label">Количество</label>
+        <input class="form-control" name="quantity" inputmode="decimal" required placeholder="Например: 2" {% if not balance_options %}disabled{% endif %}>
+      </div>
+    </div>
+    <div class="material-form-footer mt-4">
+      <button class="btn btn-primary" type="submit" {% if not balance_options %}disabled{% endif %}><i class="bi bi-check2-circle me-2"></i>Ручное списание</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='writeoff') }}">Отмена</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

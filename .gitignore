@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+env/
+
+# Flask / local
+.env
+instance/*.sqlite
+instance/*.db
+
+# Uploads / generated files
+uploads/*
+!uploads/.gitkeep
+exports/*
+!exports/.gitkeep
+
+# System
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Node
+node_modules/

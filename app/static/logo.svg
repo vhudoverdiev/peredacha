@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Передача">
+  <defs>
+    <linearGradient id="g" x1="12" x2="52" y1="8" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6d8bff"/>
+      <stop offset="1" stop-color="#315cff"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#g)"/>
+  <path fill="#fff" d="M18 48 29.3 16h5.4L46 48h-7l-2-6.2H26.8L24.9 48H18Zm10.5-11.7h6.9L32 25.4l-3.5 10.9Z"/>
+  <path fill="#cfe0ff" d="M23 51h18v3H23z"/>
+</svg>

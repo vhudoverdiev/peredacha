@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Отчет{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Отчет</h1>
+    <p class="page-subtitle">Выполненные работы по интервалам 7 дней.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if current_user.role in ['admin', 'manager'] %}
+    <a class="btn btn-outline-primary" href="{{ url_for('main.assignments_report') }}"><i class="bi bi-calendar2-check me-2"></i>Ежедневный отчет</a>
+    {% endif %}
+    <a class="btn btn-success" href="{{ url_for('main.work_report_export') }}"><i class="bi bi-file-earmark-arrow-down me-2"></i>Скачать Exel (все)</a>
+  </div>
+</div>
+
+<div class="report-grid">
+  {% for bucket in buckets %}
+  <details class="card content-card report-card">
+    <summary>
+      <span>
+        <b>Отчет по выполненным работам</b>
+        <em>{{ bucket.start.strftime('%d.%m.%Y') }} - {{ bucket.end.strftime('%d.%m.%Y') }}</em>
+      </span>
+      <span class="report-summary-actions">
+        <span class="stat-badge stat-badge-white">{{ bucket.tasks|length }}</span>
+        <a class="btn btn-sm btn-outline-success" href="{{ url_for('main.work_report_export', week=bucket.index) }}">Скачать</a>
+      </span>
+    </summary>
+    <div class="report-task-list">
+      {% for task in bucket.tasks %}
+      <div class="report-task-item">
+        <b>{{ task.apartment.label() if task.apartment else '—' }} · {{ task.completed_date.strftime('%d.%m.%Y') if task.completed_date else '' }}</b>
+        <span>{{ remark_text(task.description or task.source_cell_value) }}</span>
+      </div>
+      {% else %}
+      <p class="text-muted mb-0">За этот интервал выполненных работ нет.</p>
+      {% endfor %}
+    </div>
+  </details>
+  {% endfor %}
+</div>
+{% endblock %}

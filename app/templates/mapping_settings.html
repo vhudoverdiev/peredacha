@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Распределение{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Распределение</h1>
+    <p class="page-subtitle">Настройка по текущему объекту: {{ project.name }}. Показываются только пункты, которые есть в задачах этого объекта.</p>
+  </div>
+</div>
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="row g-3">
+    {% for category in categories if category.name|lower not in ['все', 'доп.соглашение'] %}
+    <div class="col-lg-4">
+      <div class="card content-card h-100">
+        <div class="card-body">
+          <h2 class="section-title"><span class="badge me-2" style="background: {{ category.color }}">&nbsp;</span>{{ category.name }}</h2>
+          <div class="mapping-list">
+          {% for point in points %}
+            {% if point.point_number not in hidden_point_numbers %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="category_{{ category.id }}" value="{{ point.id }}" id="c{{ category.id }}p{{ point.id }}" {% if point in category.work_points %}checked{% endif %}>
+              <label class="form-check-label" for="c{{ category.id }}p{{ point.id }}"><b>{{ point.point_number }}</b> — {{ point.display_name | replace(point.point_number ~ '. ', '') | replace(point.point_number ~ '.', '') }}</label>
+            </div>
+            {% endif %}
+          {% else %}
+            <div class="text-muted">Пункты появятся после синхронизации выбранного объекта.</div>
+          {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <button class="btn btn-primary mt-3">Сохранить</button>
+</form>
+{% endblock %}

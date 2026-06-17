@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Для разработчика{% endblock %}
+{% block content %}
+<div class="page-head remarks-page-head">
+  <div>
+    <h1 class="page-title">Для разработчика</h1>
+    <p class="page-subtitle">Здесь собираются обращения пользователей, заявки на регистрацию и системные сообщения</p>
+  </div>
+</div>
+
+<div class="developer-section-tabs">
+  <a class="developer-section-tab active" href="{{ url_for('main.site_errors') }}">
+    <i class="bi bi-inbox"></i><span>Сообщения</span>
+  </a>
+  <a class="developer-section-tab" href="{{ url_for('main.developer_delete_logs') }}">
+    <i class="bi bi-clock-history"></i><span>Логи удалений</span>
+  </a>
+</div>
+
+<div class="site-errors-kind-tabs">
+  <a class="site-errors-kind-tab {% if not kind %}active{% endif %}" href="{{ url_for('main.site_errors', status=status) }}">
+    <i class="bi bi-list-ul"></i><span>Все</span>
+  </a>
+  <a class="site-errors-kind-tab {% if kind == 'user' %}active{% endif %}" href="{{ url_for('main.site_errors', kind='user', status=status) }}">
+    <i class="bi bi-chat-dots"></i><span>Обращения</span>
+  </a>
+  <a class="site-errors-kind-tab {% if kind == 'registration' %}active{% endif %}" href="{{ url_for('main.site_errors', kind='registration', status=status) }}">
+    <i class="bi bi-person-plus"></i><span>Регистрации</span>
+  </a>
+  <a class="site-errors-kind-tab {% if kind == 'system' %}active{% endif %}" href="{{ url_for('main.site_errors', kind='system', status=status) }}">
+    <i class="bi bi-exclamation-octagon"></i><span>Системные</span>
+  </a>
+</div>
+
+<div class="card content-card mb-3">
+  <div class="card-body">
+    <form class="row g-2 align-items-end crm-filter-form site-errors-filter-form" method="get">
+      <div class="col-12 col-md-3">
+        <label class="form-label">Тип</label>
+        <select class="form-select" name="kind">
+          <option value="" {% if not kind %}selected{% endif %}>Все</option>
+          <option value="user" {% if kind == 'user' %}selected{% endif %}>От пользователей</option>
+          <option value="registration" {% if kind == 'registration' %}selected{% endif %}>Регистрации</option>
+          <option value="system" {% if kind == 'system' %}selected{% endif %}>Системные ошибки</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label">Статус</label>
+        <select class="form-select" name="status">
+          <option value="" {% if not status %}selected{% endif %}>Все</option>
+          <option value="new" {% if status == 'new' %}selected{% endif %}>Новые</option>
+          <option value="closed" {% if status == 'closed' %}selected{% endif %}>Закрытые / принятые</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-3 filter-actions">
+        <button class="btn btn-primary" type="submit">Применить</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.site_errors') }}">Сброс</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="site-errors-list">
+  {% for report in reports %}
+  <article class="card content-card site-error-card {% if report.status == 'closed' %}closed{% endif %}">
+    <div class="card-body">
+      <div class="site-error-head">
+        <div>
+          {% set kind_label = 'Системная' if report.kind == 'system' else ('Регистрация' if report.kind == 'registration' else 'От пользователя') %}
+          {% set kind_class = 'bg-danger' if report.kind == 'system' else ('bg-success' if report.kind == 'registration' else 'bg-primary') %}
+          <span class="badge {{ kind_class }}">
+            {{ kind_label }}
+          </span>
+          <span class="badge {% if report.status == 'closed' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
+            {{ 'Принята' if report.kind == 'registration' and report.status == 'closed' else ('Закрыта' if report.status == 'closed' else 'Новая') }}
+          </span>
+        </div>
+        <div class="text-muted small">{{ report.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+      </div>
+
+      <div class="site-error-message">{{ report.message }}</div>
+
+      <div class="site-error-meta">
+        <span><i class="bi bi-person me-1"></i>{% if report.user %}{{ report.user.full_name or report.user.username }}{% elif report.kind == 'registration' %}Заявка с экрана входа{% else %}Система{% endif %}</span>
+        {% if report.project %}<span><i class="bi bi-building me-1"></i>{{ report.project.name }}</span>{% endif %}
+        {% if report.page_url %}<span class="site-error-url"><i class="bi bi-link-45deg me-1"></i>{{ report.page_url }}</span>{% endif %}
+      </div>
+
+      {% if report.traceback_text %}
+      <details class="site-error-trace mt-3">
+        <summary>Технические детали</summary>
+        <pre>{{ report.traceback_text }}</pre>
+      </details>
+      {% endif %}
+
+      <div class="site-error-actions mt-3">
+        <form method="post" action="{{ url_for('main.site_error_close', report_id=report.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm {% if report.status == 'closed' %}btn-outline-primary{% else %}btn-outline-secondary{% endif %}" type="submit">
+            {{ 'Вернуть в новые' if report.status == 'closed' else ('Принять' if report.kind == 'registration' else 'Закрыть ошибку') }}
+          </button>
+        </form>
+        <button class="btn btn-sm btn-outline-danger site-error-delete-trigger" type="button"
+                data-bs-toggle="modal"
+                data-bs-target="#deleteErrorModal"
+                data-delete-url="{{ url_for('main.site_error_delete', report_id=report.id) }}"
+                data-error-title="{{ ('Системная ошибка' if report.kind == 'system' else ('Заявка на регистрацию' if report.kind == 'registration' else 'Пользовательская ошибка')) ~ ' от ' ~ report.created_at.strftime('%d.%m.%Y %H:%M') }}">
+          <i class="bi bi-trash me-1"></i>Удалить
+        </button>
+      </div>
+    </div>
+  </article>
+  {% else %}
+  <div class="card content-card"><div class="card-body text-center text-muted py-5">Записей пока нет.</div></div>
+  {% endfor %}
+</div>
+
+<div class="modal fade" id="deleteErrorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <form class="modal-content delete-error-modal" method="post" id="deleteErrorForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-body text-center">
+        <div class="delete-error-icon"><i class="bi bi-trash3"></i></div>
+        <h5 class="delete-error-title">Удалить запись?</h5>
+        <p class="delete-error-text" id="deleteErrorText">Запись будет удалена из раздела «Для разработчика».</p>
+        <div class="delete-error-actions">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-danger">Удалить</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const modal = document.getElementById('deleteErrorModal');
+  const form = document.getElementById('deleteErrorForm');
+  const text = document.getElementById('deleteErrorText');
+  if (!modal || !form) return;
+  document.querySelectorAll('.site-error-delete-trigger').forEach(function (button) {
+    button.addEventListener('click', function () {
+      form.action = button.getAttribute('data-delete-url') || '';
+      const title = button.getAttribute('data-error-title') || 'эту ошибку';
+      if (text) text.textContent = 'Удалить запись: ' + title + '? Это действие нельзя отменить.';
+    });
+  });
+  form.addEventListener('submit', function (event) {
+    if (!form.action) {
+      event.preventDefault();
+      alert('Не удалось определить запись для удаления. Закройте окно и попробуйте ещё раз.');
+    }
+  });
+  modal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    if (!button) return;
+    form.action = button.getAttribute('data-delete-url') || '';
+    const title = button.getAttribute('data-error-title') || 'эту ошибку';
+    if (text) text.textContent = 'Удалить запись: ' + title + '? Это действие нельзя отменить.';
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+{% block title %}Выдача задач{% endblock %}
+{% macro render_issued_employee_card(group, issued_filter, today, overdue_view=False) %}
+<article class="card content-card assignment-issued-card {% if overdue_view %}assignment-overdue-card{% endif %}">
+  <div class="card-header assignment-issued-head">
+    <div class="assignment-issued-user">
+      <span><i class="bi bi-person-check"></i></span>
+      <div>
+        <b>{{ group.user.full_name or group.user.username }}</b>
+        <small>{{ ROLE_LABELS.get(group.user.role, group.user.role) }}</small>
+      </div>
+    </div>
+    <div class="assignment-issued-head-actions">
+      <a class="btn btn-sm btn-outline-success assignment-issued-export-btn" href="{{ url_for('main.assignment_issued_employee_export', user_id=group.user.id, issued_day=issued_filter) }}" title="Скачать задачи сотрудника в Excel">
+        <i class="bi bi-file-earmark-excel"></i><span>Excel</span>
+      </a>
+      <div class="assignment-issued-count">{{ task_count_label(group.rows|length) }}</div>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive assignment-issued-table-wrap">
+      <table class="table align-middle mb-0 assignment-issued-table">
+        <colgroup>
+          <col class="assignment-issued-col-room">
+          <col class="assignment-issued-col-task">
+          <col class="assignment-issued-col-date">
+          <col class="assignment-issued-col-status">
+          <col class="assignment-issued-col-actions">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Помещение</th>
+            <th>Задача</th>
+            <th>Дата выполнения</th>
+            <th>Статус сотрудника</th>
+            <th class="text-end">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in group.rows %}
+          {% set task = row.task %}
+          <tr class="assignment-issued-row {% if task.is_done %}done-task{% endif %}" data-task-id="{{ task.id }}">
+            <td><span class="assignment-room-pill"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else '—' }}</span></td>
+            <td class="task-text"><a class="assignment-task-text assignment-task-open-link" href="{{ url_for('main.task_detail', task_id=task.id) }}">{{ remark_text(task.description or task.source_cell_value) }}</a></td>
+            <td class="assignment-issued-date-cell">
+              <span>{{ task.planned_date.strftime('%d.%m.%Y') if task.planned_date else '—' }}</span>
+              {% if overdue_view and row.overdue_days %}<small class="assignment-overdue-days">просрочено {{ row.overdue_days }} дн.</small>{% endif %}
+            </td>
+            <td>
+              <form method="post" action="{{ url_for('main.assignments', view='issued', issued_day=issued_filter) }}" class="assignment-status-toggle-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="badge assignment-status-toggle bg-{{ row.employee_status.class }}" type="submit" name="toggle_employee_status_task_id" value="{{ task.id }}" title="Нажмите, чтобы изменить статус сотрудника">{{ row.employee_status.label }}</button>
+              </form>
+            </td>
+            <td class="text-end assignment-issued-actions-cell">
+              <div class="assignment-issued-actions">
+                {% if not task.is_done %}
+                <form method="post" action="{{ url_for('main.assignments', view='issued', issued_day=issued_filter) }}" class="assignment-date-action-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-primary js-assignment-date-open" type="button" data-task-id="{{ task.id }}" data-current-date="{{ (task.planned_date or today).isoformat() }}" title="Изменить дату выполнения задачи"><i class="bi bi-calendar-check"></i><span>Изменить дату</span></button>
+                </form>
+                {% endif %}
+                <button class="btn btn-sm assignment-change-assignee-btn js-assignment-change-assignee-open" type="button" title="Сменить исполнителя" aria-label="Сменить исполнителя" data-bs-toggle="modal" data-bs-target="#assignmentChangeAssigneeModal" data-task-id="{{ task.id }}" data-room="{{ task.apartment.label() if task.apartment else '—' }}" data-task-text="{{ (task.description or task.source_cell_value or '')|striptags }}" data-current-responsible-id="{{ task.responsible_id or '' }}" data-current-responsible-name="{{ (task.responsible.full_name or task.responsible.username) if task.responsible else '—' }}">
+                  <i class="bi bi-person-gear"></i><span class="assignment-change-assignee-text">Сменить</span>
+                </button>
+                <form method="post" action="{{ url_for('main.assignment_delete_from_employee', task_id=task.id) }}" class="assignment-delete-employee-form" data-confirm="Удалить эту задачу у сотрудника?
+
+Задача снова станет без исполнителя и без даты выполнения.">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm assignment-delete-employee-task-btn" type="submit" title="Удалить задачу у исполнителя" aria-label="Удалить задачу у исполнителя" data-confirm="Удалить эту задачу у сотрудника?
+
+Задача снова станет без исполнителя и без даты выполнения.">
+                    <i class="bi bi-trash3-fill"></i><span>Удалить</span>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</article>
+{% endmacro %}
+
+{% block content %}
+<div class="page-head remarks-page-head assignments-page-head">
+  <div class="assignment-page-head-main">
+    <h1 class="page-title">Выдача задач</h1>
+    <p class="page-subtitle"></p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap assignment-head-actions">
+    <a class="btn btn-success" href="{{ url_for('main.assignment_manual_task_new') }}"><i class="bi bi-plus-lg me-2"></i>Добавить ручную задачу</a>
+  </div>
+</div>
+
+<div class="assignment-subtabs mb-3">
+  <a class="assignment-subtab {% if view_mode != 'issued' %}active{% endif %}" href="{{ url_for('main.assignments') }}"><i class="bi bi-send-check"></i>Выдать задачи</a>
+  <a class="assignment-subtab {% if view_mode == 'issued' %}active{% endif %}" href="{{ url_for('main.assignments', view='issued') }}"><i class="bi bi-people"></i>Выданные сотрудникам{% if issued_total %}<span title="{{ task_count_label(issued_total) }}">{{ issued_total }}</span>{% endif %}</a>
+</div>
+
+{% if view_mode == 'issued' %}
+<div class="assignment-issued-filters mb-3">
+  <a class="assignment-filter-pill {% if issued_filter == 'today' %}active{% endif %}" href="{{ url_for('main.assignments', view='issued', issued_day='today') }}"><i class="bi bi-calendar-day"></i>Сегодня</a>
+  <a class="assignment-filter-pill {% if issued_filter == 'tomorrow' %}active{% endif %}" href="{{ url_for('main.assignments', view='issued', issued_day='tomorrow') }}"><i class="bi bi-calendar-plus"></i>Завтра</a>
+  <a class="assignment-filter-pill assignment-filter-pill-danger {% if issued_filter == 'overdue' %}active{% endif %}" href="{{ url_for('main.assignments', view='issued', issued_day='overdue') }}"><i class="bi bi-exclamation-triangle"></i>Просроченные{% if overdue_total %}<span>{{ overdue_total }}</span>{% endif %}</a>
+</div>
+<section class="assignment-issued-layout {% if issued_filter == 'overdue' %}assignment-overdue-layout{% endif %}">
+  {% if issued_filter == 'overdue' %}
+    {% if issued_overdue_day_groups %}
+      {% for day_group in issued_overdue_day_groups %}
+      <div class="assignment-overdue-day-group">
+        <div class="assignment-overdue-day-head">
+          <div>
+            <span><i class="bi bi-calendar-x"></i></span>
+            <div>
+              <b>{{ day_group.label }}</b>
+              <small>задачи с этой датой выполнения остались не выполнены</small>
+            </div>
+          </div>
+          <strong>{{ task_count_label(day_group.total) }}</strong>
+        </div>
+        <div class="assignment-overdue-day-cards">
+          {% for group in day_group.groups %}
+            {{ render_issued_employee_card(group, issued_filter, today, True) }}
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="card content-card assignment-issued-empty assignment-overdue-empty">
+        <div class="card-body text-center text-muted py-5">
+          <i class="bi bi-check2-circle"></i>
+          <div>Просроченных невыполненных задач нет.</div>
+        </div>
+      </div>
+    {% endif %}
+  {% else %}
+    {% if issued_groups %}
+      {% for group in issued_groups %}
+        {{ render_issued_employee_card(group, issued_filter, today) }}
+      {% endfor %}
+    {% else %}
+      <div class="card content-card assignment-issued-empty">
+        <div class="card-body text-center text-muted py-5">
+          <i class="bi bi-inbox"></i>
+          <div>Выданных задач за выбранный день пока нет.</div>
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+</section>
+
+<div class="modal fade assignment-change-assignee-modal" id="assignmentChangeAssigneeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content assignment-change-assignee-card" method="post" action="{{ url_for('main.assignments', view='issued', issued_day=issued_filter) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="change_assignee_task_id" value="" class="js-change-assignee-task-id">
+      <div class="assignment-change-assignee-head">
+        <div class="assignment-change-assignee-icon"><i class="bi bi-person-gear"></i></div>
+        <div>
+          <div class="assignment-change-assignee-kicker">Выданные сотрудникам</div>
+          <h2>Сменить исполнителя</h2>
+          <p>Выберите нового сотрудника для этой задачи.</p>
+        </div>
+        <button type="button" class="assignment-change-assignee-close" data-bs-dismiss="modal" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <div class="assignment-change-assignee-taskbox">
+        <div><span>Помещение</span><b class="js-change-assignee-room">—</b></div>
+        <div><span>Текущий исполнитель</span><b class="js-change-assignee-current">—</b></div>
+        <p class="js-change-assignee-task-text">—</p>
+      </div>
+
+      <div class="assignment-change-assignee-list" role="radiogroup" aria-label="Новый исполнитель">
+        {% for user in users %}
+        <label class="assignment-change-assignee-option" data-user-id="{{ user.id }}">
+          <input type="radio" name="new_responsible_id" value="{{ user.id }}" required>
+          <span class="assignment-change-assignee-check"><i class="bi bi-check2"></i></span>
+          <span class="assignment-change-assignee-person">
+            <b>{{ user.full_name or user.username }}</b>
+            <small>{{ ROLE_LABELS.get(user.role, user.role) }}</small>
+          </span>
+          <em class="assignment-change-assignee-current-label">Текущий</em>
+        </label>
+        {% endfor %}
+      </div>
+
+      <div class="assignment-change-assignee-actions">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div class="assignment-toolbar-grid assignment-toolbar-grid-restored mb-3">
+  <div class="card content-card assignment-search-card assignment-search-card-compact">
+    <div class="card-body">
+      <form method="get" class="assignment-search-form assignment-search-form-compact">
+        <div class="assignment-search-field">
+          <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Найти задачу">
+        </div>
+        <div class="assignment-search-actions">
+          <button class="btn btn-primary" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
+          <a class="btn btn-outline-secondary" href="{{ url_for('main.assignments') }}">Сброс</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card content-card assignment-smart-card assignment-smart-card-compact">
+    <div class="card-body">
+      <form method="get" class="assignment-smart-form">
+        <input type="hidden" name="smart" value="1">
+        {% if args.get('q') %}<input type="hidden" name="q" value="{{ args.get('q') }}">{% endif %}
+        <div>
+          <label class="form-label">Исполнитель</label>
+          <select class="form-select" name="smart_user_id" required>
+            <option value="">Выберите сотрудника</option>
+            {% for user in users %}
+            <option value="{{ user.id }}" {% if smart_user and smart_user.id == user.id %}selected{% endif %}>{{ user.full_name or user.username }} — {{ ROLE_LABELS.get(user.role, user.role) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">День</label>
+          <input class="form-control" type="date" name="smart_date" value="{{ smart_date.isoformat() }}">
+        </div>
+        <div class="assignment-smart-actions">
+          <button class="btn btn-primary" type="submit"><i class="bi bi-stars me-2"></i>Подбор задач</button>
+        </div>
+      </form>
+      {% if smart_mode %}
+        <div class="smart-assign-note mt-3">
+          {% if smart_user %}
+            <span>Исполнитель: <b>{{ smart_user.full_name or smart_user.username }}</b></span><span>Уже выдано на день: <b>{{ task_count_label(assigned_today_count) }}</b></span><span>Подобрано: <b>{{ task_count_label(assignment_total) }}</b></span>
+          {% else %}
+            Выберите сотрудника, чтобы CRM подобрала задачи.
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<form method="post" action="{{ url_for('main.assignments') }}" class="card table-shell task-table-shell assignment-shell assignment-contractor-shell js-bulk-selectable" data-search-highlight="{{ args.get('q', '') }}" data-bulk-label-one="задача" data-bulk-label-few="задачи" data-bulk-label-many="задач">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card-body border-bottom assignment-issue-panel assignment-issue-panel-restored">
+    <div class="assignment-section-title mb-3">
+      <span><i class="bi bi-send-check"></i></span>
+      <div>
+        <b>Выдать выбранные задачи</b>
+      </div>
+    </div>
+    <div class="row g-2 align-items-end assignment-bulk-form assignment-bulk-form-restored">
+      <div class="col-12 col-lg-5">
+        <label class="form-label">Кому выдать</label>
+        <select class="form-select" name="responsible_id">
+          <option value="">Выберите пользователя</option>
+          {% for user in users %}
+          <option value="{{ user.id }}" {% if smart_user and smart_user.id == user.id %}selected{% endif %}>{{ user.full_name or user.username }} — {{ ROLE_LABELS.get(user.role, user.role) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-lg-3">
+        <label class="form-label">Дата выполнения</label>
+        <input class="form-control" type="date" name="planned_date" value="{{ smart_date.isoformat() if smart_mode else '' }}">
+      </div>
+      <div class="col-12 col-lg-4">
+        <div class="assignment-bulk-panel-restored-actions">
+          <button class="btn btn-outline-secondary js-check-all" type="button" data-target=".assignment-task-check"><i class="bi bi-check2-square me-2"></i>Выбрать все</button>
+          <button class="btn btn-success js-bulk-submit" type="submit" name="action" value="bulk_assign" disabled><i class="bi bi-send-check me-2"></i>Выдать выбранные</button>
+        </div>
+      </div>
+    </div>
+    <div class="bulk-actions-panel js-bulk-panel d-none mt-3 assignment-bulk-panel">
+      <div class="bulk-actions-count">
+        Выбрано: <span class="js-bulk-count">0</span> <span class="js-bulk-label">задач</span>
+      </div>
+      <button class="btn btn-outline-secondary js-bulk-clear" type="button"><i class="bi bi-x-lg me-2"></i>Снять выбор</button>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive assignment-table-wrap">
+      <table class="table table-hover align-middle task-table mb-0 assignment-contractor-table">
+        <colgroup>
+          <col class="assignment-col-check">
+          <col class="assignment-col-room">
+          <col class="assignment-col-task">
+          <col class="assignment-col-status">
+          <col class="assignment-col-assignee">
+          <col class="assignment-col-date">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="assignment-check-cell"><input class="form-check-input js-bulk-master" type="checkbox" aria-label="Выбрать все задачи"></th>
+            <th>Помещение</th>
+            <th>Задача</th>
+            <th>Статус</th>
+            <th>Исполнитель</th>
+            <th>Дата</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for task in tasks %}
+          <tr class="assignment-task-row js-bulk-row" data-task-id="{{ task.id }}">
+            <td class="assignment-check-cell">
+              <input class="form-check-input assignment-task-check js-bulk-check" type="checkbox" name="task_ids" value="{{ task.id }}" {% if smart_mode %}checked{% endif %}>
+            </td>
+            <td><span class="assignment-room-pill js-highlight-text"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else '—' }}</span></td>
+            <td class="task-text"><span class="assignment-task-text js-highlight-text" title="{{ task.description or task.source_cell_value }}">{{ remark_text(task.description or task.source_cell_value) }}</span></td>
+            <td><span class="badge bg-{{ task.status_class() }}">{{ task.status_label() }}</span></td>
+            <td class="assignment-assignee-cell" data-task-id="{{ task.id }}">
+              {% if task.responsible_id %}
+              <div class="assignment-assignee-current">
+                <span class="assignment-user-pill">
+                  <i class="bi bi-person-check"></i><span>{{ task.responsible.full_name or task.responsible.username }}</span>
+                </span>
+              </div>
+              {% else %}
+              <span class="assignment-user-empty">—</span>
+              {% endif %}
+            </td>
+            <td class="assignment-date-cell">{{ task.planned_date.strftime('%d.%m.%Y') if task.planned_date else '—' }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-5">Задач по этому поиску нет</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</form>
+
+{% if pagination and pagination.pages > 1 %}
+<nav class="mt-3" aria-label="Навигация по задачам">
+  <ul class="pagination justify-content-center mb-0">
+    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}"><a class="page-link" href="{% if pagination.has_prev %}{{ url_for('main.assignments', **prev_args) }}{% else %}#{% endif %}">Назад</a></li>
+    <li class="page-item disabled"><span class="page-link">Стр. {{ pagination.page }} / {{ pagination.pages }}</span></li>
+    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}"><a class="page-link" href="{% if pagination.has_next %}{{ url_for('main.assignments', **next_args) }}{% else %}#{% endif %}">Далее</a></li>
+  </ul>
+</nav>
+{% endif %}
+{% endif %}
+{% endblock %}

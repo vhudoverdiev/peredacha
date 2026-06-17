@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}АВР{% endblock %}
+{% block content %}
+<div class="page-head avr-page-head">
+  <div>
+    <h1 class="page-title">АВР</h1>
+    <p class="page-subtitle">Формирование акта выполненных работ по выбранной квартире.</p>
+  </div>
+</div>
+
+<form class="avr-layout avr-picker-layout" method="post" data-avr-form>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="inspection_date" value="{{ defaults.inspection_date }}" data-avr-inspection-date>
+  <input type="hidden" name="premise_type" value="{{ defaults.premise_type }}" data-avr-premise-type>
+  <script type="application/json" data-avr-apartments>{{ apartments|tojson }}</script>
+
+  <section class="card content-card avr-main-card avr-picker-card">
+    <div class="card-body">
+      <div class="avr-picker-head">
+        <div class="avr-doc-icon"><i class="bi bi-file-earmark-word"></i></div>
+        <div>
+          <h2 class="section-title mb-1">Выберите квартиру / коммерцию</h2>
+          <div class="text-muted">После выбора откроется окно с данными для АВР.</div>
+        </div>
+      </div>
+
+      <div class="avr-picker-row">
+        <div class="avr-field">
+          <label class="form-label" for="avr-apartment">Номер квартиры / коммерции</label>
+          <select class="form-select" id="avr-apartment" name="apartment_id" data-avr-apartment required>
+            <option value="" {% if not defaults.apartment_id %}selected{% endif %}>Выберите квартиру / коммерцию</option>
+            {% for apartment in apartments %}
+            <option value="{{ apartment.id }}" {% if defaults.apartment_id == apartment.id|string %}selected{% endif %}>{{ apartment.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button class="btn btn-primary avr-open-modal-btn" type="button" data-avr-open-modal {% if not apartments %}disabled{% endif %}>
+          <i class="bi bi-window-plus me-2"></i>Открыть данные
+        </button>
+      </div>
+
+      {% if not apartments %}
+      <div class="text-muted small mt-3">В текущем объекте нет квартир для формирования АВР.</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="modal fade avr-data-modal" id="avrDataModal" tabindex="-1" aria-hidden="true" data-avr-modal>
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">Данные АВР</h5>
+            <div class="small text-muted">Проверьте поля перед скачиванием Word.</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          <div class="avr-form-grid">
+        <div class="avr-field">
+          <label class="form-label" for="avr-number">Номер квартиры / коммерции</label>
+          <input class="form-control" id="avr-number" name="apartment_number" value="{{ defaults.apartment_number }}" data-avr-number required>
+        </div>
+
+        <div class="avr-field" data-avr-floor-field>
+          <label class="form-label" for="avr-floor">Этаж</label>
+          <input class="form-control" id="avr-floor" name="floor" value="{{ defaults.floor }}" data-avr-floor required>
+        </div>
+
+        <div class="avr-field avr-field-wide">
+          <label class="form-label" for="avr-owner">ФИО собственника</label>
+          <div class="avr-owner-options" id="avr-owner" data-avr-owner>
+            {% for owner in defaults.owner_options %}
+            <label class="form-check">
+              <input class="form-check-input" type="checkbox" name="owner_names" value="{{ owner }}" {% if owner in defaults.owner_selected %}checked{% endif %}>
+              <span class="form-check-label">{{ owner }}</span>
+            </label>
+            {% endfor %}
+            {% if not defaults.owner_options and defaults.owner_name %}
+            <label class="form-check">
+              <input class="form-check-input" type="checkbox" name="owner_names" value="{{ defaults.owner_name }}" checked>
+              <span class="form-check-label">{{ defaults.owner_name }}</span>
+            </label>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="avr-field">
+          <label class="form-label" for="avr-developer">Представитель застройщика</label>
+          <input class="form-control" id="avr-developer" name="developer_representative" value="{{ defaults.developer_representative }}" data-avr-developer required>
+        </div>
+
+        <div class="avr-field">
+          <label class="form-label" for="avr-date">Дата акта</label>
+          <input class="form-control" id="avr-date" type="date" name="act_date" value="{{ defaults.act_date or today }}" required>
+        </div>
+
+        <div class="avr-field avr-field-wide">
+          <label class="form-label" for="avr-address">Адрес</label>
+          <input class="form-control" id="avr-address" name="address" value="{{ defaults.address }}" data-avr-address>
+        </div>
+
+        <div class="avr-field avr-field-full">
+          <label class="form-label" for="avr-phrase">Текст</label>
+          <textarea class="form-control" id="avr-phrase" name="completion_phrase" rows="3" data-avr-phrase required>{{ defaults.completion_phrase }}</textarea>
+        </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+          <button class="btn btn-primary" type="submit" {% if not apartments %}disabled{% endif %}>
+            <i class="bi bi-download me-2"></i>Скачать АВР
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block layout_mode %}{{ layout_mode or 'app' }}{% endblock %}
+{% block title %}{{ title or 'Раздел в разработке' }}{% endblock %}
+{% block content %}
+<section class="under-dev-page">
+  <div class="under-dev-card card content-card">
+    <div class="card-body">
+      <div class="under-dev-icon"><i class="bi {{ icon or 'bi-tools' }}"></i></div>
+      <h1>{{ message or 'Извините, раздел находится в разработке.' }}</h1>
+      <p>{{ subtitle or 'Функционал будет доступен позже.' }}</p>
+      <a class="btn btn-primary" href="{{ url_for('main.dashboard') }}"><i class="bi bi-arrow-left me-2"></i>Вернуться</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

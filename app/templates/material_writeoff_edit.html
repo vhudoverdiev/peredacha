@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Редактировать списание{% endblock %}
+{% block content %}
+<div class="page-head remarks-page-head materials-page-head">
+  <div>
+    <h1 class="page-title">Редактировать списание</h1>
+    <p class="page-subtitle">Измените дату и позиции списанного материала.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='history') }}">Назад</a>
+</div>
+
+<form method="post" class="card content-card material-form-card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card-body">
+    <div class="row g-3 mb-3">
+      <div class="col-12 col-lg-4">
+        <label class="form-label">Дата списания</label>
+        <input class="form-control" type="date" name="writeoff_date" value="{{ writeoff.writeoff_date.isoformat() if writeoff.writeoff_date else '' }}" required>
+      </div>
+    </div>
+
+    {% if writeoff.tasks %}
+    <div class="empty-info-box mb-3">
+      Привязанные замечания:
+      {% for task in writeoff.tasks %}
+        <b>{{ task.apartment.label() if task.apartment else '—' }}</b>{% if not loop.last %}, {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="table-responsive materials-table-responsive">
+      <table class="table align-middle material-edit-table">
+        <thead>
+          <tr>
+            <th style="width:52px">№</th>
+            <th>Наименование</th>
+            <th style="width:180px">Количество</th>
+            <th style="width:190px">Ед.измерения</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for i in range(0, max_rows) %}
+          {% set item = writeoff.items[i] if i < writeoff.items|length else None %}
+          <tr>
+            <td class="text-muted">{{ i + 1 }}</td>
+            <td><input class="form-control material-name-input" name="name[]" value="{{ item.name if item else '' }}" placeholder="Например: Ротбанд"></td>
+            <td><input class="form-control" name="quantity[]" inputmode="decimal" value="{{ fmt_quantity(item.quantity) if item else '' }}" placeholder="Например: 5"></td>
+            <td><input class="form-control material-unit-input" name="unit[]" value="{{ item.unit if item else '' }}" placeholder="меш / кг / шт / м²"></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="material-form-footer">
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Сохранить</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='history') }}">Отмена</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

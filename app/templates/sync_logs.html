@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Журнал синхронизаций{% endblock %}
+{% block content %}
+<div class="page-head remarks-page-head">
+  <div>
+    <h1 class="page-title">Журнал синхронизаций</h1>
+    <p class="page-subtitle">История загрузок по объекту: {{ project.name }}</p>
+  </div>
+</div>
+
+<div class="card table-shell sync-log-card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table align-middle sync-log-table">
+        <thead>
+          <tr>
+            <th>Дата загрузки</th>
+            <th>Источник</th>
+            <th>Статус</th>
+            <th>Добавлено</th>
+            <th>Обновлено</th>
+            <th>Несостыковок</th>
+            <th>Откат</th>
+            <th class="text-end">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for log in logs %}
+          <tr>
+            <td>{{ log.started_at|msk_datetime }}</td>
+            <td><span class="text-muted">{{ log.source_type }}</span><br><small>{{ log.source_name or '' }}</small></td>
+            <td><span class="badge bg-{{ 'success' if log.status=='success' else 'danger' if log.status=='error' else 'secondary' }}">{{ 'Успешно' if log.status=='success' else 'Ошибка' if log.status=='error' else 'В процессе' }}</span></td>
+            <td>{{ log.created_count }}</td>
+            <td>{{ log.updated_count }}</td>
+            <td>{{ log.missing_count }}</td>
+            <td>
+              {% if log.rolled_back_at %}
+                <span class="badge bg-secondary">Откат {{ log.rolled_back_at|msk_datetime('%d.%m.%Y') }}</span>
+              {% elif log.rollback_note %}
+                <span class="badge bg-warning text-dark" title="{{ log.rollback_note }}">Недоступен</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="sync-actions">
+                <button class="btn btn-outline-warning btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#rollbackLogModal{{ log.id }}" title="Откатить"><i class="bi bi-arrow-counterclockwise"></i></button>
+                <button class="btn btn-outline-danger btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#deleteLogModal{{ log.id }}" title="Удалить"><i class="bi bi-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8" class="text-center text-muted py-5">Синхронизаций пока нет</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% for log in logs %}
+<div class="modal fade crm-modal sync-confirm-modal" id="rollbackLogModal{{ log.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="post" action="{{ url_for('main.rollback_sync_log', log_id=log.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-body">
+        <div class="modal-icon modal-icon-warning"><i class="bi bi-arrow-counterclockwise"></i></div>
+        <h2>Откатить синхронизацию?</h2>
+        <p>Изменения загрузки от {{ log.started_at|msk_datetime }} будут отменены, если для этой синхронизации доступны данные восстановления.</p>
+        <div class="modal-actions">
+          <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Отмена</button>
+          <button class="btn btn-warning" type="submit">Откатить</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal fade crm-modal" id="deleteLogModal{{ log.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="post" action="{{ url_for('main.delete_sync_log', log_id=log.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-body">
+        <div class="modal-icon modal-icon-danger"><i class="bi bi-trash"></i></div>
+        <h2>Удалить запись?</h2>
+        <p>Запись синхронизации от {{ log.started_at|msk_datetime }} сначала будет откатана: данные вернутся к состоянию до этой загрузки. Эта и более новые записи журнала будут удалены, чтобы журнал не расходился с базой.</p>
+        <div class="modal-actions">
+          <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Отмена</button>
+          <button class="btn btn-danger" type="submit">Удалить</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

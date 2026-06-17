@@ -1,0 +1,1944 @@
+document.addEventListener('DOMContentLoaded', () => {
+  let activeInlineEditor = null;
+
+  const tooltips = document.querySelectorAll('[title]');
+  tooltips.forEach(el => {
+    if (window.bootstrap && bootstrap.Tooltip) new bootstrap.Tooltip(el);
+  });
+
+  const getCsrfToken = () => {
+    const el = document.querySelector('input[name="csrf_token"]');
+    return el ? el.value : '';
+  };
+
+  const showCrmNotice = (message, category = 'warning') => {
+    const safeCategory = ['success', 'warning', 'danger', 'info'].includes(category) ? category : 'info';
+    let stack = document.querySelector('.crm-toast-stack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.className = 'flash-stack crm-toast-stack';
+      stack.setAttribute('aria-live', 'polite');
+      stack.setAttribute('aria-atomic', 'true');
+      document.body.appendChild(stack);
+    }
+    const titles = { success: 'Готово', warning: 'Внимание', danger: 'Ошибка', info: 'Информация' };
+    const icons = { success: 'bi-check2-circle', warning: 'bi-exclamation-triangle', danger: 'bi-x-circle', info: 'bi-info-circle' };
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${safeCategory} alert-dismissible fade show crm-toast crm-toast-${safeCategory}`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+      <div class="crm-toast-icon"><i class="bi ${icons[safeCategory]}"></i></div>
+      <div class="crm-toast-body">
+        <div class="crm-toast-title">${titles[safeCategory]}</div>
+        <div class="crm-toast-text">${escapeHtml(String(message || ''))}</div>
+      </div>
+      <button type="button" class="crm-toast-close" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
+    `;
+    stack.appendChild(toast);
+    const close = () => toast.remove();
+    toast.querySelector('.crm-toast-close')?.addEventListener('click', close);
+    window.setTimeout(close, 4500);
+  };
+
+  const moveDoneItemToBottom = () => {
+    // Строки больше не переставляются сразу после изменения статуса.
+    // Серверная сортировка применится только после обновления страницы/таблицы.
+  };
+  window.moveDoneItemToBottom = moveDoneItemToBottom;
+
+
+  const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapeHtml = value => value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+  const applyHighlightToEscaped = (html, regex) => {
+    if (!regex) return html;
+    return html.replace(regex, '<mark class="search-highlight">$1</mark>');
+  };
+
+  const formatRemarkHtml = (value, regex = null) => {
+    const text = String(value || '');
+    if (!text) return '';
+    const pairs = { '"': '"', '«': '»', '“': '”', '„': '“', '‹': '›' };
+    const stack = [];
+    const ranges = [];
+    for (let i = 0; i < text.length; i += 1) {
+      const char = text[i];
+      if (Object.prototype.hasOwnProperty.call(pairs, char)) {
+        if (char === '"' && stack.length && stack[stack.length - 1].close === char) {
+          const item = stack.pop();
+          if (i > item.start) ranges.push([item.start, i + 1]);
+        } else {
+          stack.push({ close: pairs[char], start: i });
+        }
+        continue;
+      }
+      if (stack.length && char === stack[stack.length - 1].close) {
+        const item = stack.pop();
+        if (i > item.start) ranges.push([item.start, i + 1]);
+      }
+    }
+    ranges.sort((a, b) => a[0] - b[0]);
+    if (!ranges.length) return applyHighlightToEscaped(escapeHtml(text), regex);
+
+    let pos = 0;
+    let html = '';
+    ranges.forEach(([start, end]) => {
+      if (start < pos) return;
+      if (start > pos) html += applyHighlightToEscaped(escapeHtml(text.slice(pos, start)), regex);
+      html += `<span class="remark-quoted-strike">${applyHighlightToEscaped(escapeHtml(text.slice(start, end)), regex)}</span>`;
+      pos = end;
+    });
+    if (pos < text.length) html += applyHighlightToEscaped(escapeHtml(text.slice(pos)), regex);
+    return html;
+  };
+
+
+  const showCrmConfirm = (options = {}) => new Promise(resolve => {
+    const settings = typeof options === 'string' ? { message: options } : options;
+    const title = settings.title || 'Подтвердите действие';
+    const message = settings.message || 'Подтвердите действие';
+    const okText = settings.okText || 'Подтвердить';
+    const cancelText = settings.cancelText || 'Отмена';
+    const danger = settings.danger !== false;
+
+    let modal = document.querySelector('.js-crm-assignment-confirm-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.className = 'crm-confirm-overlay assignment-confirm-overlay js-crm-assignment-confirm-modal d-none';
+      modal.innerHTML = `
+        <div class="crm-confirm-card assignment-confirm-card" role="dialog" aria-modal="true" aria-labelledby="assignment-confirm-title" aria-describedby="assignment-confirm-text">
+          <div class="confirm-modal-icon"><i class="bi bi-person-dash"></i></div>
+          <h2 id="assignment-confirm-title" class="js-assignment-confirm-title">Подтвердите действие</h2>
+          <p id="assignment-confirm-text" class="js-assignment-confirm-text">Подтвердите действие</p>
+          <div class="modal-actions">
+            <button class="btn btn-outline-secondary js-assignment-confirm-cancel" type="button">Отмена</button>
+            <button class="btn btn-danger js-assignment-confirm-ok" type="button">Подтвердить</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+    }
+
+    const titleEl = modal.querySelector('.js-assignment-confirm-title');
+    const textEl = modal.querySelector('.js-assignment-confirm-text');
+    const cancel = modal.querySelector('.js-assignment-confirm-cancel');
+    const ok = modal.querySelector('.js-assignment-confirm-ok');
+    if (titleEl) titleEl.textContent = title;
+    if (textEl) textEl.textContent = message;
+    if (cancel) cancel.textContent = cancelText;
+    if (ok) {
+      ok.textContent = okText;
+      ok.className = `btn ${danger ? 'btn-danger' : 'btn-primary'} js-assignment-confirm-ok`;
+    }
+
+    let settled = false;
+    const close = result => {
+      if (settled) return;
+      settled = true;
+      modal.classList.add('d-none');
+      modal.removeEventListener('click', onBackdropClick);
+      document.removeEventListener('keydown', onKeydown);
+      resolve(result);
+    };
+    const onBackdropClick = event => {
+      if (event.target === modal) close(false);
+    };
+    const onKeydown = event => {
+      if (event.key === 'Escape') close(false);
+    };
+
+    if (cancel) cancel.onclick = () => close(false);
+    if (ok) ok.onclick = () => close(true);
+    modal.addEventListener('click', onBackdropClick);
+    document.addEventListener('keydown', onKeydown);
+    modal.classList.remove('d-none');
+    window.setTimeout(() => cancel?.focus(), 0);
+  });
+
+  document.querySelectorAll('[data-search-highlight]').forEach(container => {
+    const query = (container.dataset.searchHighlight || '').trim();
+    if (!query) return;
+    let regex;
+    try {
+      regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+    } catch (e) {
+      return;
+    }
+    container.querySelectorAll('.js-highlight-text').forEach(el => {
+      const raw = el.textContent || '';
+      if (!raw.trim()) return;
+      el.innerHTML = formatRemarkHtml(raw, regex);
+    });
+  });
+
+  document.querySelectorAll('.task-table-shell[data-search-query]').forEach(shell => {
+    const query = (shell.dataset.searchQuery || '').trim();
+    if (!query) return;
+    let regex;
+    try {
+      regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+    } catch (e) {
+      return;
+    }
+    shell.querySelectorAll('.task-text .inline-text').forEach(el => {
+      const raw = el.textContent || '';
+      el.innerHTML = formatRemarkHtml(raw, regex);
+    });
+  });
+
+  document.querySelectorAll('.inline-edit').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const taskId = btn.dataset.taskId;
+      const span = document.querySelector(`.inline-text[data-task-id="${taskId}"]`);
+      if (!span) return;
+      if (span.dataset.editing === '1') return;
+
+      if (activeInlineEditor) {
+        activeInlineEditor.close();
+      }
+
+      span.dataset.editing = '1';
+      const current = span.textContent || '';
+      const editor = document.createElement('div');
+      editor.className = 'inline-editor inline-editor-floating';
+      editor.innerHTML = `
+        <textarea class="form-control" rows="3"></textarea>
+        <div class="inline-editor-actions">
+          <button class="btn btn-primary btn-sm" type="button">Сохранить</button>
+          <button class="btn btn-outline-secondary btn-sm" type="button">Отмена</button>
+        </div>
+      `;
+
+      const textarea = editor.querySelector('textarea');
+      const saveBtn = editor.querySelector('.btn-primary');
+      const cancelBtn = editor.querySelector('.btn-outline-secondary');
+      const host = span.closest('.task-text') || span.parentElement;
+      if (!host) return;
+
+      textarea.value = current;
+      host.classList.add('inline-editing-host');
+      host.appendChild(editor);
+      textarea.focus();
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+      const closeEditor = () => {
+        editor.remove();
+        span.dataset.editing = '0';
+        host.classList.remove('inline-editing-host');
+        if (activeInlineEditor && activeInlineEditor.taskId === taskId) {
+          activeInlineEditor = null;
+        }
+      };
+
+      activeInlineEditor = { taskId, close: closeEditor };
+
+      cancelBtn.addEventListener('click', () => {
+        closeEditor();
+      });
+
+      saveBtn.addEventListener('click', async () => {
+        const next = textarea.value;
+
+        const resp = await fetch(`/tasks/${taskId}/inline-text`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),
+          },
+          body: JSON.stringify({ text: next }),
+        });
+        if (!resp.ok) {
+          window.alert('Не удалось сохранить');
+          return;
+        }
+        const data = await resp.json();
+        span.innerHTML = formatRemarkHtml(data.text ?? next);
+        closeEditor();
+      });
+    });
+  });
+
+  document.querySelectorAll('.object-card[data-href]').forEach(card => {
+    const openCard = event => {
+      if (event.target.closest('a, button, form')) return;
+      window.location.href = card.dataset.href;
+    };
+    card.addEventListener('click', openCard);
+    card.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openCard(event);
+      }
+    });
+  });
+
+
+  document.querySelectorAll('.task-row-link[data-href]').forEach(row => {
+    const openRow = event => {
+      if (event.target.closest('a, button, form, input, textarea, select, label, .inline-editor, .problem-comment-wrap')) return;
+      const bulkScope = row.closest('.js-bulk-selectable');
+      if (bulkScope?.dataset.bulkRowDblclick) return;
+      window.location.href = row.dataset.href;
+    };
+    row.addEventListener('dblclick', openRow);
+  });
+
+  document.querySelectorAll('form[action*="/status/"]').forEach(form => {
+    form.addEventListener('submit', async event => {
+      const row = form.closest('.task-row-link');
+      if (!row) return;
+      if (!form.checkValidity()) {
+        return;
+      }
+      event.preventDefault();
+
+      const submitBtn = event.submitter || form.querySelector('button[type="submit"], button:not([type])');
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        const resp = await fetch(form.action, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: new FormData(form),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || data.ok === false) {
+          window.alert(data.message || 'Не удалось изменить статус');
+          return;
+        }
+
+        const badge = row.querySelector('[data-status-pill]') || row.querySelector('.task-status-cell .badge') || row.querySelector('td .badge');
+        if (badge) {
+          if (badge.classList.contains('status-pill')) {
+            const pillClassMap = {
+              success: 'status-pill-success',
+              info: 'status-pill-info',
+              warning: 'status-pill-warning',
+              danger: 'status-pill-danger',
+              secondary: 'status-pill-muted'
+            };
+            badge.className = `status-pill ${pillClassMap[data.status_class] || 'status-pill-muted'}${badge.classList.contains('apartment-task-status-btn') ? ' apartment-task-status-btn' : ''}`;
+          } else {
+            badge.className = `badge bg-${data.status_class || 'secondary'}`;
+          }
+          badge.textContent = data.status_label || data.status || '';
+        }
+        row.classList.toggle('table-success', Boolean(data.is_done));
+        row.classList.toggle('done-task', Boolean(data.is_done));
+        row.classList.toggle('is-done', Boolean(data.is_done));
+        moveDoneItemToBottom(row);
+
+        if (form.dataset.reloadAfterStatus === '1') {
+          // Не обновляем страницу сразу: пользователь должен видеть строку/карточку на месте
+          // и иметь возможность быстро вернуть действие обратно.
+        }
+
+        if (form.dataset.apartmentStatusToggle !== undefined) {
+          form.action = data.is_done ? (form.dataset.notStartedUrl || form.action) : (form.dataset.doneUrl || form.action);
+        }
+
+        const actionsCell = row.querySelector('.actions-cell');
+        if (actionsCell) {
+          actionsCell.dataset.currentStatus = data.status || '';
+          actionsCell.querySelectorAll('.status-action-form[data-status-action]').forEach(actionForm => {
+            actionForm.classList.toggle('d-none', actionForm.dataset.statusAction === data.status);
+          });
+        }
+
+        const problemWrap = form.querySelector('.problem-comment-wrap');
+        const problemToggle = form.querySelector('.problem-toggle-btn');
+        const problemInput = form.querySelector('input[name="problem_comment"]');
+        if (problemWrap && problemToggle && problemInput) {
+          problemInput.value = '';
+          problemWrap.classList.add('d-none');
+          problemToggle.classList.remove('d-none');
+        }
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll('.password-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const field = btn.closest('.password-field')?.querySelector('input');
+      const icon = btn.querySelector('i');
+      if (!field) return;
+      const show = field.type === 'password';
+      field.type = show ? 'text' : 'password';
+      if (icon) icon.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+    });
+  });
+
+  document.querySelectorAll('.password-preview-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const wrapper = btn.closest('.password-preview');
+      const text = wrapper?.querySelector('span');
+      const icon = btn.querySelector('i');
+      if (!wrapper || !text) return;
+      const show = wrapper.dataset.state !== 'visible';
+      wrapper.dataset.state = show ? 'visible' : 'hidden';
+      text.textContent = show ? wrapper.dataset.visible : wrapper.dataset.hidden;
+      if (icon) icon.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+    });
+  });
+
+  document.querySelectorAll('.problem-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const form = btn.closest('.problem-action-form');
+      const wrap = form?.querySelector('.problem-comment-wrap');
+      const input = wrap?.querySelector('input[name="problem_comment"]');
+      if (!wrap || !input) return;
+      wrap.classList.remove('d-none');
+      input.focus();
+      btn.classList.add('d-none');
+    });
+  });
+
+  document.querySelectorAll('.problem-cancel-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const wrap = btn.closest('.problem-comment-wrap');
+      const form = btn.closest('.problem-action-form');
+      const toggleBtn = form?.querySelector('.problem-toggle-btn');
+      const input = wrap?.querySelector('input[name="problem_comment"]');
+      if (!wrap || !toggleBtn || !input) return;
+      input.value = '';
+      wrap.classList.add('d-none');
+      toggleBtn.classList.remove('d-none');
+    });
+  });
+
+  const fillMaterialRow = (row, name, unit) => {
+    if (!row) return;
+    const nameInput = row.querySelector('input[name="name[]"]');
+    const unitInput = row.querySelector('input[name="unit[]"]');
+    if (nameInput) nameInput.value = name;
+    if (unitInput && (!unitInput.value || unitInput.value.trim() === '')) unitInput.value = unit;
+    const qtyInput = row.querySelector('input[name="quantity[]"]');
+    if (qtyInput && (!qtyInput.value || qtyInput.value.trim() === '')) qtyInput.focus();
+  };
+
+  document.querySelectorAll('.material-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const table = btn.closest('form')?.querySelector('.material-edit-table');
+      if (!table) return;
+      const rows = Array.from(table.querySelectorAll('tbody tr'));
+      const emptyRow = rows.find(row => {
+        const nameInput = row.querySelector('input[name="name[]"]');
+        return nameInput && !nameInput.value.trim();
+      }) || rows[0];
+      fillMaterialRow(emptyRow, btn.dataset.name || '', btn.dataset.unit || '');
+    });
+  });
+
+  const presetUnits = {
+    'ротбанд': 'меш',
+    'плитонит b': 'меш',
+    'ветонит (lr)': 'меш',
+    'ветонит (kr)': 'меш',
+    'наливной пол': 'меш',
+    'стеклопакет': 'шт',
+    'стекло': 'шт',
+    'рама': 'шт',
+  };
+
+  document.querySelectorAll('.material-name-input').forEach(input => {
+    input.addEventListener('change', () => {
+      const row = input.closest('tr');
+      const unitInput = row?.querySelector('.material-unit-input');
+      if (!unitInput || unitInput.value.trim()) return;
+      const key = input.value.trim().toLowerCase();
+      if (presetUnits[key]) unitInput.value = presetUnits[key];
+    });
+  });
+
+  document.querySelectorAll('.js-material-request-add-row').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const form = btn.closest('form');
+      const tbody = form?.querySelector('.material-edit-table tbody');
+      const lastRow = tbody?.querySelector('tr:last-child');
+      if (!tbody || !lastRow) return;
+      const maxRows = Number(tbody.dataset.maxRows || 10);
+      if (tbody.querySelectorAll('tr').length >= maxRows) {
+        btn.disabled = true;
+        return;
+      }
+      const clone = lastRow.cloneNode(true);
+      clone.querySelectorAll('input').forEach(input => {
+        input.value = '';
+        input.classList.remove('is-invalid');
+      });
+      const numberCell = clone.querySelector('td:first-child');
+      if (numberCell) numberCell.textContent = String(tbody.querySelectorAll('tr').length + 1);
+      tbody.appendChild(clone);
+      const nameInput = clone.querySelector('.material-name-input');
+      if (nameInput) {
+        nameInput.addEventListener('change', () => {
+          const unitInput = clone.querySelector('.material-unit-input');
+          if (!unitInput || unitInput.value.trim()) return;
+          const key = nameInput.value.trim().toLowerCase();
+          if (presetUnits[key]) unitInput.value = presetUnits[key];
+        });
+        nameInput.focus();
+      }
+      if (tbody.querySelectorAll('tr').length >= maxRows) {
+        btn.disabled = true;
+      }
+    });
+  });
+
+  document.querySelectorAll('.js-material-request-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelector('.js-material-request-view')?.classList.add('d-none');
+      document.querySelector('.js-material-request-edit-form')?.classList.remove('d-none');
+      btn.classList.add('d-none');
+      document.querySelector('.js-material-request-edit-form input[name="title"]')?.focus();
+    });
+  });
+
+  document.querySelectorAll('.js-material-request-cancel').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const form = btn.closest('.js-material-request-edit-form');
+      form?.classList.add('d-none');
+      document.querySelector('.js-material-request-view')?.classList.remove('d-none');
+      document.querySelector('.js-material-request-edit')?.classList.remove('d-none');
+      if (form) form.reset();
+    });
+  });
+
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.js-check-all').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const selector = btn.dataset.target;
+      if (!selector) return;
+      const scope = btn.closest('.js-bulk-selectable') || document;
+      const checks = Array.from(scope.querySelectorAll(selector)).filter(el => !el.disabled);
+      const shouldCheck = checks.some(el => !el.checked);
+      checks.forEach(el => {
+        el.checked = shouldCheck;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      btn.textContent = shouldCheck ? 'Снять выбор' : 'Выбрать все';
+    });
+  });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const pluralLabel = (count, scope) => {
+    const one = scope.dataset.bulkLabelOne || 'заявка';
+    const few = scope.dataset.bulkLabelFew || 'заявки';
+    const many = scope.dataset.bulkLabelMany || 'заявок';
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+    return many;
+  };
+  const normalizeConfirmText = (text) => (text || '').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+
+  const syncBulkScope = (scope) => {
+    const checks = Array.from(scope.querySelectorAll('.js-bulk-check')).filter(check => !check.disabled);
+    const selected = checks.filter(check => check.checked);
+    const selectedCount = selected.length;
+    const label = pluralLabel(selectedCount, scope);
+    const panel = scope.querySelector('.js-bulk-panel');
+    const master = scope.querySelector('.js-bulk-master');
+    const selectAll = scope.querySelector('.js-check-all');
+
+    scope.querySelectorAll('.js-bulk-row').forEach(row => {
+      const checkbox = row.querySelector('.js-bulk-check');
+      row.classList.toggle('is-selected', Boolean(checkbox?.checked));
+    });
+
+    scope.classList.toggle('has-bulk-selection', selectedCount > 0);
+    if (panel) panel.classList.toggle('d-none', selectedCount === 0);
+    scope.querySelectorAll('.js-bulk-count').forEach(node => { node.textContent = String(selectedCount); });
+    scope.querySelectorAll('.js-bulk-label').forEach(node => { node.textContent = label; });
+    scope.querySelectorAll('.js-bulk-submit').forEach(button => {
+      button.disabled = selectedCount === 0;
+      if (button.dataset.confirm) {
+        button.dataset.confirmResolved = normalizeConfirmText(button.dataset.confirm)
+          .replaceAll('{count}', String(selectedCount))
+          .replaceAll('{label}', label);
+      }
+    });
+    scope.querySelectorAll('.js-glass-bulk-action').forEach(button => {
+      button.classList.toggle('d-none', selectedCount === 0);
+    });
+
+    if (master) {
+      master.checked = checks.length > 0 && selectedCount === checks.length;
+      master.indeterminate = selectedCount > 0 && selectedCount < checks.length;
+    }
+    if (selectAll) {
+      selectAll.textContent = checks.length > 0 && selectedCount === checks.length ? 'Снять выбор' : 'Выбрать все';
+    }
+  };
+
+  document.querySelectorAll('.js-bulk-selectable').forEach(scope => {
+    const checks = Array.from(scope.querySelectorAll('.js-bulk-check'));
+    const setAll = (checked) => {
+      checks.filter(check => !check.disabled).forEach(check => {
+        check.checked = checked;
+        check.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      syncBulkScope(scope);
+    };
+
+    scope.querySelector('.js-bulk-master')?.addEventListener('change', event => {
+      setAll(event.currentTarget.checked);
+    });
+
+    scope.querySelectorAll('.js-bulk-clear').forEach(button => {
+      button.addEventListener('click', () => setAll(false));
+    });
+
+    checks.forEach(check => {
+      check.addEventListener('click', event => event.stopPropagation());
+      check.addEventListener('change', () => syncBulkScope(scope));
+    });
+
+    scope.querySelectorAll('.js-bulk-row').forEach(row => {
+      let openTimer = null;
+      row.addEventListener('click', event => {
+        if (event.target.closest('a, button, input, textarea, select, label, [role="button"]')) return;
+        if (scope.dataset.bulkRowClick === 'open') {
+          const hasActiveSelection = checks.some(check => check.checked && !check.disabled);
+          if (hasActiveSelection) {
+            const checkbox = row.querySelector('.js-bulk-check');
+            if (!checkbox || checkbox.disabled) return;
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            return;
+          }
+          const href = row.dataset.href;
+          if (href) {
+            window.clearTimeout(openTimer);
+            openTimer = window.setTimeout(() => { window.location.href = href; }, 220);
+          }
+          return;
+        }
+        const checkbox = row.querySelector('.js-bulk-check');
+        if (!checkbox || checkbox.disabled) return;
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      row.addEventListener('dblclick', event => {
+        if (!scope.dataset.bulkRowDblclick) return;
+        if (event.target.closest('a, button, input, textarea, select, label, [role="button"]')) return;
+        event.preventDefault();
+        window.clearTimeout(openTimer);
+        if (scope.dataset.bulkRowDblclick === 'select') {
+          const checkbox = row.querySelector('.js-bulk-check');
+          if (!checkbox || checkbox.disabled) return;
+          checkbox.checked = !checkbox.checked;
+          checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+          return;
+        }
+        if (scope.dataset.bulkRowDblclick === 'delete') {
+          row.querySelector('.js-row-delete-action')?.click();
+        }
+      });
+    });
+
+    syncBulkScope(scope);
+  });
+
+  const escapeAssignmentHtml = value => String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+  const assignmentTaskLabel = (value) => {
+    const count = Math.abs(Number.parseInt(value || 0, 10));
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    if (mod10 === 1 && mod100 !== 11) return `${value} задача`;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${value} задачи`;
+    return `${value} задач`;
+  };
+
+  const refreshIssuedCountsAfterRemoval = (row) => {
+    const card = row.closest('.assignment-issued-card');
+    const dayGroup = row.closest('.assignment-overdue-day-group');
+    row.remove();
+    if (card) {
+      const rowsLeft = card.querySelectorAll('.assignment-issued-row').length;
+      const count = card.querySelector('.assignment-issued-count');
+      if (count) count.textContent = assignmentTaskLabel(rowsLeft);
+      if (!rowsLeft) card.remove();
+    }
+    if (dayGroup) {
+      const dayRowsLeft = dayGroup.querySelectorAll('.assignment-issued-row').length;
+      const dayCount = dayGroup.querySelector('.assignment-overdue-day-head strong');
+      if (dayCount) dayCount.textContent = assignmentTaskLabel(dayRowsLeft);
+      if (!dayRowsLeft) dayGroup.remove();
+    }
+  };
+
+  const isOverdueIssuedView = () => Boolean(document.querySelector('.assignment-overdue-layout'));
+
+  const assignmentOverdueDaysText = (isoDate) => {
+    if (!isoDate) return '';
+    const parts = String(isoDate).split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return '';
+    const target = new Date(parts[0], parts[1] - 1, parts[2]);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const diff = Math.floor((todayStart - target) / 86400000);
+    return diff > 0 ? `просрочено ${diff} дн.` : '';
+  };
+
+  const renderIssuedDateCell = (dateCell, payload) => {
+    if (!dateCell) return;
+    const label = payload?.planned_date || '—';
+    const overdueText = payload?.is_overdue ? assignmentOverdueDaysText(payload.planned_date_iso) : '';
+    dateCell.innerHTML = `<span>${escapeAssignmentHtml(label)}</span>${overdueText ? `<small class="assignment-overdue-days">${escapeAssignmentHtml(overdueText)}</small>` : ''}`;
+  };
+
+  const markIssuedRowUnassigned = (row, payload = {}) => {
+    if (!row) return;
+    row.classList.add('assignment-issued-row-unassigned');
+    row.dataset.unassigned = '1';
+    renderIssuedDateCell(row.querySelector('.assignment-issued-date-cell'), payload);
+
+    const statusButton = row.querySelector('.assignment-status-toggle');
+    if (statusButton) {
+      statusButton.textContent = 'Без исполнителя';
+      statusButton.className = 'badge assignment-status-toggle bg-secondary';
+      statusButton.disabled = true;
+      statusButton.title = 'Исполнитель снят. После обновления таблицы задача исчезнет из выданных.';
+    }
+
+    row.querySelectorAll('.js-assignment-date-open').forEach(button => {
+      button.disabled = true;
+      button.title = 'Сначала назначьте исполнителя';
+    });
+
+    const unassignButton = row.querySelector('.js-assignment-unassign-direct, button[name="remove_assignee_task_id"]');
+    if (unassignButton) {
+      unassignButton.disabled = true;
+      unassignButton.classList.add('is-unassigned');
+      unassignButton.title = 'Исполнитель уже снят';
+      const label = unassignButton.querySelector('.assignment-unassign-text');
+      if (label) label.textContent = 'Снят';
+    }
+
+    const changeButton = row.querySelector('.js-assignment-change-assignee-open');
+    if (changeButton) {
+      changeButton.dataset.currentResponsibleId = '';
+      changeButton.dataset.currentResponsibleName = '—';
+    }
+  };
+
+  const nativeSubmitAssignmentAction = (form, submitter) => {
+    if (!form) return;
+    if (submitter?.name) {
+      let hidden = Array.from(form.querySelectorAll('input.js-native-submit-value[type="hidden"]')).find(input => input.name === submitter.name);
+      if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = submitter.name;
+        hidden.className = 'js-native-submit-value';
+        form.appendChild(hidden);
+      }
+      hidden.value = submitter.value || '';
+    }
+    form.dataset.assignmentNativeSubmit = '1';
+    form.submit();
+  };
+
+  const fetchAssignmentAction = async (form, body) => {
+    if (!form || !form.action || !window.fetch) {
+      const error = new Error('Native submit required');
+      error.name = 'AbortError';
+      throw error;
+    }
+    const response = await fetch(form.action, {
+      method: 'POST',
+      body,
+      credentials: 'same-origin',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+      },
+    });
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const error = new Error('Native submit required');
+      error.name = 'AbortError';
+      throw error;
+    }
+    const data = await response.json();
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.message || 'Не удалось сохранить изменения');
+    }
+    return data;
+  };
+
+  const submitIssuedAssignmentAction = async (form, submitter) => {
+    if (!form || !submitter || !submitter.name) return false;
+    if (submitter.dataset.pending === '1') return false;
+
+    const confirmMessage = submitter.dataset.assignmentConfirm;
+    if (confirmMessage) {
+      const confirmed = await showCrmConfirm({
+        title: submitter.dataset.assignmentConfirmTitle || 'Подтвердите действие',
+        message: confirmMessage,
+        okText: submitter.dataset.assignmentConfirmOk || 'Подтвердить',
+        danger: true,
+      });
+      if (!confirmed) return false;
+    }
+
+    const body = new FormData(form);
+    if (submitter.name && submitter.value) {
+      body.set(submitter.name, submitter.value);
+    }
+
+    submitter.dataset.pending = '1';
+    submitter.disabled = true;
+    try {
+      const data = await fetchAssignmentAction(form, body);
+      const row = form.closest('.assignment-issued-row');
+      if (row) {
+        if (submitter.name === 'toggle_employee_status_task_id') {
+          const statusButton = form.querySelector('.assignment-status-toggle');
+          if (statusButton) {
+            statusButton.textContent = data.status_label || statusButton.textContent;
+            statusButton.className = `badge assignment-status-toggle bg-${data.status_class || 'secondary'}`;
+          }
+          row.classList.toggle('done-task', Boolean(data.is_done));
+        } else if (submitter.name === 'update_date_task_id') {
+          renderIssuedDateCell(row.querySelector('.assignment-issued-date-cell'), data);
+        } else if (submitter.name === 'remove_assignee_task_id') {
+          markIssuedRowUnassigned(row, data);
+        }
+      }
+      showCrmNotice(data.message || 'Изменения сохранены', 'success');
+      return true;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        nativeSubmitAssignmentAction(form, submitter);
+        return false;
+      }
+      showCrmNotice(error.message || 'Не удалось сохранить изменения', 'danger');
+      return false;
+    } finally {
+      submitter.disabled = false;
+      delete submitter.dataset.pending;
+    }
+  };
+
+  const assignmentForm = document.querySelector('.assignment-shell');
+  if (assignmentForm) {
+    assignmentForm.addEventListener('submit', event => {
+      if (event.currentTarget.dataset.assignmentNativeSubmit === '1') return;
+      const submitter = event.submitter;
+      const form = event.currentTarget;
+
+      if (submitter?.name === 'action' && submitter.value === 'bulk_assign') {
+        const selected = Array.from(form.querySelectorAll('.js-bulk-check:checked:not(:disabled)'));
+        const responsibleSelect = form.querySelector('select[name="responsible_id"]');
+        if (form.dataset.bulkAssignPending === '1') {
+          event.preventDefault();
+          showCrmNotice('Задачи уже отправляются. Подождите несколько секунд.', 'info');
+          return;
+        }
+        if (!selected.length) {
+          event.preventDefault();
+          showCrmNotice('Выберите хотя бы одну задачу', 'warning');
+          return;
+        }
+        if (!responsibleSelect?.value) {
+          event.preventDefault();
+          responsibleSelect?.classList.add('is-invalid');
+          responsibleSelect?.focus();
+          showCrmNotice('Выберите исполнителя. Отмеченные задачи останутся выбранными.', 'warning');
+          return;
+        }
+        form.dataset.bulkAssignPending = '1';
+        submitter.disabled = true;
+        submitter.classList.add('disabled');
+        const textNode = submitter.querySelector('span');
+        if (textNode) textNode.textContent = 'Выдаём...';
+      }
+    });
+
+    assignmentForm.querySelector('select[name="responsible_id"]')?.addEventListener('change', event => {
+      event.currentTarget.classList.remove('is-invalid');
+    });
+  }
+
+  const refreshIssuedGroupState = (row) => {
+    const card = row.closest('.assignment-issued-card');
+    if (!card) return;
+    const rowsLeft = card.querySelectorAll('.assignment-issued-row').length;
+    const count = card.querySelector('.assignment-issued-count');
+    if (count) count.textContent = assignmentTaskLabel(rowsLeft);
+    if (!rowsLeft) card.remove();
+  };
+
+  const changeAssigneeModal = document.getElementById('assignmentChangeAssigneeModal');
+  if (changeAssigneeModal) {
+    changeAssigneeModal.addEventListener('show.bs.modal', event => {
+      const button = event.relatedTarget?.closest?.('.js-assignment-change-assignee-open') || event.relatedTarget;
+      const taskId = button?.dataset?.taskId || '';
+      const room = button?.dataset?.room || '—';
+      const taskText = button?.dataset?.taskText || '—';
+      const currentId = button?.dataset?.currentResponsibleId || '';
+      const currentName = button?.dataset?.currentResponsibleName || '—';
+
+      const taskIdInput = changeAssigneeModal.querySelector('.js-change-assignee-task-id');
+      if (taskIdInput) taskIdInput.value = taskId;
+      const roomEl = changeAssigneeModal.querySelector('.js-change-assignee-room');
+      const currentEl = changeAssigneeModal.querySelector('.js-change-assignee-current');
+      const taskTextEl = changeAssigneeModal.querySelector('.js-change-assignee-task-text');
+      if (roomEl) roomEl.textContent = room;
+      if (currentEl) currentEl.textContent = currentName;
+      if (taskTextEl) taskTextEl.textContent = taskText;
+
+      changeAssigneeModal.querySelectorAll('input[name="new_responsible_id"]').forEach(input => {
+        const isCurrent = Boolean(currentId) && input.value === currentId;
+        input.checked = false;
+        input.disabled = isCurrent;
+        const option = input.closest('.assignment-change-assignee-option');
+        option?.classList.toggle('is-current', isCurrent);
+      });
+      window.setTimeout(() => {
+        const first = changeAssigneeModal.querySelector('input[name="new_responsible_id"]:not(:disabled)');
+        first?.focus();
+      }, 120);
+    });
+  }
+
+  const pad2 = value => String(value).padStart(2, '0');
+  const toIsoDate = date => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  const parseIsoDate = value => {
+    const parts = String(value || '').split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return new Date();
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  };
+  const prettyDate = value => {
+    try {
+      return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(parseIsoDate(value));
+    } catch (error) {
+      return value || '';
+    }
+  };
+
+  const ensureAssignmentDateModal = () => {
+    let modal = document.querySelector('.js-assignment-date-modal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.className = 'assignment-date-modal-overlay js-assignment-date-modal d-none';
+    modal.innerHTML = `
+      <div class="assignment-date-modal" role="dialog" aria-modal="true" aria-labelledby="assignment-date-modal-title">
+        <div class="assignment-date-modal-head">
+          <div>
+            <div class="assignment-date-modal-kicker">Дата выполнения</div>
+            <h2 id="assignment-date-modal-title">Изменить дату задачи</h2>
+          </div>
+          <button class="assignment-date-modal-close js-assignment-date-cancel" type="button" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="assignment-date-quick-row">
+          <button type="button" class="js-assignment-date-quick" data-offset="0">Сегодня</button>
+          <button type="button" class="js-assignment-date-quick" data-offset="1">Завтра</button>
+          <button type="button" class="js-assignment-date-quick" data-offset="3">+3 дня</button>
+        </div>
+        <div class="assignment-date-calendar">
+          <div class="assignment-date-calendar-head">
+            <button type="button" class="assignment-date-nav js-assignment-date-prev" aria-label="Предыдущий месяц"><i class="bi bi-chevron-left"></i></button>
+            <div class="assignment-date-month js-assignment-date-month"></div>
+            <button type="button" class="assignment-date-nav js-assignment-date-next" aria-label="Следующий месяц"><i class="bi bi-chevron-right"></i></button>
+          </div>
+          <div class="assignment-date-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+          <div class="assignment-date-grid js-assignment-date-grid"></div>
+        </div>
+        <div class="assignment-date-selected">
+          <span>Выбрано</span>
+          <b class="js-assignment-date-selected-text"></b>
+        </div>
+        <div class="assignment-date-modal-actions">
+          <button class="btn btn-outline-secondary js-assignment-date-cancel" type="button">Отмена</button>
+          <button class="btn btn-primary js-assignment-date-save" type="button"><i class="bi bi-check2"></i><span>Сохранить дату</span></button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    return modal;
+  };
+
+  const openAssignmentDateModal = (button) => {
+    const form = button.closest('form');
+    const row = button.closest('.assignment-issued-row');
+    const taskId = button.dataset.taskId;
+    if (!form || !row || !taskId) return;
+
+    const modal = ensureAssignmentDateModal();
+    let selectedIso = button.dataset.currentDate || toIsoDate(new Date());
+    let viewDate = parseIsoDate(selectedIso);
+    viewDate.setDate(1);
+
+    const monthEl = modal.querySelector('.js-assignment-date-month');
+    const gridEl = modal.querySelector('.js-assignment-date-grid');
+    const selectedText = modal.querySelector('.js-assignment-date-selected-text');
+    const saveBtn = modal.querySelector('.js-assignment-date-save');
+
+    const render = () => {
+      const monthLabel = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(viewDate);
+      monthEl.textContent = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+      selectedText.textContent = prettyDate(selectedIso);
+      gridEl.innerHTML = '';
+
+      const year = viewDate.getFullYear();
+      const month = viewDate.getMonth();
+      const first = new Date(year, month, 1);
+      const firstWeekDay = (first.getDay() + 6) % 7;
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const todayIso = toIsoDate(new Date());
+
+      for (let i = 0; i < firstWeekDay; i += 1) {
+        const spacer = document.createElement('span');
+        spacer.className = 'assignment-date-day-spacer';
+        gridEl.appendChild(spacer);
+      }
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const date = new Date(year, month, day);
+        const iso = toIsoDate(date);
+        const dayButton = document.createElement('button');
+        dayButton.type = 'button';
+        dayButton.className = 'assignment-date-day';
+        dayButton.textContent = String(day);
+        dayButton.classList.toggle('is-selected', iso === selectedIso);
+        dayButton.classList.toggle('is-today', iso === todayIso);
+        dayButton.addEventListener('click', () => {
+          selectedIso = iso;
+          render();
+        });
+        gridEl.appendChild(dayButton);
+      }
+    };
+
+    const close = () => {
+      modal.classList.add('d-none');
+      document.removeEventListener('keydown', onKeydown);
+    };
+    const onKeydown = event => {
+      if (event.key === 'Escape') close();
+    };
+
+    modal.querySelectorAll('.js-assignment-date-cancel').forEach(cancel => {
+      cancel.onclick = close;
+    });
+    modal.querySelector('.js-assignment-date-prev').onclick = () => {
+      viewDate.setMonth(viewDate.getMonth() - 1);
+      render();
+    };
+    modal.querySelector('.js-assignment-date-next').onclick = () => {
+      viewDate.setMonth(viewDate.getMonth() + 1);
+      render();
+    };
+    modal.querySelectorAll('.js-assignment-date-quick').forEach(quick => {
+      quick.onclick = () => {
+        const next = new Date();
+        next.setDate(next.getDate() + Number(quick.dataset.offset || 0));
+        selectedIso = toIsoDate(next);
+        viewDate = parseIsoDate(selectedIso);
+        viewDate.setDate(1);
+        render();
+      };
+    });
+    modal.onclick = event => {
+      if (event.target === modal) close();
+    };
+    saveBtn.onclick = async () => {
+      const body = new FormData();
+      const csrf = form.querySelector('input[name="csrf_token"]')?.value || getCsrfToken();
+      if (csrf) body.append('csrf_token', csrf);
+      body.append(`planned_date_${taskId}`, selectedIso);
+      body.append('update_date_task_id', taskId);
+
+      saveBtn.disabled = true;
+      try {
+        const resp = await fetch(form.action || window.location.href, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+          credentials: 'same-origin',
+          body,
+        });
+        const isJson = (resp.headers.get('content-type') || '').includes('application/json');
+        const data = isJson ? await resp.json().catch(() => ({})) : { ok: false, message: 'Сервер вернул не JSON-ответ. Обновите страницу и попробуйте ещё раз.' };
+        if (!resp.ok || !data.ok) {
+          showCrmNotice(data.message || 'Не удалось изменить дату', 'danger');
+          return;
+        }
+        renderIssuedDateCell(row.querySelector('.assignment-issued-date-cell'), data);
+        button.dataset.currentDate = data.planned_date_iso || selectedIso;
+        close();
+        showCrmNotice(data.message || 'Дата выполнения изменена', 'success');
+      } finally {
+        saveBtn.disabled = false;
+      }
+    };
+
+    render();
+    document.addEventListener('keydown', onKeydown);
+    modal.classList.remove('d-none');
+  };
+
+  document.querySelectorAll('.js-assignment-date-open').forEach(button => {
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      openAssignmentDateModal(button);
+    });
+  });
+
+  const postNativeUnassign = (url, csrfToken) => {
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = url;
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'csrf_token';
+    input.value = csrfToken || getCsrfToken();
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+  };
+
+  document.addEventListener('click', async event => {
+    const button = event.target.closest('.js-assignment-unassign-direct');
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+    if (button.disabled || button.dataset.pending === '1') return;
+
+    const confirmed = await showCrmConfirm({
+      title: button.dataset.assignmentConfirmTitle || 'Снять исполнителя',
+      message: button.dataset.assignmentConfirm || 'Снять исполнителя с этой задачи?',
+      okText: button.dataset.assignmentConfirmOk || 'Снять',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    const url = button.dataset.unassignUrl;
+    const csrfToken = button.closest('form')?.querySelector('input[name="csrf_token"]')?.value || getCsrfToken();
+    if (!url) return;
+    if (!window.fetch) {
+      postNativeUnassign(url, csrfToken);
+      return;
+    }
+
+    button.dataset.pending = '1';
+    button.disabled = true;
+    try {
+      const body = new FormData();
+      body.set('csrf_token', csrfToken);
+      const response = await fetch(url, {
+        method: 'POST',
+        body,
+        credentials: 'same-origin',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json',
+        },
+      });
+      const isJson = (response.headers.get('content-type') || '').includes('application/json');
+      if (!isJson) {
+        postNativeUnassign(url, csrfToken);
+        return;
+      }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.ok === false) {
+        showCrmNotice(data.message || 'Не удалось снять исполнителя', 'danger');
+        button.disabled = false;
+        return;
+      }
+      markIssuedRowUnassigned(button.closest('.assignment-issued-row'), data);
+      showCrmNotice(data.message || 'Исполнитель снят', 'success');
+    } catch (error) {
+      showCrmNotice(error.message || 'Не удалось снять исполнителя', 'danger');
+      button.disabled = false;
+    } finally {
+      delete button.dataset.pending;
+    }
+  }, true);
+
+  document.addEventListener('click', event => {
+    const submitter = event.target.closest('button[name="toggle_employee_status_task_id"], button[name="remove_assignee_task_id"]');
+    if (!submitter) return;
+    const form = submitter.closest('form');
+    if (!form) return;
+    if (form.classList.contains('assignment-issued-actions') || form.classList.contains('assignment-status-toggle-form')) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation?.();
+      void submitIssuedAssignmentAction(form, submitter);
+      return;
+    }
+  }, true);
+
+  document.querySelectorAll('.assignment-status-toggle-form, .assignment-issued-actions').forEach(form => {
+    form.addEventListener('submit', async event => {
+      if (event.currentTarget.dataset.assignmentNativeSubmit === '1') return;
+      const submitter = event.submitter;
+      if (!submitter || !submitter.name) return;
+      event.preventDefault();
+      await submitIssuedAssignmentAction(form, submitter);
+    });
+  });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.crm-toast').forEach(toast => {
+    window.clearTimeout(toast._flashTimer);
+    toast._flashTimer = window.setTimeout(() => {
+      const close = toast.querySelector('[data-bs-dismiss="alert"]');
+      if (close) {
+        close.click();
+      } else {
+        toast.remove();
+      }
+    }, 5000);
+  });
+});
+
+// Mobile adaptation helpers
+// Keeps the desktop markup intact, but makes navigation, tables and task rows usable on phones.
+document.addEventListener('DOMContentLoaded', () => {
+  const body = document.body;
+  const menuToggles = Array.from(document.querySelectorAll('.mobile-menu-toggle'));
+  const menuToggle = menuToggles[0] || null;
+  const sidebar = document.querySelector('.app-sidebar');
+  const sidebarBackdrop = document.querySelector('.mobile-sidebar-backdrop');
+
+  const closeMobileMenu = () => {
+    body.classList.remove('mobile-menu-open');
+    menuToggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'false'));
+  };
+
+  const openMobileMenu = () => {
+    body.classList.add('mobile-menu-open');
+    menuToggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'true'));
+  };
+
+  if (menuToggles.length && sidebar) {
+    menuToggles.forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        if (body.classList.contains('mobile-menu-open')) {
+          closeMobileMenu();
+        } else {
+          openMobileMenu();
+        }
+      });
+    });
+  }
+
+  if (sidebarBackdrop) {
+    sidebarBackdrop.addEventListener('click', closeMobileMenu);
+  }
+
+  if (sidebar) {
+    sidebar.querySelectorAll('a.sidebar-link, a.sidebar-sublink').forEach(link => {
+      link.addEventListener('click', closeMobileMenu);
+    });
+  }
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeMobileMenu();
+  });
+
+  // Convert wide tables to mobile cards by copying desktop table headers into data-label attributes.
+  document.querySelectorAll('.table').forEach(table => {
+    if (table.classList.contains('material-edit-table')) return;
+    if (table.closest('.desktop-only-table')) return;
+
+    const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+    if (!headers.length) return;
+
+    table.classList.add('mobile-card-table');
+    table.querySelectorAll('tbody tr').forEach(row => {
+      Array.from(row.children).forEach((cell, index) => {
+        if (!cell.dataset.label && headers[index]) {
+          cell.dataset.label = headers[index];
+        }
+      });
+    });
+  });
+
+  // Карточка замечания/подрядчика открывается двойным нажатием по строке.
+});
+
+
+// Inline material request title editing
+document.addEventListener('click', function (event) {
+  const toggle = event.target.closest('.material-title-edit-toggle');
+  if (toggle) {
+    const target = document.getElementById(toggle.dataset.target);
+    if (target) {
+      target.classList.remove('d-none');
+      target.querySelector('input')?.focus();
+    }
+    return;
+  }
+  const cancel = event.target.closest('.material-title-cancel');
+  if (cancel) {
+    const form = cancel.closest('.material-rename-form');
+    if (form) {
+      form.classList.add('d-none');
+      const input = form.querySelector('input[name="title"]');
+      if (input) input.value = input.defaultValue;
+    }
+  }
+});
+
+// CRM polish: numeric-only inputs, row checkbox toggle, styled confirmations and safe download buttons.
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-digits-only="1"]').forEach(input => {
+    const clean = () => { input.value = (input.value || '').replace(/\D+/g, ''); };
+    input.addEventListener('input', clean);
+    input.addEventListener('paste', () => setTimeout(clean, 0));
+  });
+
+  document.querySelectorAll('.material-select-row').forEach(row => {
+    const checkbox = row.querySelector('input[type="checkbox"]');
+    const syncState = () => row.classList.toggle('is-selected', Boolean(checkbox?.checked));
+    row.addEventListener('click', event => {
+      if (event.target.closest('textarea, select')) return;
+      if (!checkbox) return;
+      // Клик по любой части строки ставит/снимает галочку. Нативный клик по самому checkbox не дублируем.
+      if (!event.target.closest('input[type="checkbox"]')) {
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      syncState();
+    });
+    row.addEventListener('dblclick', event => {
+      if (event.target.closest('a, button, form, input, textarea, select, label')) return;
+      const href = row.dataset.href;
+      if (href) window.location.href = href;
+    });
+    if (checkbox) {
+      checkbox.addEventListener('change', syncState);
+      syncState();
+    }
+  });
+
+  document.querySelectorAll('.js-material-writeoff-form').forEach(form => {
+    const storageKey = form.dataset.selectionKey || 'material-writeoff-selection';
+    const hiddenBox = form.querySelector('.js-material-selected-hidden');
+    const countEl = form.querySelector('.js-material-selected-count');
+    const clearBtn = form.querySelector('.js-material-selected-clear');
+    const readSelection = () => {
+      try {
+        return new Set(JSON.parse(localStorage.getItem(storageKey) || '[]').map(String));
+      } catch (error) {
+        return new Set();
+      }
+    };
+    const writeSelection = (selection) => {
+      localStorage.setItem(storageKey, JSON.stringify(Array.from(selection)));
+    };
+    const syncSelectionUi = () => {
+      const selection = readSelection();
+      form.querySelectorAll('.material-task-check').forEach(check => {
+        check.checked = selection.has(String(check.value));
+        check.closest('.material-select-row')?.classList.toggle('is-selected', check.checked);
+      });
+      if (countEl) countEl.textContent = String(selection.size);
+      if (hiddenBox) {
+        hiddenBox.innerHTML = '';
+        selection.forEach(taskId => {
+          const hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.name = 'task_ids';
+          hidden.value = taskId;
+          hiddenBox.appendChild(hidden);
+        });
+      }
+    };
+
+    form.querySelectorAll('.material-task-check').forEach(check => {
+      check.addEventListener('change', () => {
+        const selection = readSelection();
+        if (check.checked) {
+          selection.add(String(check.value));
+        } else {
+          selection.delete(String(check.value));
+        }
+        writeSelection(selection);
+        syncSelectionUi();
+      });
+    });
+
+    clearBtn?.addEventListener('click', () => {
+      writeSelection(new Set());
+      syncSelectionUi();
+    });
+
+    form.addEventListener('submit', () => {
+      syncSelectionUi();
+    });
+
+    syncSelectionUi();
+  });
+
+
+  const updateGlassBulkAction = () => {
+    const actions = document.querySelectorAll('.js-glass-bulk-action');
+    if (!actions.length) return;
+    const hasChecked = Array.from(document.querySelectorAll('.glass-order-check')).some(check => check.checked && !check.disabled);
+    actions.forEach(action => action.classList.toggle('d-none', !hasChecked));
+  };
+
+  document.querySelectorAll('.glass-order-check').forEach(check => {
+    check.addEventListener('change', updateGlassBulkAction);
+  });
+
+  document.querySelectorAll('.glass-order-row:not(.js-bulk-row)').forEach(row => {
+    const checkbox = row.querySelector('.glass-order-check');
+    const syncState = () => row.classList.toggle('is-selected', Boolean(checkbox?.checked));
+    row.addEventListener('click', event => {
+      if (event.target.closest('a, button, form, textarea, select, label')) return;
+      if (!checkbox || checkbox.disabled) return;
+      if (!event.target.closest('input[type="checkbox"]')) {
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      syncState();
+      updateGlassBulkAction();
+    });
+    if (checkbox) {
+      checkbox.addEventListener('change', () => { syncState(); updateGlassBulkAction(); });
+      syncState();
+    }
+  });
+  updateGlassBulkAction();
+
+  document.querySelectorAll('.js-writeoff-material-select').forEach(select => {
+    const form = select.closest('form');
+    const block = form?.querySelector('.js-writeoff-quantity-block');
+    const input = block?.querySelector('.js-writeoff-quantity-input');
+    const unitBadge = block?.querySelector('.js-writeoff-unit-badge');
+    const balanceHint = block?.querySelector('.js-writeoff-balance-hint');
+    const syncWriteoffQuantity = () => {
+      const option = select.selectedOptions && select.selectedOptions[0];
+      const unit = option?.dataset?.unit || '';
+      const balance = option?.dataset?.balance || '';
+      const hasMaterial = Boolean(select.value);
+      block?.classList.toggle('d-none', !hasMaterial);
+      if (input) {
+        input.disabled = !hasMaterial;
+        input.placeholder = unit ? `Введите количество, ${unit}` : 'Введите количество';
+      }
+      if (unitBadge) unitBadge.textContent = unit ? `ед. изм: ${unit}` : '';
+      if (balanceHint) balanceHint.textContent = hasMaterial && balance ? `Доступно к списанию: ${balance} ${unit}` : '';
+      if (!hasMaterial && input) {
+        input.value = '';
+        input.classList.remove('is-invalid');
+      }
+    };
+    select.addEventListener('change', syncWriteoffQuantity);
+    syncWriteoffQuantity();
+  });
+
+  document.querySelectorAll('.download-excel-btn').forEach(link => {
+    const originalHtml = link.innerHTML;
+    link.addEventListener('click', () => {
+      setTimeout(() => { link.innerHTML = originalHtml; link.classList.remove('disabled'); }, 600);
+    });
+  });
+
+  const ensureConfirmModal = () => {
+    let modal = document.querySelector('.js-crm-confirm-modal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.className = 'crm-confirm-overlay js-crm-confirm-modal d-none';
+    modal.innerHTML = `
+      <div class="crm-confirm-card" role="dialog" aria-modal="true">
+        <div class="confirm-modal-icon"><i class="bi bi-exclamation-triangle"></i></div>
+        <h2>Подтвердите действие</h2>
+        <p class="js-crm-confirm-text">Удалить запись?</p>
+        <div class="modal-actions">
+          <button class="btn btn-outline-secondary js-crm-confirm-cancel" type="button">Отмена</button>
+          <button class="btn btn-danger js-crm-confirm-ok" type="button">Удалить</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    return modal;
+  };
+
+  document.addEventListener('submit', event => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    const submitter = event.submitter;
+    const confirmText = normalizeConfirmText(submitter?.dataset?.confirmResolved || submitter?.dataset?.confirm || form.dataset.confirm);
+    if (!confirmText || form.dataset.confirmed === '1') return;
+    event.preventDefault();
+    const modal = ensureConfirmModal();
+    modal.querySelector('.js-crm-confirm-text').textContent = confirmText || 'Подтвердите действие';
+    modal.classList.remove('d-none');
+    const cancel = modal.querySelector('.js-crm-confirm-cancel');
+    const ok = modal.querySelector('.js-crm-confirm-ok');
+    const close = () => modal.classList.add('d-none');
+    cancel.onclick = close;
+    modal.onclick = e => { if (e.target === modal) close(); };
+    ok.onclick = () => {
+      form.dataset.confirmed = '1';
+      if (submitter?.name && submitter?.value && submitter.name !== 'delete_all' && !submitter.classList.contains('js-bulk-submit')) {
+        form.querySelectorAll(`input[type="checkbox"][name="${CSS.escape(submitter.name)}"]`).forEach(check => {
+          if (check.value !== submitter.value) check.disabled = true;
+        });
+      }
+      if (submitter) {
+        submitter.classList.add('disabled');
+        submitter.setAttribute('aria-disabled', 'true');
+        submitter.style.pointerEvents = 'none';
+        submitter.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Удаление...';
+      }
+      close();
+      if (submitter) {
+        form.requestSubmit(submitter);
+      } else {
+        form.requestSubmit();
+      }
+    };
+  });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const activateGlassType = (row, value) => {
+    const hidden = row.querySelector('.js-glass-type-input');
+    if (hidden) hidden.value = value || 'Стеклопакет';
+    row.querySelectorAll('.js-glass-type-choice').forEach(btn => {
+      btn.classList.toggle('is-active', btn.dataset.value === (value || 'Стеклопакет'));
+    });
+  };
+
+  document.querySelectorAll('.js-glass-multi-form').forEach(form => {
+    const container = form.querySelector('.js-glass-measure-items');
+    const addButton = form.querySelector('.js-glass-add-item');
+    if (!container || !addButton) return;
+
+    const syncRemoveButtons = () => {
+      const rows = container.querySelectorAll('.glass-measure-item-row');
+      rows.forEach(row => {
+        const removeButton = row.querySelector('.js-glass-remove-item');
+        if (removeButton) removeButton.disabled = rows.length <= 1;
+      });
+    };
+
+    container.addEventListener('click', event => {
+      const typeButton = event.target.closest('.js-glass-type-choice');
+      if (typeButton) {
+        activateGlassType(typeButton.closest('.glass-measure-item-row'), typeButton.dataset.value);
+        return;
+      }
+      const removeButton = event.target.closest('.js-glass-remove-item');
+      if (!removeButton) return;
+      const rows = container.querySelectorAll('.glass-measure-item-row');
+      if (rows.length <= 1) return;
+      removeButton.closest('.glass-measure-item-row')?.remove();
+      syncRemoveButtons();
+    });
+
+    addButton.addEventListener('click', () => {
+      const firstRow = container.querySelector('.glass-measure-item-row');
+      if (!firstRow) return;
+      const clone = firstRow.cloneNode(true);
+      clone.querySelectorAll('input').forEach(input => {
+        if (input.name.includes('quantity')) {
+          input.value = '1';
+        } else if (input.classList.contains('js-glass-type-input')) {
+          input.value = 'Стеклопакет';
+        } else {
+          input.value = '';
+        }
+        input.classList.remove('is-invalid');
+      });
+      activateGlassType(clone, 'Стеклопакет');
+      container.appendChild(clone);
+      syncRemoveButtons();
+    });
+
+    container.querySelectorAll('.glass-measure-item-row').forEach(row => {
+      const hidden = row.querySelector('.js-glass-type-input');
+      activateGlassType(row, hidden?.value || 'Стеклопакет');
+    });
+    syncRemoveButtons();
+  });
+});
+
+// Site-wide custom validation: no ugly browser bubbles, only CRM-style messages.
+document.addEventListener('DOMContentLoaded', () => {
+  const ensureValidationToast = () => {
+    let toast = document.querySelector('.js-crm-validation-toast');
+    if (toast) return toast;
+    toast = document.createElement('div');
+    toast.className = 'crm-validation-toast js-crm-validation-toast d-none';
+    toast.innerHTML = `
+      <div class="crm-validation-toast-icon"><i class="bi bi-exclamation-circle"></i></div>
+      <div>
+        <div class="crm-validation-toast-title">Заполните обязательные поля</div>
+        <div class="crm-validation-toast-text">Проверьте выделенные поля и попробуйте ещё раз.</div>
+      </div>
+      <button class="crm-validation-toast-close" type="button" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>`;
+    document.body.appendChild(toast);
+    toast.querySelector('.crm-validation-toast-close')?.addEventListener('click', () => toast.classList.add('d-none'));
+    return toast;
+  };
+
+  const showValidationToast = (message) => {
+    const toast = ensureValidationToast();
+    const text = toast.querySelector('.crm-validation-toast-text');
+    if (text) text.textContent = message || 'Проверьте выделенные поля и попробуйте ещё раз.';
+    toast.classList.remove('d-none');
+    window.clearTimeout(toast._hideTimer);
+    toast._hideTimer = window.setTimeout(() => toast.classList.add('d-none'), 4200);
+  };
+
+  document.querySelectorAll('form').forEach(form => {
+    if (form.dataset.nativeValidation === '1') return;
+    form.noValidate = true;
+    form.addEventListener('input', event => {
+      const field = event.target.closest('input, select, textarea');
+      if (field && field.checkValidity()) field.classList.remove('is-invalid');
+    });
+    form.addEventListener('change', event => {
+      const field = event.target.closest('input, select, textarea');
+      if (field && field.checkValidity()) field.classList.remove('is-invalid');
+    });
+  });
+
+  document.addEventListener('submit', event => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    if (form.dataset.nativeValidation === '1') return;
+    if (form.checkValidity()) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const invalidFields = Array.from(form.querySelectorAll('input, select, textarea'))
+      .filter(field => !field.disabled && field.type !== 'hidden' && !field.checkValidity());
+    invalidFields.forEach(field => field.classList.add('is-invalid'));
+    const firstVisible = invalidFields.find(field => field.offsetParent !== null) || invalidFields[0];
+    if (firstVisible) {
+      firstVisible.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => firstVisible.focus({ preventScroll: true }), 250);
+    }
+    showValidationToast('Заполните выделенные поля. Обязательные поля подсвечены красным.');
+  }, true);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const updateDocumentFieldVisibility = (blocks, visible) => {
+    blocks.forEach(block => {
+      block.style.display = visible ? '' : 'none';
+      block.querySelectorAll('.js-document-field-control').forEach(control => {
+        control.disabled = !visible;
+        if (control.dataset.required === '1') {
+          control.required = visible;
+        }
+      });
+    });
+  };
+
+  const applyOwnerGenderTemplate = (genderFieldId, dataFieldId) => {
+    const gender = document.getElementById(genderFieldId);
+    const data = document.getElementById(dataFieldId);
+    if (!gender || !data) return;
+    const template = gender.value === 'male' ? data.dataset.ownerTemplateMale : data.dataset.ownerTemplateFemale;
+    if (!template) return;
+    const previousTemplate = data.dataset.lastOwnerTemplate || '';
+    const current = data.value.trim();
+    if (!current || current === previousTemplate) {
+      data.value = template;
+      data.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    data.dataset.lastOwnerTemplate = template;
+  };
+
+  const updateDocumentOwnerFields = () => {
+    const selected = document.querySelector('.js-owner-count:checked')?.value || '1';
+    updateDocumentFieldVisibility(document.querySelectorAll('.js-owner-two-field'), selected === '2');
+    updateDocumentFieldVisibility(document.querySelectorAll('.js-owner-one-field'), selected !== '2');
+    const ownerOneLabel = document.querySelector('label[for="field-owner_one_data"]');
+    if (ownerOneLabel) {
+      const marker = ownerOneLabel.querySelector('.required-dot')?.outerHTML || '';
+      ownerOneLabel.innerHTML = `${selected === '2' ? 'Данные 1 собственника' : 'Данные собственника'}${marker}`;
+    }
+    applyOwnerGenderTemplate('field-owner_one_gender', 'field-owner_one_data');
+    applyOwnerGenderTemplate('field-owner_two_gender', 'field-owner_two_data');
+  };
+
+  document.querySelectorAll('.js-owner-count').forEach(input => {
+    input.addEventListener('change', updateDocumentOwnerFields);
+  });
+  ['field-owner_one_gender', 'field-owner_two_gender'].forEach(id => {
+    const field = document.getElementById(id);
+    if (field) field.addEventListener('change', updateDocumentOwnerFields);
+  });
+  updateDocumentOwnerFields();
+
+  document.querySelectorAll('.js-document-choice-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const group = button.closest('.document-choice-group');
+      const target = document.getElementById(group?.dataset.choiceTarget || '');
+      if (!group || !target) return;
+      target.value = button.dataset.value || '';
+      group.querySelectorAll('.js-document-choice-btn').forEach(item => item.classList.toggle('is-active', item === button));
+      target.dispatchEvent(new Event('change', { bubbles: true }));
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+
+      if (button.classList.contains('js-document-transfer-btn')) {
+        const materials = document.getElementById('field-materials_block');
+        const acceptance = document.getElementById('field-acceptance_text');
+        if (materials && button.dataset.materialsTemplate) {
+          materials.value = button.dataset.materialsTemplate;
+          materials.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (acceptance && button.dataset.acceptance) {
+          acceptance.value = button.dataset.acceptance;
+          acceptance.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+    });
+  });
+
+  document.querySelectorAll('.js-document-quick-insert').forEach(button => {
+    button.addEventListener('click', () => {
+      const target = document.getElementById(button.dataset.target || '');
+      if (!target) return;
+      target.value = button.dataset.value || '';
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+      target.focus();
+    });
+  });
+
+  document.querySelectorAll('.document-upload-drop input[type="file"]').forEach(input => {
+    input.addEventListener('change', () => {
+      const label = input.closest('.document-upload-drop')?.querySelector('small');
+      if (label && input.files && input.files[0]) label.textContent = input.files[0].name;
+    });
+  });
+});
+
+// Mobile object search: keeps the objects page lightweight without changing server-side routes.
+document.addEventListener('DOMContentLoaded', () => {
+  const objectSearch = document.querySelector('[data-object-search]');
+  if (!objectSearch) return;
+  const cards = Array.from(document.querySelectorAll('.object-card'));
+  objectSearch.addEventListener('input', () => {
+    const query = objectSearch.value.trim().toLowerCase();
+    cards.forEach(card => {
+      const haystack = card.textContent.toLowerCase();
+      card.hidden = Boolean(query) && !haystack.includes(query);
+    });
+  });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const resultPage = document.querySelector('.js-document-result-page');
+  const editor = document.querySelector('.js-document-editor');
+  const editBack = document.querySelector('.js-document-edit-back');
+  if (!resultPage || !editor || !editBack) return;
+
+  const showEditor = () => {
+    resultPage.classList.add('is-hidden-for-edit');
+    editor.classList.remove('document-editor-hidden');
+    editor.classList.add('is-visible-after-result');
+    const heading = editor.querySelector('.document-flow-section-head .section-title') || editor;
+    requestAnimationFrame(() => heading.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+
+  editBack.addEventListener('click', showEditor);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const list = document.querySelector('[data-worker-task-list]');
+  if (!list) return;
+
+  const updateCounters = (wasDone, isDone) => {
+    if (wasDone === isDone) return;
+    const doneEl = document.querySelector('[data-worker-done-count]');
+    const leftEl = document.querySelector('[data-worker-left-count]');
+    if (!doneEl || !leftEl) return;
+    const done = parseInt(doneEl.textContent || '0', 10) || 0;
+    const left = parseInt(leftEl.textContent || '0', 10) || 0;
+    doneEl.textContent = String(Math.max(0, done + (isDone ? 1 : -1)));
+    leftEl.textContent = String(Math.max(0, left + (isDone ? -1 : 1)));
+  };
+
+  list.addEventListener('submit', async event => {
+    const form = event.target.closest('[data-worker-status-form]');
+    if (!form) return;
+    event.preventDefault();
+
+    const card = form.closest('[data-worker-task-card]');
+    const button = form.querySelector('button[type="submit"]');
+    const pill = card?.querySelector('[data-worker-status-pill]');
+    const wasDone = card?.classList.contains('done') || false;
+    const previousHtml = button?.innerHTML || '';
+    const previousDisabled = button?.disabled || false;
+    if (button) {
+      button.disabled = true;
+      button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Сохраняю';
+    }
+
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        credentials: 'same-origin'
+      });
+      if (!response.ok) throw new Error('request failed');
+      const data = await response.json();
+      if (!data || !data.ok) throw new Error('bad payload');
+
+      if (card) {
+        card.classList.toggle('done', Boolean(data.is_done));
+        if (window.moveDoneItemToBottom) window.moveDoneItemToBottom(card);
+      }
+      if (pill) {
+        pill.className = `worker-status-pill badge bg-${data.status_class || 'secondary'}`;
+        pill.textContent = data.status_label || (data.is_done ? 'Выполнено' : 'Не выполнено');
+      }
+
+      const currentAction = form.action;
+      const nextUrl = form.dataset.nextUrl;
+      if (nextUrl) {
+        form.action = nextUrl;
+        form.dataset.nextUrl = currentAction;
+      }
+      if (button) {
+        button.disabled = false;
+        if (data.is_done) {
+          button.className = 'btn worker-status-btn worker-status-btn-return';
+          button.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i><span>Не выполнено</span>';
+        } else {
+          button.className = 'btn worker-status-btn worker-status-btn-done';
+          button.innerHTML = '<i class="bi bi-check2"></i><span>Выполнено</span>';
+        }
+      }
+      updateCounters(wasDone, Boolean(data.is_done));
+    } catch (error) {
+      if (button) {
+        button.disabled = previousDisabled;
+        button.innerHTML = previousHtml;
+      }
+      form.submit();
+    }
+  });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.querySelector('[data-avr-form]');
+  if (!form) return;
+
+  const source = form.querySelector('[data-avr-apartments]');
+  const select = form.querySelector('[data-avr-apartment]');
+  const modalElement = form.querySelector('[data-avr-modal]');
+  const openModalButton = form.querySelector('[data-avr-open-modal]');
+  const modal = modalElement && window.bootstrap ? bootstrap.Modal.getOrCreateInstance(modalElement) : null;
+  let apartments = [];
+  try {
+    apartments = JSON.parse(source?.textContent || '[]');
+  } catch (error) {
+    apartments = [];
+  }
+
+  const fields = {
+    number: form.querySelector('[data-avr-number]'),
+    floor: form.querySelector('[data-avr-floor]'),
+    floorField: form.querySelector('[data-avr-floor-field]'),
+    owner: form.querySelector('[data-avr-owner]'),
+    address: form.querySelector('[data-avr-address]'),
+    inspectionDate: form.querySelector('[data-avr-inspection-date]'),
+    premiseType: form.querySelector('[data-avr-premise-type]'),
+    phrase: form.querySelector('[data-avr-phrase]')
+  };
+
+  const formatRuDate = value => {
+    if (!value) return '__.__.____';
+    const parts = String(value).split('-');
+    if (parts.length !== 3) return value;
+    return `${parts[2]}.${parts[1]}.${parts[0]}`;
+  };
+
+  const phraseForDate = value => `Все замечания с акта осмотра от ${formatRuDate(value)} устранены.`;
+
+  const setOwnerOptions = selected => {
+    if (!fields.owner) return;
+    const options = Array.isArray(selected.owner_options) && selected.owner_options.length
+      ? selected.owner_options
+      : [selected.owner || ''].filter(Boolean);
+    fields.owner.innerHTML = '';
+    options.forEach((owner, index) => {
+      const label = document.createElement('label');
+      label.className = 'form-check';
+      const input = document.createElement('input');
+      input.className = 'form-check-input';
+      input.type = 'checkbox';
+      input.name = 'owner_names';
+      input.value = owner;
+      input.checked = index === 0;
+      const text = document.createElement('span');
+      text.className = 'form-check-label';
+      text.textContent = owner;
+      label.appendChild(input);
+      label.appendChild(text);
+      fields.owner.appendChild(label);
+    });
+  };
+
+  const applyApartment = () => {
+    const selected = apartments.find(item => String(item.id) === String(select?.value));
+    if (!selected) return null;
+    const isCommercial = selected.premise_type === 'commercial';
+    if (fields.number) fields.number.value = selected.number || '';
+    if (fields.floor) fields.floor.value = selected.floor || '';
+    if (fields.floor) fields.floor.required = !isCommercial;
+    if (fields.floorField) fields.floorField.hidden = isCommercial;
+    if (fields.premiseType) fields.premiseType.value = selected.premise_type || 'apartment';
+    setOwnerOptions(selected);
+    if (fields.address) fields.address.value = selected.address || '';
+    if (fields.inspectionDate) fields.inspectionDate.value = selected.inspection_date || '';
+    if (fields.phrase) {
+      const nextPhrase = selected.phrase || phraseForDate(selected.inspection_date);
+      fields.phrase.value = nextPhrase;
+      fields.phrase.dataset.autoPhrase = nextPhrase;
+    }
+    return selected;
+  };
+
+  const openApartmentModal = () => {
+    const selected = applyApartment();
+    if (selected && modal) {
+      modal.show();
+    }
+  };
+
+  select?.addEventListener('change', openApartmentModal);
+  openModalButton?.addEventListener('click', openApartmentModal);
+  fields.inspectionDate?.addEventListener('change', () => {
+    if (!fields.phrase) return;
+    const nextPhrase = phraseForDate(fields.inspectionDate.value);
+    if (!fields.phrase.value.trim() || fields.phrase.value === fields.phrase.dataset.autoPhrase) {
+      fields.phrase.value = nextPhrase;
+    }
+    fields.phrase.dataset.autoPhrase = nextPhrase;
+  });
+});

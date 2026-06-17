@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+{% block title %}Расход материалов{% endblock %}
+{% block content %}
+<div class="page-head remarks-page-head materials-page-head">
+  <div>
+    <h1 class="page-title">Расход материалов</h1>
+    <p class="page-subtitle">Все важная информация в одном месте</p>
+  </div>
+  <div class="materials-actions">
+    {% if active_tab == 'requests' and can_edit_materials %}
+      <a class="btn btn-success" href="{{ url_for('main.material_request_new') }}"><i class="bi bi-plus-lg me-2"></i>Добавить заявку</a>
+    {% elif active_tab == 'history' %}
+      <a class="btn btn-outline-success download-excel-btn" href="{{ url_for('main.material_expense_export') }}"><i class="bi bi-file-earmark-excel me-2"></i><span>Скачать Excel</span></a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="materials-summary-grid materials-summary-grid-compact mb-3">
+  <article class="materials-summary-card" style="--delay: 0ms">
+    <span class="materials-summary-icon"><i class="bi bi-receipt"></i></span>
+    <div>
+      <div class="materials-summary-label">Заявок</div>
+      <div class="materials-summary-value">{{ material_requests|length }}</div>
+    </div>
+  </article>
+  <article class="materials-summary-card" style="--delay: 70ms">
+    <span class="materials-summary-icon"><i class="bi bi-arrow-down-circle"></i></span>
+    <div>
+      <div class="materials-summary-label">Списаний</div>
+      <div class="materials-summary-value">{{ writeoffs|length }}</div>
+    </div>
+  </article>
+</div>
+
+<div class="remarks-tabs materials-tabs materials-tabs-polished mb-3">
+  <ul class="nav crm-tabs">
+    <li class="nav-item"><a class="nav-link {% if active_tab == 'balance' %}active{% endif %}" href="{{ url_for('main.materials', tab='balance') }}">Баланс</a></li>
+    <li class="nav-item"><a class="nav-link {% if active_tab == 'requests' %}active{% endif %}" href="{{ url_for('main.materials', tab='requests') }}">Заявки</a></li>
+    <li class="nav-item"><a class="nav-link {% if active_tab == 'writeoff' %}active{% endif %}" href="{{ url_for('main.materials', tab='writeoff') }}">Списать материалы</a></li>
+    <li class="nav-item"><a class="nav-link {% if active_tab == 'history' %}active{% endif %}" href="{{ url_for('main.materials', tab='history') }}">История списаний</a></li>
+    <li class="nav-item"><a class="nav-link {% if active_tab == 'task' %}active{% endif %}" href="{{ url_for('main.materials', tab='task') }}">Ручное списание</a></li>
+  </ul>
+</div>
+
+{% if active_tab == 'balance' %}
+{% if can_edit_materials %}
+<form id="material-balance-delete-form" method="post" action="{{ url_for('main.material_balance_delete') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+{% endif %}
+<div class="card table-shell task-table-shell materials-animated-card js-bulk-selectable" data-bulk-label-one="позиция" data-bulk-label-few="позиции" data-bulk-label-many="позиций">
+  {% if can_edit_materials %}
+  <div class="card-header material-bulk-header">
+    <div>
+      <b>Баланс материалов</b>
+      <div class="text-muted small"></div>
+    </div>
+  </div>
+  <div class="bulk-actions-panel js-bulk-panel d-none">
+    <div class="bulk-actions-count">Выбрано: <b class="js-bulk-count">0</b> <span class="js-bulk-label">позиций</span></div>
+    <button class="btn btn-outline-secondary btn-sm js-check-all" type="button" data-target=".material-balance-check">Выбрать все</button>
+    <button class="btn btn-danger btn-sm js-bulk-submit" type="submit" form="material-balance-delete-form" data-confirm="Удалить выбранные позиции баланса?\n\nБудет удалено: {count} {label}.\n\nИз связанных заявок и списаний будут удалены эти материалы." disabled><i class="bi bi-trash me-2"></i>Удалить выбранные</button>
+  </div>
+  {% endif %}
+  <div class="card-body p-0">
+    <div class="table-responsive materials-table-responsive">
+      <table class="table table-hover align-middle task-table materials-table">
+        <thead>
+          <tr>
+            <th>Наименование</th>
+            <th>Заказано</th>
+            <th>Списано</th>
+            <th>На балансе</th>
+            <th>Ед. измерения</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in balance_rows %}
+          <tr class="js-bulk-row">
+            <td>
+              {% if can_edit_materials %}
+                <input class="form-check-input material-balance-check js-bulk-check d-none" type="checkbox" name="material_keys" value="{{ row.key }}" form="material-balance-delete-form" aria-label="Выбрать {{ row.name }}">
+              {% endif %}
+              <b>{{ row.name }}</b>
+            </td>
+            <td>{{ fmt_quantity(row.received) }}</td>
+            <td>{{ fmt_quantity(row.spent) }}</td>
+            <td><span class="material-balance-badge {% if row.balance > 0 %}is-positive{% elif row.balance < 0 %}is-negative{% else %}is-zero{% endif %}">{{ fmt_quantity(row.balance) }}</span></td>
+            <td>{{ row.unit }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-5">Материала на балансе пока нет. Сначала добавьте заявку.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% elif active_tab == 'requests' %}
+{% if can_edit_materials %}
+<form id="material-requests-delete-form" method="post" action="{{ url_for('main.material_requests_bulk_delete') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+{% endif %}
+<div class="card table-shell task-table-shell materials-animated-card js-bulk-selectable" data-bulk-label-one="заявка" data-bulk-label-few="заявки" data-bulk-label-many="заявок" data-bulk-row-click="open" data-bulk-row-dblclick="select">
+  {% if can_edit_materials %}
+  <div class="card-header material-bulk-header">
+    <div>
+      <b>Заявки</b>
+      <div class="text-muted small"></div>
+    </div>
+  </div>
+  <div class="bulk-actions-panel js-bulk-panel d-none">
+    <div class="bulk-actions-count">Выбрано: <b class="js-bulk-count">0</b> <span class="js-bulk-label">заявок</span></div>
+    <button class="btn btn-outline-secondary btn-sm js-check-all" type="button" data-target=".material-request-check">Выбрать все</button>
+    <button class="btn btn-danger btn-sm js-bulk-submit" type="submit" form="material-requests-delete-form" data-confirm="Удалить выбранные заявки?\n\nБудет удалено: {count} {label}.\n\nЭто действие нельзя отменить." disabled><i class="bi bi-trash me-2"></i>Удалить выбранные</button>
+  </div>
+  {% endif %}
+  <div class="card-body p-0">
+    <div class="table-responsive materials-table-responsive">
+      <table class="table table-hover align-middle task-table materials-table">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Название заявки</th>
+            <th>Позиции</th>
+            <th>Количество всего</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for req in material_requests %}
+          {% set total_qty = req.items|sum(attribute='quantity') %}
+          {% set request_title = req.title or req.comment or ('Заявка №' ~ req.id) %}
+          <tr class="task-row-link js-bulk-row" data-href="{{ url_for('main.material_request_detail', request_id=req.id) }}">
+            <td>
+              {% if can_edit_materials %}
+                <input class="form-check-input material-request-check js-bulk-check d-none" type="checkbox" name="request_ids" value="{{ req.id }}" form="material-requests-delete-form" aria-label="Выбрать заявку {{ request_title }}">
+              {% endif %}
+              {{ req.request_date.strftime('%d.%m.%Y') if req.request_date else '' }}
+            </td>
+            <td><span class="material-request-title-text">{{ request_title }}</span></td>
+            <td>{{ req.items|length }}</td>
+            <td>{{ fmt_quantity(total_qty) }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="text-center text-muted py-5">Заявок на материал пока нет</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% elif active_tab == 'writeoff' %}
+<div class="card content-card mb-3 materials-animated-card">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end crm-filter-form materials-filter-form">
+      <input type="hidden" name="tab" value="writeoff">
+      <div class="col-12 col-lg-8">
+        <label class="form-label">Поиск</label>
+        <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите цифру или текст">
+      </div>
+      <div class="col-12 col-lg-4 filter-actions">
+        <button class="btn btn-primary" type="submit">Найти</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='writeoff') }}">Сброс</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<form method="post" action="{{ url_for('main.material_writeoff_new') }}" class="material-writeoff-form js-material-writeoff-form" data-selection-key="material-writeoff-{{ project.id }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="js-material-selected-hidden"></div>
+  <div class="row g-3">
+    <div class="col-12 col-xl-7">
+      <div class="card content-card h-100 materials-animated-card">
+        <div class="card-body">
+          <div class="material-form-title">1. Выберите замечания</div>
+          <div class="material-selected-strip">
+            Выбрано для списания: <b class="js-material-selected-count">0</b>
+            <button class="btn btn-sm btn-outline-secondary js-material-selected-clear" type="button">Очистить выбор</button>
+          </div>
+          <div class="material-tasks-box" data-search-highlight="{{ args.get('q', '') }}">
+            <table class="table table-hover align-middle material-tasks-table">
+              <thead>
+                <tr>
+                  <th style="width:48px"></th>
+                  <th style="width:130px">№ помещения</th>
+                  <th>Замечание</th>
+                  <th style="width:120px">Статус</th>
+                </tr>
+              </thead>
+              <tbody>
+              {% for task in writeoff_tasks %}
+                <tr class="task-row-link material-select-row" data-href="{{ url_for('main.task_detail', task_id=task.id) }}" data-task-id="{{ task.id }}">
+                  <td><input class="form-check-input material-task-check" type="checkbox" name="task_ids" value="{{ task.id }}" data-task-id="{{ task.id }}"></td>
+                  <td>{{ task.apartment.label() if task.apartment else '—' }}</td>
+                  <td class="task-text"><span class="js-highlight-text">{{ remark_text(task.description or task.source_cell_value) }}</span></td>
+                  <td><span class="badge bg-{{ task.status_class() }}">{{ task.status_label() }}</span></td>
+                </tr>
+              {% else %}
+                <tr><td colspan="4" class="text-center text-muted py-4">Замечаний по этому поиску нет</td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="form-text mt-2">Галочку можно поставить кликом по всей строке. Двойной клик откроет карточку замечания.</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-xl-5">
+      <div class="card content-card h-100 materials-animated-card">
+        <div class="card-body">
+          <div class="material-form-title">2. Списать материал с баланса</div>
+          {% if balance_options %}
+          <div class="mb-3">
+            <label class="form-label">Дата списания</label>
+            <input class="form-control" type="date" name="writeoff_date" value="{{ today.isoformat() if today is defined else '' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Материал</label>
+            <select class="form-select js-writeoff-material-select" name="material_key" required>
+              <option value="">Выберите материал с остатком</option>
+              {% for row in balance_options %}
+                <option value="{{ row.key }}" data-unit="{{ row.unit }}" data-balance="{{ fmt_quantity(row.balance) }}">{{ row.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3 js-writeoff-quantity-block d-none">
+            <label class="form-label d-flex justify-content-between align-items-center gap-2">
+              <span>Количество списания</span>
+              <span class="material-unit-pill js-writeoff-unit-badge"></span>
+            </label>
+            <input class="form-control js-writeoff-quantity-input" name="quantity" inputmode="decimal" required placeholder="Введите количество">
+            <div class="form-text js-writeoff-balance-hint"></div>
+          </div>
+          <div class="material-form-footer">
+            <button class="btn btn-primary" type="submit" name="action" value="writeoff"><i class="bi bi-check2-circle me-2"></i>Списать материал</button>
+            <button class="btn btn-outline-primary" type="submit" name="action" value="distribute"><i class="bi bi-shuffle me-2"></i>Распределить</button>
+          </div>
+          {% else %}
+            <div class="empty-info-box">Нет материалов на балансе. Сначала добавьте материал на баланс.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+{% elif active_tab == 'history' %}
+{% if can_edit_materials %}
+<form id="material-writeoffs-delete-form" method="post" action="{{ url_for('main.material_writeoffs_bulk_delete') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+{% endif %}
+<div class="card table-shell task-table-shell materials-animated-card js-bulk-selectable" data-bulk-label-one="списание" data-bulk-label-few="списания" data-bulk-label-many="списаний">
+  {% if can_edit_materials %}
+  <div class="card-header material-bulk-header">
+    <div>
+      <b>История списаний</b>
+      <div class="text-muted small"></div>
+    </div>
+  </div>
+  <div class="bulk-actions-panel js-bulk-panel d-none">
+    <div class="bulk-actions-count">Выбрано: <b class="js-bulk-count">0</b> <span class="js-bulk-label">списаний</span></div>
+    <button class="btn btn-outline-secondary btn-sm js-check-all" type="button" data-target=".material-writeoff-check">Выбрать все</button>
+    <button class="btn btn-danger btn-sm js-bulk-submit" type="submit" form="material-writeoffs-delete-form" data-confirm="Удалить выбранные списания?\n\nБудет удалено: {count} {label}.\n\nЭто действие нельзя отменить." disabled><i class="bi bi-trash me-2"></i>Удалить выбранные</button>
+  </div>
+  {% endif %}
+  <div class="card-body p-0">
+    <div class="table-responsive materials-table-responsive">
+      <table class="table table-hover align-middle task-table materials-table">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>№</th>
+            <th>Перечень замечаний</th>
+            <th>Потраченный материал</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for writeoff in writeoffs %}
+          <tr class="js-bulk-row">
+            <td>
+              {% if can_edit_materials %}
+                <input class="form-check-input material-writeoff-check js-bulk-check d-none" type="checkbox" name="writeoff_ids" value="{{ writeoff.id }}" form="material-writeoffs-delete-form" aria-label="Выбрать списание">
+              {% endif %}
+              {{ writeoff.writeoff_date.strftime('%d.%m.%Y') if writeoff.writeoff_date else '' }}
+            </td>
+            <td>
+              {% set labels = [] %}
+              {% for task in writeoff.tasks %}
+                {% if task.apartment and task.apartment.label() not in labels %}{% set _ = labels.append(task.apartment.label()) %}{% endif %}
+              {% endfor %}
+              {{ labels|join(', ') or '—' }}
+            </td>
+            <td>
+              <div class="material-task-list">
+                {% for task in writeoff.tasks %}
+                  <div class="material-task-item"><span>{{ remark_text(task.description or task.source_cell_value) }}</span></div>
+                {% else %}
+                  <span class="text-muted">Замечания не выбраны</span>
+                {% endfor %}
+              </div>
+            </td>
+            <td>
+              {% for item in writeoff.items %}
+                <div class="material-spent-item">{{ item.name }} — <b>{{ fmt_quantity(item.quantity) }}</b> {{ item.unit }}</div>
+              {% else %}
+                <span class="text-muted">Нет позиций</span>
+              {% endfor %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="text-center text-muted py-5">Списаний материала пока нет</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% elif active_tab == 'task' %}
+<div class="manual-writeoff-shell">
+  <form method="post" action="{{ url_for('main.material_manual_task_new') }}" class="card content-card material-form-card material-manual-card materials-animated-card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="card-body">
+      <div class="material-manual-head">
+        <div>
+          <div class="material-form-title mb-1">Ручное списание</div>
+        </div>
+      </div>
+      <div class="manual-writeoff-grid">
+        <div class="manual-task-field">
+          <label class="form-label">Наименование</label>
+          <textarea class="form-control" name="task_name" rows="4" required placeholder="Например: Исправлена установка уплотнительных резинок остекления"></textarea>
+        </div>
+        <div>
+          <label class="form-label">Дата</label>
+          <input class="form-control" type="date" name="writeoff_date" value="{{ today.isoformat() if today is defined else '' }}">
+        </div>
+        <div>
+          <label class="form-label">Материал</label>
+          {% if balance_options %}
+          <select class="form-select" name="material_key" required>
+            <option value="">Выберите материал</option>
+            {% for row in balance_options %}<option value="{{ row.key }}">{{ row.label }}</option>{% endfor %}
+          </select>
+          {% else %}
+          <div class="empty-info-box">Нет материалов на балансе. Сначала добавьте материал на баланс.</div>
+          {% endif %}
+        </div>
+        <div>
+          <label class="form-label">Количество</label>
+          <input class="form-control" name="quantity" inputmode="decimal" required placeholder="" {% if not balance_options %}disabled{% endif %}>
+        </div>
+      </div>
+      <div class="material-form-footer mt-4">
+        <button class="btn btn-primary" type="submit" {% if not balance_options %}disabled{% endif %}><i class="bi bi-check2-circle me-2"></i>Ручное списание</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

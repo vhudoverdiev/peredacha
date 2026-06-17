@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Передача{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v47-developer-logs">
+</head>
+<body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and mobile_version_under_development %} mobile-dev-flag{% endif %}">
+{% if current_user.is_authenticated and mobile_version_under_development %}
+<section class="mobile-dev-screen" aria-live="polite">
+  <div class="mobile-dev-card">
+    <div class="mobile-dev-icon"><i class="bi bi-phone"></i></div>
+    <h1>Мобильная версия в разработке</h1>
+    <p>Извините, мобильная версия сайта временно недоступна. Пожалуйста, откройте CRM с компьютера.</p>
+  </div>
+</section>
+{% endif %}
+{% set layout_mode %}{% block layout_mode %}app{% endblock %}{% endset %}
+{% set page_content %}{% block content %}{% endblock %}{% endset %}
+{% set worker_role = current_user.is_authenticated and current_user.role in ['painter', 'handyman', 'glazier'] %}
+{% set report_only_role = current_user.is_authenticated and current_user.role == 'verifier' %}
+
+{% macro report_error_button(extra_class='') -%}
+<button type="button" class="btn btn-sm report-error-btn {{ extra_class }}" data-bs-toggle="modal" data-bs-target="#reportErrorModal" title="Сообщить об ошибке" aria-label="Сообщить об ошибке">
+  <span class="report-error-icon" aria-hidden="true">?</span>
+</button>
+{%- endmacro %}
+
+{% macro flash_toasts(messages, extra_class='') -%}
+  {% if messages %}
+    <div class="flash-stack crm-toast-stack {{ extra_class }}" aria-live="polite" aria-atomic="true">
+    {% for category, message in messages %}
+      {% set toast_category = 'danger' if category in ['error', 'danger'] else (category if category in ['success', 'warning', 'info'] else 'info') %}
+      {% set icon = 'bi-check-circle-fill' if toast_category == 'success' else ('bi-exclamation-triangle-fill' if toast_category == 'warning' else ('bi-x-circle-fill' if toast_category == 'danger' else 'bi-info-circle-fill')) %}
+      {% set title = 'Готово' if toast_category == 'success' else ('Внимание' if toast_category == 'warning' else ('Ошибка' if toast_category == 'danger' else 'Сообщение')) %}
+      <div class="alert alert-{{ toast_category }} alert-dismissible fade show crm-toast crm-toast-{{ toast_category }}" role="alert">
+        <div class="crm-toast-icon"><i class="bi {{ icon }}"></i></div>
+        <div class="crm-toast-body">
+          <div class="crm-toast-title">{{ title }}</div>
+          <div class="crm-toast-text">{{ message }}</div>
+        </div>
+        <button type="button" class="crm-toast-close" data-bs-dismiss="alert" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+{%- endmacro %}
+
+{% macro mobile_page_chrome(title='Передача', back_href=None) -%}
+  <div class="mobile-app-topbar" aria-label="Мобильная шапка">
+    <a class="mobile-top-avatar" href="{{ url_for('main.my_tasks') if worker_role else url_for('main.objects') }}" aria-label="Главная">A</a>
+    <div class="mobile-top-title">{{ title }}</div>
+    <a class="mobile-top-icon" href="{{ url_for('main.notifications') }}" aria-label="Уведомления"><i class="bi bi-bell"></i></a>
+  </div>
+{%- endmacro %}
+
+{% macro mobile_bottom_nav(active='dashboard') -%}
+  <nav class="mobile-bottom-nav" aria-label="Основная навигация">
+    {% if worker_role %}
+    <a class="mobile-nav-item active" href="{{ url_for('main.my_tasks') }}">
+      <i class="bi bi-check2-square"></i><span>Мои задачи</span>
+    </a>
+    {% elif report_only_role %}
+    <a class="mobile-nav-item {% if active == 'report' %}active{% endif %}" href="{{ url_for('main.work_report') }}">
+      <i class="bi bi-file-earmark-bar-graph"></i><span>Отчет</span>
+    </a>
+    {% if not hide_documents_section %}
+    <a class="mobile-nav-item {% if layout_mode.strip() == 'documents' %}active{% endif %}" href="{{ url_for('main.documents') }}">
+      <i class="bi bi-files"></i><span>Документы</span>
+    </a>
+    {% endif %}
+    <a class="mobile-nav-item {% if active == 'objects' %}active{% endif %}" href="{{ url_for('main.objects') }}">
+      <i class="bi bi-diagram-3"></i><span>Объект</span>
+    </a>
+    {% else %}
+    <a class="mobile-nav-item {% if active == 'objects' %}active{% endif %}" href="{{ url_for('main.objects') }}">
+      <i class="bi bi-diagram-3"></i><span>Объекты</span>
+    </a>
+    {% if active == 'apartments' %}
+      <a class="mobile-nav-item active" href="{{ url_for('main.apartments') }}"><i class="bi bi-buildings"></i><span>Квартиры</span></a>
+    {% elif active == 'contractors' %}
+      <a class="mobile-nav-item active" href="{{ url_for('main.contractors_list') }}"><i class="bi bi-person-gear"></i><span>Подрядчики</span></a>
+    {% elif active == 'materials' %}
+      <a class="mobile-nav-item active" href="{{ url_for('main.materials') }}"><i class="bi bi-box-seam"></i><span>Расходы</span></a>
+    {% elif active == 'glass' %}
+      <a class="mobile-nav-item active" href="{{ url_for('main.glass_measurements') }}"><i class="bi bi-window"></i><span>Замеры</span></a>
+    {% else %}
+      <a class="mobile-nav-item {% if active == 'dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-1x2"></i><span>Дашборд</span></a>
+    {% endif %}
+    <a class="mobile-nav-item {% if active == 'remarks' %}active{% endif %}" href="{{ url_for('main.task_list') }}">
+      <i class="bi bi-card-checklist"></i><span>Замечания</span>
+    </a>
+    {% if active == 'report' %}
+      <a class="mobile-nav-item active" href="{{ url_for('main.work_report') }}"><i class="bi bi-file-earmark-bar-graph"></i><span>Отчет</span></a>
+    {% else %}
+      <button class="mobile-nav-item mobile-menu-toggle mobile-more-trigger" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="appSidebar">
+        <i class="bi bi-three-dots"></i><span>Еще</span>
+      </button>
+    {% endif %}
+    {% endif %}
+  </nav>
+{%- endmacro %}
+
+{% set mobile_title = 'Передача' %}
+{% set mobile_active = 'dashboard' %}
+{% if layout_mode.strip() == 'objects' %}
+  {% set mobile_title = 'Объекты' %}
+  {% set mobile_active = 'objects' %}
+{% elif layout_mode.strip() == 'documents' %}
+  {% set mobile_title = 'Документы' %}
+  {% set mobile_active = 'objects' %}
+{% elif layout_mode.strip() == 'settings' %}
+  {% set mobile_title = 'Настройки' %}
+  {% set mobile_active = 'objects' %}
+{% elif report_only_role or request.endpoint in ['main.work_report', 'main.work_report_export', 'main.assignments_report', 'main.assignments_report_worker_pdf'] %}
+  {% set mobile_title = 'Отчет' %}
+  {% set mobile_active = 'report' %}
+{% elif worker_role %}
+  {% set mobile_title = '' %}
+  {% set mobile_active = 'remarks' %}
+{% elif request.endpoint == 'main.dashboard' %}
+  {% set mobile_title = 'Дашборд' %}
+  {% set mobile_active = 'dashboard' %}
+{% elif request.endpoint in ['main.task_list', 'main.task_detail', 'main.task_new'] %}
+  {% set mobile_title = 'Замечания' %}
+  {% set mobile_active = 'remarks' %}
+{% elif request.endpoint in ['main.contractors_list', 'main.contractors_export'] %}
+  {% set mobile_title = 'Подрядчики' %}
+  {% set mobile_active = 'contractors' %}
+{% elif request.endpoint == 'main.avr' %}
+  {% set mobile_title = 'АВР' %}
+  {% set mobile_active = 'apartments' %}
+{% elif request.endpoint in ['main.apartments', 'main.apartment_detail'] %}
+  {% set mobile_title = 'Квартиры' %}
+  {% set mobile_active = 'apartments' %}
+{% elif request.endpoint in ['main.materials', 'main.material_request_new', 'main.material_writeoff_new', 'main.material_expense_export', 'main.material_manual_task_new', 'main.material_request_detail'] %}
+  {% set mobile_title = 'Расход материалов' %}
+  {% set mobile_active = 'materials' %}
+{% elif request.endpoint in ['main.glass_measurements', 'main.glass_measurement_save', 'main.glass_order'] %}
+  {% set mobile_title = 'Замеры' %}
+  {% set mobile_active = 'glass' %}
+{% elif request.endpoint in ['main.assignments', 'main.assignment_manual_task_new'] %}
+  {% set mobile_title = 'Выдача задач' %}
+  {% set mobile_active = 'remarks' %}
+{% elif request.endpoint == 'main.site_settings' %}
+  {% set mobile_title = 'Настройки' %}
+  {% set mobile_active = 'objects' %}
+{% elif request.endpoint in ['main.notifications', 'main.notification_avr_status'] %}
+  {% set mobile_title = 'Уведомления' %}
+  {% set mobile_active = 'objects' %}
+{% endif %}
+
+{% if current_user.is_authenticated and layout_mode.strip() == 'objects' %}
+<div class="objects-layout">
+  {{ mobile_page_chrome(mobile_title) }}
+  <header class="objects-topbar">
+    <a class="sidebar-brand-link" href="{{ url_for('main.objects') }}">
+      <img class="brand-logo" src="{{ url_for('static', filename='logo.svg') }}" alt="">
+      <span class="brand-text">Передача</span>
+    </a>
+    <div class="topbar-actions">
+      {% if current_user.role in ['admin', 'manager'] %}
+      <a class="btn btn-primary" href="{{ url_for('main.object_new') }}"><i class="bi bi-plus-lg me-2"></i>Добавить объект</a>
+      {% endif %}
+      {% if not worker_role and not hide_documents_section %}
+      <a class="btn btn-outline-light objects-documents-button" href="{{ url_for('main.documents') }}"><i class="bi bi-files me-2"></i>Документы</a>
+      {% endif %}
+      <div class="dropdown">
+        <a class="topbar-user dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="topbar-avatar"><i class="bi bi-person-fill"></i></span>
+          <span>{{ current_user.full_name or current_user.username }}</span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end">
+          {% if current_user.role in ['admin', 'manager'] %}
+          <li><a class="dropdown-item" href="{{ url_for('main.site_settings') }}"><i class="bi bi-sliders me-2"></i>Настройки сайта</a></li>
+          <li><hr class="dropdown-divider"></li>
+          {% endif %}
+          <li>
+            <form class="px-3 py-1" method="post" action="{{ url_for('auth.logout') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-secondary w-100" type="submit">Выйти</button>
+            </form>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </header>
+  <main class="objects-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {{ flash_toasts(messages) }}
+    {% endwith %}
+    {{ page_content }}
+    <footer class="crm-footer"><span>CRM от Худовердиева В</span></footer>
+  </main>
+  {{ mobile_bottom_nav(mobile_active) }}
+</div>
+{% elif current_user.is_authenticated and layout_mode.strip() in ['documents', 'settings'] %}
+<div class="documents-standalone-layout {% if layout_mode.strip() == 'settings' %}settings-standalone-layout{% endif %}">
+  {{ mobile_page_chrome(mobile_title) }}
+  <header class="objects-topbar">
+    <a class="sidebar-brand-link" href="{{ url_for('main.objects') }}">
+      <img class="brand-logo" src="{{ url_for('static', filename='logo.svg') }}" alt="">
+      <span class="brand-text">Передача</span>
+    </a>
+    <div class="topbar-actions">
+      <div class="dropdown">
+        <a class="topbar-user dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="topbar-avatar"><i class="bi bi-person-fill"></i></span>
+          <span>{{ current_user.full_name or current_user.username }}</span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li>
+            <form class="px-3 py-1" method="post" action="{{ url_for('auth.logout') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-secondary w-100" type="submit">Выйти</button>
+            </form>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </header>
+  <main class="documents-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {{ flash_toasts(messages) }}
+    {% endwith %}
+    {{ page_content }}
+    <footer class="crm-footer"><span>CRM от Худовердиева В</span></footer>
+  </main>
+  {{ mobile_bottom_nav(mobile_active) }}
+</div>
+{% elif current_user.is_authenticated %}
+<div class="app-layout {% if worker_role %}worker-layout{% endif %}">
+  {{ mobile_page_chrome(mobile_title) }}
+  <button class="mobile-menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="appSidebar">
+    <i class="bi bi-list"></i><span>Меню</span>
+  </button>
+  <div class="mobile-sidebar-backdrop" aria-hidden="true"></div>
+  <aside class="app-sidebar" id="appSidebar">
+    <div class="sidebar-brand">
+      <a class="sidebar-brand-link" href="{{ url_for('main.work_report') if report_only_role else url_for('main.dashboard') }}">
+        <img class="brand-logo" src="{{ url_for('static', filename='logo.svg') }}" alt="">
+        <span class="brand-text">Передача</span>
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      {% if report_only_role %}
+      <a class="sidebar-link {% if request.endpoint in ['main.work_report', 'main.work_report_export', 'main.assignments_report', 'main.assignments_report_worker_pdf'] %}active{% endif %}" href="{{ url_for('main.work_report') }}" {% if request.endpoint in ['main.work_report', 'main.work_report_export', 'main.assignments_report', 'main.assignments_report_worker_pdf'] %}aria-current="page"{% endif %}>
+        <i class="bi bi-file-earmark-bar-graph"></i><span>Отчет</span>
+      </a>
+      {% elif worker_role %}
+      <a class="sidebar-link {% if request.endpoint in ['main.my_tasks', 'main.my_task_done', 'main.my_task_return'] %}active{% endif %}" href="{{ url_for('main.my_tasks') }}">
+        <i class="bi bi-check2-square"></i><span>Мои задачи</span>
+      </a>
+      {% else %}
+      <a class="sidebar-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">
+        <i class="bi bi-grid-1x2"></i><span>Дашборд</span>
+      </a>
+      {% set remarks_active = request.endpoint in ['main.task_list', 'main.task_detail', 'main.task_new'] %}
+      <a class="sidebar-link {% if remarks_active %}active{% endif %}" href="{{ url_for('main.task_list') }}">
+        <i class="bi bi-card-checklist"></i><span>Замечания</span>
+      </a>
+      <a class="sidebar-link {% if request.endpoint in ['main.contractors_list', 'main.contractors_export'] %}active{% endif %}" href="{{ url_for('main.contractors_list') }}">
+        <i class="bi bi-person-gear"></i><span>Подрядчики</span>
+      </a>
+      <a class="sidebar-link {% if request.endpoint in ['main.apartments', 'main.apartment_detail'] %}active{% endif %}" href="{{ url_for('main.apartments') }}">
+        <i class="bi bi-buildings"></i><span>Квартиры</span>
+      </a>
+      <a class="sidebar-link {% if request.endpoint == 'main.avr' %}active{% endif %}" href="{{ url_for('main.avr') }}">
+        <i class="bi bi-file-earmark-check"></i><span>АВР</span>
+      </a>
+      <a class="sidebar-link {% if request.endpoint in ['main.materials', 'main.material_request_new', 'main.material_writeoff_new', 'main.material_expense_export', 'main.material_manual_task_new', 'main.material_request_detail'] %}active{% endif %}" href="{{ url_for('main.materials') }}">
+        <i class="bi bi-box-seam"></i><span>Расход материалов</span>
+      </a>
+      <a class="sidebar-link {% if request.endpoint in ['main.glass_measurements', 'main.glass_measurement_save', 'main.glass_order'] %}active{% endif %}" href="{{ url_for('main.glass_measurements') }}">
+        <i class="bi bi-window"></i><span>Замеры</span>
+      </a>
+      {% if current_user.role in ['admin', 'manager'] %}
+      <a class="sidebar-link {% if request.endpoint in ['main.assignments', 'main.assignment_manual_task_new'] %}active{% endif %}" href="{{ url_for('main.assignments') }}">
+        <i class="bi bi-person-check"></i><span>Выдача задач</span>
+      </a>
+      {% endif %}
+      <a class="sidebar-link {% if request.endpoint in ['main.work_report', 'main.work_report_export', 'main.assignments_report', 'main.assignments_report_worker_pdf'] %}active{% endif %}" href="{{ url_for('main.work_report') }}">
+        <i class="bi bi-file-earmark-bar-graph"></i><span>Отчет</span>
+      </a>
+      {% if current_user.role in ['admin', 'manager'] %}
+      <a class="sidebar-link {% if request.endpoint in ['main.site_errors', 'main.site_error_close', 'main.site_error_delete', 'main.developer_delete_logs', 'main.developer_delete_log_undo'] %}active{% endif %}" href="{{ url_for('main.site_errors') }}">
+        <i class="bi bi-bug"></i><span>Для разработчика</span>
+        {% if new_site_errors_count %}<span class="nav-count-badge">{{ new_site_errors_count }}</span>{% endif %}
+      </a>
+      {% endif %}
+      {% endif %}
+    </nav>
+  </aside>
+
+  <div class="app-main">
+    <header class="app-topbar">
+      {% if report_only_role %}
+      <div class="topbar-project verifier-topbar-actions">
+        <span>Объект: {{ current_project.name if current_project else 'не выбран' }}</span>
+        <a class="btn btn-outline-light btn-sm" href="{{ url_for('main.objects') }}">Сменить объект</a>
+      </div>
+      {% elif request.endpoint in ['main.documents', 'main.documents_addendum', 'main.documents_download'] %}
+      <div class="topbar-project worker-topbar-title">
+        <span>Документы</span>
+      </div>
+      {% elif not worker_role %}
+      <div class="topbar-project">
+        <span>Объект: {{ current_project.name if current_project else 'не выбран' }}</span>
+        <a class="btn btn-outline-light btn-sm" href="{{ url_for('main.objects') }}">Сменить объект</a>
+      </div>
+      {% else %}
+      <div class="topbar-project worker-topbar-title worker-topbar-title-empty" aria-hidden="true"></div>
+      {% endif %}
+
+      <div class="topbar-actions">
+        {% if current_user.role in ['admin', 'manager'] %}
+        <div class="dropdown">
+          <a class="topbar-icon dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Разделы">
+            <i class="bi bi-gear"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="{{ url_for('main.upload_excel') }}"><i class="bi bi-cloud-arrow-up me-2"></i>Импорт Excel</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('main.sync_conflicts') }}"><i class="bi bi-arrow-repeat me-2"></i>Синхронизация</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('main.sync_logs') }}"><i class="bi bi-clock-history me-2"></i>Журнал</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('main.mapping_settings') }}"><i class="bi bi-diagram-3 me-2"></i>Распределение</a></li>
+          </ul>
+        </div>
+        {% endif %}
+        <div class="dropdown">
+          <a class="topbar-user dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="topbar-avatar"><i class="bi bi-person-fill"></i></span>
+            <span>{{ current_user.full_name or current_user.username }}</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            {% if current_project and current_user.role == 'admin' %}
+            <li><a class="dropdown-item" href="{{ url_for('main.users') }}">Пользователи</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('main.export_source_with_strikes') }}"><i class="bi bi-file-earmark-arrow-down me-2"></i>Скачать Excel</a></li>
+            <li><hr class="dropdown-divider"></li>
+            {% endif %}
+            <li>
+              <form class="px-3 py-1" method="post" action="{{ url_for('auth.logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-secondary w-100" type="submit">Выйти</button>
+              </form>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {{ flash_toasts(messages) }}
+      {% endwith %}
+      {{ page_content }}
+      <footer class="crm-footer"><span>CRM от Худовердиева В</span></footer>
+    </main>
+  </div>
+  {{ mobile_bottom_nav(mobile_active) }}
+</div>
+{% else %}
+<main class="auth-shell">
+  <div class="auth-brand">
+    <div class="brand-mark">A</div>
+    <div>
+      <div class="auth-brand-title">Передача</div>
+      <div class="auth-brand-subtitle">Замечания, отчеты, расход материала</div>
+    </div>
+  </div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {{ flash_toasts(messages, 'auth-flashes') }}
+  {% endwith %}
+  {{ page_content }}
+  <footer class="crm-footer auth-footer"><span>CRM от Худовердиева В</span></footer>
+</main>
+{% endif %}
+
+<div class="floating-error-corner">
+  {{ report_error_button('report-error-floating') }}
+</div>
+<div class="modal fade" id="reportErrorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content error-report-modal" method="post" action="{{ url_for('main.report_error') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="page_url" value="{{ request.url }}">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Сообщить об ошибке</h5>
+          <div class="small text-muted">Опишите проблему</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Описание ошибки</label>
+        <textarea class="form-control" name="message" rows="5" placeholder="Например: Не работает раздел" required></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-send me-2"></i>Отправить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='script.js') }}?v=v47-developer-logs"></script>
+</body>
+</html>

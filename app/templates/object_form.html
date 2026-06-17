@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block layout_mode %}objects{% endblock %}
+{% block title %}{{ form_title or 'Добавить объект' }}{% endblock %}
+{% block content %}
+<a class="object-back-link" href="{{ url_for('main.objects') }}"><i class="bi bi-arrow-left"></i>Назад</a>
+<section class="object-form-shell">
+  <div class="object-form-visual">
+    <div class="building-illustration"><i class="bi bi-buildings"></i><span class="building-plus"><i class="bi bi-plus-lg"></i></span></div>
+  </div>
+  <div class="object-form-panel">
+    <h1 class="objects-title mb-2">{{ form_title or 'Добавить объект' }}</h1>
+    <p class="objects-subtitle mb-4"></p>
+    <form method="post">
+      {{ form.hidden_tag() }}
+      <div class="mb-3">
+        {{ form.name.label(class="form-label") }}
+        {{ form.name(class="form-control") }}
+      </div>
+      <div class="mb-3">
+        {{ form.address.label(class="form-label") }}
+        {{ form.address(class="form-control") }}
+      </div>
+
+      <div class="object-type-box mb-3">
+        <div class="object-type-title">Типы помещений</div>
+        <div class="object-type-grid object-type-options">
+          <label class="object-type-card object-type-option">
+            {{ form.has_apartments(class="form-check-input") }}
+            <span class="object-type-icon"><i class="bi bi-house-door"></i></span>
+            <span>
+              <strong>Квартиры</strong>
+              <small>Жилые помещения объекта</small>
+            </span>
+          </label>
+          <label class="object-type-card object-type-option">
+            {{ form.has_commercial(class="form-check-input") }}
+            <span class="object-type-icon"><i class="bi bi-shop"></i></span>
+            <span>
+              <strong>Коммерции</strong>
+              <small>Коммерческие помещения</small>
+            </span>
+          </label>
+          <label class="object-type-card object-type-option object-type-disabled">
+            {{ form.has_storerooms(class="form-check-input") }}
+            <span class="object-type-icon"><i class="bi bi-box-seam"></i></span>
+            <span>
+              <strong>Кладовки</strong>
+              <small>Раздел в разработке</small>
+            </span>
+      </div>
+
+      <div class="object-form-actions mt-4">
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.objects') }}">Отмена</a>
+        {{ form.submit(class="btn btn-primary", value=submit_label or 'Создать объект') }}
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

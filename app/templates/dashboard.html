@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Дашборд{% endblock %}
+{% block content %}
+<section class="dashboard-page dashboard-redesign">
+  <div class="dashboard-redesign-hero">
+    <div class="dashboard-redesign-copy">
+      <p class="dashboard-eyebrow">Сводка объекта</p>
+      <h1 class="dashboard-title">{{ project.name }}</h1>
+      <p class="dashboard-subtitle">Все самая необходимая информация в одном месте</p>
+    </div>
+    <div class="dashboard-progress-panel">
+      <div class="dashboard-progress-ring" style="--value: {{ stats.percent }};">
+        <span>{{ stats.percent }}%</span>
+      </div>
+      <div>
+        <div class="metric-label">Процент выполнения</div>
+        <div class="dashboard-progress-meta">{{ stats.done }} из {{ stats.tasks }} задач</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-overview-grid">
+    <article class="dashboard-focus-card dashboard-focus-primary">
+      <div class="dashboard-card-head">
+        <div>
+          <div class="metric-label">Задачи</div>
+          <h2>Работы по замечаниям</h2>
+        </div>
+        <i class="bi bi-card-checklist"></i>
+      </div>
+      <div class="dashboard-big-number">{{ stats.tasks }}</div>
+      <div class="dashboard-mini-stats">
+        <div><span>Выполнено</span><b>{{ stats.done }}</b></div>
+        <div><span>Не выполнено</span><b>{{ stats.not_done }}</b></div>
+        <div><span>Проблемных</span><b>{{ stats.problem }}</b></div>
+      </div>
+    </article>
+
+    <article class="dashboard-focus-card">
+      <div class="dashboard-card-head">
+        <div>
+          <div class="metric-label">Помещения</div>
+          <h2>Всего:</h2>
+        </div>
+        <i class="bi bi-buildings"></i>
+      </div>
+      <div class="dashboard-big-number">{{ stats.apartments }}</div>
+      <div class="dashboard-mini-stats dashboard-mini-stats-two">
+        <div><span>Квартиры</span><b>{{ stats.apartment_count }}</b></div>
+        <div><span>Коммерции</span><b>{{ stats.commercial_count }}</b></div>
+        <div><span>Чистовые</span><b>{{ stats.clean_apartments }}</b></div>
+        <div><span>Белые</span><b>{{ stats.white_apartments }}</b></div>
+      </div>
+    </article>
+  </div>
+
+  <div class="dashboard-info-columns">
+    <article class="dashboard-info-card">
+      <div class="dashboard-info-title"><i class="bi bi-clipboard-check"></i> Приемка</div>
+      <div class="dashboard-line-list">
+        <div><span>Принятых — АПП</span><b>{{ stats.accepted }}</b></div>
+        <div><span>Не проданных всего</span><b>{{ stats.unsold }}</b></div>
+        <div><span>Квартир не продано</span><b>{{ stats.unsold_apartment_count }}</b></div>
+        <div><span>Коммерции не продано</span><b>{{ stats.unsold_commercial_count }}</b></div>
+        <div><span>Не принятых</span><b>{{ stats.not_accepted }}</b></div>
+      </div>
+    </article>
+
+    <article class="dashboard-info-card">
+      <div class="dashboard-info-title"><i class="bi bi-eye"></i> Осмотры</div>
+      <div class="dashboard-line-list">
+        <div><span>Были на осмотре</span><b>{{ stats.inspected }}</b></div>
+        <div><span>Не были на осмотре</span><b>{{ stats.not_inspected }}</b></div>
+      </div>
+    </article>
+
+    <article class="dashboard-info-card dashboard-roadmap-mini-card" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#dashboardRoadmapModal" aria-label="Открыть планы развития CRM">
+      <div class="dashboard-roadmap-mini-glow" aria-hidden="true"></div>
+      <div class="dashboard-info-title dashboard-roadmap-mini-title"><i class="bi bi-stars"></i> Что скоро станет доступно?</div>
+      <p class="dashboard-roadmap-mini-text">Каждый день я развиваю CRM для удобного пользования</p>
+      <div class="dashboard-roadmap-mini-list">
+        <span><i class="bi bi-check2-square"></i>Выдача задач сотрудникам</span>
+        <span><i class="bi bi-box-seam"></i>Удобный отчёт по материалам</span>
+        <span><i class="bi bi-file-earmark-text"></i>Документы АПП</span>
+        <span><i class="bi bi-phone"></i>Мобильная версия</span>
+        <span><i class="bi bi-house-add"></i>Работа с кладовками</span>
+      </div>
+      <div class="dashboard-roadmap-mini-more">Прочитать полностью <i class="bi bi-arrow-right"></i></div>
+    </article>
+  </div>
+  <div class="dashboard-section dashboard-section-redesign">Статистика по специалистам</div>
+  <div class="dashboard-specialists-grid">
+    {% for row in categories %}
+    {% set percent = (row.done / row.total * 100) if row.total else 0 %}
+    <article class="dashboard-specialist-card" style="--category-color: {{ row.category.color }}; --delay: {{ loop.index0 * 60 }}ms;">
+      <div class="dashboard-specialist-top">
+        <div>
+          <h3>{{ row.category.name }}</h3>
+          <p>Всего: {{ row.total }} · выполнено: {{ row.done }} · осталось: {{ row.left }}</p>
+        </div>
+        <span>{{ percent|round(1) }}%</span>
+      </div>
+      <div class="category-progress" role="progressbar" aria-valuenow="{{ percent|round(1) }}" aria-valuemin="0" aria-valuemax="100">
+        <div class="category-progress-bar" style="width: {{ percent }}%; background: linear-gradient(90deg, {{ row.category.color }}, {{ row.category.color }}cc);"></div>
+      </div>
+      <a class="stretched-link" href="{{ url_for('main.task_list', category_id=row.category.id) }}"></a>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="modal fade dashboard-roadmap-modal" id="dashboardRoadmapModal" tabindex="-1" aria-labelledby="dashboardRoadmapModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content dashboard-roadmap-modal-content">
+      <div class="modal-header dashboard-roadmap-modal-head">
+        <div>
+          <h2 class="modal-title" id="dashboardRoadmapModalLabel">Что скоро станет доступно?</h2>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="dashboard-roadmap-subtitle mb-3">Мы развиваем CRM дальше, чтобы она стала ещё удобнее для руководителя, сотрудников и работы с объектами. Ниже — ключевые функции, которые планируются к запуску в следующих обновлениях.</p>
+        <div class="dashboard-roadmap-grid dashboard-roadmap-modal-grid">
+          <div class="dashboard-roadmap-item"><i class="bi bi-person-check"></i><div><h3>Выдача и получение задач сотрудниками</h3><p>Полноценная система взаимодействия, где задачи можно будет быстро назначать, принимать в работу и контролировать по каждому исполнителю.</p></div></div>
+          <div class="dashboard-roadmap-item"><i class="bi bi-box-seam"></i><div><h3>Учёт затраченного материала</h3><p>Сотрудники смогут фиксировать, какие материалы и в каком объёме были использованы по конкретной задаче — для удобной отчётности и прозрачного контроля.</p></div></div>
+          <div class="dashboard-roadmap-item"><i class="bi bi-file-earmark-text"></i><div><h3>Быстрое редактирование и генерация документов</h3><p>Появится возможность оперативно подготавливать документы для подписания: АПП, дополнительные соглашения и другие рабочие формы.</p></div></div>
+          <div class="dashboard-roadmap-item"><i class="bi bi-phone"></i><div><h3>Современно адаптированная мобильная версия</h3><p>Интерфейс станет ещё удобнее на телефоне: важные разделы, действия и уведомления будут полностью адаптированы под мобильный формат.</p></div></div>
+          <div class="dashboard-roadmap-item"><i class="bi bi-phone-vibrate"></i><div><h3>Мобильное приложение</h3><p>В перспективе сайт вырастет в отдельное мобильное приложение, чтобы пользоваться системой было ещё быстрее и удобнее прямо со смартфона.</p></div></div>
+          <div class="dashboard-roadmap-item"><i class="bi bi-house-add"></i><div><h3>Добавление объектов с кладовками</h3><p>Система будет поддерживать расширенную структуру объектов, включая кладовые помещения, чтобы учёт стал полнее и точнее.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

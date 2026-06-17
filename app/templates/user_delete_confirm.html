@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Удаление пользователя{% endblock %}
+{% block content %}
+<section class="confirm-modal-page">
+  <div class="confirm-modal-backdrop" aria-hidden="true"></div>
+  <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="deleteUserTitle">
+    <a class="confirm-modal-close" href="{{ url_for('main.users') }}" aria-label="Закрыть">
+      <i class="bi bi-x-lg"></i>
+    </a>
+    <div class="confirm-modal-icon">
+      <i class="bi bi-person-x"></i>
+    </div>
+    <p class="confirm-modal-kicker">Подтверждение удаления</p>
+    <h1 id="deleteUserTitle">Удалить аккаунт?</h1>
+    <p class="confirm-modal-text">
+      Пользователь {{ user.username }} будет удалён без возможности восстановления.
+    </p>
+    <div class="confirm-modal-warning">
+      <i class="bi bi-exclamation-triangle"></i>
+      <span>Доступ пользователя к системе будет прекращён сразу после удаления.</span>
+    </div>
+    <form method="post" action="{{ url_for('main.user_delete', user_id=user.id) }}" class="confirm-modal-actions">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.users') }}">Отмена</a>
+      <button class="btn btn-danger" type="submit">Удалить</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

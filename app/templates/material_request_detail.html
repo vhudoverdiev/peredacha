@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ material_request.title or ('Заявка №' ~ material_request.id) }}{% endblock %}
+{% block content %}
+{% set material_presets = [
+  ('Ротбанд', 'меш'),
+  ('Плитонит b', 'меш'),
+  ('Ветонит (LR)', 'меш'),
+  ('Ветонит (KR)', 'меш'),
+  ('Наливной пол', 'меш'),
+  ('Стеклопакет', 'шт'),
+  ('Стекло', 'шт'),
+  ('Рама', 'шт')
+] %}
+{% set request_title = material_request.title or material_request.comment or ('Заявка №' ~ material_request.id) %}
+<div class="page-head remarks-page-head materials-page-head">
+  <div>
+    <h1 class="page-title">{{ request_title }}</h1>
+    <p class="page-subtitle">
+      {{ material_request.request_date.strftime('%d.%m.%Y') if material_request.request_date else '' }}
+      {% if material_request.author %} · {{ material_request.author.full_name or material_request.author.username }}{% endif %}
+    </p>
+  </div>
+  <div class="sync-actions material-detail-actions">
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='requests') }}">Назад</a>
+    {% if can_edit_materials %}
+      <button class="btn btn-primary js-material-request-edit" type="button"><i class="bi bi-pencil-square me-2"></i>Редактировать</button>
+      <form method="post" action="{{ url_for('main.material_request_delete', request_id=material_request.id) }}" data-confirm="Удалить эту заявку? Все позиции заявки будут удалены, баланс материалов пересчитается.">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-outline-danger" type="submit">Удалить </button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card table-shell task-table-shell js-material-request-view">
+  <div class="card-body p-0">
+    <div class="table-responsive materials-table-responsive">
+      <table class="table table-hover align-middle task-table materials-table">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Наименование</th>
+            <th>Количество</th>
+            <th>Ед.измерения</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for item in material_request.items %}
+          <tr>
+            <td>{{ material_request.request_date.strftime('%d.%m.%Y') if material_request.request_date else '' }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ fmt_quantity(item.quantity) }}</td>
+            <td>{{ item.unit }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="text-center text-muted py-5">В заявке нет позиций</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if can_edit_materials %}
+<form method="post" action="{{ url_for('main.material_request_update', request_id=material_request.id) }}" class="card content-card material-form-card material-request-edit-card js-material-request-edit-form d-none">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card-body">
+    <h2 class="section-title">Редактировать заявку</h2>
+
+    <div class="row g-3 mb-3">
+      <div class="col-12 col-lg-8">
+        <label class="form-label">Название заявки</label>
+        <input class="form-control" name="title" value="{{ request_title }}" required>
+      </div>
+      <div class="col-12 col-lg-4">
+        <label class="form-label">Дата заявки</label>
+        <input class="form-control" type="date" name="request_date" value="{{ material_request.request_date.isoformat() if material_request.request_date else today.isoformat() }}" required>
+      </div>
+    </div>
+
+    <div class="material-edit-note">Заполните активную пустую строку или добавьте новую позицию кнопкой ниже.</div>
+
+    <div class="table-responsive material-request-edit-table-wrap">
+      <table class="table align-middle material-edit-table">
+        <thead>
+          <tr>
+            <th style="width:52px">№</th>
+            <th>Наименование</th>
+            <th style="width:180px">Количество</th>
+            <th style="width:190px">Ед.измерения</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for i in range(max_rows) %}
+          {% set item = material_request.items[i] if i < material_request.items|length else none %}
+          <tr>
+            <td class="text-muted">{{ i + 1 }}</td>
+            <td><input class="form-control material-name-input" name="name[]" value="{{ item.name if item else '' }}" placeholder="Например: Стекло"></td>
+            <td><input class="form-control" name="quantity[]" inputmode="decimal" value="{{ fmt_quantity(item.quantity) if item else '' }}" placeholder="Например: 5"></td>
+            <td><input class="form-control material-unit-input" name="unit[]" value="{{ item.unit if item else '' }}" placeholder="меш / кг / шт / м²"></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button class="btn btn-outline-primary btn-sm material-add-row-btn js-material-request-add-row" type="button"><i class="bi bi-plus-lg me-1"></i>Добавить строку</button>
+    <div class="material-form-footer">
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Сохранить</button>
+      <button class="btn btn-outline-secondary js-material-request-cancel" type="button">Отмена</button>
+    </div>
+  </div>
+</form>
+{% endif %}
+{% endblock %}
