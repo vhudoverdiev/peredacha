@@ -30,7 +30,7 @@
         </div>
         {{ form.submit(class="btn btn-primary w-100 login-submit") }}
         <button class="btn btn-outline-primary w-100 login-register-button" type="button" data-bs-toggle="modal" data-bs-target="#registrationRequestModal">
-          <i class="bi bi-person-plus me-2"></i>Регистрация
+          <i class="bi bi-person-plus me-2"></i>
         </button>
       </form>
     </div>
@@ -39,41 +39,48 @@
 
 <div class="modal fade" id="registrationRequestModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <form class="modal-content registration-request-modal" method="post" action="{{ url_for('auth.registration_request') }}">
+    <form class="modal-content registration-request-modal js-auth-safe-submit" method="post" action="{{ url_for('auth.registration_request') }}" data-loading-text="Отправляем...">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="modal-body">
-        <div class="registration-modal-icon"><i class="bi bi-person-plus"></i></div>
+        <div class="registration-step is-active" data-registration-step="details">
 
-        <div class="mb-3 login-field">
-          <label class="form-label" for="registrationName">Ваше имя</label>
-          <div class="login-input-wrap">
-            <i class="bi bi-person"></i>
-            <input class="form-control" id="registrationName" name="name" type="text" maxlength="160" placeholder="Например: Иван" autocomplete="name" required>
+          <div class="mb-3 login-field">
+            <label class="form-label" for="registrationName">Ваше имя</label>
+            <div class="login-input-wrap">
+              <i class="bi bi-person"></i>
+              <input class="form-control" id="registrationName" name="name" type="text" maxlength="160" placeholder="Например: Иван" autocomplete="name" required data-registration-detail>
+            </div>
           </div>
-        </div>
-        <div class="mb-3 login-field">
-          <label class="form-label" for="registrationEmail">Email</label>
-          <div class="login-input-wrap">
-            <i class="bi bi-envelope"></i>
-            <input class="form-control" id="registrationEmail" name="email" type="email" maxlength="180" placeholder="example@mail.com" autocomplete="email" required>
+          <div class="mb-3 login-field">
+            <label class="form-label" for="registrationEmail">Логин / Email</label>
+            <div class="login-input-wrap">
+              <i class="bi bi-envelope"></i>
+              <input class="form-control" id="registrationEmail" name="email" type="email" maxlength="180" placeholder="example@mail.com" autocomplete="email" required data-registration-detail>
+            </div>
           </div>
-        </div>
 
-        <div class="mb-3 login-field registration-captcha-field">
-          <label class="form-label" for="registrationCaptcha">Проверка</label>
-          <div class="registration-captcha-question">
-            <i class="bi bi-shield-check"></i>
-            <span>Сколько будет: <b>{{ registration_captcha_question or '2 + 2' }}</b>?</span>
-          </div>
-          <div class="login-input-wrap mt-2">
-            <i class="bi bi-check2-circle"></i>
-            <input class="form-control" id="registrationCaptcha" name="captcha_answer" type="text" inputmode="numeric" maxlength="10" placeholder="Введите ответ" required>
+          <div class="registration-modal-actions">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+            <button type="button" class="btn btn-primary js-registration-next"><i class="bi bi-arrow-right me-2"></i>Далее</button>
           </div>
         </div>
 
-        <div class="registration-modal-actions">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button type="submit" class="btn btn-primary"><i class="bi bi-send me-2"></i>Зарегистрироваться</button>
+        <div class="registration-step" data-registration-step="captcha">
+          <div class="mb-3 login-captcha-box login-captcha-box-standalone registration-captcha-field">
+            <div class="captcha-title">
+              <span><i class="bi bi-robot"></i> Антибот-проверка</span>
+            </div>
+            <label class="captcha-question" for="registrationCaptcha">{{ registration_captcha_question or '2 + 2' }} = ?</label>
+            <div class="login-input-wrap captcha-answer-wrap">
+              <i class="bi bi-calculator"></i>
+              <input class="form-control" id="registrationCaptcha" name="captcha_answer" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="Введите ответ" required>
+            </div>
+          </div>
+
+          <div class="login-form-row login-captcha-actions registration-modal-actions">
+            <button type="button" class="btn btn-outline-secondary js-registration-back"><i class="bi bi-arrow-left me-2"></i>Назад</button>
+            <button type="submit" class="btn btn-primary js-auth-submit-button"><i class="bi bi-send me-2"></i>Зарегистрироваться</button>
+          </div>
         </div>
       </div>
     </form>

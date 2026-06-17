@@ -30,9 +30,13 @@
           <span class="badge bg-success-subtle text-success developer-delete-log-badge">
             <i class="bi bi-arrow-counterclockwise me-1"></i>Отменено
           </span>
-          {% else %}
+          {% elif log.action_key in ['assignment_delete_from_employee', 'site_error_delete'] %}
           <span class="badge bg-warning-subtle text-warning-emphasis developer-delete-log-badge">
             <i class="bi bi-exclamation-circle me-1"></i>Можно отменить
+          </span>
+          {% else %}
+          <span class="badge bg-secondary-subtle text-secondary developer-delete-log-badge">
+            <i class="bi bi-info-circle me-1"></i>Отмена недоступна
           </span>
           {% endif %}
         </div>

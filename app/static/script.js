@@ -6,6 +6,131 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.bootstrap && bootstrap.Tooltip) new bootstrap.Tooltip(el);
   });
 
+  const restoreSafeSubmitButton = button => {
+    if (!button || !button.dataset.originalHtml) return;
+    button.innerHTML = button.dataset.originalHtml;
+    button.disabled = button.dataset.originalDisabled === '1';
+    button.classList.remove('disabled');
+    button.removeAttribute('aria-disabled');
+    button.style.pointerEvents = '';
+  };
+
+  document.querySelectorAll('.js-auth-safe-submit').forEach(form => {
+    const submitButton = form.querySelector('.js-auth-submit-button, button[type="submit"], input[type="submit"]');
+    if (!submitButton) return;
+    submitButton.dataset.originalHtml = submitButton.innerHTML || submitButton.value || '';
+    submitButton.dataset.originalDisabled = submitButton.disabled ? '1' : '0';
+
+    form.addEventListener('submit', () => {
+      window.setTimeout(() => {
+        if (!form.checkValidity()) {
+          restoreSafeSubmitButton(submitButton);
+          return;
+        }
+        const loadingText = form.dataset.loadingText || submitButton.dataset.loadingText || 'Отправляем...';
+        submitButton.disabled = true;
+        submitButton.classList.add('disabled');
+        submitButton.setAttribute('aria-disabled', 'true');
+        submitButton.innerHTML = `<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>${loadingText}`;
+      }, 0);
+    });
+  });
+
+  document.querySelectorAll('.registration-request-modal').forEach(form => {
+    const detailsStep = form.querySelector('[data-registration-step="details"]');
+    const captchaStep = form.querySelector('[data-registration-step="captcha"]');
+    const detailFields = Array.from(form.querySelectorAll('[data-registration-detail]'));
+    const captchaField = form.querySelector('#registrationCaptcha');
+    const nextButton = form.querySelector('.js-registration-next');
+    const backButton = form.querySelector('.js-registration-back');
+    const modalElement = form.closest('.modal');
+
+    const setStep = step => {
+      const isCaptcha = step === 'captcha';
+      detailsStep?.classList.toggle('is-active', !isCaptcha);
+      captchaStep?.classList.toggle('is-active', isCaptcha);
+      if (isCaptcha) {
+        window.setTimeout(() => captchaField?.focus(), 150);
+      } else {
+        window.setTimeout(() => detailFields[0]?.focus(), 150);
+      }
+    };
+
+    const validateDetails = () => {
+      let ok = true;
+      detailFields.forEach(field => {
+        const valid = field.checkValidity();
+        field.classList.toggle('is-invalid', !valid);
+        if (!valid) ok = false;
+      });
+      if (!ok) detailFields.find(field => !field.checkValidity())?.focus();
+      return ok;
+    };
+
+    detailFields.forEach(field => {
+      field.addEventListener('input', () => {
+        if (field.checkValidity()) field.classList.remove('is-invalid');
+      });
+    });
+
+    nextButton?.addEventListener('click', () => {
+      if (validateDetails()) setStep('captcha');
+    });
+    backButton?.addEventListener('click', () => setStep('details'));
+
+    form.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' || !detailsStep?.classList.contains('is-active')) return;
+      event.preventDefault();
+      if (validateDetails()) setStep('captcha');
+    });
+
+    modalElement?.addEventListener('hidden.bs.modal', () => {
+      setStep('details');
+      form.querySelectorAll('.is-invalid').forEach(field => field.classList.remove('is-invalid'));
+      restoreSafeSubmitButton(form.querySelector('.js-auth-submit-button'));
+    });
+  });
+
+  window.addEventListener('pageshow', () => {
+    document.querySelectorAll('.js-auth-submit-button').forEach(restoreSafeSubmitButton);
+  });
+
+  document.querySelectorAll('.js-settings-autosave').forEach(form => {
+    let saveTimer = null;
+    const syncSectionLockState = checkbox => {
+      const item = checkbox.closest('.settings-section-lock');
+      if (!item) return;
+      item.classList.toggle('is-active', checkbox.checked);
+      const status = item.querySelector('.settings-section-lock-copy small');
+      if (status) status.textContent = checkbox.checked ? 'Сейчас раздел закрыт' : 'Раздел открыт';
+    };
+    const save = async () => {
+      try {
+        const response = await fetch(form.action || window.location.href, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          credentials: 'same-origin'
+        });
+        if (!response.ok) throw new Error('settings save failed');
+        const data = await response.json().catch(() => ({}));
+        if (data.ok === false) throw new Error('settings save rejected');
+      } catch (error) {
+        showCrmNotice('Не удалось сохранить настройку. Попробуйте ещё раз.', 'danger');
+      }
+    };
+    form.addEventListener('change', event => {
+      const control = event.target.closest('input[type="checkbox"]');
+      if (!control) return;
+      syncSectionLockState(control);
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(save, 120);
+    });
+  });
+
   const getCsrfToken = () => {
     const el = document.querySelector('input[name="csrf_token"]');
     return el ? el.value : '';

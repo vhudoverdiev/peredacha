@@ -4921,6 +4921,8 @@ def site_settings():
         allowed_section_keys = {choice["key"] for choice in SECTION_LOCK_CHOICES}
         _set_setting_csv("blocked_site_sections", [key for key in request.form.getlist("blocked_site_sections") if key in allowed_section_keys])
         db.session.commit()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(ok=True)
         flash("Настройки сохранены", "success")
         return redirect(url_for("main.site_settings"))
     return render_template(
