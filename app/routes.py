@@ -4112,6 +4112,13 @@ def avr():
 def documents():
     if _setting_bool("hide_documents_section"):
         return _documents_under_development_response()
+
+    # Показываем фирменную загрузку при переходе во вкладку «Документы»,
+    # но не включаем её при внутренних переходах внутри раздела документов.
+    referrer_path = urlparse(request.referrer or "").path
+    if not referrer_path.startswith("/documents"):
+        session["show_success_loader"] = True
+
     return render_template("documents.html", document_type=None)
 
 

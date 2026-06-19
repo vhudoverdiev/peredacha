@@ -45,6 +45,14 @@ def _render_login_captcha(form: LoginCaptchaForm):
     return render_template("login_captcha.html", form=form, captcha_question=captcha_question)
 
 
+def _show_login_loader_once() -> None:
+    """Show the branded loader only on the first anonymous visit to the login page."""
+    if session.get("login_intro_loader_seen"):
+        return
+    session["show_success_loader"] = True
+    session["login_intro_loader_seen"] = True
+
+
 def _redirect_after_login(user: User, next_url: str | None = None):
     is_worker = user.role in WORKER_ROLES
     next_path = urlparse(next_url or "").path
@@ -95,6 +103,8 @@ def login():
         clear_captcha()
         return redirect(url_for("auth.login_captcha"))
 
+    if request.method == "GET":
+        _show_login_loader_once()
     return _render_login(form)
 
 
@@ -138,6 +148,7 @@ def login_captcha():
         login_user(user, remember=remember)
         session.permanent = True
         session["session_version"] = int(user.session_version or 0)
+        session["show_success_loader"] = True
         mark_login_success(user)
         clear_captcha()
         security_event("login_success", f"Успешный вход {user.username}", user_id=user.id)
@@ -204,5 +215,7 @@ def registration_request():
 def logout():
     logout_user()
     session.clear()
+    session["show_success_loader"] = True
+    session["login_intro_loader_seen"] = True
     flash("Вы вышли из CRM", "info")
     return redirect(url_for("auth.login"))

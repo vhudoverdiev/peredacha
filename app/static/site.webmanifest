@@ -1,0 +1,25 @@
+{
+  "name": "Передача",
+  "short_name": "Передача",
+  "description": "CRM Передача",
+  "start_url": "/login?source=homescreen",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#edf4ff",
+  "theme_color": "#315cff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/static/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/logo.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -32,7 +32,39 @@
         <button class="btn btn-outline-primary w-100 login-register-button" type="button" data-bs-toggle="modal" data-bs-target="#registrationRequestModal">
           <i class="bi bi-person-plus me-2"></i>
         </button>
+        <button class="ios-install-button js-ios-install-button" type="button" data-bs-toggle="modal" data-bs-target="#iosInstallModal" hidden>
+          <i class="bi bi-phone"></i>
+          <span>Скачать приложение</span>
+        </button>
       </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="iosInstallModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content ios-install-modal">
+      <div class="ios-install-hero">
+        <div class="ios-install-app-icon">A</div>
+        <div>
+          <div class="ios-install-eyebrow">Передача</div>
+          <h2>Добавить как приложение</h2>
+        </div>
+      </div>
+      <div class="ios-install-body">
+        <p>Откройте CRM как приложение на iPhone: без адресной строки Safari, с логотипом и названием “Передача”.</p>
+        <ol class="ios-install-steps">
+          <li><span>1</span><div>Нажмите кнопку <strong>Поделиться</strong> внизу Safari.</div></li>
+          <li><span>2</span><div>Выберите <strong>На экран “Домой”</strong>.</div></li>
+          <li><span>3</span><div>Проверьте название <strong>Передача</strong> и нажмите <strong>Добавить</strong>.</div></li>
+        </ol>
+        <div class="ios-install-note">
+          После запуска с экрана “Домой” сайт будет открываться красиво, почти как отдельное приложение.
+        </div>
+      </div>
+      <div class="ios-install-actions">
+        <button class="btn btn-primary w-100" type="button" data-bs-dismiss="modal">Понятно</button>
+      </div>
     </div>
   </div>
 </div>

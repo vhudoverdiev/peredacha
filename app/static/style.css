@@ -15680,6 +15680,10 @@ body:has(.documents-standalone-layout)::-webkit-scrollbar,
   .mobile-loading-dots span:nth-child(3) {
     animation-delay: .3s;
   }
+
+  .mobile-loading-card .mobile-loading-dots {
+    display: none !important;
+  }
 }
 
 @keyframes mobileLoaderSpin {
@@ -15704,6 +15708,126 @@ body:has(.documents-standalone-layout)::-webkit-scrollbar,
 @keyframes mobileLoaderDot {
   0%, 100% { transform: translateY(0); opacity: .3; }
   50% { transform: translateY(-.35rem); opacity: 1; }
+}
+
+/* Site-wide page loader. Uses the mobile loading style, but without the three dots. */
+.site-page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: grid;
+  place-items: center;
+  padding: max(1.25rem, env(safe-area-inset-top)) 1.25rem max(1.25rem, env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 18% 18%, rgba(49, 92, 255, .18), transparent 17rem),
+    radial-gradient(circle at 82% 20%, rgba(28, 184, 167, .16), transparent 15rem),
+    linear-gradient(180deg, #f7faff 0%, #edf4ff 100%);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .42s ease, visibility .42s ease;
+}
+
+.site-page-loader.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.site-page-loader-card {
+  width: min(64vw, 19.5rem);
+  aspect-ratio: 1;
+  min-width: 15rem;
+  display: grid;
+  place-items: center;
+  border-radius: clamp(2rem, 7vw, 3.5rem);
+  background: rgba(255, 255, 255, .8);
+  border: 1px solid rgba(200, 211, 232, .64);
+  box-shadow: 0 34px 95px rgba(31, 45, 61, .18);
+  backdrop-filter: blur(18px);
+  transform: translateY(0);
+  animation: siteLoaderCardIn .5s ease both;
+}
+
+.site-page-loader .mobile-loading-orbit {
+  position: relative;
+  width: clamp(8.5rem, 30vw, 11rem);
+  height: clamp(8.5rem, 30vw, 11rem);
+  display: grid;
+  place-items: center;
+}
+
+.site-page-loader .mobile-loading-orbit::before,
+.site-page-loader .mobile-loading-orbit::after,
+.site-page-loader .mobile-loading-orbit > span {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+
+.site-page-loader .mobile-loading-orbit::before {
+  border-top-color: rgba(49, 92, 255, .92);
+  border-right-color: rgba(49, 92, 255, .24);
+  animation: mobileLoaderSpin 1.15s linear infinite;
+}
+
+.site-page-loader .mobile-loading-orbit::after {
+  inset: .75rem;
+  border-bottom-color: rgba(28, 184, 167, .9);
+  border-left-color: rgba(28, 184, 167, .22);
+  animation: mobileLoaderSpin 1.7s linear infinite reverse;
+}
+
+.site-page-loader .mobile-loading-orbit > span:nth-child(1) {
+  inset: 1.55rem;
+  border-top-color: rgba(124, 58, 237, .42);
+  animation: mobileLoaderPulse 1.6s ease-in-out infinite;
+}
+
+.site-page-loader .mobile-loading-orbit > span:nth-child(2) {
+  inset: -.35rem;
+  border-right-color: rgba(49, 92, 255, .18);
+  animation: mobileLoaderPulse 1.9s ease-in-out infinite .18s;
+}
+
+.site-page-loader .mobile-loading-orbit > span:nth-child(3) {
+  inset: 2.25rem;
+  background: radial-gradient(circle, rgba(49, 92, 255, .1), transparent 68%);
+  animation: mobileLoaderGlow 1.45s ease-in-out infinite alternate;
+}
+
+.site-page-loader .mobile-loading-mark {
+  width: clamp(4.2rem, 15vw, 5.35rem);
+  height: clamp(4.2rem, 15vw, 5.35rem);
+  display: grid;
+  place-items: center;
+  border-radius: clamp(1.25rem, 4vw, 1.65rem);
+  color: #fff;
+  font-weight: 950;
+  font-size: clamp(2rem, 7vw, 2.65rem);
+  letter-spacing: -.08em;
+  background: linear-gradient(135deg, #315cff, #1cb8a7);
+  box-shadow: 0 18px 42px rgba(49, 92, 255, .3);
+  animation: mobileLoaderMark 1.8s ease-in-out infinite;
+}
+
+@keyframes siteLoaderCardIn {
+  from { transform: translateY(1rem) scale(.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@media (min-width: 992px) {
+  .site-page-loader-card {
+    width: 20rem;
+    min-width: 20rem;
+    border-radius: 2.8rem;
+  }
+
+  .site-page-loader .mobile-loading-orbit {
+    width: 10rem;
+    height: 10rem;
+  }
 }
 
 /* Maintenance screen: minimal closed-section state with animated loader. */
@@ -16705,4 +16829,440 @@ body:has(.developer-section-tabs) .site-errors-filter-form .form-label {
   font-size: .86rem !important;
   font-weight: 600 !important;
   letter-spacing: normal !important;
+}
+
+/* Auth layout lock.
+   Keep this block at the end: it prevents the login logo/card from drifting after later UI edits. */
+html:has(body.auth-body),
+body.auth-body {
+  min-height: 100% !important;
+}
+
+body.auth-body .auth-shell {
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  padding: clamp(1.5rem, 5vh, 3rem) 1rem calc(5.25rem + env(safe-area-inset-bottom)) !important;
+}
+
+body.auth-body .auth-shell .auth-brand {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  width: min(100%, 28.75rem) !important;
+  max-width: 28.75rem !important;
+  margin: 0 auto 1rem !important;
+  padding: 0 !important;
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+body.auth-body .auth-shell .auth-brand-main {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: .7rem !important;
+  width: auto !important;
+  margin: 0 auto !important;
+}
+
+body.auth-body .auth-shell .auth-brand-subtitle {
+  width: 100% !important;
+  margin: .75rem auto 0 !important;
+  text-align: center !important;
+}
+
+body.auth-body .auth-shell .auth-flashes {
+  position: static !important;
+  width: min(100%, 28.75rem) !important;
+  max-width: 28.75rem !important;
+  margin: 0 auto 1rem !important;
+  transform: none !important;
+}
+
+body.auth-body .auth-shell .login-wrap {
+  position: static !important;
+  flex: 0 0 auto !important;
+  width: min(100%, 28.75rem) !important;
+  max-width: 28.75rem !important;
+  margin: 0 auto !important;
+  transform: none !important;
+}
+
+body.auth-body .auth-shell .login-card {
+  width: 100% !important;
+}
+
+body.auth-body .auth-shell .auth-footer {
+  position: fixed !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: max(1.05rem, env(safe-area-inset-bottom)) !important;
+  width: auto !important;
+  margin: 0 !important;
+  transform: translateX(-50%) !important;
+  z-index: 30 !important;
+  pointer-events: none !important;
+}
+
+@media (max-height: 720px) {
+  body.auth-body .auth-shell {
+    justify-content: flex-start !important;
+    padding-top: 2rem !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* iPhone install prompt on the login screen. */
+.ios-install-button[hidden] {
+  display: none !important;
+}
+
+.ios-install-button {
+  width: auto !important;
+  min-height: 2.15rem !important;
+  margin: .75rem auto 0 !important;
+  padding: .45rem .78rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: .4rem !important;
+  border: 1px solid rgba(49, 92, 255, .18) !important;
+  border-radius: 999px !important;
+  background: rgba(49, 92, 255, .08) !important;
+  color: #315cff !important;
+  font-size: .78rem !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 12px 28px rgba(49, 92, 255, .08) !important;
+}
+
+.ios-install-button i {
+  font-size: .92rem !important;
+}
+
+.ios-install-modal {
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 1.65rem !important;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(49, 92, 255, .16), transparent 12rem),
+    radial-gradient(circle at 92% 8%, rgba(28, 184, 167, .14), transparent 11rem),
+    rgba(255, 255, 255, .96) !important;
+  box-shadow: 0 28px 90px rgba(31, 45, 61, .2) !important;
+}
+
+.ios-install-hero {
+  display: flex !important;
+  align-items: center !important;
+  gap: .9rem !important;
+  padding: 1.2rem 1.2rem .8rem !important;
+}
+
+.ios-install-app-icon {
+  width: 3.25rem !important;
+  height: 3.25rem !important;
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 auto !important;
+  border-radius: 1rem !important;
+  color: #fff !important;
+  font-size: 1.7rem !important;
+  font-weight: 950 !important;
+  letter-spacing: -.08em !important;
+  background: linear-gradient(135deg, #315cff, #1cb8a7) !important;
+  box-shadow: 0 16px 34px rgba(49, 92, 255, .24) !important;
+}
+
+.ios-install-eyebrow {
+  color: #315cff !important;
+  font-size: .72rem !important;
+  font-weight: 900 !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+}
+
+.ios-install-modal h2 {
+  margin: .18rem 0 0 !important;
+  color: #10203f !important;
+  font-size: 1.25rem !important;
+  line-height: 1.1 !important;
+  font-weight: 900 !important;
+  letter-spacing: -.03em !important;
+}
+
+.ios-install-body {
+  padding: 0 1.2rem 1rem !important;
+}
+
+.ios-install-body p {
+  margin: 0 0 1rem !important;
+  color: #667396 !important;
+  font-size: .93rem !important;
+  line-height: 1.45 !important;
+  font-weight: 600 !important;
+}
+
+.ios-install-steps {
+  display: grid !important;
+  gap: .65rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.ios-install-steps li {
+  display: grid !important;
+  grid-template-columns: 2rem 1fr !important;
+  align-items: center !important;
+  gap: .7rem !important;
+  padding: .75rem !important;
+  border: 1px solid rgba(200, 211, 232, .7) !important;
+  border-radius: 1rem !important;
+  background: rgba(255, 255, 255, .76) !important;
+}
+
+.ios-install-steps li > span {
+  width: 2rem !important;
+  height: 2rem !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: .75rem !important;
+  color: #315cff !important;
+  background: rgba(49, 92, 255, .1) !important;
+  font-weight: 900 !important;
+}
+
+.ios-install-steps li > div {
+  color: #172033 !important;
+  font-size: .92rem !important;
+  line-height: 1.35 !important;
+  font-weight: 650 !important;
+}
+
+.ios-install-note {
+  margin-top: .85rem !important;
+  padding: .75rem .85rem !important;
+  border-radius: 1rem !important;
+  color: #31515f !important;
+  background: rgba(28, 184, 167, .1) !important;
+  font-size: .85rem !important;
+  line-height: 1.35 !important;
+  font-weight: 700 !important;
+}
+
+.ios-install-actions {
+  padding: 0 1.2rem 1.2rem !important;
+}
+
+.ios-install-actions .btn {
+  min-height: 2.75rem !important;
+  border-radius: 1rem !important;
+  font-weight: 850 !important;
+}
+
+body.standalone-app {
+  padding-top: env(safe-area-inset-top) !important;
+  padding-bottom: env(safe-area-inset-bottom) !important;
+  background: #edf4ff !important;
+}
+
+/* Auth logout notice lock: show "Вы вышли из CRM" beside the bottom-right question button. */
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes {
+  position: fixed !important;
+  top: auto !important;
+  left: auto !important;
+  right: calc(max(1rem, env(safe-area-inset-right)) + 4.15rem) !important;
+  bottom: max(1.05rem, env(safe-area-inset-bottom)) !important;
+  width: min(26rem, calc(100vw - 7rem)) !important;
+  max-width: calc(100vw - 7rem) !important;
+  margin: 0 !important;
+  transform: none !important;
+  align-self: auto !important;
+  z-index: 3060 !important;
+}
+
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .crm-toast {
+  margin: 0 !important;
+}
+
+@media (max-width: 575.98px) {
+  body.auth-body .auth-shell .crm-toast-stack.auth-flashes {
+    right: max(.85rem, env(safe-area-inset-right)) !important;
+    bottom: calc(max(.85rem, env(safe-area-inset-bottom)) + 3.9rem) !important;
+    left: max(.85rem, env(safe-area-inset-left)) !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
+/* Loader final tuning: smaller mark and brand-purple center, no green tint. */
+.site-page-loader-card {
+  width: min(56vw, 16.5rem) !important;
+  min-width: 13rem !important;
+  border-radius: clamp(1.75rem, 6vw, 2.75rem) !important;
+}
+
+.site-page-loader .mobile-loading-orbit {
+  width: clamp(7.2rem, 24vw, 8.8rem) !important;
+  height: clamp(7.2rem, 24vw, 8.8rem) !important;
+}
+
+.site-page-loader .mobile-loading-orbit::before {
+  border-top-color: rgba(49, 92, 255, .92) !important;
+  border-right-color: rgba(109, 139, 255, .28) !important;
+}
+
+.site-page-loader .mobile-loading-orbit::after {
+  border-bottom-color: rgba(109, 139, 255, .82) !important;
+  border-left-color: rgba(124, 58, 237, .24) !important;
+}
+
+.site-page-loader .mobile-loading-orbit > span:nth-child(1) {
+  border-top-color: rgba(124, 58, 237, .5) !important;
+}
+
+.site-page-loader .mobile-loading-orbit > span:nth-child(2) {
+  border-right-color: rgba(49, 92, 255, .18) !important;
+}
+
+.site-page-loader .mobile-loading-orbit > span:nth-child(3) {
+  background: radial-gradient(circle, rgba(109, 139, 255, .13), transparent 68%) !important;
+}
+
+.site-page-loader .mobile-loading-mark {
+  width: clamp(3.45rem, 11vw, 4.25rem) !important;
+  height: clamp(3.45rem, 11vw, 4.25rem) !important;
+  border-radius: clamp(1rem, 3vw, 1.25rem) !important;
+  font-size: clamp(1.75rem, 5.5vw, 2.15rem) !important;
+  background: linear-gradient(135deg, #6d8bff, #315cff) !important;
+  box-shadow: 0 16px 36px rgba(49, 92, 255, .28) !important;
+}
+
+@media (min-width: 992px) {
+  .site-page-loader-card {
+    width: 16.5rem !important;
+    min-width: 16.5rem !important;
+  }
+
+  .site-page-loader .mobile-loading-orbit {
+    width: 8.4rem !important;
+    height: 8.4rem !important;
+  }
+}
+
+/* Dashboard final palette: remove loud blue blocks and keep the page in the site style. */
+.dashboard-page.dashboard-redesign {
+  --dashboard-site-ink: #172033;
+  --dashboard-site-muted: #667085;
+  --dashboard-site-card: #ffffff;
+  --dashboard-site-soft: #f6f8fb;
+  --dashboard-site-line: rgba(15, 23, 42, .08);
+  --dashboard-site-accent: #1cb8a7;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-redesign-hero,
+.dashboard-page.dashboard-redesign .dashboard-focus-card,
+.dashboard-page.dashboard-redesign .dashboard-info-card,
+.dashboard-page.dashboard-redesign .dashboard-specialist-card {
+  border-color: var(--dashboard-site-line) !important;
+  background:
+    radial-gradient(circle at 92% 6%, rgba(23, 32, 51, .055), transparent 13rem),
+    linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  box-shadow: 0 16px 38px rgba(15, 23, 42, .07) !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-redesign-hero {
+  color: var(--dashboard-site-ink) !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-eyebrow,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-eyebrow,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-more,
+.dashboard-page.dashboard-redesign .dashboard-specialist-top span {
+  color: var(--dashboard-site-ink) !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-subtitle,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-text,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-subtitle,
+.dashboard-page.dashboard-redesign .dashboard-progress-meta {
+  color: var(--dashboard-site-muted) !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-progress-panel,
+.dashboard-page.dashboard-redesign .dashboard-mini-stats div,
+.dashboard-page.dashboard-redesign .dashboard-line-list div {
+  border-color: var(--dashboard-site-line) !important;
+  background: rgba(255, 255, 255, .82) !important;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, .045) !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-progress-ring {
+  background: conic-gradient(var(--dashboard-site-accent) calc(var(--value) * 1%), #eef2f6 0) !important;
+  box-shadow: 0 0 0 6px rgba(28, 184, 167, .08) !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-progress-ring span,
+.dashboard-page.dashboard-redesign .dashboard-big-number,
+.dashboard-page.dashboard-redesign .dashboard-card-head h2,
+.dashboard-page.dashboard-redesign .dashboard-info-title,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-title,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-modal-head h2 {
+  color: var(--dashboard-site-ink) !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-card-head i,
+.dashboard-page.dashboard-redesign .dashboard-info-title i,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-title i,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-list i,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-item i {
+  color: var(--dashboard-site-ink) !important;
+  background: #f2f4f7 !important;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .06) !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-card {
+  background:
+    radial-gradient(circle at 92% 10%, rgba(23, 32, 51, .07), transparent 14rem),
+    radial-gradient(circle at 8% 100%, rgba(28, 184, 167, .08), transparent 13rem),
+    linear-gradient(135deg, #ffffff 0%, #f7f9fc 100%) !important;
+  border-color: var(--dashboard-site-line) !important;
+  box-shadow: 0 16px 38px rgba(15, 23, 42, .07) !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-card:hover,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-card:focus {
+  border-color: rgba(23, 32, 51, .16) !important;
+  box-shadow: 0 20px 46px rgba(15, 23, 42, .10) !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-glow {
+  background: rgba(28, 184, 167, .10) !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-list span {
+  border-color: var(--dashboard-site-line) !important;
+  background: rgba(255, 255, 255, .82) !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-roadmap-modal-head {
+  background: linear-gradient(135deg, #ffffff, #f6f8fb) !important;
+  border-bottom-color: var(--dashboard-site-line) !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-roadmap-badge,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-tags span {
+  color: var(--dashboard-site-ink) !important;
+  background: #f2f4f7 !important;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .06) !important;
 }

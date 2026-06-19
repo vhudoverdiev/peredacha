@@ -1,5 +1,32 @@
+(() => {
+  const loader = document.querySelector('.js-success-loader');
+  if (!loader) return;
+  const startedAt = Date.now();
+  const minVisibleMs = 1550;
+  const hide = () => {
+    const delay = Math.max(0, minVisibleMs - (Date.now() - startedAt));
+    window.setTimeout(() => loader.classList.add('is-hidden'), delay);
+  };
+  if (document.readyState === 'complete') {
+    hide();
+  } else {
+    window.addEventListener('load', hide, { once: true });
+  }
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
   let activeInlineEditor = null;
+
+  const isIosDevice = /iPhone|iPod/.test(navigator.userAgent);
+  const isStandaloneApp = window.navigator.standalone === true
+    || window.matchMedia('(display-mode: standalone)').matches;
+  if (isIosDevice) document.body.classList.add('ios-device');
+  if (isStandaloneApp) document.body.classList.add('standalone-app');
+  document.querySelectorAll('.js-ios-install-button').forEach(button => {
+    if (isIosDevice && !isStandaloneApp) {
+      button.hidden = false;
+    }
+  });
 
   const tooltips = document.querySelectorAll('[title]');
   tooltips.forEach(el => {
