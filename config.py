@@ -80,6 +80,7 @@ class Config:
     MAX_FORM_MEMORY_SIZE = int(os.getenv("MAX_FORM_MEMORY_SIZE", str(2 * 1024 * 1024)))
 
     WTF_CSRF_TIME_LIMIT = int(os.getenv("WTF_CSRF_TIME_LIMIT", str(60 * 60 * 8)))
+    WTF_CSRF_SSL_STRICT = _bool_env("WTF_CSRF_SSL_STRICT", False)
 
     # Базовые настройки безопасности cookie. SESSION_COOKIE_SECURE нужно включить
     # на продакшене через .env, когда сайт работает только по HTTPS.
