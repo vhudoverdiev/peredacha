@@ -45,6 +45,7 @@
                 <th>Роль</th>
                 <th>Объект</th>
                 <th>Пароль</th>
+                <th>Капча</th>
                 <th>Создан</th>
                 <th class="text-end">Действия</th>
               </tr>
@@ -61,6 +62,17 @@
                     <span>••••••••</span>
                     <button class="password-preview-toggle" type="button" aria-label="Показать пароль"><i class="bi bi-eye"></i></button>
                   </div>
+                </td>
+                <td>
+                  <form method="post" action="{{ url_for('main.user_toggle_captcha', user_id=user.id) }}" class="users-captcha-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="captcha_disabled" value="{{ '1' if user.captcha_disabled else '0' }}" data-captcha-disabled-value>
+                    <label class="users-captcha-toggle" title="Включить или отключить капчу для этого пользователя">
+                      <input class="users-captcha-input" type="checkbox" {% if not user.captcha_disabled %}checked{% endif %} onchange="this.form.querySelector('[data-captcha-disabled-value]').value = this.checked ? '0' : '1'; this.form.submit()">
+                      <span></span>
+                      <small>{{ 'Откл.' if user.captcha_disabled else 'Вкл.' }}</small>
+                    </label>
+                  </form>
                 </td>
                 <td>{{ user.created_at.strftime('%d.%m.%Y') }}</td>
                 <td class="text-end">

@@ -17,7 +17,7 @@ ROLE_VERIFIER = "verifier"
 ROLE_VIEWER = "viewer"
 WORKER_ROLES = {ROLE_EXECUTOR, ROLE_PAINTER, ROLE_HANDYMAN, ROLE_GLAZIER}
 ROLE_LABELS = {
-    ROLE_ADMIN: "Инженер",
+    ROLE_ADMIN: "Разработчик",
     ROLE_MANAGER: "Инженер",
     ROLE_EXECUTOR: "Маляр",
     ROLE_PAINTER: "Маляр",
@@ -27,7 +27,7 @@ ROLE_LABELS = {
     ROLE_VIEWER: "Просмотр",
 }
 USER_ROLE_CHOICES = [
-    (ROLE_ADMIN, "Инженер"),
+    (ROLE_MANAGER, "Инженер"),
     (ROLE_PAINTER, "Маляр"),
     (ROLE_HANDYMAN, "Разнорабочий"),
     (ROLE_GLAZIER, "Витражник"),
@@ -89,6 +89,10 @@ class User(UserMixin, TimestampMixin, db.Model):
     last_login_at = db.Column(db.DateTime, nullable=True)
     last_login_ip = db.Column(db.String(80), nullable=True)
     session_version = db.Column(db.Integer, default=0, nullable=False)
+    captcha_disabled = db.Column(db.Boolean, default=False, nullable=False)
+    two_factor_enabled = db.Column(db.Boolean, default=False, nullable=False)
+    two_factor_secret = db.Column(db.String(64), nullable=True)
+    two_factor_confirmed_at = db.Column(db.DateTime, nullable=True)
 
     assigned_tasks = db.relationship("Task", back_populates="responsible", foreign_keys="Task.responsible_id")
     project = db.relationship("Project")
@@ -222,10 +226,10 @@ class Apartment(TimestampMixin, db.Model):
     def _commercial_label(self, number: str) -> str:
         commercial_number, commercial_building, fallback = self._commercial_parts(number)
         if commercial_number and commercial_building:
-            return f"К{commercial_number}/К{commercial_building}"
+            return f"к{commercial_number}/к{commercial_building}"
         if commercial_number:
-            return f"К{commercial_number}"
-        return f"К {fallback}".strip()
+            return f"к{commercial_number}"
+        return f"к {fallback}".strip()
 
     @staticmethod
     def _is_no_deadline_text(value: str | None) -> bool:

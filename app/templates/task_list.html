@@ -130,46 +130,7 @@
 </div>
 {% endif %}
 
-<div class="remarks-export-scope js-bulk-selectable js-remark-export-scope" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" {% if contractor_page %}data-selection-storage="local"{% endif %} data-export-form="#{{ export_form_id }}">
-<section id="remarksExcelOptions" class="card content-card remarks-selection-card mb-3 d-none" data-excel-options-panel>
-  <div class="card-body remarks-selection-body">
-    <div class="remarks-selection-main">
-      <div class="assignment-section-title mb-0">
-        <span><i class="bi bi-check2-square"></i></span>
-        <div>
-          <b>Выбор для Excel</b>
-          <small>Отметьте конкретные замечания или скачайте все показанные строки.</small>
-        </div>
-      </div>
-      <div class="remarks-selection-actions">
-        <button class="btn btn-outline-secondary js-bulk-clear remarks-selected-only" type="button"><i class="bi bi-x-lg me-2"></i>Снять выбор</button>
-        <button class="btn btn-success js-bulk-submit js-remark-export-submit remarks-selected-only" type="submit" form="{{ export_form_id }}" disabled><i class="bi bi-file-earmark-excel me-2"></i>Скачать выбранные</button>
-      </div>
-    </div>
-    <div class="bulk-actions-panel js-bulk-panel d-none mt-3 assignment-bulk-panel">
-      <div class="bulk-actions-count">Выбрано: <span class="js-bulk-count">0</span> <span class="js-bulk-label">замечаний</span></div>
-    </div>
-    {% if premise_options %}
-    <div class="remarks-premise-filter">
-      <div class="remarks-premise-filter-head">
-        <b>Показывать помещения</b>
-        <span>Все показанные помещения включены автоматически. Снимите галочку, чтобы скрыть его из таблицы и Excel.</span>
-      </div>
-      <div class="remarks-premise-grid">
-        {% for premise in premise_options %}
-        <label class="remarks-premise-option">
-          <input class="form-check-input js-premise-visibility" type="checkbox" value="{{ premise.id }}" checked>
-          <span>
-            <b>{{ premise.label }}</b>
-            {% if premise.finish %}<small>{{ premise.finish }}</small>{% endif %}
-          </span>
-        </label>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-  </div>
-</section>
+<div class="remarks-export-scope js-bulk-selectable js-remark-export-scope" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-no-persist-selection="1" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" data-export-form="#{{ export_form_id }}">
 
 <div class="card table-shell task-table-shell remarks-export-table-shell" data-search-query="{{ args.get('q', '')|e }}">
   <div class="card-body p-0">

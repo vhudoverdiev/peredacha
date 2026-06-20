@@ -17,6 +17,11 @@ class LoginCaptchaForm(FlaskForm):
     submit = SubmitField("Продолжить")
 
 
+class LoginTwoFactorForm(FlaskForm):
+    two_factor_code = StringField("Код", validators=[DataRequired(), Length(min=6, max=8)])
+    submit = SubmitField("Войти")
+
+
 class UploadExcelForm(FlaskForm):
     file = FileField("Excel-файл .xlsx", validators=[FileRequired(), FileAllowed(["xlsx"], "Только .xlsx")])
     submit = SubmitField("Загрузить и синхронизировать")

@@ -34,6 +34,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+
+  document.querySelectorAll('.js-mapping-autosave-form').forEach(form => {
+    let timer = null;
+    let submitting = false;
+    form.querySelectorAll('input[type="checkbox"]').forEach(input => {
+      input.addEventListener('change', () => {
+        if (submitting) return;
+        window.clearTimeout(timer);
+        form.classList.add('is-autosaving');
+        timer = window.setTimeout(() => {
+          submitting = true;
+          form.requestSubmit ? form.requestSubmit() : form.submit();
+        }, 180);
+      });
+    });
+  });
+
   const tooltips = document.querySelectorAll('[title]');
   tooltips.forEach(el => {
     if (window.bootstrap && bootstrap.Tooltip) new bootstrap.Tooltip(el);
@@ -1237,6 +1254,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportFormSelector = scope.dataset.exportForm || '';
     const exportForm = exportFormSelector ? document.querySelector(exportFormSelector) : null;
     const premiseInputs = Array.from(scope.querySelectorAll('.js-premise-visibility'));
+    if (!premiseInputs.length) {
+      syncBulkScope(scope);
+      return;
+    }
     const readPremiseSelection = () => {
       if (!premiseStorageKey) return null;
       try {

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block layout_mode %}settings{% endblock %}
+{% block title %}Аккаунт{% endblock %}
+{% block content %}
+<section class="account-page">
+  <div class="page-head account-page-head">
+    <div>
+      <h1 class="page-title">Аккаунт</h1>
+    </div>
+  </div>
+
+  <div class="account-grid">
+    <article class="card content-card account-card account-profile-card">
+      <div class="card-body">
+        <div class="account-card-title">
+          <span><i class="bi bi-person-badge"></i></span>
+          <div>
+            <h2>Профиль</h2>
+          </div>
+        </div>
+        <dl class="account-profile-list">
+          <div><dt>Логин</dt><dd>{{ current_user.username }}</dd></div>
+          <div><dt>Имя</dt><dd>{{ current_user.full_name or '—' }}</dd></div>
+          <div><dt>Роль</dt><dd>{{ ROLE_LABELS.get(current_user.role, current_user.role) }}</dd></div>
+          <div><dt>Капча</dt><dd>{{ 'отключена' if current_user.captcha_disabled else 'включена' }}</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <article class="card content-card account-card account-2fa-card">
+      <div class="card-body">
+        <div class="account-card-title">
+          <span><i class="bi bi-shield-lock"></i></span>
+          <div>
+            <h2>Двухэтапная аутентификация</h2>
+          </div>
+        </div>
+
+        {% if current_user.two_factor_enabled %}
+          <div class="account-security-status is-enabled"><i class="bi bi-check-circle-fill"></i><span>Подключена</span></div>
+          <form method="post" class="account-2fa-disable-form mt-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="disable_2fa">
+            <label class="form-label" for="disableTwoFactorCode">Код из приложения</label>
+            <div class="account-code-row">
+              <input class="form-control" id="disableTwoFactorCode" name="two_factor_code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="000000" required>
+              <button class="btn btn-outline-danger" type="submit">Отключить</button>
+            </div>
+          </form>
+        {% elif pending_secret %}
+          <div class="account-security-status is-pending"><i class="bi bi-phone"></i><span>Подключение</span></div>
+          <div class="account-2fa-setup">
+            {% if qr_data_uri %}
+            <div class="account-qr-box"><img src="{{ qr_data_uri }}" alt="QR-код для двухэтапной аутентификации"></div>
+            {% else %}
+            <div class="account-qr-box account-qr-box-empty"><i class="bi bi-qr-code"></i><span>QR-код недоступен</span></div>
+            {% endif %}
+            <div class="account-2fa-key">
+              <label>Ключ для ручного ввода</label>
+              <code>{{ pending_secret }}</code>
+              <small>Добавьте ключ в Google Authenticator, Microsoft Authenticator, 1Password или другое приложение.</small>
+            </div>
+          </div>
+          <form method="post" class="account-2fa-confirm-form mt-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="confirm_2fa">
+            <label class="form-label" for="confirmTwoFactorCode">Код из приложения</label>
+            <div class="account-code-row">
+              <input class="form-control" id="confirmTwoFactorCode" name="two_factor_code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="000000" required>
+              <button class="btn btn-primary" type="submit">Подключить</button>
+            </div>
+          </form>
+        {% else %}
+          <div class="account-security-status"><i class="bi bi-shield"></i><span>Не подключена</span></div>
+          <p class="account-security-text">После подключения при входе нужно будет ввести код из приложения-аутентификатора.</p>
+          <form method="post" class="mt-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="start_2fa">
+            <button class="btn btn-primary account-enable-2fa-btn" type="submit"><i class="bi bi-shield-check me-2"></i>Подключить 2FA</button>
+          </form>
+        {% endif %}
+      </div>
+    </article>
+  </div>
+</section>
+{% endblock %}

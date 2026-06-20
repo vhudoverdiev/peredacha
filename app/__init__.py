@@ -119,6 +119,14 @@ def create_app(config_class=Config):
                     db.session.execute(text("ALTER TABLE users ADD COLUMN last_login_ip VARCHAR(80)"))
                 if "session_version" not in user_columns:
                     db.session.execute(text("ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0"))
+                if "captcha_disabled" not in user_columns:
+                    db.session.execute(text("ALTER TABLE users ADD COLUMN captcha_disabled BOOLEAN NOT NULL DEFAULT 0"))
+                if "two_factor_enabled" not in user_columns:
+                    db.session.execute(text("ALTER TABLE users ADD COLUMN two_factor_enabled BOOLEAN NOT NULL DEFAULT 0"))
+                if "two_factor_secret" not in user_columns:
+                    db.session.execute(text("ALTER TABLE users ADD COLUMN two_factor_secret VARCHAR(64)"))
+                if "two_factor_confirmed_at" not in user_columns:
+                    db.session.execute(text("ALTER TABLE users ADD COLUMN two_factor_confirmed_at DATETIME"))
                 # Больше не держим пароли в открытом виде в БД.
                 db.session.execute(text("UPDATE users SET password_plain = NULL WHERE password_plain IS NOT NULL"))
                 db.session.commit()

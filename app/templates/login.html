@@ -33,9 +33,10 @@
           <i class="bi bi-person-plus me-2"></i>
         </button>
         <button class="ios-install-button js-ios-install-button" type="button" data-bs-toggle="modal" data-bs-target="#iosInstallModal" hidden>
-          <i class="bi bi-phone"></i>
+          <span class="ios-install-button-logo" aria-hidden="true"><img src="{{ url_for('static', filename='brand-logo.png') }}" alt=""></span>
           <span>Скачать приложение</span>
         </button>
+        <div class="mobile-auth-signature">CRM от Худовердиева В</div>
       </form>
     </div>
   </div>
@@ -45,22 +46,18 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content ios-install-modal">
       <div class="ios-install-hero">
-        <div class="ios-install-app-icon"><img class="ios-install-app-icon-image" src="{{ url_for('static', filename='logo.svg') }}" alt=""></div>
+        <div class="ios-install-app-icon"><img class="ios-install-app-icon-image" src="{{ url_for('static', filename='brand-logo.png') }}" alt=""></div>
         <div>
           <div class="ios-install-eyebrow">Передача</div>
           <h2>Добавить как приложение</h2>
         </div>
       </div>
-      <div class="ios-install-body">
-        <p>Откройте CRM как приложение на iPhone: без адресной строки Safari, с логотипом и названием “Передача”.</p>
-        <ol class="ios-install-steps">
-          <li><span>1</span><div>Нажмите кнопку <strong>Поделиться</strong> внизу Safari.</div></li>
-          <li><span>2</span><div>Выберите <strong>На экран “Домой”</strong>.</div></li>
-          <li><span>3</span><div>Проверьте название <strong>Передача</strong> и нажмите <strong>Добавить</strong>.</div></li>
+      <div class="ios-install-body ios-install-body-minimal">
+        <ol class="ios-install-steps ios-install-steps-arrows">
+          <li><span>1</span><div>Нажать на три точки <strong>...</strong><i class="bi bi-arrow-right"></i></div></li>
+          <li><span>2</span><div>Кнопка <strong>Поделиться</strong><i class="bi bi-arrow-right"></i></div></li>
+          <li><span>3</span><div><strong>Добавить на экран домой</strong></div></li>
         </ol>
-        <div class="ios-install-note">
-          После запуска с экрана “Домой” сайт будет открываться красиво, почти как отдельное приложение.
-        </div>
       </div>
       <div class="ios-install-actions">
         <button class="btn btn-primary w-100" type="button" data-bs-dismiss="modal">Понятно</button>

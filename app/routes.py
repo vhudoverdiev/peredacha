@@ -105,6 +105,7 @@ from app.services.sync_rollback import apply_sync_rollback
 from app.services.uid_service import build_task_uid, stable_hash
 from app.services.remark_format import remark_text_html
 from app.security import hit_rate_limit, security_event, validate_upload
+from app.two_factor import generate_totp_secret, provisioning_uri, qr_svg_data_uri, verify_totp
 
 bp = Blueprint("main", __name__)
 
@@ -519,7 +520,7 @@ def inject_globals():
     project_id = current_user.project_id if current_user.is_authenticated and current_user.project_id else session.get("current_project_id")
     current_project = db.session.get(Project, project_id) if project_id else None
     new_site_errors_count = 0
-    if current_user.is_authenticated and current_user.role in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.is_authenticated and current_user.role == ROLE_ADMIN:
         error_query = SiteErrorReport.query.filter(SiteErrorReport.status == "new")
         if current_project:
             error_query = error_query.filter(or_(SiteErrorReport.project_id == current_project.id, SiteErrorReport.project_id.is_(None)))
@@ -636,6 +637,7 @@ WORKER_ALLOWED_ENDPOINTS = {
     "main.my_tasks",
     "main.my_task_done",
     "main.my_task_return",
+    "main.account",
     "main.report_error",
 }
 
@@ -647,6 +649,7 @@ VERIFIER_ALLOWED_ENDPOINTS = {
     "main.documents",
     "main.documents_addendum",
     "main.documents_download",
+    "main.account",
     "main.report_error",
 }
 
@@ -666,6 +669,7 @@ VIEWER_ALLOWED_GET_ENDPOINTS = {
     "main.work_report",
     "main.documents",
     "main.documents_download",
+    "main.account",
 }
 
 
@@ -702,6 +706,8 @@ def enforce_role_access():
         return _deny_or_redirect()
 
     if current_user.role == ROLE_VIEWER:
+        if endpoint == "main.account":
+            return None
         if request.method in {"GET", "HEAD", "OPTIONS"} and endpoint in VIEWER_ALLOWED_GET_ENDPOINTS:
             return None
         if endpoint == "main.report_error":
@@ -1116,7 +1122,7 @@ def report_error():
 @bp.route("/site-errors")
 @login_required
 def site_errors():
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN:
         abort(403)
     project = selected_project()
     query = SiteErrorReport.query.options(selectinload(SiteErrorReport.user), selectinload(SiteErrorReport.project))
@@ -1135,7 +1141,7 @@ def site_errors():
 @bp.route("/site-errors/<int:report_id>/close", methods=["POST"])
 @login_required
 def site_error_close(report_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN:
         abort(403)
     report = db.session.get(SiteErrorReport, report_id) or abort(404)
     project = selected_project()
@@ -1150,7 +1156,7 @@ def site_error_close(report_id: int):
 @bp.route("/site-errors/<int:report_id>/delete", methods=["POST"])
 @login_required
 def site_error_delete(report_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN:
         abort(403)
     report = db.session.get(SiteErrorReport, report_id) or abort(404)
     project = selected_project()
@@ -1184,7 +1190,7 @@ def site_error_delete(report_id: int):
 @bp.route("/developer/delete-logs")
 @login_required
 def developer_delete_logs():
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN:
         abort(403)
     project = selected_project()
     query = DeletionActionLog.query.options(
@@ -1201,7 +1207,7 @@ def developer_delete_logs():
 @bp.route("/developer/delete-logs/<int:log_id>/undo", methods=["POST"])
 @login_required
 def developer_delete_log_undo(log_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN:
         abort(403)
     log = db.session.get(DeletionActionLog, log_id) or abort(404)
     project = selected_project()
@@ -5077,7 +5083,7 @@ def mapping_settings():
 @bp.route("/settings", methods=["GET", "POST"])
 @login_required
 def site_settings():
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN:
         abort(403)
     if request.method == "POST":
         _set_setting_bool("hide_documents_section", request.form.get("hide_documents_section") == "1")
@@ -5097,6 +5103,59 @@ def site_settings():
         site_maintenance_mode=_setting_bool("site_maintenance_mode"),
         blocked_site_sections=_setting_csv("blocked_site_sections"),
         section_lock_choices=SECTION_LOCK_CHOICES,
+    )
+
+
+@bp.route("/account", methods=["GET", "POST"])
+@login_required
+def account():
+    user = db.session.get(User, current_user.id) or abort(404)
+    pending_secret = session.get("account_2fa_pending_secret")
+    provisioning = ""
+    qr_data_uri = ""
+
+    if request.method == "POST":
+        action = (request.form.get("action") or "").strip()
+        if action == "start_2fa":
+            pending_secret = generate_totp_secret()
+            session["account_2fa_pending_secret"] = pending_secret
+            flash("Отсканируйте QR-код или введите ключ вручную, затем подтвердите кодом.", "info")
+        elif action == "confirm_2fa":
+            secret = pending_secret or user.two_factor_secret
+            code = request.form.get("two_factor_code")
+            if verify_totp(secret, code):
+                user.two_factor_secret = secret
+                user.two_factor_enabled = True
+                user.two_factor_confirmed_at = datetime.utcnow()
+                db.session.commit()
+                session.pop("account_2fa_pending_secret", None)
+                pending_secret = None
+                flash("Двухэтапная аутентификация подключена.", "success")
+            else:
+                flash("Код не подошёл. Проверьте время на телефоне и попробуйте ещё раз.", "danger")
+        elif action == "disable_2fa":
+            code = request.form.get("two_factor_code")
+            if user.two_factor_enabled and not verify_totp(user.two_factor_secret, code):
+                flash("Введите действующий код, чтобы отключить двухэтапную аутентификацию.", "danger")
+            else:
+                user.two_factor_enabled = False
+                user.two_factor_secret = None
+                user.two_factor_confirmed_at = None
+                db.session.commit()
+                session.pop("account_2fa_pending_secret", None)
+                pending_secret = None
+                flash("Двухэтапная аутентификация отключена.", "success")
+        return redirect(url_for("main.account"))
+
+    if pending_secret:
+        provisioning = provisioning_uri(user.username, pending_secret)
+        qr_data_uri = qr_svg_data_uri(provisioning)
+
+    return render_template(
+        "account.html",
+        pending_secret=pending_secret,
+        provisioning_uri=provisioning,
+        qr_data_uri=qr_data_uri,
     )
 
 
@@ -5130,6 +5189,18 @@ def users():
         query = query.filter((User.project_id == project.id) | (User.project_id.is_(None)))
     users = query.order_by(User.created_at.desc()).all()
     return render_template("users.html", users=users, form=form, project=project)
+
+
+@bp.route("/users/<int:user_id>/captcha", methods=["POST"])
+@login_required
+@role_required(ROLE_ADMIN)
+def user_toggle_captcha(user_id: int):
+    user = db.session.get(User, user_id) or abort(404)
+    _abort_if_user_outside_current_project(user)
+    user.captcha_disabled = request.form.get("captcha_disabled") == "1"
+    db.session.commit()
+    flash("Настройка капчи для пользователя обновлена.", "success")
+    return redirect(url_for("main.users"))
 
 
 @bp.route("/users/<int:user_id>/password", methods=["POST"])

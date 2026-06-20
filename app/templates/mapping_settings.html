@@ -8,7 +8,7 @@
     <p class="page-subtitle">Настройка по текущему объекту: {{ project.name }}. Показываются только пункты, которые есть в задачах этого объекта.</p>
   </div>
 </div>
-<form method="post">
+<form method="post" class="js-mapping-autosave-form" data-autosave-text="Сохраняем...">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="row g-3">
     {% for category in categories if category.name|lower not in ['все', 'доп.соглашение'] %}
@@ -38,7 +38,6 @@
     </div>
     {% endfor %}
   </div>
-  <button class="btn btn-primary mt-3">Сохранить</button>
 </form>
 </div>
 {% endblock %}

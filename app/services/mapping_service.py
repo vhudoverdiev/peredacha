@@ -3,9 +3,9 @@ from app.models import WorkCategory, WorkPoint
 
 DEFAULT_CATEGORIES = [
     ("Все", "#212529", 0),
-    ("Маляры", "#20c997", 10),
-    ("Разнорабочие", "#0d6efd", 20),
-    ("Витражники", "#6f42c1", 30),
+    ("Маляры", "#79bf25", 10),
+    ("Разнорабочие", "#79bf25", 20),
+    ("Витражники", "#79bf25", 30),
     ("Доп.Соглашение", "#6c757d", 80),
 ]
 
@@ -35,7 +35,7 @@ def ensure_default_categories():
             category = WorkCategory(name=name, color=color, sort_order=sort_order, is_active=True)
             db.session.add(category)
         else:
-            category.color = category.color or color
+            category.color = color
             category.sort_order = sort_order
             category.is_active = True
 

@@ -4,7 +4,7 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app import db
-from app.forms import LoginCaptchaForm, LoginForm
+from app.forms import LoginCaptchaForm, LoginForm, LoginTwoFactorForm
 from app.models import ROLE_VERIFIER, SiteErrorReport, User, WORKER_ROLES
 from app.security import (
     clear_captcha,
@@ -16,6 +16,7 @@ from app.security import (
     security_event,
     verify_captcha,
 )
+from app.two_factor import verify_totp
 
 bp = Blueprint("auth", __name__)
 
@@ -31,6 +32,8 @@ def _clear_pending_login() -> None:
     session.pop("pending_login_user_id", None)
     session.pop("pending_login_remember", None)
     session.pop("pending_login_next", None)
+    session.pop("pending_login_2fa", None)
+    session.pop("pending_login_2fa_verified", None)
 
 
 def _render_login(form: LoginForm):
@@ -43,6 +46,35 @@ def _render_login(form: LoginForm):
 def _render_login_captcha(form: LoginCaptchaForm):
     captcha_question = generate_captcha()
     return render_template("login_captcha.html", form=form, captcha_question=captcha_question)
+
+
+def _render_login_2fa(form: LoginTwoFactorForm):
+    return render_template("login_2fa.html", form=form)
+
+
+def _complete_pending_login(user: User):
+    remember = bool(session.get("pending_login_remember"))
+    next_url = session.get("pending_login_next") or None
+    session.clear()
+    login_user(user, remember=remember)
+    session.permanent = True
+    session["session_version"] = int(user.session_version or 0)
+    session["show_success_loader"] = True
+    mark_login_success(user)
+    clear_captcha()
+    flash("Добро пожаловать! CRM от Худовердиева В", "success")
+    security_event("login_success", f"Успешный вход {user.username}", user_id=user.id)
+    return _redirect_after_login(user, next_url)
+
+
+def _continue_after_password(user: User):
+    clear_captcha()
+    if user.two_factor_enabled and not session.get("pending_login_2fa_verified"):
+        session["pending_login_2fa"] = True
+        return redirect(url_for("auth.login_2fa"))
+    if not user.captcha_disabled:
+        return redirect(url_for("auth.login_captcha"))
+    return _complete_pending_login(user)
 
 
 def _show_login_loader_once() -> None:
@@ -100,8 +132,7 @@ def login():
         session["pending_login_user_id"] = int(user.id)
         session["pending_login_remember"] = remember
         session["pending_login_next"] = next_url if _is_safe_next(next_url) else ""
-        clear_captcha()
-        return redirect(url_for("auth.login_captcha"))
+        return _continue_after_password(user)
 
     if request.method == "GET":
         _show_login_loader_once()
@@ -140,22 +171,47 @@ def login_captcha():
             flash("Проверка от ботов не пройдена. Решите пример ещё раз.", "danger")
             return _render_login_captcha(form)
 
-        remember = bool(session.get("pending_login_remember"))
-        next_url = session.get("pending_login_next") or None
-
-        # Защита от session fixation: старую сессию полностью пересоздаём до входа.
-        session.clear()
-        login_user(user, remember=remember)
-        session.permanent = True
-        session["session_version"] = int(user.session_version or 0)
-        session["show_success_loader"] = True
-        mark_login_success(user)
         clear_captcha()
-        flash("Добро пожаловать! CRM от Худовердиева В", "success")
-        security_event("login_success", f"Успешный вход {user.username}", user_id=user.id)
-        return _redirect_after_login(user, next_url)
+        if user.two_factor_enabled and not session.get("pending_login_2fa_verified"):
+            session["pending_login_2fa"] = True
+            return redirect(url_for("auth.login_2fa"))
+        return _complete_pending_login(user)
 
     return _render_login_captcha(form)
+
+
+@bp.route("/login/2fa", methods=["GET", "POST"])
+def login_2fa():
+    if current_user.is_authenticated:
+        return _redirect_after_login(current_user)
+
+    user_id = session.get("pending_login_user_id")
+    if not user_id or not session.get("pending_login_2fa"):
+        flash("Сначала введите логин и пароль.", "warning")
+        return redirect(url_for("auth.login"))
+
+    user = db.session.get(User, int(user_id))
+    if user is None or not user.is_active:
+        _clear_pending_login()
+        clear_captcha()
+        flash("Неверный логин или пароль", "danger")
+        return redirect(url_for("auth.login"))
+
+    if not user.two_factor_enabled or not user.two_factor_secret:
+        return _complete_pending_login(user)
+
+    form = LoginTwoFactorForm()
+    if form.validate_on_submit():
+        if not verify_totp(user.two_factor_secret, form.two_factor_code.data):
+            mark_login_failure(user)
+            security_event("two_factor_failed", f"Неверный 2FA-код для {user.username}", user_id=user.id, severity="warning")
+            flash("Неверный код двухэтапной аутентификации.", "danger")
+            return _render_login_2fa(form)
+        session.pop("pending_login_2fa", None)
+        session["pending_login_2fa_verified"] = True
+        return _continue_after_password(user)
+
+    return _render_login_2fa(form)
 
 
 @bp.route("/registration-request", methods=["POST"])
