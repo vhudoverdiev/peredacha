@@ -116,7 +116,7 @@
             <span><i class="bi bi-calendar-x"></i></span>
             <div>
               <b>{{ day_group.label }}</b>
-              <small>задачи с этой датой выполнения остались не выполнены</small>
+              <small>Задачи не выполнены</small>
             </div>
           </div>
           <strong>{{ task_count_label(day_group.total) }}</strong>
@@ -246,7 +246,7 @@
   </div>
 </div>
 
-<form method="post" action="{{ url_for('main.assignments') }}" class="card table-shell task-table-shell assignment-shell assignment-contractor-shell js-bulk-selectable" data-search-highlight="{{ args.get('q', '') }}" data-bulk-label-one="задача" data-bulk-label-few="задачи" data-bulk-label-many="задач">
+<form method="post" action="{{ url_for('main.assignments') }}" class="card table-shell task-table-shell assignment-shell assignment-contractor-shell js-bulk-selectable" data-search-highlight="{{ args.get('q', '') }}" data-bulk-label-one="задача" data-bulk-label-few="задачи" data-bulk-label-many="задач" data-selection-key="assignments">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="card-body border-bottom assignment-issue-panel assignment-issue-panel-restored">
     <div class="assignment-section-title mb-3">

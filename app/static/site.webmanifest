@@ -10,7 +10,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/static/apple-touch-icon.png",
+      "src": "/static/apple-touch-icon.png?v=v87-pwa-logo",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any maskable"

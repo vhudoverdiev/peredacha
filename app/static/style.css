@@ -17266,3 +17266,251 @@ body.auth-body .auth-shell .crm-toast-stack.auth-flashes .crm-toast {
   background: #f2f4f7 !important;
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .06) !important;
 }
+
+/* Remarks/contractors export selection mirrors the Assignments checkbox pattern. */
+.remarks-export-scope .remarks-selection-card {
+  border-color: rgba(200, 211, 232, .72) !important;
+  background: rgba(255, 255, 255, .9) !important;
+}
+
+.remarks-selection-body {
+  display: grid;
+  gap: .9rem;
+}
+
+.remarks-selection-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.remarks-selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .55rem;
+}
+
+.remarks-premise-filter {
+  display: grid;
+  gap: .7rem;
+  padding-top: .85rem;
+  border-top: 1px solid rgba(200, 211, 232, .62);
+}
+
+.remarks-premise-filter-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--crm-title);
+}
+
+.remarks-premise-filter-head b {
+  font-weight: 700;
+}
+
+.remarks-premise-filter-head span {
+  color: var(--crm-muted);
+  font-size: .88rem;
+  line-height: 1.35;
+}
+
+.remarks-premise-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: .55rem;
+}
+
+.remarks-premise-option {
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .62rem .72rem;
+  border: 1px solid rgba(200, 211, 232, .72);
+  border-radius: .9rem;
+  background: linear-gradient(135deg, #ffffff, #f8fbff);
+  cursor: pointer;
+}
+
+.remarks-premise-option .form-check-input,
+.remarks-export-scope .assignment-check-cell .form-check-input {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  border-radius: .28rem;
+  cursor: pointer;
+}
+
+.remarks-premise-option span {
+  min-width: 0;
+  display: grid;
+  gap: .12rem;
+}
+
+.remarks-premise-option b,
+.remarks-premise-option small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remarks-premise-option b {
+  color: var(--crm-title);
+  font-size: .92rem;
+}
+
+.remarks-premise-option small {
+  color: var(--crm-muted);
+  font-size: .78rem;
+}
+
+.remarks-export-table-shell .assignment-check-cell {
+  width: 3rem;
+  text-align: center;
+}
+
+.remarks-export-scope .js-bulk-row.is-selected td {
+  background: rgba(54, 93, 255, .06) !important;
+  box-shadow: none !important;
+}
+
+.remarks-export-scope .js-bulk-row.is-selected td:first-child {
+  box-shadow: inset 4px 0 0 #365dff !important;
+}
+
+@media (max-width: 760px) {
+  .remarks-selection-main,
+  .remarks-premise-filter-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .remarks-selection-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Final override: keep PWA launch and logo marks consistent after page-specific rules. */
+html.standalone-app,
+html.standalone-app body,
+body.standalone-app {
+  width: 100%;
+  min-height: 100%;
+  overscroll-behavior: none !important;
+  touch-action: manipulation !important;
+  -webkit-text-size-adjust: 100%;
+  background: #edf4ff !important;
+}
+
+.app-launch-loader {
+  display: none !important;
+}
+
+html.standalone-app .app-launch-loader {
+  display: grid !important;
+}
+
+.brand-mark,
+.mobile-top-avatar,
+.mobile-loading-mark,
+.ios-install-app-icon {
+  position: relative !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+}
+
+.brand-mark::after,
+.mobile-top-avatar::after,
+.mobile-loading-mark::after,
+.ios-install-app-icon::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 18% !important;
+  width: 42% !important;
+  height: max(2px, .07em) !important;
+  border-radius: 999px !important;
+  background: #cfe0ff !important;
+  transform: translateX(-50%) !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+}
+
+.mobile-loading-mark::after,
+.ios-install-app-icon::after {
+  bottom: 19% !important;
+  width: 43% !important;
+}
+
+.mobile-top-avatar::after {
+  bottom: 19% !important;
+  width: 38% !important;
+  height: 2px !important;
+}
+
+body.auth-body .auth-shell .auth-brand-main .brand-mark {
+  width: 3rem !important;
+  height: 3rem !important;
+  border-radius: 1rem !important;
+  font-size: 1.55rem !important;
+  font-weight: 900 !important;
+  background: linear-gradient(135deg, #6d8bff, #315cff) !important;
+}
+
+.site-page-loader-card {
+  width: min(62vw, 18.25rem) !important;
+  min-width: 14.75rem !important;
+  border-radius: clamp(1.95rem, 6vw, 3rem) !important;
+}
+
+.site-page-loader .mobile-loading-orbit {
+  width: clamp(8.25rem, 27vw, 9.85rem) !important;
+  height: clamp(8.25rem, 27vw, 9.85rem) !important;
+}
+
+.site-page-loader .mobile-loading-mark {
+  width: clamp(4.25rem, 13vw, 5rem) !important;
+  height: clamp(4.25rem, 13vw, 5rem) !important;
+  border-radius: clamp(1.18rem, 3vw, 1.45rem) !important;
+  font-size: clamp(2rem, 6vw, 2.45rem) !important;
+  font-weight: 950 !important;
+  background: linear-gradient(135deg, #6d8bff, #315cff) !important;
+  animation: mobileLoaderMark 1.65s cubic-bezier(.4, 0, .2, 1) infinite !important;
+}
+
+@media (max-width: 991.98px) {
+  .mobile-loading-card {
+    width: min(100%, 19rem) !important;
+    min-height: 19rem !important;
+  }
+
+  .mobile-loading-card .mobile-loading-orbit {
+    width: 9.25rem !important;
+    height: 9.25rem !important;
+  }
+
+  .mobile-loading-card .mobile-loading-mark {
+    width: 4.7rem !important;
+    height: 4.7rem !important;
+    border-radius: 1.45rem !important;
+    font-size: 2.35rem !important;
+    background: linear-gradient(135deg, #6d8bff, #315cff) !important;
+  }
+}
+
+@media (min-width: 992px) {
+  .site-page-loader-card {
+    width: 18.25rem !important;
+    min-width: 18.25rem !important;
+  }
+
+  .site-page-loader .mobile-loading-orbit {
+    width: 9.55rem !important;
+    height: 9.55rem !important;
+  }
+}

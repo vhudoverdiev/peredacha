@@ -11,7 +11,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.cell.rich_text import CellRichText, TextBlock
 from openpyxl.cell.text import InlineFont
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
-from app.models import Task, STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR
+from app.models import Apartment, Task, STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR
 from app.services.task_service import get_setting
 
 
@@ -135,7 +135,57 @@ def export_tasks_to_excel(tasks: Iterable[Task], filename_prefix: str = "tasks_e
     return path
 
 
+def _excel_premise_label(apartment: Apartment | None) -> str:
+    if apartment is None:
+        return ""
+    number = str(apartment.apartment_number or apartment.construction_number or f"ID {apartment.id}").strip()
+    if apartment.premise_type == "commercial":
+        label = f"коммерция {number}".strip()
+        if apartment.building:
+            label = f"{label} / корпус {apartment.building}"
+        return label
+    return apartment.label()
+
+
+def _excel_premise_finish_label(apartment: Apartment | None) -> str:
+    premise = _excel_premise_label(apartment) or "—"
+    finish = (apartment.finishing_type or "").strip() if apartment else ""
+    return f"{premise}\n{finish}" if finish else premise
+
+
+def _task_group_key(task: Task) -> tuple[int, str]:
+    apartment = task.apartment
+    if apartment:
+        return (apartment.id, _excel_premise_label(apartment))
+    return (0, "")
+
+
+def _group_tasks_by_apartment(tasks: Iterable[Task]) -> list[tuple[Apartment | None, list[Task]]]:
+    groups: dict[tuple[int, str], dict[str, object]] = {}
+    for task in tasks:
+        key = _task_group_key(task)
+        if key not in groups:
+            groups[key] = {"apartment": task.apartment, "tasks": []}
+        groups[key]["tasks"].append(task)
+    return [(group["apartment"], group["tasks"]) for group in groups.values()]
+
+
+def _combined_task_lines(tasks: list[Task], include_status: bool = True) -> str:
+    lines = []
+    for index, task in enumerate(tasks, start=1):
+        point = task.work_point.display_name if task.work_point else ""
+        text = str(task.description or task.source_cell_value or "").strip()
+        status = f" ({task.status_label()})" if include_status else ""
+        prefix = f"{index}. "
+        if point:
+            lines.append(f"{prefix}{point}: {text}{status}".strip())
+        else:
+            lines.append(f"{prefix}{text}{status}".strip())
+    return "\n".join(lines)
+
+
 def export_simple_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title: str = "Задачи") -> Path:
+    tasks = list(tasks)
     folder = Path(current_app.config["EXPORT_FOLDER"])
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
@@ -143,24 +193,21 @@ def export_simple_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title
     wb = Workbook()
     ws = wb.active
     ws.title = title[:31]
-    ws.append(["Помещение", "Отделка", "Пункт", "Замечание", "Статус", "Дата выполнения"])
-    for task in tasks:
+    ws.append(["Помещение / отделка", "Замечания"])
+    for apartment, group_tasks in _group_tasks_by_apartment(tasks):
         ws.append(
             [
-                (task.apartment.label() if task.apartment else ""),
-                task.apartment.finishing_type or "",
-                task.work_point.display_name,
-                task.description or task.source_cell_value or "",
-                task.status_label(),
-                task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
+                _excel_premise_finish_label(apartment),
+                _combined_task_lines(group_tasks),
             ]
         )
-    apply_worksheet_style(ws, [18, 22, 30, 100, 20, 18])
+    apply_worksheet_style(ws, [32, 120])
     wb.save(path)
     return path
 
 
 def export_remark_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title: str = "Замечания") -> Path:
+    tasks = list(tasks)
     folder = Path(current_app.config["EXPORT_FOLDER"])
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
@@ -169,22 +216,21 @@ def export_remark_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title
     ws_open = wb.active
     ws_open.title = "Не выполненные"
     ws_done = wb.create_sheet("Выполненные")
-    headers = ["Помещение", "Отделка", "Замечание"]
+    headers = ["Помещение / отделка", "Замечания"]
     ws_open.append(headers)
     ws_done.append(headers)
 
-    for task in tasks:
-        ws = ws_done if task.is_done else ws_open
-        remark_text = task.description or task.source_cell_value or ""
-        ws.append([
-            (task.apartment.label() if task.apartment else ""),
-            task.apartment.finishing_type if task.apartment else "",
-            remark_text,
-        ])
-        _apply_remark_strike_style(ws.cell(row=ws.max_row, column=3), remark_text)
+    for ws, grouped_tasks in ((ws_open, [task for task in tasks if not task.is_done]), (ws_done, [task for task in tasks if task.is_done])):
+        for apartment, group_tasks in _group_tasks_by_apartment(grouped_tasks):
+            remark_text = _combined_task_lines(group_tasks, include_status=False)
+            ws.append([
+                _excel_premise_finish_label(apartment),
+                remark_text,
+            ])
+            _apply_remark_strike_style(ws.cell(row=ws.max_row, column=2), remark_text)
 
     for ws in (ws_open, ws_done):
-        apply_worksheet_style(ws, [18, 22, 110])
+        apply_worksheet_style(ws, [32, 120])
     wb.save(path)
     return path
 

@@ -8,27 +8,27 @@
     <p class="page-subtitle">{{ page_subtitle or 'Перечень всех замечаний' }}</p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
+    {% set export_form_id = 'contractorExportForm' if contractor_page else 'remarksExportForm' %}
+    <form id="{{ export_form_id }}" class="d-none js-remark-export-form" method="get" action="{{ url_for('main.contractors_export') if contractor_page else url_for('main.export_category_tasks', category_id=active_category_id) }}">
+      {% for key, value in args.items() if key not in ['page', 'task_ids'] %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+      {% endfor %}
+    </form>
     {% if not contractor_page %}
       {% if current_user.role != 'viewer' %}
       <a class="btn btn-success" href="{{ url_for('main.task_new') }}">
         <i class="bi bi-plus-lg me-2"></i>Добавить
       </a>
       {% endif %}
-      {% if active_category and active_category.name != 'Все' %}
-      <a class="btn btn-outline-success remarks-export-btn" href="{{ url_for('main.export_category_tasks', category_id=active_category.id) }}">
+      {% if active_category %}
+      <button class="btn btn-outline-success remarks-export-btn js-remark-export-submit" type="submit" form="{{ export_form_id }}">
         <i class="bi bi-file-earmark-arrow-down me-2"></i>Скачать Excel
-      </a>
+      </button>
       {% endif %}
     {% else %}
-      {% if args.get('point') %}
-      <a class="btn btn-outline-success" href="{{ url_for('main.contractors_export', point=args.get('point'), q=args.get('q')) }}">
+      <button class="btn btn-outline-success js-remark-export-submit" type="submit" form="{{ export_form_id }}">
         <i class="bi bi-file-earmark-excel me-2"></i>Скачать Excel
-      </a>
-      {% else %}
-      <a class="btn btn-outline-success" href="{{ url_for('main.contractors_export', q=args.get('q')) }}">
-        <i class="bi bi-file-earmark-excel me-2"></i>Скачать Excel
-      </a>
-      {% endif %}
+      </button>
     {% endif %}
   </div>
 </div>
@@ -124,13 +124,55 @@
 </div>
 {% endif %}
 
+<div class="remarks-export-scope js-bulk-selectable js-remark-export-scope" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" data-export-form="#{{ export_form_id }}">
+<section class="card content-card remarks-selection-card mb-3">
+  <div class="card-body remarks-selection-body">
+    <div class="remarks-selection-main">
+      <div class="assignment-section-title mb-0">
+        <span><i class="bi bi-check2-square"></i></span>
+        <div>
+          <b>Выбор для Excel</b>
+          <small>Отметьте конкретные замечания или скачайте все показанные строки.</small>
+        </div>
+      </div>
+      <div class="remarks-selection-actions">
+        <button class="btn btn-outline-secondary js-check-all" type="button" data-target=".remark-task-check"><i class="bi bi-check2-square me-2"></i>Выбрать все</button>
+        <button class="btn btn-outline-secondary js-bulk-clear" type="button"><i class="bi bi-x-lg me-2"></i>Снять выбор</button>
+        <button class="btn btn-success js-bulk-submit js-remark-export-submit" type="submit" form="{{ export_form_id }}" disabled><i class="bi bi-file-earmark-excel me-2"></i>Скачать выбранные</button>
+      </div>
+    </div>
+    <div class="bulk-actions-panel js-bulk-panel d-none mt-3 assignment-bulk-panel">
+      <div class="bulk-actions-count">Выбрано: <span class="js-bulk-count">0</span> <span class="js-bulk-label">замечаний</span></div>
+    </div>
+    {% if premise_options %}
+    <div class="remarks-premise-filter">
+      <div class="remarks-premise-filter-head">
+        <b>Показывать помещения</b>
+        <span>Все показанные помещения включены автоматически. Снимите галочку, чтобы скрыть его из таблицы и Excel.</span>
+      </div>
+      <div class="remarks-premise-grid">
+        {% for premise in premise_options %}
+        <label class="remarks-premise-option">
+          <input class="form-check-input js-premise-visibility" type="checkbox" value="{{ premise.id }}" checked>
+          <span>
+            <b>{{ premise.label }}</b>
+            {% if premise.finish %}<small>{{ premise.finish }}</small>{% endif %}
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
 
-<div class="card table-shell task-table-shell" data-search-query="{{ args.get('q', '')|e }}">
+<div class="card table-shell task-table-shell remarks-export-table-shell" data-search-query="{{ args.get('q', '')|e }}">
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle task-table">
         <thead>
           <tr>
+            <th class="assignment-check-cell"><input class="form-check-input js-bulk-master" type="checkbox" aria-label="Выбрать все замечания"></th>
             <th class="task-col-apartment">№</th>
             <th class="task-col-finish">Отделка</th>
             <th class="task-col-mode">Режим</th>
@@ -146,7 +188,10 @@
         {% if is_dop %}
           {% if task.status == 'done' %}{% set task_status_label = 'Занесен' %}{% elif task.status == 'not_started' %}{% set task_status_label = 'Не занесен' %}{% endif %}
         {% endif %}
-        <tr class="task-row-link {% if task.is_done %}table-success done-task{% endif %} {% if task.is_missing_in_latest_sync %}table-warning{% endif %}" data-href="{{ url_for('main.task_detail', task_id=task.id) }}">
+        <tr class="task-row-link js-bulk-row {% if task.is_done %}table-success done-task{% endif %} {% if task.is_missing_in_latest_sync %}table-warning{% endif %}" data-task-id="{{ task.id }}" data-apartment-id="{{ task.apartment.id if task.apartment else '' }}" data-href="{{ url_for('main.task_detail', task_id=task.id) }}">
+          <td class="assignment-check-cell">
+            <input class="form-check-input remark-task-check js-bulk-check" type="checkbox" value="{{ task.id }}" aria-label="Выбрать замечание">
+          </td>
           <td>{% if task.apartment %}<span class="premise-number">{{ task.apartment.label() }}</span>{% else %}—{% endif %}</td>
           <td>{{ task.apartment.finishing_type or '' }}</td>
           <td>{% if task.apartment.is_app_mode %}<span class="status-pill status-pill-success">АПП</span>{% else %}<span class="status-pill status-pill-warning">не принята</span>{% endif %}</td>
@@ -204,12 +249,14 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="7" class="text-center text-muted py-5">Замечаний по этому фильтру нет</td></tr>
+        <tr><td colspan="8" class="text-center text-muted py-5">Замечаний по этому фильтру нет</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
+</div>
+
 </div>
 
 {% if pagination and pagination.pages > 1 %}

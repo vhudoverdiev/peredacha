@@ -1,11 +1,11 @@
 (() => {
-  const loader = document.querySelector('.js-success-loader');
-  if (!loader) return;
+  const loaders = document.querySelectorAll('.js-success-loader, .js-app-launch-loader');
+  if (!loaders.length) return;
   const startedAt = Date.now();
   const minVisibleMs = 1550;
   const hide = () => {
     const delay = Math.max(0, minVisibleMs - (Date.now() - startedAt));
-    window.setTimeout(() => loader.classList.add('is-hidden'), delay);
+    window.setTimeout(() => loaders.forEach(loader => loader.classList.add('is-hidden')), delay);
   };
   if (document.readyState === 'complete') {
     hide();
@@ -22,6 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
     || window.matchMedia('(display-mode: standalone)').matches;
   if (isIosDevice) document.body.classList.add('ios-device');
   if (isStandaloneApp) document.body.classList.add('standalone-app');
+  if (isStandaloneApp) document.documentElement.classList.add('standalone-app');
+  if (isIosDevice) {
+    document.addEventListener('gesturestart', event => event.preventDefault(), { passive: false });
+    document.addEventListener('gesturechange', event => event.preventDefault(), { passive: false });
+    document.addEventListener('gestureend', event => event.preventDefault(), { passive: false });
+  }
   document.querySelectorAll('.js-ios-install-button').forEach(button => {
     if (isIosDevice && !isStandaloneApp) {
       button.hidden = false;
@@ -672,7 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const selector = btn.dataset.target;
       if (!selector) return;
       const scope = btn.closest('.js-bulk-selectable') || document;
-      const checks = Array.from(scope.querySelectorAll(selector)).filter(el => !el.disabled);
+      const checks = Array.from(scope.querySelectorAll(selector)).filter(el => !el.disabled && !el.closest('.js-bulk-row[hidden]'));
       const shouldCheck = checks.some(el => !el.checked);
       checks.forEach(el => {
         el.checked = shouldCheck;
@@ -695,11 +701,68 @@ document.addEventListener('DOMContentLoaded', () => {
     return many;
   };
   const normalizeConfirmText = (text) => (text || '').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+  const bulkStorageKey = (scope) => scope.dataset.selectionKey ? `crm-bulk-selection:${scope.dataset.selectionKey}` : '';
+  const readBulkSelection = (scope) => {
+    const key = bulkStorageKey(scope);
+    if (!key) return null;
+    const stored = window.sessionStorage.getItem(key);
+    if (stored === null) return null;
+    try {
+      const values = JSON.parse(stored || '[]');
+      return new Set(Array.isArray(values) ? values.map(String) : []);
+    } catch (error) {
+      return new Set();
+    }
+  };
+  const writeBulkSelection = (scope) => {
+    const key = bulkStorageKey(scope);
+    if (!key || !(scope.__bulkSelectedIds instanceof Set)) return;
+    window.sessionStorage.setItem(key, JSON.stringify(Array.from(scope.__bulkSelectedIds)));
+  };
+  const syncBulkExportForm = (scope) => {
+    const selector = scope.dataset.exportForm;
+    if (!selector || !(scope.__bulkSelectedIds instanceof Set)) return;
+    const form = document.querySelector(selector);
+    if (!form) return;
+    form.querySelectorAll('input[name="task_ids"]').forEach(input => input.remove());
+    const hasHiddenPremises = Array.from(scope.querySelectorAll('.js-premise-visibility')).some(input => !input.checked);
+    const ids = scope.__bulkSelectedIds.size
+      ? Array.from(scope.__bulkSelectedIds)
+      : (hasHiddenPremises
+        ? Array.from(scope.querySelectorAll('.js-bulk-row:not([hidden]) .js-bulk-check')).map(check => String(check.value || '')).filter(Boolean)
+        : []);
+    ids.forEach(taskId => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'task_ids';
+      input.value = taskId;
+      form.appendChild(input);
+    });
+  };
+  const syncBulkPersistedInputs = (scope) => {
+    if (!(scope instanceof HTMLFormElement) || !(scope.__bulkSelectedIds instanceof Set)) return;
+    scope.querySelectorAll('input.js-bulk-persisted-input[name="task_ids"]').forEach(input => input.remove());
+    const visibleCheckIds = new Set(
+      Array.from(scope.querySelectorAll('.js-bulk-check')).map(check => String(check.value || '')).filter(Boolean)
+    );
+    Array.from(scope.__bulkSelectedIds).forEach(taskId => {
+      if (visibleCheckIds.has(String(taskId))) return;
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'task_ids';
+      input.value = taskId;
+      input.className = 'js-bulk-persisted-input';
+      scope.appendChild(input);
+    });
+  };
+  const isBulkCheckAvailable = (check) => !check.disabled && !check.closest('.js-bulk-row[hidden]');
 
   const syncBulkScope = (scope) => {
-    const checks = Array.from(scope.querySelectorAll('.js-bulk-check')).filter(check => !check.disabled);
+    const checks = Array.from(scope.querySelectorAll('.js-bulk-check')).filter(isBulkCheckAvailable);
     const selected = checks.filter(check => check.checked);
-    const selectedCount = selected.length;
+    const visibleSelectedCount = selected.length;
+    const persisted = scope.__bulkSelectedIds instanceof Set ? scope.__bulkSelectedIds : null;
+    const selectedCount = persisted ? persisted.size : selected.length;
     const label = pluralLabel(selectedCount, scope);
     const panel = scope.querySelector('.js-bulk-panel');
     const master = scope.querySelector('.js-bulk-master');
@@ -722,26 +785,47 @@ document.addEventListener('DOMContentLoaded', () => {
           .replaceAll('{label}', label);
       }
     });
+    syncBulkExportForm(scope);
+    syncBulkPersistedInputs(scope);
     scope.querySelectorAll('.js-glass-bulk-action').forEach(button => {
       button.classList.toggle('d-none', selectedCount === 0);
     });
 
     if (master) {
-      master.checked = checks.length > 0 && selectedCount === checks.length;
-      master.indeterminate = selectedCount > 0 && selectedCount < checks.length;
+      master.checked = checks.length > 0 && visibleSelectedCount === checks.length;
+      master.indeterminate = visibleSelectedCount > 0 && visibleSelectedCount < checks.length;
     }
     if (selectAll) {
-      selectAll.textContent = checks.length > 0 && selectedCount === checks.length ? 'Снять выбор' : 'Выбрать все';
+      selectAll.textContent = checks.length > 0 && visibleSelectedCount === checks.length ? 'Снять выбор' : 'Выбрать все';
     }
   };
 
   document.querySelectorAll('.js-bulk-selectable').forEach(scope => {
     const checks = Array.from(scope.querySelectorAll('.js-bulk-check'));
+    const storedSelection = readBulkSelection(scope);
+    if (bulkStorageKey(scope)) {
+      scope.__bulkSelectedIds = storedSelection ?? new Set(checks.filter(check => check.checked).map(check => String(check.value || '')).filter(Boolean));
+      if (storedSelection !== null) {
+        checks.forEach(check => {
+          check.checked = storedSelection.has(String(check.value));
+        });
+      }
+      syncBulkExportForm(scope);
+      syncBulkPersistedInputs(scope);
+    }
     const setAll = (checked) => {
-      checks.filter(check => !check.disabled).forEach(check => {
+      checks.filter(isBulkCheckAvailable).forEach(check => {
         check.checked = checked;
+        if (scope.__bulkSelectedIds instanceof Set) {
+          const taskId = String(check.value || '');
+          if (taskId) {
+            if (checked) scope.__bulkSelectedIds.add(taskId);
+            else scope.__bulkSelectedIds.delete(taskId);
+          }
+        }
         check.dispatchEvent(new Event('change', { bubbles: true }));
       });
+      writeBulkSelection(scope);
       syncBulkScope(scope);
     };
 
@@ -750,12 +834,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     scope.querySelectorAll('.js-bulk-clear').forEach(button => {
-      button.addEventListener('click', () => setAll(false));
+      button.addEventListener('click', () => {
+        if (scope.__bulkSelectedIds instanceof Set) {
+          scope.__bulkSelectedIds.clear();
+          checks.forEach(check => { check.checked = false; });
+          writeBulkSelection(scope);
+          syncBulkScope(scope);
+          return;
+        }
+        setAll(false);
+      });
     });
 
     checks.forEach(check => {
       check.addEventListener('click', event => event.stopPropagation());
-      check.addEventListener('change', () => syncBulkScope(scope));
+      check.addEventListener('change', () => {
+        if (scope.__bulkSelectedIds instanceof Set) {
+          const taskId = String(check.value || '');
+          if (taskId) {
+            if (check.checked) scope.__bulkSelectedIds.add(taskId);
+            else scope.__bulkSelectedIds.delete(taskId);
+            writeBulkSelection(scope);
+          }
+        }
+        syncBulkScope(scope);
+      });
     });
 
     scope.querySelectorAll('.js-bulk-row').forEach(row => {
@@ -802,6 +905,34 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     syncBulkScope(scope);
+  });
+
+  document.querySelectorAll('.js-remark-export-scope').forEach(scope => {
+    const syncPremiseVisibility = () => {
+      const visiblePremises = new Set(
+        Array.from(scope.querySelectorAll('.js-premise-visibility:checked')).map(input => String(input.value))
+      );
+      scope.querySelectorAll('.js-bulk-row[data-apartment-id]').forEach(row => {
+        const apartmentId = String(row.dataset.apartmentId || '');
+        const visible = !apartmentId || visiblePremises.has(apartmentId);
+        row.hidden = !visible;
+        if (!visible) {
+          const checkbox = row.querySelector('.js-bulk-check');
+          if (checkbox && checkbox.checked) {
+            checkbox.checked = false;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+      });
+      const visibleChecks = Array.from(scope.querySelectorAll('.js-bulk-row:not([hidden]) .js-bulk-check')).filter(check => !check.disabled);
+      const master = scope.querySelector('.js-bulk-master');
+      if (master) master.disabled = visibleChecks.length === 0;
+      syncBulkScope(scope);
+    };
+    scope.querySelectorAll('.js-premise-visibility').forEach(input => {
+      input.addEventListener('change', syncPremiseVisibility);
+    });
+    syncPremiseVisibility();
   });
 
   const escapeAssignmentHtml = value => String(value || '')

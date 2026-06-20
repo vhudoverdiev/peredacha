@@ -1298,11 +1298,39 @@ def contractors_export():
         return redirect(url_for("main.objects"))
     query_args = request.args.to_dict()
     query_args["sort"] = "point"
-    tasks = build_task_query(query_args, project_id=project.id).all()
+    tasks = _export_tasks_from_request(query_args, project.id).all()
     point = request.args.get("point")
     point_label = CONTRACTOR_POINT_LABELS.get(point, "Все пункты") if point else "Все пункты"
     path = export_simple_tasks_excel(tasks, f"{project.name}_Подрядчики", title=f"Подрядчики - {point_label}")
     return send_file(path, as_attachment=True, download_name=Path(path).name)
+
+
+def _selected_task_ids_from_request() -> list[int]:
+    task_ids = []
+    seen = set()
+    for raw_id in request.args.getlist("task_ids"):
+        try:
+            task_id = int(raw_id)
+        except (TypeError, ValueError):
+            continue
+        if task_id in seen:
+            continue
+        seen.add(task_id)
+        task_ids.append(task_id)
+    return task_ids
+
+
+def _export_tasks_from_request(query_args: dict, project_id: int, category_id: int | None = None):
+    task_ids = _selected_task_ids_from_request()
+    if task_ids:
+        return (
+            Task.query.options(selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.responsible))
+            .join(Apartment)
+            .join(WorkPoint)
+            .filter(Task.project_id == project_id, Task.id.in_(task_ids))
+            .order_by(Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc(), Task.id.asc())
+        )
+    return build_task_query(query_args, category_id=category_id, project_id=project_id)
 
 
 def _executor_users(project_id: int | None = None) -> list[User]:
@@ -3560,6 +3588,14 @@ def _task_list_response(contractor_page: bool = False):
         .filter(Apartment.project_id == project.id, Apartment.finishing_type.isnot(None))
         .all()
     ]
+    premise_options = []
+    seen_premise_ids = set()
+    for task in pagination.items:
+        apartment = task.apartment
+        if not apartment or apartment.id in seen_premise_ids:
+            continue
+        seen_premise_ids.add(apartment.id)
+        premise_options.append({"id": apartment.id, "label": apartment.label(), "finish": apartment.finishing_type or ""})
     return render_template(
         "task_list.html",
         tasks=pagination.items,
@@ -3574,6 +3610,7 @@ def _task_list_response(contractor_page: bool = False):
         contractor_page=contractor_page,
         list_endpoint="main.contractors_list" if contractor_page else "main.task_list",
         contractor_points=_contractor_point_options() if contractor_page else [],
+        premise_options=premise_options,
         page_title="Подрядчики" if contractor_page else "Замечания",
         page_subtitle="Раздел для работы с подрядчиками объекта" if contractor_page else "Работа с замечаниями по выбранному объекту.",
         today=date.today(),
@@ -4821,7 +4858,7 @@ def export_tasks():
     if project is None:
         return redirect(url_for("main.objects"))
     category_id = request.args.get("category_id", type=int)
-    tasks = build_task_query(request.args, category_id=category_id, project_id=project.id).all()
+    tasks = _export_tasks_from_request(request.args.to_dict(), project.id, category_id=category_id).all()
     path = export_tasks_to_excel(tasks, filename_prefix=project.name)
     return send_file(path, as_attachment=True, download_name=Path(path).name)
 
@@ -4835,7 +4872,7 @@ def export_category_tasks(category_id: int):
     if project is None:
         return redirect(url_for("main.objects"))
     category = db.session.get(WorkCategory, category_id) or abort(404)
-    tasks = build_task_query({}, category_id=category_id, project_id=project.id).all()
+    tasks = _export_tasks_from_request(request.args.to_dict(), project.id, category_id=category_id).all()
     path = export_remark_tasks_excel(tasks, f"{project.name}_{category.name}", title=category.name)
     return send_file(path, as_attachment=True, download_name=Path(path).name)
 
