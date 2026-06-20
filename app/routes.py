@@ -5118,11 +5118,11 @@ def users():
                 is_active=True,
                 project_id=project.id if project and form.role.data != ROLE_ADMIN else None,
             )
-            password = form.password.data or "ChangeMe123!"
+            password = form.password.data
             user.set_password(password)
             db.session.add(user)
             db.session.commit()
-            flash("Пользователь создан. Если пароль не вводили, временный пароль: ChangeMe123!", "success")
+            flash("Поздравляем, пользователь создан.", "success")
             return redirect(url_for("main.users"))
     project = selected_project()
     query = User.query

@@ -833,7 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
         problemModalComment.focus();
       }, { once: true });
     } else {
-      const fallback = window.prompt('Опишите проблему');
+      const fallback = window.prompt('');
       if (fallback && fallback.trim()) {
         setProblemCommentField(form, fallback.trim());
         form.requestSubmit ? form.requestSubmit() : form.submit();

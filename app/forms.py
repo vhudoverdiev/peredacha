@@ -50,7 +50,7 @@ class CommentForm(FlaskForm):
 class UserForm(FlaskForm):
     username = StringField("Логин", validators=[DataRequired(), Length(max=80)])
     full_name = StringField("Имя", validators=[Optional(), Length(max=160)])
-    password = PasswordField("Пароль", validators=[Optional(), Length(min=8)])
+    password = PasswordField("Пароль", validators=[DataRequired(), Length(min=8)])
     role = RadioField("Роль", choices=USER_ROLE_CHOICES, default=USER_ROLE_CHOICES[0][0])
     submit = SubmitField("Сохранить")
 

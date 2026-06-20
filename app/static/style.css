@@ -26809,3 +26809,433 @@ body.auth-body .login-register-button:active .bi::before {
   -webkit-text-fill-color: #ffffff !important;
 }
 
+
+/* ======================================================================
+   v160: darker brand green, Russian text repair support, no blue focus
+   ====================================================================== */
+:root {
+  --crm-primary: #79bf25;
+  --crm-primary-dark: #6aa81f;
+  --peredacha-action-green: #79bf25;
+  --peredacha-action-green-hover: #6aa81f;
+  --peredacha-action-green-dark: #5f9824;
+  --peredacha-action-green-shadow: rgba(121, 191, 37, .22);
+  --peredacha-action-green-soft: rgba(121, 191, 37, .13);
+}
+
+.btn-primary:not(.work-report-export-all-btn),
+.btn-success:not(.work-report-export-all-btn),
+.objects-topbar .btn-primary,
+.object-form-actions .btn-primary,
+.users-submit-btn,
+.maintenance-logout-btn,
+.document-addendum-form .btn-primary,
+.document-result-actions .btn-success,
+.glass-measure-icon-btn,
+.glass-measure-start-btn,
+.assignment-issued-export-btn,
+.assignment-shell .btn-primary,
+.material-form-footer .btn-primary {
+  background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
+}
+
+.btn-primary:not(.work-report-export-all-btn):hover,
+.btn-primary:not(.work-report-export-all-btn):focus,
+.btn-primary:not(.work-report-export-all-btn):focus-visible,
+.btn-primary:not(.work-report-export-all-btn):active,
+.btn-success:not(.work-report-export-all-btn):hover,
+.btn-success:not(.work-report-export-all-btn):focus,
+.btn-success:not(.work-report-export-all-btn):focus-visible,
+.btn-success:not(.work-report-export-all-btn):active,
+.objects-topbar .btn-primary:hover,
+.objects-topbar .btn-primary:focus-visible,
+.users-submit-btn:hover,
+.users-submit-btn:focus-visible,
+.maintenance-logout-btn:hover,
+.maintenance-logout-btn:focus-visible {
+  background: linear-gradient(180deg, var(--peredacha-action-green-hover) 0%, var(--peredacha-action-green-dark) 100%) !important;
+  border-color: var(--peredacha-action-green-dark) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 12px 26px rgba(95, 152, 36, .26) !important;
+}
+
+.form-control:hover,
+.form-select:hover,
+.users-page .form-control:hover,
+.users-page .form-select:hover,
+.users-page .users-role-option:hover,
+.document-addendum-form .form-control:hover,
+.document-addendum-form .form-select:hover,
+.glass-measurements-page .form-control:hover,
+.glass-measurements-page .form-select:hover,
+.assignment-shell .form-control:hover,
+.assignment-shell .form-select:hover,
+.worker-layout .form-control:hover,
+.worker-layout .form-select:hover {
+  border-color: rgba(121, 191, 37, .52) !important;
+  box-shadow: 0 0 0 3px rgba(121, 191, 37, .10) !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus,
+.users-page .form-control:focus,
+.users-page .form-select:focus,
+.users-page .users-role-input:focus-visible + .users-role-check,
+.document-addendum-form .form-control:focus,
+.document-addendum-form .form-select:focus,
+.glass-measurements-page .form-control:focus,
+.glass-measurements-page .form-select:focus,
+.assignment-shell .form-control:focus,
+.assignment-shell .form-select:focus,
+.worker-layout .form-control:focus,
+.worker-layout .form-select:focus {
+  border-color: var(--peredacha-action-green) !important;
+  box-shadow: 0 0 0 4px rgba(121, 191, 37, .16) !important;
+  outline: none !important;
+}
+
+.form-control::selection,
+.form-select::selection,
+textarea::selection,
+input::selection {
+  background: rgba(121, 191, 37, .22) !important;
+  color: #111827 !important;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 4px rgba(121, 191, 37, .14) !important;
+  -webkit-text-fill-color: #111827 !important;
+  caret-color: var(--peredacha-action-green-dark) !important;
+}
+
+.users-page .users-role-option:has(.users-role-input:checked),
+.users-page .users-role-option:focus-within {
+  border-color: rgba(121, 191, 37, .62) !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f5fbeb 100%) !important;
+  box-shadow: 0 12px 24px rgba(121, 191, 37, .12) !important;
+}
+
+.users-page .users-role-check,
+.users-page .password-preview-toggle,
+.users-page .users-action-btn-password,
+.users-page .users-action-btn-password i,
+.users-page .users-action-btn-password .bi,
+.users-page .users-submit-btn i,
+.users-page .users-submit-btn .bi {
+  color: var(--peredacha-action-green-dark) !important;
+  -webkit-text-fill-color: var(--peredacha-action-green-dark) !important;
+}
+
+.users-page .users-role-option:has(.users-role-input:checked) .users-role-check,
+.users-page .users-submit-btn i,
+.users-page .users-submit-btn .bi,
+.users-page .users-submit-btn:hover i,
+.users-page .users-submit-btn:hover .bi {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-title i,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-list i,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-mini-more i,
+.dashboard-page.dashboard-redesign .dashboard-roadmap-item i,
+body:has(.dashboard-page.dashboard-redesign) .dashboard-roadmap-mini-list span i,
+body:has(.dashboard-page.dashboard-redesign) .dashboard-roadmap-mini-more i,
+body:has(.dashboard-page.dashboard-redesign) .dashboard-roadmap-item i {
+  color: var(--peredacha-action-green-dark) !important;
+  -webkit-text-fill-color: var(--peredacha-action-green-dark) !important;
+}
+
+body:has(.dashboard-page.dashboard-redesign) .dashboard-roadmap-item i {
+  background: linear-gradient(180deg, #f5fbeb 0%, #ecf6dc 100%) !important;
+  border: 1px solid rgba(121, 191, 37, .22) !important;
+  box-shadow: 0 10px 20px rgba(121, 191, 37, .10) !important;
+}
+
+.document-type-card:hover,
+.document-type-card:focus-visible,
+.document-addendum-form .document-step-card:hover,
+.document-addendum-form .document-owner-option:hover,
+.document-addendum-form .document-upload-drop:hover {
+  border-color: rgba(121, 191, 37, .44) !important;
+  box-shadow: 0 14px 32px rgba(121, 191, 37, .12) !important;
+}
+
+.document-type-icon,
+.document-step-number,
+.document-upload-drop > span:first-of-type,
+.document-help-list i,
+.document-result-status,
+.document-result-status i,
+.document-result-stat b,
+.document-change-title,
+.document-diff-line-after span,
+.document-addendum-form .required-dot,
+.document-addendum-form .document-preset-title {
+  color: var(--peredacha-action-green-dark) !important;
+  -webkit-text-fill-color: var(--peredacha-action-green-dark) !important;
+}
+
+.document-step-number,
+.document-type-icon,
+.document-upload-drop > span:first-of-type,
+.document-help-list i {
+  background: linear-gradient(180deg, #f5fbeb 0%, #ecf6dc 100%) !important;
+  border-color: rgba(121, 191, 37, .24) !important;
+  box-shadow: inset 0 0 0 1px rgba(121, 191, 37, .12) !important;
+}
+
+.document-choice-btn.is-active,
+.document-choice-btn:hover,
+.document-quick-btn:hover,
+.document-owner-option:has(.form-check-input:checked),
+.document-addendum-form .form-check-input:checked {
+  background: var(--peredacha-action-green) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
+}
+
+.glass-type-select,
+.glass-type-choice:hover,
+.glass-type-choice.is-active,
+.material-selected-strip,
+.material-tasks-table .material-select-row.is-selected td:first-child,
+.assignment-assignee-edit-trigger:hover,
+.assignment-assignee-edit-trigger:focus {
+  border-color: rgba(121, 191, 37, .44) !important;
+  color: var(--peredacha-action-green-dark) !important;
+}
+
+.glass-type-select {
+  background-color: #f5fbeb !important;
+}
+
+.glass-type-choice.is-active {
+  background: var(--peredacha-action-green) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 8px 18px rgba(121, 191, 37, .18) !important;
+}
+
+.material-selected-strip,
+.assignment-assignee-edit-trigger:hover,
+.assignment-assignee-edit-trigger:focus {
+  background: #f5fbeb !important;
+  box-shadow: 0 0 0 3px rgba(121, 191, 37, .12) !important;
+}
+
+.material-tasks-table .material-select-row.is-selected td:first-child {
+  box-shadow: inset 4px 0 0 var(--peredacha-action-green) !important;
+}
+
+.worker-layout .sidebar-link.active,
+.worker-layout .sidebar-link:hover,
+.worker-layout .mobile-nav-item.active,
+.worker-layout .mobile-nav-item:hover {
+  color: #ffffff !important;
+  background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+  box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
+}
+
+.worker-layout .sidebar-link:focus-visible,
+.worker-layout .mobile-nav-item:focus-visible,
+.worker-task-card:focus-within,
+.worker-task-card:hover,
+.my-task-card:focus-within,
+.my-task-card:hover {
+  outline: none !important;
+  border-color: rgba(121, 191, 37, .44) !important;
+  box-shadow: 0 12px 28px rgba(121, 191, 37, .12) !important;
+}
+
+.maintenance-logout-form {
+  margin: 0;
+}
+
+.maintenance-logout-btn {
+  min-width: 160px;
+}
+
+.maintenance-card .under-dev-icon i,
+.under-dev-card .under-dev-icon i,
+.empty-section-icon i {
+  color: var(--peredacha-action-green-dark) !important;
+  -webkit-text-fill-color: var(--peredacha-action-green-dark) !important;
+}
+
+.maintenance-card .under-dev-icon,
+.under-dev-card .under-dev-icon,
+.empty-section-icon {
+  background: linear-gradient(180deg, #f5fbeb 0%, #ecf6dc 100%) !important;
+  border-color: rgba(121, 191, 37, .22) !important;
+  box-shadow: inset 0 0 0 1px rgba(121, 191, 37, .12), 0 12px 24px rgba(121, 191, 37, .10) !important;
+}
+
+.objects-topbar .btn-primary,
+.object-form-panel .btn-primary,
+.object-add-panel .btn-primary,
+.object-form-actions .btn-primary {
+  background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
+}
+
+.btn:focus,
+.btn:focus-visible,
+.dropdown-item:focus,
+.page-link:focus,
+.topbar-user:focus,
+.topbar-icon:focus,
+.sidebar-link:focus-visible,
+a:focus-visible {
+  box-shadow: 0 0 0 4px rgba(121, 191, 37, .16) !important;
+  outline: none !important;
+}
+
+
+/* ======================================================================
+   v161: iOS/PWA green icon + loader cleanup.
+   Убираем оставшийся синий/фиолетовый из мобильной загрузки и WebApp.
+   ====================================================================== */
+:root {
+  --peredacha-mobile-loader-green: #8dd62c;
+  --peredacha-mobile-loader-green-hover: #7cc922;
+  --peredacha-mobile-loader-green-dark: #5f9824;
+  --peredacha-mobile-loader-gray: #565d62;
+}
+
+.site-page-loader,
+.site-page-loader.js-success-loader,
+.app-launch-loader,
+body.mobile-dev-flag .mobile-dev-screen,
+.mobile-loading-card {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(141, 214, 44, .14), transparent 16rem),
+    radial-gradient(circle at 82% 20%, rgba(141, 214, 44, .10), transparent 14rem),
+    linear-gradient(180deg, #fefdfe 0%, #f7faef 100%) !important;
+}
+
+.site-page-loader-card,
+.site-page-loader.js-success-loader .site-page-loader-card,
+.app-launch-loader .site-page-loader-card,
+.mobile-loading-card {
+  background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,244,.98)) !important;
+  border-color: rgba(141, 214, 44, .24) !important;
+  box-shadow: 0 28px 90px rgba(86, 93, 98, .16) !important;
+}
+
+.site-page-loader .mobile-loading-orbit::before,
+.site-page-loader.js-success-loader .mobile-loading-orbit::before,
+.app-launch-loader .mobile-loading-orbit::before,
+.mobile-loading-card .mobile-loading-orbit::before,
+.mobile-loading-orbit::before {
+  border-top-color: rgba(141, 214, 44, .96) !important;
+  border-right-color: rgba(141, 214, 44, .28) !important;
+  border-bottom-color: transparent !important;
+  border-left-color: transparent !important;
+}
+
+.site-page-loader .mobile-loading-orbit::after,
+.site-page-loader.js-success-loader .mobile-loading-orbit::after,
+.app-launch-loader .mobile-loading-orbit::after,
+.mobile-loading-card .mobile-loading-orbit::after,
+.mobile-loading-orbit::after {
+  border-bottom-color: rgba(124, 201, 34, .92) !important;
+  border-left-color: rgba(141, 214, 44, .24) !important;
+  border-top-color: transparent !important;
+  border-right-color: transparent !important;
+}
+
+.site-page-loader .mobile-loading-orbit > span:nth-child(1),
+.site-page-loader.js-success-loader .mobile-loading-orbit > span:nth-child(1),
+.app-launch-loader .mobile-loading-orbit > span:nth-child(1),
+.mobile-loading-card .mobile-loading-orbit > span:nth-child(1),
+.mobile-loading-orbit > span:nth-child(1) {
+  border-top-color: rgba(95, 152, 36, .38) !important;
+  border-right-color: transparent !important;
+  border-bottom-color: transparent !important;
+  border-left-color: transparent !important;
+  background: none !important;
+}
+
+.site-page-loader .mobile-loading-orbit > span:nth-child(2),
+.site-page-loader.js-success-loader .mobile-loading-orbit > span:nth-child(2),
+.app-launch-loader .mobile-loading-orbit > span:nth-child(2),
+.mobile-loading-card .mobile-loading-orbit > span:nth-child(2),
+.mobile-loading-orbit > span:nth-child(2) {
+  border-right-color: rgba(141, 214, 44, .22) !important;
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+  border-left-color: transparent !important;
+  background: none !important;
+}
+
+.site-page-loader .mobile-loading-orbit > span:nth-child(3),
+.site-page-loader.js-success-loader .mobile-loading-orbit > span:nth-child(3),
+.app-launch-loader .mobile-loading-orbit > span:nth-child(3),
+.mobile-loading-card .mobile-loading-orbit > span:nth-child(3),
+.mobile-loading-orbit > span:nth-child(3) {
+  border-color: rgba(141, 214, 44, .16) !important;
+  background: radial-gradient(circle, rgba(141, 214, 44, .12), transparent 68%) !important;
+}
+
+.site-page-loader .mobile-loading-mark,
+.site-page-loader.js-success-loader .mobile-loading-mark,
+.app-launch-loader .mobile-loading-mark,
+.mobile-loading-card .mobile-loading-mark,
+.mobile-loading-mark,
+.ios-install-app-icon {
+  background: linear-gradient(180deg, #9fdf4c 0%, #78bb24 100%) !important;
+  border-color: rgba(141, 214, 44, .38) !important;
+  box-shadow: 0 18px 42px rgba(141, 214, 44, .28) !important;
+}
+
+.mobile-loading-logo,
+.mobile-loading-mark img,
+.ios-install-app-icon-image {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: inherit !important;
+}
+
+.mobile-loading-dots span,
+.mobile-loading-card .mobile-loading-dots span {
+  background: var(--peredacha-mobile-loader-green) !important;
+}
+
+@media (max-width: 768px) {
+  body.app-body {
+    background:
+      radial-gradient(circle at 50% -15%, rgba(141, 214, 44, .13), transparent 19rem),
+      #f7faef !important;
+  }
+
+  .mobile-app-topbar {
+    background:
+      radial-gradient(circle at 16% 0%, rgba(141, 214, 44, .12), transparent 12rem),
+      linear-gradient(180deg, #23292f 0%, #1a1f24 100%) !important;
+  }
+
+  .mobile-top-avatar,
+  .mobile-nav-item.active {
+    color: var(--peredacha-mobile-loader-green-dark) !important;
+  }
+}
