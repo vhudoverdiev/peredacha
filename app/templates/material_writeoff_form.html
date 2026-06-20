@@ -7,7 +7,7 @@
     <p class="page-subtitle">Сначала выберите замечания, затем спишите материал только из остатков на балансе.</p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
-    <a class="btn btn-success" href="{{ url_for('main.material_manual_task_new') }}"><i class="bi bi-plus-lg me-2"></i>Ручное списание</a>
+    <a class="btn btn-success" href="{{ url_for('main.material_manual_task_new') }}">Ручное списание</a>
     <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='writeoff') }}">Назад</a>
   </div>
 </div>
@@ -20,8 +20,8 @@
         <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите цифру">
       </div>
       <div class="col-12 col-lg-4 filter-actions">
-        <button class="btn btn-primary" type="submit">Найти</button>
-        <a class="btn btn-outline-secondary" href="{{ url_for('main.material_writeoff_new') }}">Сброс</a>
+        <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
+        <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.material_writeoff_new') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
       </div>
     </form>
   </div>

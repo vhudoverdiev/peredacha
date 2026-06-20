@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
-from wtforms import BooleanField, PasswordField, SelectField, StringField, SubmitField, TextAreaField
+from wtforms import BooleanField, PasswordField, RadioField, SelectField, StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Length, Optional
 from app.models import TASK_STATUSES, PRIORITIES, USER_ROLE_CHOICES
 
@@ -51,7 +51,7 @@ class UserForm(FlaskForm):
     username = StringField("Логин", validators=[DataRequired(), Length(max=80)])
     full_name = StringField("Имя", validators=[Optional(), Length(max=160)])
     password = PasswordField("Пароль", validators=[Optional(), Length(min=8)])
-    role = SelectField("Роль", choices=USER_ROLE_CHOICES)
+    role = RadioField("Роль", choices=USER_ROLE_CHOICES, default=USER_ROLE_CHOICES[0][0])
     submit = SubmitField("Сохранить")
 
 

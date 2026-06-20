@@ -39,6 +39,228 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.bootstrap && bootstrap.Tooltip) new bootstrap.Tooltip(el);
   });
 
+  const prepareNativeSelectsForCustomUi = (scope = document) => {
+    const excludedSelector = [
+      '.developer-custom-select select',
+      'select[multiple]',
+      'select[size]:not([size="1"])',
+      'select[data-native-select]',
+      'select[data-no-custom-select]',
+      '.flatpickr-monthDropdown-months'
+    ].join(',');
+
+    scope.querySelectorAll('select').forEach(select => {
+      if (select.matches(excludedSelector)) return;
+      if (select.closest('.developer-custom-select')) return;
+      if (select.dataset.customSelectReady === '1') return;
+
+      const shell = document.createElement('div');
+      shell.className = 'developer-custom-select js-developer-custom-select global-custom-select';
+      if (select.className) shell.classList.add('global-custom-select-inherited');
+      select.parentNode.insertBefore(shell, select);
+      shell.appendChild(select);
+      select.dataset.customSelectReady = '1';
+      select.classList.add('developer-native-select');
+    });
+  };
+
+  const initDeveloperCustomSelects = (scope = document) => {
+    prepareNativeSelectsForCustomUi(scope);
+
+    scope.querySelectorAll('.js-developer-custom-select').forEach(selectShell => {
+      const select = selectShell.querySelector('select');
+      if (!select || selectShell.querySelector('.developer-select-button')) return;
+
+      select.tabIndex = -1;
+      select.setAttribute('aria-hidden', 'true');
+      select.classList.add('developer-native-select');
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'developer-select-button';
+      button.setAttribute('aria-haspopup', 'listbox');
+      button.setAttribute('aria-expanded', 'false');
+
+      const valueText = document.createElement('span');
+      valueText.className = 'developer-select-value';
+      const arrow = document.createElement('span');
+      arrow.className = 'developer-select-arrow';
+      arrow.setAttribute('aria-hidden', 'true');
+      arrow.innerHTML = '<i class="bi bi-chevron-down"></i>';
+      button.append(valueText, arrow);
+
+      const menu = document.createElement('div');
+      menu.className = 'developer-select-menu developer-select-menu-portal';
+      menu.setAttribute('role', 'listbox');
+      menu.setAttribute('data-select-portal', '1');
+      menu.hidden = true;
+
+      const closeSelect = () => {
+        selectShell.classList.remove('is-open');
+        menu.classList.remove('is-portal-open', 'is-above');
+        menu.hidden = true;
+        button.setAttribute('aria-expanded', 'false');
+        window.removeEventListener('scroll', placeMenu, true);
+        window.removeEventListener('resize', placeMenu);
+      };
+
+      const closeOtherSelects = () => {
+        document.querySelectorAll('.js-developer-custom-select.is-open').forEach(opened => {
+          if (opened === selectShell) return;
+          opened.classList.remove('is-open');
+          const openedButton = opened.querySelector('.developer-select-button');
+          if (openedButton) openedButton.setAttribute('aria-expanded', 'false');
+        });
+        document.querySelectorAll('.developer-select-menu-portal.is-portal-open').forEach(openedMenu => {
+          if (openedMenu === menu) return;
+          openedMenu.classList.remove('is-portal-open', 'is-above');
+          openedMenu.hidden = true;
+        });
+      };
+
+      const options = Array.from(select.options).map(option => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'developer-select-option';
+        item.setAttribute('role', 'option');
+        item.dataset.value = option.value;
+        item.textContent = option.textContent;
+        item.disabled = option.disabled;
+        item.addEventListener('click', () => {
+          if (option.disabled) return;
+          select.value = option.value;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+          setActiveOption();
+          closeSelect();
+          button.focus({ preventScroll: true });
+        });
+        menu.appendChild(item);
+        return item;
+      });
+
+      const currentOption = () => select.options[select.selectedIndex] || select.options[0];
+      function setActiveOption() {
+        const selected = currentOption();
+        valueText.textContent = selected ? selected.textContent : '';
+        options.forEach(item => {
+          const option = Array.from(select.options).find(opt => opt.value === item.dataset.value);
+          const isActive = item.dataset.value === select.value;
+          item.disabled = Boolean(option?.disabled);
+          item.classList.toggle('is-selected', isActive);
+          item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+      }
+
+      function placeMenu() {
+        if (!selectShell.classList.contains('is-open')) return;
+        const rect = button.getBoundingClientRect();
+        const viewportGap = 12;
+        const minWidth = Math.max(rect.width, 180);
+        const availableBelow = Math.max(0, window.innerHeight - rect.bottom - viewportGap);
+        const availableAbove = Math.max(0, rect.top - viewportGap);
+        const estimatedHeight = Math.min(300, Math.max(46, options.length * 42 + 18));
+        const measuredHeight = menu.scrollHeight ? Math.min(300, Math.max(46, menu.scrollHeight)) : estimatedHeight;
+        // Выпадающий список по умолчанию открываем вниз, чтобы он не налезал на поле и кнопки сверху.
+        // Вверх открываем только когда снизу совсем мало места, иначе ограничиваем высоту и даем прокрутку.
+        const openAbove = availableBelow < 96 && availableAbove > availableBelow + 80;
+        const available = Math.max(96, (openAbove ? availableAbove : availableBelow) - 8);
+        const maxHeight = Math.max(96, Math.min(300, available));
+        const menuHeight = Math.min(measuredHeight, maxHeight);
+        const left = Math.min(Math.max(viewportGap, rect.left), Math.max(viewportGap, window.innerWidth - minWidth - viewportGap));
+        const top = openAbove
+          ? Math.max(viewportGap, rect.top - menuHeight - 8)
+          : Math.max(viewportGap, Math.min(window.innerHeight - viewportGap - menuHeight, rect.bottom + 8));
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+        menu.style.width = `${minWidth}px`;
+        menu.style.maxHeight = `${maxHeight}px`;
+        menu.classList.toggle('is-above', openAbove);
+      }
+
+      const openSelect = () => {
+        closeOtherSelects();
+        if (!menu.isConnected) document.body.appendChild(menu);
+        setActiveOption();
+        selectShell.classList.add('is-open');
+        button.setAttribute('aria-expanded', 'true');
+        menu.hidden = false;
+        menu.classList.add('is-portal-open');
+        placeMenu();
+        window.addEventListener('scroll', placeMenu, true);
+        window.addEventListener('resize', placeMenu);
+        const activeItem = menu.querySelector('.developer-select-option.is-selected:not(:disabled)') || menu.querySelector('.developer-select-option:not(:disabled)');
+        window.setTimeout(() => activeItem?.focus({ preventScroll: true }), 0);
+      };
+
+      button.addEventListener('click', () => {
+        if (selectShell.classList.contains('is-open')) closeSelect();
+        else openSelect();
+      });
+
+      button.addEventListener('keydown', event => {
+        if (['ArrowDown', 'Enter', ' '].includes(event.key)) {
+          event.preventDefault();
+          openSelect();
+        }
+      });
+
+      menu.addEventListener('keydown', event => {
+        const enabledOptions = options.filter(item => !item.disabled);
+        const currentIndex = enabledOptions.indexOf(document.activeElement);
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeSelect();
+          button.focus({ preventScroll: true });
+        }
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          const next = enabledOptions[Math.min(currentIndex + 1, enabledOptions.length - 1)] || enabledOptions[0];
+          next?.focus({ preventScroll: true });
+        }
+        if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          const prev = enabledOptions[Math.max(currentIndex - 1, 0)] || enabledOptions[0];
+          prev?.focus({ preventScroll: true });
+        }
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          if (document.activeElement?.classList.contains('developer-select-option')) document.activeElement.click();
+        }
+      });
+
+      select.addEventListener('change', setActiveOption);
+      selectShell.appendChild(button);
+      setActiveOption();
+    });
+  };
+
+  initDeveloperCustomSelects();
+
+  document.addEventListener('click', event => {
+    if (event.target.closest('.js-developer-custom-select') || event.target.closest('.developer-select-menu-portal')) return;
+    document.querySelectorAll('.js-developer-custom-select.is-open').forEach(selectShell => {
+      selectShell.classList.remove('is-open');
+      const button = selectShell.querySelector('.developer-select-button');
+      if (button) button.setAttribute('aria-expanded', 'false');
+    });
+    document.querySelectorAll('.developer-select-menu-portal.is-portal-open').forEach(menu => {
+      menu.classList.remove('is-portal-open', 'is-above');
+      menu.hidden = true;
+    });
+  });
+
+  const customSelectObserver = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType !== 1) return;
+        if (node.matches?.('select, .js-developer-custom-select') || node.querySelector?.('select, .js-developer-custom-select')) {
+          initDeveloperCustomSelects(node.matches?.('select') ? node.parentElement || document : node);
+        }
+      });
+    });
+  });
+  customSelectObserver.observe(document.body, { childList: true, subtree: true });
+
   const restoreSafeSubmitButton = button => {
     if (!button || !button.dataset.originalHtml) return;
     button.innerHTML = button.dataset.originalHtml;
@@ -445,6 +667,28 @@ document.addEventListener('DOMContentLoaded', () => {
     row.addEventListener('dblclick', openRow);
   });
 
+  document.querySelectorAll('.related-task-item[data-href]').forEach(item => {
+    item.addEventListener('click', event => {
+      if (event.target.closest('a, button, form, input, textarea, select, label, .inline-editor')) return;
+      window.location.href = item.dataset.href;
+    });
+    item.setAttribute('tabindex', '0');
+    item.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        window.location.href = item.dataset.href;
+      }
+    });
+  });
+
+  document.querySelectorAll('.apartment-card').forEach(card => {
+    card.addEventListener('click', event => {
+      if (event.target.closest('a, button, form, input, textarea, select, label')) return;
+      const href = card.querySelector('.apartment-card-link')?.getAttribute('href');
+      if (href) window.location.href = href;
+    });
+  });
+
   document.querySelectorAll('form[action*="/status/"]').forEach(form => {
     form.addEventListener('submit', async event => {
       const row = form.closest('.task-row-link');
@@ -504,10 +748,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const actionsCell = row.querySelector('.actions-cell');
         if (actionsCell) {
           actionsCell.dataset.currentStatus = data.status || '';
-          actionsCell.querySelectorAll('.status-action-form[data-status-action]').forEach(actionForm => {
-            actionForm.classList.toggle('d-none', actionForm.dataset.statusAction === data.status);
-          });
         }
+        row.querySelectorAll('.status-action-form[data-status-action]').forEach(actionForm => {
+          actionForm.classList.toggle('d-none', actionForm.dataset.statusAction === data.status);
+        });
+
+        const submittedProblemInput = form.querySelector('input[name="problem_comment"]');
+        if (submittedProblemInput) submittedProblemInput.remove();
 
         const problemWrap = form.querySelector('.problem-comment-wrap');
         const problemToggle = form.querySelector('.problem-toggle-btn');
@@ -515,7 +762,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (problemWrap && problemToggle && problemInput) {
           problemInput.value = '';
           problemWrap.classList.add('d-none');
+          form.classList.remove('problem-popover-open');
+          problemWrap.removeAttribute('style');
           problemToggle.classList.remove('d-none');
+          problemToggle.classList.remove('problem-toggle-open');
         }
       } finally {
         if (submitBtn) submitBtn.disabled = false;
@@ -547,30 +797,76 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  const problemModalEl = document.getElementById('taskProblemModal');
+  const problemModalForm = document.getElementById('taskProblemModalForm');
+  const problemModalComment = document.getElementById('taskProblemModalComment');
+  const problemModalTitle = problemModalEl?.querySelector('.modal-title');
+  let activeProblemForm = null;
+
+  const resetProblemModal = () => {
+    if (problemModalComment) problemModalComment.value = '';
+    problemModalForm?.classList.remove('was-validated');
+    activeProblemForm = null;
+  };
+
+  const setProblemCommentField = (form, value) => {
+    let hidden = form.querySelector('input[name="problem_comment"]');
+    if (!hidden) {
+      hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = 'problem_comment';
+      form.appendChild(hidden);
+    }
+    hidden.value = value;
+  };
+
+  const openProblemModal = (form, title) => {
+    if (!form || !problemModalEl || !problemModalForm || !problemModalComment) return;
+    activeProblemForm = form;
+    problemModalForm.classList.remove('was-validated');
+    problemModalComment.value = '';
+    if (problemModalTitle) problemModalTitle.textContent = title || 'Проблема';
+    if (window.bootstrap?.Modal) {
+      const modal = bootstrap.Modal.getOrCreateInstance(problemModalEl);
+      modal.show();
+      problemModalEl.addEventListener('shown.bs.modal', () => {
+        problemModalComment.focus();
+      }, { once: true });
+    } else {
+      const fallback = window.prompt('Опишите проблему');
+      if (fallback && fallback.trim()) {
+        setProblemCommentField(form, fallback.trim());
+        form.requestSubmit ? form.requestSubmit() : form.submit();
+      }
+    }
+  };
+
   document.querySelectorAll('.problem-toggle-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
       const form = btn.closest('.problem-action-form');
-      const wrap = form?.querySelector('.problem-comment-wrap');
-      const input = wrap?.querySelector('input[name="problem_comment"]');
-      if (!wrap || !input) return;
-      wrap.classList.remove('d-none');
-      input.focus();
-      btn.classList.add('d-none');
+      openProblemModal(form, btn.dataset.problemModalTitle || btn.getAttribute('title') || 'Проблема');
     });
   });
 
-  document.querySelectorAll('.problem-cancel-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const wrap = btn.closest('.problem-comment-wrap');
-      const form = btn.closest('.problem-action-form');
-      const toggleBtn = form?.querySelector('.problem-toggle-btn');
-      const input = wrap?.querySelector('input[name="problem_comment"]');
-      if (!wrap || !toggleBtn || !input) return;
-      input.value = '';
-      wrap.classList.add('d-none');
-      toggleBtn.classList.remove('d-none');
-    });
+  problemModalForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    if (!activeProblemForm || !problemModalComment) return;
+    const value = problemModalComment.value.trim();
+    if (!value) {
+      problemModalForm.classList.add('was-validated');
+      problemModalComment.focus();
+      return;
+    }
+    setProblemCommentField(activeProblemForm, value);
+    if (window.bootstrap?.Modal && problemModalEl) {
+      bootstrap.Modal.getOrCreateInstance(problemModalEl).hide();
+    }
+    activeProblemForm.requestSubmit ? activeProblemForm.requestSubmit() : activeProblemForm.submit();
   });
+
+  problemModalEl?.addEventListener('hidden.bs.modal', resetProblemModal);
 
   const fillMaterialRow = (row, name, unit) => {
     if (!row) return;
@@ -690,6 +986,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (document.querySelector('.assignment-shell[data-no-persist-selection="1"]')) {
+    try { window.sessionStorage.removeItem('crm-bulk-selection:assignments'); } catch (error) {}
+  }
   const pluralLabel = (count, scope) => {
     const one = scope.dataset.bulkLabelOne || 'заявка';
     const few = scope.dataset.bulkLabelFew || 'заявки';
@@ -701,11 +1000,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return many;
   };
   const normalizeConfirmText = (text) => (text || '').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
-  const bulkStorageKey = (scope) => scope.dataset.selectionKey ? `crm-bulk-selection:${scope.dataset.selectionKey}` : '';
+  const bulkStorageKey = (scope) => (scope.dataset.noPersistSelection === '1') ? '' : (scope.dataset.selectionKey ? `crm-bulk-selection:${scope.dataset.selectionKey}` : '');
+  const bulkStorage = (scope) => scope.dataset.selectionStorage === 'local' ? window.localStorage : window.sessionStorage;
   const readBulkSelection = (scope) => {
     const key = bulkStorageKey(scope);
     if (!key) return null;
-    const stored = window.sessionStorage.getItem(key);
+    const storage = bulkStorage(scope);
+    const stored = storage.getItem(key);
     if (stored === null) return null;
     try {
       const values = JSON.parse(stored || '[]');
@@ -717,7 +1018,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const writeBulkSelection = (scope) => {
     const key = bulkStorageKey(scope);
     if (!key || !(scope.__bulkSelectedIds instanceof Set)) return;
-    window.sessionStorage.setItem(key, JSON.stringify(Array.from(scope.__bulkSelectedIds)));
+    const storage = bulkStorage(scope);
+    storage.setItem(key, JSON.stringify(Array.from(scope.__bulkSelectedIds)));
   };
   const syncBulkExportForm = (scope) => {
     const selector = scope.dataset.exportForm;
@@ -800,6 +1102,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+
+  document.querySelectorAll('.js-excel-options-toggle').forEach(button => {
+    button.addEventListener('click', () => {
+      const target = document.querySelector(button.dataset.target || '');
+      if (!target) return;
+      target.classList.toggle('d-none');
+      const isOpen = !target.classList.contains('d-none');
+      button.classList.toggle('is-active', isOpen);
+      button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (isOpen) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  });
+
   document.querySelectorAll('.js-bulk-selectable').forEach(scope => {
     const checks = Array.from(scope.querySelectorAll('.js-bulk-check'));
     const storedSelection = readBulkSelection(scope);
@@ -809,6 +1126,13 @@ document.addEventListener('DOMContentLoaded', () => {
         checks.forEach(check => {
           check.checked = storedSelection.has(String(check.value));
         });
+      }
+      if (scope.dataset.selectionStorage === 'local' && storedSelection && storedSelection.size > 0) {
+        const panel = scope.querySelector('[data-excel-options-panel]');
+        const toggle = document.querySelector(`.js-excel-options-toggle[data-target="#${panel?.id}"]`);
+        panel?.classList.remove('d-none');
+        toggle?.classList.add('is-active');
+        toggle?.setAttribute('aria-expanded', 'true');
       }
       syncBulkExportForm(scope);
       syncBulkPersistedInputs(scope);
@@ -908,10 +1232,59 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.querySelectorAll('.js-remark-export-scope').forEach(scope => {
+    const premiseStorageKey = scope.dataset.premiseStorageKey || (scope.dataset.selectionKey ? `crm-premise-visibility:${scope.dataset.selectionKey}` : '');
+    const premiseStorage = scope.dataset.selectionStorage === 'local' ? window.localStorage : window.sessionStorage;
+    const exportFormSelector = scope.dataset.exportForm || '';
+    const exportForm = exportFormSelector ? document.querySelector(exportFormSelector) : null;
+    const premiseInputs = Array.from(scope.querySelectorAll('.js-premise-visibility'));
+    const readPremiseSelection = () => {
+      if (!premiseStorageKey) return null;
+      try {
+        const raw = premiseStorage.getItem(premiseStorageKey);
+        if (raw === null) return null;
+        const values = JSON.parse(raw || '[]');
+        return Array.isArray(values) ? new Set(values.map(String)) : null;
+      } catch (error) {
+        return null;
+      }
+    };
+    const writePremiseSelection = (values) => {
+      if (!premiseStorageKey) return;
+      try {
+        premiseStorage.setItem(premiseStorageKey, JSON.stringify(Array.from(values)));
+      } catch (error) {}
+    };
+    const syncPremiseExportForm = (visiblePremises) => {
+      if (!exportForm) return;
+      exportForm.querySelectorAll('input[name="premise_ids"]').forEach(input => input.remove());
+      Array.from(visiblePremises).forEach(premiseId => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'premise_ids';
+        input.value = premiseId;
+        exportForm.appendChild(input);
+      });
+    };
+    const updatePremiseOnlyActions = (visiblePremises) => {
+      if (scope.dataset.premiseOnlySelection !== '1') return;
+      const exportButtons = scope.querySelectorAll('.js-contractor-export-submit');
+      exportButtons.forEach(button => {
+        button.disabled = visiblePremises.size === 0;
+      });
+    };
+    const storedPremises = readPremiseSelection();
+    if (storedPremises && premiseInputs.length) {
+      premiseInputs.forEach(input => {
+        input.checked = storedPremises.has(String(input.value));
+      });
+    }
     const syncPremiseVisibility = () => {
       const visiblePremises = new Set(
         Array.from(scope.querySelectorAll('.js-premise-visibility:checked')).map(input => String(input.value))
       );
+      writePremiseSelection(visiblePremises);
+      syncPremiseExportForm(visiblePremises);
+      updatePremiseOnlyActions(visiblePremises);
       scope.querySelectorAll('.js-bulk-row[data-apartment-id]').forEach(row => {
         const apartmentId = String(row.dataset.apartmentId || '');
         const visible = !apartmentId || visiblePremises.has(apartmentId);
@@ -929,6 +1302,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (master) master.disabled = visibleChecks.length === 0;
       syncBulkScope(scope);
     };
+    scope.querySelectorAll('.js-contractor-premise-reset').forEach(button => {
+      button.addEventListener('click', () => {
+        premiseInputs.forEach(input => {
+          input.checked = true;
+        });
+        syncPremiseVisibility();
+      });
+    });
     scope.querySelectorAll('.js-premise-visibility').forEach(input => {
       input.addEventListener('change', syncPremiseVisibility);
     });
@@ -1145,8 +1526,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!responsibleSelect?.value) {
           event.preventDefault();
+          const responsibleShell = responsibleSelect?.closest('.js-developer-custom-select');
           responsibleSelect?.classList.add('is-invalid');
-          responsibleSelect?.focus();
+          responsibleShell?.classList.add('is-invalid');
+          responsibleShell?.querySelector('.developer-select-button')?.focus();
+          if (!responsibleShell) responsibleSelect?.focus();
           showCrmNotice('Выберите исполнителя. Отмеченные задачи останутся выбранными.', 'warning');
           return;
         }
@@ -1160,6 +1544,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     assignmentForm.querySelector('select[name="responsible_id"]')?.addEventListener('change', event => {
       event.currentTarget.classList.remove('is-invalid');
+      event.currentTarget.closest('.js-developer-custom-select')?.classList.remove('is-invalid');
     });
   }
 
@@ -1204,6 +1589,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 120);
     });
   }
+
+  document.querySelectorAll('.assignment-change-assignee-list input[name="new_responsible_id"]').forEach(input => {
+    input.addEventListener('change', () => {
+      const list = input.closest('.assignment-change-assignee-list');
+      list?.querySelectorAll('.assignment-change-assignee-option').forEach(option => {
+        const optionInput = option.querySelector('input[name="new_responsible_id"]');
+        option.classList.toggle('is-picked', Boolean(optionInput?.checked));
+      });
+    });
+  });
 
   const pad2 = value => String(value).padStart(2, '0');
   const toIsoDate = date => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
@@ -1623,7 +2018,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const hiddenBox = form.querySelector('.js-material-selected-hidden');
     const countEl = form.querySelector('.js-material-selected-count');
     const clearBtn = form.querySelector('.js-material-selected-clear');
+    const selectedStrip = form.querySelector('.js-material-selected-strip');
+    const noPersistSelection = form.dataset.noPersistSelection === '1';
+    let transientSelection = new Set();
+
+    if (noPersistSelection) {
+      try { localStorage.removeItem(storageKey); } catch (error) {}
+    }
+
     const readSelection = () => {
+      if (noPersistSelection) return new Set(transientSelection);
       try {
         return new Set(JSON.parse(localStorage.getItem(storageKey) || '[]').map(String));
       } catch (error) {
@@ -1631,7 +2035,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
     const writeSelection = (selection) => {
+      if (noPersistSelection) {
+        transientSelection = new Set(selection);
+        return;
+      }
       localStorage.setItem(storageKey, JSON.stringify(Array.from(selection)));
+    };
+    const clearSelection = () => {
+      transientSelection = new Set();
+      try { localStorage.removeItem(storageKey); } catch (error) {}
     };
     const syncSelectionUi = () => {
       const selection = readSelection();
@@ -1640,6 +2052,7 @@ document.addEventListener('DOMContentLoaded', () => {
         check.closest('.material-select-row')?.classList.toggle('is-selected', check.checked);
       });
       if (countEl) countEl.textContent = String(selection.size);
+      if (selectedStrip) selectedStrip.classList.toggle('d-none', selection.size === 0);
       if (hiddenBox) {
         hiddenBox.innerHTML = '';
         selection.forEach(taskId => {
@@ -1666,13 +2079,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     clearBtn?.addEventListener('click', () => {
-      writeSelection(new Set());
+      clearSelection();
       syncSelectionUi();
     });
 
     form.addEventListener('submit', () => {
       syncSelectionUi();
     });
+
+    if (noPersistSelection) {
+      window.addEventListener('pagehide', clearSelection, { once: true });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') clearSelection();
+      });
+    }
 
     syncSelectionUi();
   });
@@ -1850,6 +2270,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         input.classList.remove('is-invalid');
       });
+      clone.querySelectorAll('select').forEach(select => {
+        select.value = 'Стеклопакет';
+        select.classList.remove('is-invalid');
+        select.dataset.customSelectReady = '';
+        select.removeAttribute('aria-hidden');
+        select.tabIndex = 0;
+      });
+      clone.querySelectorAll('.developer-select-button').forEach(button => button.remove());
+      clone.querySelectorAll('.developer-select-menu').forEach(menu => menu.remove());
       activateGlassType(clone, 'Стеклопакет');
       container.appendChild(clone);
       syncRemoveButtons();
@@ -2224,4 +2653,541 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     fields.phrase.dataset.autoPhrase = nextPhrase;
   });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const page = document.querySelector('.assignment-report-page');
+  if (!page) return;
+
+  const reportPad2 = value => String(value).padStart(2, '0');
+  const reportToIsoDate = date => `${date.getFullYear()}-${reportPad2(date.getMonth() + 1)}-${reportPad2(date.getDate())}`;
+  const reportParseIsoDate = value => {
+    const parts = String(value || '').split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return new Date();
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  };
+  const reportPrettyDate = value => {
+    const date = reportParseIsoDate(value);
+    return `${reportPad2(date.getDate())}.${reportPad2(date.getMonth() + 1)}.${date.getFullYear()}`;
+  };
+
+  const ensureReportDateModal = () => {
+    let modal = document.querySelector('.js-assignment-report-date-modal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.className = 'assignment-date-modal-overlay js-assignment-report-date-modal d-none';
+    modal.innerHTML = `
+      <div class="assignment-date-modal assignment-report-date-modal" role="dialog" aria-modal="true" aria-labelledby="assignment-report-date-modal-title">
+        <div class="assignment-date-modal-head">
+          <div>
+            <div class="assignment-date-modal-kicker">Дата отчета</div>
+            <h2 id="assignment-report-date-modal-title">Выбор даты</h2>
+          </div>
+          <button class="assignment-date-modal-close js-assignment-report-date-cancel" type="button" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="assignment-date-quick-row">
+          <button type="button" class="js-assignment-report-date-quick" data-offset="0">Сегодня</button>
+          <button type="button" class="js-assignment-report-date-quick" data-offset="-1">Вчера</button>
+          <button type="button" class="js-assignment-report-date-quick" data-offset="-7">Неделю назад</button>
+        </div>
+        <div class="assignment-date-calendar">
+          <div class="assignment-date-calendar-head">
+            <button type="button" class="assignment-date-nav js-assignment-report-date-prev" aria-label="Предыдущий месяц"><i class="bi bi-chevron-left"></i></button>
+            <div class="assignment-date-month js-assignment-report-date-month"></div>
+            <button type="button" class="assignment-date-nav js-assignment-report-date-next" aria-label="Следующий месяц"><i class="bi bi-chevron-right"></i></button>
+          </div>
+          <div class="assignment-date-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+          <div class="assignment-date-grid js-assignment-report-date-grid"></div>
+        </div>
+        <div class="assignment-date-selected">
+          <span>Выбрано</span>
+          <b class="js-assignment-report-date-selected-text"></b>
+        </div>
+        <div class="assignment-date-modal-actions">
+          <button class="btn btn-outline-secondary js-assignment-report-date-cancel" type="button">Отмена</button>
+          <button class="btn btn-primary js-assignment-report-date-save" type="button"><i class="bi bi-check2"></i><span>Выбрать дату</span></button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    return modal;
+  };
+
+  const openReportDateModal = picker => {
+    const input = picker.querySelector('.js-assignment-report-date-input');
+    const button = picker.querySelector('.js-assignment-report-date-open');
+    const valueText = picker.querySelector('.js-assignment-report-date-value');
+    if (!input || !button || !valueText) return;
+
+    const modal = ensureReportDateModal();
+    let selectedIso = input.value || button.dataset.currentDate || reportToIsoDate(new Date());
+    let viewDate = reportParseIsoDate(selectedIso);
+    viewDate.setDate(1);
+
+    const monthEl = modal.querySelector('.js-assignment-report-date-month');
+    const gridEl = modal.querySelector('.js-assignment-report-date-grid');
+    const selectedEl = modal.querySelector('.js-assignment-report-date-selected-text');
+    const saveBtn = modal.querySelector('.js-assignment-report-date-save');
+
+    const render = () => {
+      const monthLabel = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(viewDate);
+      monthEl.textContent = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+      selectedEl.textContent = reportPrettyDate(selectedIso);
+      gridEl.innerHTML = '';
+
+      const year = viewDate.getFullYear();
+      const month = viewDate.getMonth();
+      const first = new Date(year, month, 1);
+      const firstWeekDay = (first.getDay() + 6) % 7;
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const todayIso = reportToIsoDate(new Date());
+
+      for (let i = 0; i < firstWeekDay; i += 1) {
+        const spacer = document.createElement('span');
+        spacer.className = 'assignment-date-day-spacer';
+        gridEl.appendChild(spacer);
+      }
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const date = new Date(year, month, day);
+        const iso = reportToIsoDate(date);
+        const dayButton = document.createElement('button');
+        dayButton.type = 'button';
+        dayButton.className = 'assignment-date-day';
+        dayButton.textContent = String(day);
+        dayButton.classList.toggle('is-selected', iso === selectedIso);
+        dayButton.classList.toggle('is-today', iso === todayIso);
+        dayButton.addEventListener('click', () => {
+          selectedIso = iso;
+          render();
+        });
+        gridEl.appendChild(dayButton);
+      }
+    };
+
+    const close = () => {
+      modal.classList.add('d-none');
+      document.removeEventListener('keydown', onKeydown);
+    };
+    const onKeydown = event => {
+      if (event.key === 'Escape') close();
+    };
+
+    modal.querySelectorAll('.js-assignment-report-date-cancel').forEach(cancel => { cancel.onclick = close; });
+    modal.querySelector('.js-assignment-report-date-prev').onclick = () => {
+      viewDate.setMonth(viewDate.getMonth() - 1);
+      render();
+    };
+    modal.querySelector('.js-assignment-report-date-next').onclick = () => {
+      viewDate.setMonth(viewDate.getMonth() + 1);
+      render();
+    };
+    modal.querySelectorAll('.js-assignment-report-date-quick').forEach(quick => {
+      quick.onclick = () => {
+        const next = new Date();
+        next.setDate(next.getDate() + Number(quick.dataset.offset || 0));
+        selectedIso = reportToIsoDate(next);
+        viewDate = reportParseIsoDate(selectedIso);
+        viewDate.setDate(1);
+        render();
+      };
+    });
+    modal.onclick = event => { if (event.target === modal) close(); };
+    saveBtn.onclick = () => {
+      input.value = selectedIso;
+      button.dataset.currentDate = selectedIso;
+      valueText.textContent = reportPrettyDate(selectedIso);
+      close();
+    };
+
+    render();
+    document.addEventListener('keydown', onKeydown);
+    modal.classList.remove('d-none');
+  };
+
+  page.querySelectorAll('.js-assignment-report-date-picker').forEach(picker => {
+    picker.querySelector('.js-assignment-report-date-open')?.addEventListener('click', event => {
+      event.preventDefault();
+      openReportDateModal(picker);
+    });
+  });
+
+  const numberFromText = element => {
+    const match = String(element?.textContent || '').match(/\d+/);
+    return match ? parseInt(match[0], 10) || 0 : 0;
+  };
+  const setNumber = (element, value) => {
+    if (element) element.textContent = String(Math.max(0, value));
+  };
+  const setBadgeNumber = (element, label, value) => {
+    if (element) element.textContent = `${label} ${Math.max(0, value)}`;
+  };
+  const showInlineNotice = message => {
+    let stack = document.querySelector('.crm-toast-stack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.className = 'flash-stack crm-toast-stack';
+      stack.setAttribute('aria-live', 'polite');
+      stack.setAttribute('aria-atomic', 'true');
+      document.body.appendChild(stack);
+    }
+    const toast = document.createElement('div');
+    toast.className = 'alert alert-danger alert-dismissible fade show crm-toast crm-toast-danger';
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+      <div class="crm-toast-icon"><i class="bi bi-x-circle"></i></div>
+      <div class="crm-toast-body">
+        <div class="crm-toast-title">Ошибка</div>
+        <div class="crm-toast-text">${message}</div>
+      </div>
+      <button type="button" class="crm-toast-close" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
+    `;
+    stack.appendChild(toast);
+    const close = () => toast.remove();
+    toast.querySelector('.crm-toast-close')?.addEventListener('click', close);
+    window.setTimeout(close, 4200);
+  };
+  const updateCounters = (card, wasDone, isDone) => {
+    if (wasDone === isDone) return;
+    const doneDelta = isDone ? 1 : -1;
+    const leftDelta = isDone ? -1 : 1;
+    setNumber(page.querySelector('[data-assignment-report-total-done]'), numberFromText(page.querySelector('[data-assignment-report-total-done]')) + doneDelta);
+    setNumber(page.querySelector('[data-assignment-report-total-left]'), numberFromText(page.querySelector('[data-assignment-report-total-left]')) + leftDelta);
+    setBadgeNumber(card?.querySelector('[data-assignment-report-group-done]'), 'выполнено', numberFromText(card?.querySelector('[data-assignment-report-group-done]')) + doneDelta);
+    setBadgeNumber(card?.querySelector('[data-assignment-report-group-left]'), 'осталось', numberFromText(card?.querySelector('[data-assignment-report-group-left]')) + leftDelta);
+  };
+
+  page.addEventListener('submit', async event => {
+    const form = event.target.closest('[data-assignment-report-status-form]');
+    if (!form || !page.contains(form)) return;
+    event.preventDefault();
+
+    const row = form.closest('[data-assignment-report-row]');
+    const card = form.closest('[data-assignment-report-card]');
+    const button = form.querySelector('button[type="submit"]');
+    const pill = row?.querySelector('[data-assignment-report-status-pill]');
+    const wasDone = row?.classList.contains('is-done') || false;
+    const previousHtml = button?.innerHTML || '';
+    const previousClass = button?.className || '';
+    const previousTitle = button?.getAttribute('title') || '';
+    const previousAria = button?.getAttribute('aria-label') || '';
+    const previousDisabled = button?.disabled || false;
+
+    if (button) {
+      button.disabled = true;
+      button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>';
+    }
+
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        credentials: 'same-origin'
+      });
+      if (!response.ok) throw new Error('request failed');
+      const data = await response.json();
+      if (!data || data.ok === false) throw new Error('bad payload');
+
+      const isDone = Boolean(data.is_done);
+      row?.classList.toggle('is-done', isDone);
+      if (pill) {
+        pill.className = `badge bg-${data.status_class || (isDone ? 'success' : 'secondary')}`;
+        pill.setAttribute('data-assignment-report-status-pill', '');
+        pill.textContent = data.status_label || (isDone ? 'Выполнено' : 'Не выполнено');
+      }
+      const nextUrl = form.dataset.nextUrl;
+      if (nextUrl) {
+        const currentUrl = form.action;
+        form.action = nextUrl;
+        form.dataset.nextUrl = currentUrl;
+      }
+      if (button) {
+        button.disabled = false;
+        if (isDone) {
+          button.className = 'btn btn-sm btn-outline-secondary assignment-report-return-btn';
+          button.removeAttribute('title');
+          button.removeAttribute('aria-label');
+          button.innerHTML = '<i class="bi bi-arrow-counterclockwise me-1"></i>Вернуть';
+        } else {
+          button.className = 'btn btn-sm btn-success assignment-report-done-btn';
+          button.setAttribute('title', 'Выполнено');
+          button.setAttribute('aria-label', 'Выполнено');
+          button.innerHTML = '<i class="bi bi-check2-circle"></i>';
+        }
+      }
+      updateCounters(card, wasDone, isDone);
+    } catch (error) {
+      if (button) {
+        button.disabled = previousDisabled;
+        button.className = previousClass;
+        button.innerHTML = previousHtml;
+        if (previousTitle) button.setAttribute('title', previousTitle); else button.removeAttribute('title');
+        if (previousAria) button.setAttribute('aria-label', previousAria); else button.removeAttribute('aria-label');
+      }
+      showInlineNotice('Не удалось изменить статус. Попробуйте ещё раз.');
+    }
+  });
+});
+
+/* v138: global CRM select/date controls */
+document.addEventListener('DOMContentLoaded', () => {
+  const padDatePart = value => String(value).padStart(2, '0');
+  const toIsoDateGlobal = date => `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
+  const parseIsoDateGlobal = value => {
+    const parts = String(value || '').split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return new Date();
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  };
+  const prettyDateGlobal = value => {
+    if (!value) return '';
+    const date = parseIsoDateGlobal(value);
+    return `${padDatePart(date.getDate())}.${padDatePart(date.getMonth() + 1)}.${date.getFullYear()}`;
+  };
+
+  const ensureGlobalDateModal = () => {
+    let modal = document.querySelector('.js-global-date-modal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.className = 'assignment-date-modal-overlay global-date-modal-overlay js-global-date-modal d-none';
+    modal.innerHTML = `
+      <div class="assignment-date-modal global-date-modal" role="dialog" aria-modal="true" aria-labelledby="global-date-modal-title">
+        <div class="assignment-date-modal-head">
+          <div>
+            <div class="assignment-date-modal-kicker js-global-date-kicker">Дата</div>
+            <h2 id="global-date-modal-title">Выбор даты</h2>
+          </div>
+          <button class="assignment-date-modal-close js-global-date-cancel" type="button" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="assignment-date-quick-row">
+          <button type="button" class="js-global-date-quick" data-offset="0">Сегодня</button>
+          <button type="button" class="js-global-date-quick" data-offset="1">Завтра</button>
+          <button type="button" class="js-global-date-quick" data-offset="-1">Вчера</button>
+        </div>
+        <div class="assignment-date-calendar">
+          <div class="assignment-date-calendar-head">
+            <button type="button" class="assignment-date-nav js-global-date-prev" aria-label="Предыдущий месяц"><i class="bi bi-chevron-left"></i></button>
+            <div class="assignment-date-month js-global-date-month"></div>
+            <button type="button" class="assignment-date-nav js-global-date-next" aria-label="Следующий месяц"><i class="bi bi-chevron-right"></i></button>
+          </div>
+          <div class="assignment-date-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+          <div class="assignment-date-grid js-global-date-grid"></div>
+        </div>
+        <div class="assignment-date-selected">
+          <span>Выбрано</span>
+          <b class="js-global-date-selected-text"></b>
+        </div>
+        <div class="assignment-date-modal-actions">
+          <button class="btn btn-outline-secondary js-global-date-cancel" type="button">Отмена</button>
+          <button class="btn btn-primary js-global-date-save" type="button"><i class="bi bi-check2"></i><span>Выбрать дату</span></button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    return modal;
+  };
+
+  const openGlobalDateModal = (picker) => {
+    const input = picker.querySelector('input[type="date"]');
+    const button = picker.querySelector('.global-date-button');
+    const valueText = picker.querySelector('.global-date-value');
+    if (!input || !button || !valueText) return;
+
+    const modal = ensureGlobalDateModal();
+    const label = picker.dataset.dateLabel || getReadableDateLabel(input);
+    modal.querySelector('.js-global-date-kicker').textContent = label;
+
+    let selectedIso = input.value || toIsoDateGlobal(new Date());
+    let viewDate = parseIsoDateGlobal(selectedIso);
+    viewDate.setDate(1);
+
+    const monthEl = modal.querySelector('.js-global-date-month');
+    const gridEl = modal.querySelector('.js-global-date-grid');
+    const selectedEl = modal.querySelector('.js-global-date-selected-text');
+    const saveBtn = modal.querySelector('.js-global-date-save');
+
+    const render = () => {
+      const monthLabel = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(viewDate);
+      monthEl.textContent = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+      selectedEl.textContent = prettyDateGlobal(selectedIso);
+      gridEl.innerHTML = '';
+
+      const year = viewDate.getFullYear();
+      const month = viewDate.getMonth();
+      const first = new Date(year, month, 1);
+      const firstWeekDay = (first.getDay() + 6) % 7;
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const todayIso = toIsoDateGlobal(new Date());
+
+      for (let i = 0; i < firstWeekDay; i += 1) {
+        const spacer = document.createElement('span');
+        spacer.className = 'assignment-date-day-spacer';
+        gridEl.appendChild(spacer);
+      }
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const date = new Date(year, month, day);
+        const iso = toIsoDateGlobal(date);
+        const dayButton = document.createElement('button');
+        dayButton.type = 'button';
+        dayButton.className = 'assignment-date-day';
+        dayButton.textContent = String(day);
+        dayButton.classList.toggle('is-selected', iso === selectedIso);
+        dayButton.classList.toggle('is-today', iso === todayIso);
+        dayButton.addEventListener('click', () => {
+          selectedIso = iso;
+          render();
+        });
+        gridEl.appendChild(dayButton);
+      }
+    };
+
+    const close = () => {
+      modal.classList.add('d-none');
+      document.removeEventListener('keydown', onKeydown);
+    };
+    const onKeydown = event => {
+      if (event.key === 'Escape') close();
+    };
+
+    modal.querySelectorAll('.js-global-date-cancel').forEach(cancel => { cancel.onclick = close; });
+    modal.querySelector('.js-global-date-prev').onclick = () => {
+      viewDate.setMonth(viewDate.getMonth() - 1);
+      render();
+    };
+    modal.querySelector('.js-global-date-next').onclick = () => {
+      viewDate.setMonth(viewDate.getMonth() + 1);
+      render();
+    };
+    modal.querySelectorAll('.js-global-date-quick').forEach(quick => {
+      quick.onclick = () => {
+        const next = new Date();
+        next.setDate(next.getDate() + Number(quick.dataset.offset || 0));
+        selectedIso = toIsoDateGlobal(next);
+        viewDate = parseIsoDateGlobal(selectedIso);
+        viewDate.setDate(1);
+        render();
+      };
+    });
+    modal.onclick = event => { if (event.target === modal) close(); };
+    saveBtn.onclick = () => {
+      input.value = selectedIso;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      valueText.textContent = prettyDateGlobal(selectedIso) || input.placeholder || 'Выберите дату';
+      button.classList.toggle('is-empty', !input.value);
+      close();
+    };
+
+    render();
+    document.addEventListener('keydown', onKeydown);
+    modal.classList.remove('d-none');
+  };
+
+  const readableDateNames = {
+    planned_date: 'Дата выполнения',
+    issued_day: 'День',
+    report_date: 'Дата отчета',
+    date: 'Дата',
+    day: 'День',
+    start_date: 'Дата начала',
+    end_date: 'Дата окончания',
+    inspection_date: 'Дата осмотра',
+    completed_date: 'Дата выполнения',
+    completion_date: 'Дата выполнения',
+    task_date: 'Дата задачи',
+  };
+
+  const normalizeDateName = value => String(value || '').replace(/\[.*?\]/g, '').replace(/_\d+$/g, '').trim();
+
+  const labelFromNearbyMarkup = input => {
+    const safeId = input.id && window.CSS?.escape ? CSS.escape(input.id) : '';
+    if (safeId) {
+      const explicit = document.querySelector(`label[for="${safeId}"]`);
+      if (explicit?.textContent?.trim()) return explicit.textContent.trim();
+    }
+
+    const labelledBy = input.getAttribute('aria-labelledby');
+    if (labelledBy) {
+      const text = labelledBy.split(/\s+/).map(id => document.getElementById(id)?.textContent?.trim()).filter(Boolean).join(' ');
+      if (text) return text;
+    }
+
+    let node = input.parentElement;
+    for (let depth = 0; node && depth < 4; depth += 1, node = node.parentElement) {
+      const children = Array.from(node.children || []);
+      const directLabel = children.find(child => child.tagName === 'LABEL' && child.textContent?.trim());
+      if (directLabel) return directLabel.textContent.trim();
+      const formLabel = children.find(child => child.classList?.contains('form-label') && child.textContent?.trim());
+      if (formLabel) return formLabel.textContent.trim();
+    }
+    return '';
+  };
+
+  const getReadableDateLabel = input => {
+    const nearby = labelFromNearbyMarkup(input);
+    if (nearby) return nearby;
+
+    const aria = input.getAttribute('aria-label');
+    const normalizedAria = normalizeDateName(aria);
+    if (aria && !readableDateNames[normalizedAria] && !aria.includes('_')) return aria;
+
+    const normalizedName = normalizeDateName(input.name || input.id || '');
+    if (readableDateNames[normalizedName]) return readableDateNames[normalizedName];
+    if (normalizedName.startsWith('planned_date')) return readableDateNames.planned_date;
+    if (normalizedName.endsWith('_date')) return 'Дата';
+    return 'Дата';
+  };
+
+  const enhanceDateInput = input => {
+    if (!input || input.dataset.globalDateReady === '1') return;
+    if (input.closest('.assignment-report-date-picker')) return;
+    if (input.closest('.global-date-picker')) return;
+    if (input.matches('[data-native-date], [data-no-custom-date]')) return;
+
+    input.dataset.globalDateReady = '1';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'global-date-picker js-global-date-picker';
+    wrapper.dataset.dateLabel = getReadableDateLabel(input);
+
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
+    input.classList.add('global-native-date-input');
+    input.tabIndex = -1;
+    input.setAttribute('aria-hidden', 'true');
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'global-date-button';
+    if (input.disabled) button.disabled = true;
+    const initialText = prettyDateGlobal(input.value) || input.placeholder || 'Выберите дату';
+    button.innerHTML = `<span class="global-date-value">${initialText}</span><span class="global-date-icon" aria-hidden="true"><i class="bi bi-calendar3"></i></span>`;
+    button.classList.toggle('is-empty', !input.value);
+    wrapper.appendChild(button);
+
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      if (!input.disabled && !input.readOnly) openGlobalDateModal(wrapper);
+    });
+
+    input.addEventListener('change', () => {
+      const valueText = wrapper.querySelector('.global-date-value');
+      if (valueText) valueText.textContent = prettyDateGlobal(input.value) || input.placeholder || 'Выберите дату';
+      button.classList.toggle('is-empty', !input.value);
+      button.disabled = input.disabled;
+    });
+  };
+
+  const enhanceAllDateInputs = (scope = document) => {
+    scope.querySelectorAll('input[type="date"]').forEach(enhanceDateInput);
+  };
+
+  enhanceAllDateInputs();
+
+  const dateObserver = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType !== 1) return;
+        if (node.matches?.('input[type="date"]')) enhanceDateInput(node);
+        node.querySelectorAll?.('input[type="date"]').forEach(enhanceDateInput);
+      });
+    });
+  });
+  dateObserver.observe(document.body, { childList: true, subtree: true });
 });

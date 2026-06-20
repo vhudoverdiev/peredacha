@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Замеры{% endblock %}
 {% block content %}
+<div class="glass-page">
 <div class="page-head remarks-page-head glass-page-head">
   <div>
     <h1 class="page-title">Замеры</h1>
@@ -35,8 +36,8 @@
         </select>
       </div>
       <div class="col-12 col-lg-3 filter-actions glass-filter-actions">
-        <button class="btn btn-primary" type="submit">Найти</button>
-        <a class="btn btn-outline-secondary" href="{{ url_for('main.glass_measurements', tab='all') }}">Сброс</a>
+        <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
+        <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.glass_measurements', tab='all') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
       </div>
     </form>
   </div>
@@ -123,15 +124,14 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="glass-measure-items js-glass-measure-items">
               <div class="glass-measure-item-row glass-measure-item-card">
-                <div class="glass-field glass-type-field">
+                <div class="glass-field glass-type-field glass-type-select-field">
                   <span>Тип:</span>
-                  <input type="hidden" name="item_type[]" value="{{ measurement.glass_type if measurement and measurement.glass_type else 'Стеклопакет' }}" class="js-glass-type-input">
-                  <div class="glass-type-button-group" role="group" aria-label="Тип заказа">
+                  {% set selected_type = measurement.glass_type if measurement and measurement.glass_type else 'Стеклопакет' %}
+                  <select class="form-select form-select-sm glass-type-select js-glass-type-select" name="item_type[]" aria-label="Тип заказа">
                     {% for item_type in glass_item_types %}
-                      {% set selected_type = measurement.glass_type if measurement and measurement.glass_type else 'Стеклопакет' %}
-                      <button class="glass-type-choice js-glass-type-choice {% if selected_type == item_type %}is-active{% endif %}" type="button" data-value="{{ item_type }}">{{ item_type }}</button>
+                      <option value="{{ item_type }}" {% if selected_type == item_type %}selected{% endif %}>{{ item_type }}</option>
                     {% endfor %}
-                  </div>
+                  </select>
                 </div>
                 <label class="glass-field glass-size-field">
                   <span>Размер</span>
@@ -252,4 +252,5 @@
   </div>
 </div>
 {% endif %}
+</div>
 {% endblock %}

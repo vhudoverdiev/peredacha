@@ -151,6 +151,7 @@ def login_captcha():
         session["show_success_loader"] = True
         mark_login_success(user)
         clear_captcha()
+        flash("Добро пожаловать! CRM от Худовердиева В", "success")
         security_event("login_success", f"Успешный вход {user.username}", user_id=user.id)
         return _redirect_after_login(user, next_url)
 

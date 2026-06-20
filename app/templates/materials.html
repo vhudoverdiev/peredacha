@@ -8,7 +8,7 @@
   </div>
   <div class="materials-actions">
     {% if active_tab == 'requests' and can_edit_materials %}
-      <a class="btn btn-success" href="{{ url_for('main.material_request_new') }}"><i class="bi bi-plus-lg me-2"></i>Добавить заявку</a>
+      <a class="btn btn-primary material-pick-style-btn" href="{{ url_for('main.material_request_new') }}"><i class="bi bi-plus-lg me-2"></i>Добавить заявку</a>
     {% elif active_tab == 'history' %}
       <a class="btn btn-outline-success download-excel-btn" href="{{ url_for('main.material_expense_export') }}"><i class="bi bi-file-earmark-excel me-2"></i><span>Скачать Excel</span></a>
     {% endif %}
@@ -59,7 +59,7 @@
   <div class="bulk-actions-panel js-bulk-panel d-none">
     <div class="bulk-actions-count">Выбрано: <b class="js-bulk-count">0</b> <span class="js-bulk-label">позиций</span></div>
     <button class="btn btn-outline-secondary btn-sm js-check-all" type="button" data-target=".material-balance-check">Выбрать все</button>
-    <button class="btn btn-danger btn-sm js-bulk-submit" type="submit" form="material-balance-delete-form" data-confirm="Удалить выбранные позиции баланса?\n\nБудет удалено: {count} {label}.\n\nИз связанных заявок и списаний будут удалены эти материалы." disabled><i class="bi bi-trash me-2"></i>Удалить выбранные</button>
+    <button class="btn btn-danger btn-sm js-bulk-submit material-icon-delete-btn" type="submit" form="material-balance-delete-form" data-confirm="Удалить выбранные позиции баланса?\n\nБудет удалено: {count} {label}.\n\nИз связанных заявок и списаний будут удалены эти материалы." disabled title="Удалить выбранные" aria-label="Удалить выбранные"><i class="bi bi-trash"></i><span class="visually-hidden">Удалить выбранные</span></button>
   </div>
   {% endif %}
   <div class="card-body p-0">
@@ -114,7 +114,7 @@
   <div class="bulk-actions-panel js-bulk-panel d-none">
     <div class="bulk-actions-count">Выбрано: <b class="js-bulk-count">0</b> <span class="js-bulk-label">заявок</span></div>
     <button class="btn btn-outline-secondary btn-sm js-check-all" type="button" data-target=".material-request-check">Выбрать все</button>
-    <button class="btn btn-danger btn-sm js-bulk-submit" type="submit" form="material-requests-delete-form" data-confirm="Удалить выбранные заявки?\n\nБудет удалено: {count} {label}.\n\nЭто действие нельзя отменить." disabled><i class="bi bi-trash me-2"></i>Удалить выбранные</button>
+    <button class="btn btn-danger btn-sm js-bulk-submit material-icon-delete-btn" type="submit" form="material-requests-delete-form" data-confirm="Удалить выбранные заявки?\n\nБудет удалено: {count} {label}.\n\nЭто действие нельзя отменить." disabled title="Удалить выбранные" aria-label="Удалить выбранные"><i class="bi bi-trash"></i><span class="visually-hidden">Удалить выбранные</span></button>
   </div>
   {% endif %}
   <div class="card-body p-0">
@@ -162,14 +162,14 @@
         <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите цифру или текст">
       </div>
       <div class="col-12 col-lg-4 filter-actions">
-        <button class="btn btn-primary" type="submit">Найти</button>
-        <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='writeoff') }}">Сброс</a>
+        <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
+        <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.materials', tab='writeoff') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
       </div>
     </form>
   </div>
 </div>
 
-<form method="post" action="{{ url_for('main.material_writeoff_new') }}" class="material-writeoff-form js-material-writeoff-form" data-selection-key="material-writeoff-{{ project.id }}">
+<form method="post" action="{{ url_for('main.material_writeoff_new') }}" class="material-writeoff-form js-material-writeoff-form" data-selection-key="material-writeoff-{{ project.id }}" data-no-persist-selection="1">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="js-material-selected-hidden"></div>
   <div class="row g-3">
@@ -177,7 +177,7 @@
       <div class="card content-card h-100 materials-animated-card">
         <div class="card-body">
           <div class="material-form-title">1. Выберите замечания</div>
-          <div class="material-selected-strip">
+          <div class="material-selected-strip js-material-selected-strip d-none">
             Выбрано для списания: <b class="js-material-selected-count">0</b>
             <button class="btn btn-sm btn-outline-secondary js-material-selected-clear" type="button">Очистить выбор</button>
           </div>
@@ -236,7 +236,7 @@
             <div class="form-text js-writeoff-balance-hint"></div>
           </div>
           <div class="material-form-footer">
-            <button class="btn btn-primary" type="submit" name="action" value="writeoff"><i class="bi bi-check2-circle me-2"></i>Списать материал</button>
+            <button class="btn btn-primary material-pick-style-btn" type="submit" name="action" value="writeoff"><i class="bi bi-check2-circle me-2"></i>Списать материал</button>
             <button class="btn btn-outline-primary" type="submit" name="action" value="distribute"><i class="bi bi-shuffle me-2"></i>Распределить</button>
           </div>
           {% else %}
@@ -265,7 +265,7 @@
   <div class="bulk-actions-panel js-bulk-panel d-none">
     <div class="bulk-actions-count">Выбрано: <b class="js-bulk-count">0</b> <span class="js-bulk-label">списаний</span></div>
     <button class="btn btn-outline-secondary btn-sm js-check-all" type="button" data-target=".material-writeoff-check">Выбрать все</button>
-    <button class="btn btn-danger btn-sm js-bulk-submit" type="submit" form="material-writeoffs-delete-form" data-confirm="Удалить выбранные списания?\n\nБудет удалено: {count} {label}.\n\nЭто действие нельзя отменить." disabled><i class="bi bi-trash me-2"></i>Удалить выбранные</button>
+    <button class="btn btn-danger btn-sm js-bulk-submit material-icon-delete-btn" type="submit" form="material-writeoffs-delete-form" data-confirm="Удалить выбранные списания?\n\nБудет удалено: {count} {label}.\n\nЭто действие нельзя отменить." disabled title="Удалить выбранные" aria-label="Удалить выбранные"><i class="bi bi-trash"></i><span class="visually-hidden">Удалить выбранные</span></button>
   </div>
   {% endif %}
   <div class="card-body p-0">
@@ -357,7 +357,7 @@
         </div>
       </div>
       <div class="material-form-footer mt-4">
-        <button class="btn btn-primary" type="submit" {% if not balance_options %}disabled{% endif %}><i class="bi bi-check2-circle me-2"></i>Ручное списание</button>
+        <button class="btn btn-primary material-pick-style-btn" type="submit" {% if not balance_options %}disabled{% endif %}>Ручное списание</button>
       </div>
     </div>
   </form>

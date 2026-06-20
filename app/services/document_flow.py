@@ -267,7 +267,7 @@ ADDENDUM_FIELD_GROUPS = [
         ],
     },
     {
-        "title": "6. За какие замечания?",
+        "title": "За какие замечания?",
         "fields": [
             {
                 "key": "defects_basis",

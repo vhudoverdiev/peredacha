@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Ежедневный отчет по задачам{% endblock %}
 {% block content %}
+<div class="assignment-report-page">
 <div class="page-head remarks-page-head assignment-report-hero">
   <div>
     <h1 class="page-title">Ежедневный отчет по задачам</h1>
@@ -28,14 +29,14 @@
     <span><i class="bi bi-check2-circle"></i></span>
     <div>
       <small>Выполнено</small>
-      <b>{{ report_totals.done }}</b>
+      <b data-assignment-report-total-done>{{ report_totals.done }}</b>
     </div>
   </div>
   <div class="assignment-report-metric left">
     <span><i class="bi bi-hourglass-split"></i></span>
     <div>
       <small>Осталось</small>
-      <b>{{ report_totals.left }}</b>
+      <b data-assignment-report-total-left>{{ report_totals.left }}</b>
     </div>
   </div>
 </div>
@@ -45,16 +46,24 @@
     <form method="get" class="assignment-report-filter-form">
       <div>
         <label class="form-label">Дата</label>
-        <input class="form-control" type="date" name="date" value="{{ report_date.isoformat() }}">
+        <div class="assignment-report-date-picker js-assignment-report-date-picker">
+          <input class="js-assignment-report-date-input" type="hidden" name="date" value="{{ report_date.isoformat() }}">
+          <button class="assignment-report-date-button js-assignment-report-date-open" type="button" data-current-date="{{ report_date.isoformat() }}">
+            <span class="assignment-report-date-value js-assignment-report-date-value">{{ report_date.strftime('%d.%m.%Y') }}</span>
+            <span class="assignment-report-date-icon" aria-hidden="true"><i class="bi bi-calendar3"></i></span>
+          </button>
+        </div>
       </div>
       <div>
         <label class="form-label">Исполнитель</label>
-        <select class="form-select" name="user_id">
-          <option value="">Все</option>
-          {% for user in users %}
-          <option value="{{ user.id }}" {% if selected_user_id == user.id %}selected{% endif %}>{{ user.full_name or user.username }}</option>
-          {% endfor %}
-        </select>
+        <div class="developer-custom-select js-developer-custom-select assignment-report-worker-select">
+          <select class="form-select developer-native-select" name="user_id">
+            <option value="">Все</option>
+            {% for user in users %}
+            <option value="{{ user.id }}" {% if selected_user_id == user.id %}selected{% endif %}>{{ user.full_name or user.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
       <div class="assignment-report-filter-actions">
         <button class="btn btn-primary" type="submit"><i class="bi bi-search me-2"></i>Показать</button>
@@ -66,7 +75,7 @@
 
 <div class="assignment-report-grid">
   {% for group in grouped %}
-  <div class="card content-card assignment-report-card {% if group.tasks|length == 0 %}is-empty{% endif %}">
+  <div class="card content-card assignment-report-card {% if group.tasks|length == 0 %}is-empty{% endif %}" data-assignment-report-card>
     <div class="card-body">
       <div class="assignment-user-head assignment-report-user-head">
         <div class="assignment-report-user-main">
@@ -77,8 +86,8 @@
           </div>
         </div>
         <div class="assignment-counters assignment-counters-actions">
-          <span class="badge bg-success">выполнено {{ group.done }}</span>
-          <span class="badge bg-secondary">осталось {{ group.left }}</span>
+          <span class="badge bg-success" data-assignment-report-group-done>выполнено {{ group.done }}</span>
+          <span class="badge bg-secondary" data-assignment-report-group-left>осталось {{ group.left }}</span>
           <a class="btn btn-sm btn-outline-success assignment-worker-pdf" href="{{ url_for('main.assignments_report_worker_pdf', user_id=group.user.id, date=report_date.isoformat()) }}">
             <i class="bi bi-file-earmark-excel me-1"></i>Excel
           </a>
@@ -106,21 +115,21 @@
           </thead>
           <tbody>
             {% for task in group.tasks %}
-            <tr class="{% if task.is_done %}is-done{% endif %}">
+            <tr class="{% if task.is_done %}is-done{% endif %}" data-assignment-report-row>
               <td class="assignment-report-room-cell"><span class="assignment-room-pill"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else '—' }}</span></td>
               <td>{{ task.work_point.point_number if task.work_point else '—' }}</td>
-              <td>{{ remark_text(task.description or task.source_cell_value) }}</td>
-              <td><span class="badge bg-{{ task.status_class() }}">{{ task.status_label() }}</span></td>
+              <td class="assignment-report-task-cell">{{ remark_text(task.description or task.source_cell_value) }}</td>
+              <td><span class="badge bg-{{ task.status_class() }}" data-assignment-report-status-pill>{{ task.status_label() }}</span></td>
               <td class="assignment-report-status-actions">
                 {% if task.status == STATUS_DONE %}
-                <form method="post" action="{{ url_for('main.my_task_return', task_id=task.id) }}">
+                <form method="post" action="{{ url_for('main.my_task_return', task_id=task.id) }}" data-assignment-report-status-form data-next-url="{{ url_for('main.my_task_done', task_id=task.id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-arrow-counterclockwise me-1"></i>Вернуть</button>
+                  <button class="btn btn-sm btn-outline-secondary assignment-report-return-btn" type="submit"><i class="bi bi-arrow-counterclockwise me-1"></i>Вернуть</button>
                 </form>
                 {% else %}
-                <form method="post" action="{{ url_for('main.my_task_done', task_id=task.id) }}">
+                <form method="post" action="{{ url_for('main.my_task_done', task_id=task.id) }}" data-assignment-report-status-form data-next-url="{{ url_for('main.my_task_return', task_id=task.id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-sm btn-success" type="submit"><i class="bi bi-check2-circle me-1"></i>Выполнено</button>
+                  <button class="btn btn-sm btn-success assignment-report-done-btn" type="submit" title="Выполнено" aria-label="Выполнено"><i class="bi bi-check2-circle"></i></button>
                 </form>
                 {% endif %}
               </td>
@@ -138,5 +147,6 @@
     </div>
   </div>
   {% endfor %}
+</div>
 </div>
 {% endblock %}

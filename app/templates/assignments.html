@@ -54,12 +54,10 @@
             </td>
             <td class="text-end assignment-issued-actions-cell">
               <div class="assignment-issued-actions">
-                {% if not task.is_done %}
                 <form method="post" action="{{ url_for('main.assignments', view='issued', issued_day=issued_filter) }}" class="assignment-date-action-form">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-sm btn-outline-primary js-assignment-date-open" type="button" data-task-id="{{ task.id }}" data-current-date="{{ (task.planned_date or today).isoformat() }}" title="Изменить дату выполнения задачи"><i class="bi bi-calendar-check"></i><span>Изменить дату</span></button>
+                  <button class="btn btn-sm btn-outline-primary js-assignment-date-open" type="button" data-task-id="{{ task.id }}" data-current-date="{{ (task.planned_date or today).isoformat() }}" title="Изменить дату выполнения задачи" aria-label="Изменить дату выполнения задачи"><i class="bi bi-calendar-check"></i></button>
                 </form>
-                {% endif %}
                 <button class="btn btn-sm assignment-change-assignee-btn js-assignment-change-assignee-open" type="button" title="Сменить исполнителя" aria-label="Сменить исполнителя" data-bs-toggle="modal" data-bs-target="#assignmentChangeAssigneeModal" data-task-id="{{ task.id }}" data-room="{{ task.apartment.label() if task.apartment else '—' }}" data-task-text="{{ (task.description or task.source_cell_value or '')|striptags }}" data-current-responsible-id="{{ task.responsible_id or '' }}" data-current-responsible-name="{{ (task.responsible.full_name or task.responsible.username) if task.responsible else '—' }}">
                   <i class="bi bi-person-gear"></i><span class="assignment-change-assignee-text">Сменить</span>
                 </button>
@@ -70,7 +68,7 @@
                   <button class="btn btn-sm assignment-delete-employee-task-btn" type="submit" title="Удалить задачу у исполнителя" aria-label="Удалить задачу у исполнителя" data-confirm="Удалить эту задачу у сотрудника?
 
 Задача снова станет без исполнителя и без даты выполнения.">
-                    <i class="bi bi-trash3-fill"></i><span>Удалить</span>
+                    <i class="bi bi-trash3-fill"></i>
                   </button>
                 </form>
               </div>
@@ -91,7 +89,7 @@
     <p class="page-subtitle"></p>
   </div>
   <div class="d-flex gap-2 flex-wrap assignment-head-actions">
-    <a class="btn btn-success" href="{{ url_for('main.assignment_manual_task_new') }}"><i class="bi bi-plus-lg me-2"></i>Добавить ручную задачу</a>
+    <a class="btn btn-success assignment-manual-task-btn" href="{{ url_for('main.assignment_manual_task_new') }}"><i class="bi bi-plus-lg me-2 assignment-manual-plus"></i>Добавить ручную задачу</a>
   </div>
 </div>
 
@@ -160,9 +158,7 @@
       <div class="assignment-change-assignee-head">
         <div class="assignment-change-assignee-icon"><i class="bi bi-person-gear"></i></div>
         <div>
-          <div class="assignment-change-assignee-kicker">Выданные сотрудникам</div>
           <h2>Сменить исполнителя</h2>
-          <p>Выберите нового сотрудника для этой задачи.</p>
         </div>
         <button type="button" class="assignment-change-assignee-close" data-bs-dismiss="modal" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
       </div>
@@ -204,8 +200,8 @@
           <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Найти задачу">
         </div>
         <div class="assignment-search-actions">
-          <button class="btn btn-primary" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
-          <a class="btn btn-outline-secondary" href="{{ url_for('main.assignments') }}">Сброс</a>
+          <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
+          <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.assignments') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
         </div>
       </form>
     </div>
@@ -218,12 +214,14 @@
         {% if args.get('q') %}<input type="hidden" name="q" value="{{ args.get('q') }}">{% endif %}
         <div>
           <label class="form-label">Исполнитель</label>
-          <select class="form-select" name="smart_user_id" required>
-            <option value="">Выберите сотрудника</option>
-            {% for user in users %}
-            <option value="{{ user.id }}" {% if smart_user and smart_user.id == user.id %}selected{% endif %}>{{ user.full_name or user.username }} — {{ ROLE_LABELS.get(user.role, user.role) }}</option>
-            {% endfor %}
-          </select>
+          <div class="developer-custom-select js-developer-custom-select assignment-page-custom-select assignment-smart-user-select">
+            <select class="form-select developer-native-select" name="smart_user_id" required>
+              <option value="">Выберите сотрудника</option>
+              {% for user in users %}
+              <option value="{{ user.id }}" {% if smart_user and smart_user.id == user.id %}selected{% endif %}>{{ user.full_name or user.username }} — {{ ROLE_LABELS.get(user.role, user.role) }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
         <div>
           <label class="form-label">День</label>
@@ -246,7 +244,7 @@
   </div>
 </div>
 
-<form method="post" action="{{ url_for('main.assignments') }}" class="card table-shell task-table-shell assignment-shell assignment-contractor-shell js-bulk-selectable" data-search-highlight="{{ args.get('q', '') }}" data-bulk-label-one="задача" data-bulk-label-few="задачи" data-bulk-label-many="задач" data-selection-key="assignments">
+<form method="post" action="{{ url_for('main.assignments') }}" class="card table-shell task-table-shell assignment-shell assignment-contractor-shell js-bulk-selectable" data-no-persist-selection="1" data-search-highlight="{{ args.get('q', '') }}" data-bulk-label-one="задача" data-bulk-label-few="задачи" data-bulk-label-many="задач">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="card-body border-bottom assignment-issue-panel assignment-issue-panel-restored">
     <div class="assignment-section-title mb-3">
@@ -258,12 +256,14 @@
     <div class="row g-2 align-items-end assignment-bulk-form assignment-bulk-form-restored">
       <div class="col-12 col-lg-5">
         <label class="form-label">Кому выдать</label>
-        <select class="form-select" name="responsible_id">
-          <option value="">Выберите пользователя</option>
-          {% for user in users %}
-          <option value="{{ user.id }}" {% if smart_user and smart_user.id == user.id %}selected{% endif %}>{{ user.full_name or user.username }} — {{ ROLE_LABELS.get(user.role, user.role) }}</option>
-          {% endfor %}
-        </select>
+        <div class="developer-custom-select js-developer-custom-select assignment-page-custom-select assignment-bulk-user-select">
+          <select class="form-select developer-native-select" name="responsible_id">
+            <option value="">Выберите пользователя</option>
+            {% for user in users %}
+            <option value="{{ user.id }}" {% if smart_user and smart_user.id == user.id %}selected{% endif %}>{{ user.full_name or user.username }} — {{ ROLE_LABELS.get(user.role, user.role) }}</option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
       <div class="col-12 col-lg-3">
         <label class="form-label">Дата выполнения</label>
@@ -271,7 +271,6 @@
       </div>
       <div class="col-12 col-lg-4">
         <div class="assignment-bulk-panel-restored-actions">
-          <button class="btn btn-outline-secondary js-check-all" type="button" data-target=".assignment-task-check"><i class="bi bi-check2-square me-2"></i>Выбрать все</button>
           <button class="btn btn-success js-bulk-submit" type="submit" name="action" value="bulk_assign" disabled><i class="bi bi-send-check me-2"></i>Выдать выбранные</button>
         </div>
       </div>
@@ -280,7 +279,6 @@
       <div class="bulk-actions-count">
         Выбрано: <span class="js-bulk-count">0</span> <span class="js-bulk-label">задач</span>
       </div>
-      <button class="btn btn-outline-secondary js-bulk-clear" type="button"><i class="bi bi-x-lg me-2"></i>Снять выбор</button>
     </div>
   </div>
   <div class="card-body p-0">

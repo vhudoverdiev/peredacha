@@ -8,9 +8,9 @@
   </div>
   <div class="d-flex gap-2 flex-wrap">
     {% if current_user.role in ['admin', 'manager'] %}
-    <a class="btn btn-outline-primary" href="{{ url_for('main.assignments_report') }}"><i class="bi bi-calendar2-check me-2"></i>Ежедневный отчет</a>
+    <a class="btn work-report-daily-btn" href="{{ url_for('main.assignments_report') }}"><i class="bi bi-calendar2-check me-2" aria-hidden="true"></i><span>Ежедневный отчет</span></a>
     {% endif %}
-    <a class="btn btn-success" href="{{ url_for('main.work_report_export') }}"><i class="bi bi-file-earmark-arrow-down me-2"></i>Скачать Exel (все)</a>
+    <a class="btn btn-success work-report-export-all-btn" href="{{ url_for('main.work_report_export') }}"><i class="bi bi-file-earmark-arrow-down me-2 report-export-icon-white" aria-hidden="true"></i><span>Скачать Excel (все)</span></a>
   </div>
 </div>
 

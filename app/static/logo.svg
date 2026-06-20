@@ -1,11 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Передача">
-  <defs>
-    <linearGradient id="g" x1="12" x2="52" y1="8" y2="58" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#6d8bff"/>
-      <stop offset="1" stop-color="#315cff"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="16" fill="url(#g)"/>
-  <path fill="#fff" d="M18 48 29.3 16h5.4L46 48h-7l-2-6.2H26.8L24.9 48H18Zm10.5-11.7h6.9L32 25.4l-3.5 10.9Z"/>
-  <path fill="#cfe0ff" d="M23 51h18v3H23z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" role="img" aria-label="Передача">
+  <rect width="1254" height="1254" rx="0" fill="#8ed62c"/>
+  <path fill="#575d62" fill-rule="evenodd" d="M 580,412 L 567,426 L 384,845 L 470,845 L 512,747 L 684,746 L 679,723 L 670,706 L 657,692 L 641,683 L 634,681 L 539,680 L 616,499 L 629,525 L 766,845 L 853,845 L 671,431 L 658,417 L 640,409 L 588,409 Z"/>
+  <path fill="#ffffff" fill-rule="evenodd" d="M 864,354 L 861,374 L 848,402 L 838,412 L 826,419 L 791,428 L 820,433 L 841,445 L 856,466 L 865,500 L 867,483 L 872,467 L 883,449 L 897,438 L 906,434 L 937,427 L 905,420 L 888,410 L 879,400 L 871,385 Z"/>
 </svg>

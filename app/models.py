@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+import re
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import db
@@ -187,21 +188,44 @@ class Apartment(TimestampMixin, db.Model):
     def full_label(self) -> str:
         number = self.apartment_number or self.construction_number or f"ID {self.id}"
         if self.premise_type == "commercial":
-            return self._commercial_label(number)
+            commercial_number, commercial_building, fallback = self._commercial_parts(number)
+            if commercial_number and commercial_building:
+                return f"Коммерция {commercial_number}/Корпус {commercial_building}"
+            if commercial_number:
+                return f"Коммерция {commercial_number}"
+            return f"Коммерция {fallback}".strip()
         return f"кв {number}"
 
-    def _commercial_label(self, number: str) -> str:
+    def detail_label(self) -> str:
+        number = self.apartment_number or self.construction_number or f"ID {self.id}"
+        if self.premise_type == "commercial":
+            return self.full_label()
+        return f"Квартира {number}"
+
+    def _commercial_parts(self, number: str | None) -> tuple[str, str, str]:
         text = str(number or "").strip()
-        lowered = text.lower()
-        for prefix in ("коммерция", "коммерции"):
-            if lowered.startswith(prefix):
-                text = text[len(prefix):].strip()
-                break
-        if self.building and text.isdigit():
-            return f"к{text}/к{self.building}"
-        if text.isdigit():
-            return f"к {text}"
-        return f"к {text}".strip()
+        text = re.sub(r"^коммерци[яи]\s*", "", text, flags=re.IGNORECASE).strip()
+        building = str(self.building or "").strip()
+        building = re.sub(r"^(?:к|корпус)\s*", "", building, flags=re.IGNORECASE).strip()
+
+        pair_match = re.match(r"^к?\s*(\d+)\s*/\s*(?:к|корпус)?\s*(\d+)\s*$", text, flags=re.IGNORECASE)
+        if pair_match:
+            commercial_number, parsed_building = pair_match.groups()
+            return commercial_number, building or parsed_building, text
+
+        simple_match = re.match(r"^к?\s*(\d+)\s*$", text, flags=re.IGNORECASE)
+        if simple_match:
+            return simple_match.group(1), building, text
+
+        return "", building, text
+
+    def _commercial_label(self, number: str) -> str:
+        commercial_number, commercial_building, fallback = self._commercial_parts(number)
+        if commercial_number and commercial_building:
+            return f"К{commercial_number}/К{commercial_building}"
+        if commercial_number:
+            return f"К{commercial_number}"
+        return f"К {fallback}".strip()
 
     @staticmethod
     def _is_no_deadline_text(value: str | None) -> bool:

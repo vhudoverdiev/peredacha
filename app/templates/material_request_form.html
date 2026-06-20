@@ -23,11 +23,11 @@
   <div class="card-body">
 
     <div class="row g-3 mb-3">
-      <div class="col-12 col-lg-8">
+      <div class="col-12 col-lg-8 material-request-title-col">
         <label class="form-label">Название заявки</label>
         <input class="form-control" name="title" placeholder="Например: Материалы для витражников / заказ стеклопакетов">
       </div>
-      <div class="col-12 col-lg-4">
+      <div class="col-12 col-lg-4 material-request-date-col">
         <label class="form-label">Дата заявки</label>
         <input class="form-control" type="date" name="request_date" value="{{ today.isoformat() if today else '' }}">
       </div>

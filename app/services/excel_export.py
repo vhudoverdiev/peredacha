@@ -15,7 +15,9 @@ from app.models import Apartment, Task, STATUS_DONE, STATUS_FINISHERS, STATUS_CO
 from app.services.task_service import get_setting
 
 
-HEADER_FILL = PatternFill(fill_type="solid", fgColor="D9EAF7")
+EXCEL_HEADER_FILL_COLOR = "FFE2F0D9"
+HEADER_FILL = PatternFill(fill_type="solid", start_color=EXCEL_HEADER_FILL_COLOR, end_color=EXCEL_HEADER_FILL_COLOR)
+REPORT_HEADER_FILL = PatternFill(fill_type="solid", start_color=EXCEL_HEADER_FILL_COLOR, end_color=EXCEL_HEADER_FILL_COLOR)
 THIN_BORDER = Border(left=Side(style="thin", color="D0D5DD"), right=Side(style="thin", color="D0D5DD"), top=Side(style="thin", color="D0D5DD"), bottom=Side(style="thin", color="D0D5DD"))
 
 
@@ -24,6 +26,15 @@ def style_header_row(ws) -> None:
     for cell in ws[1]:
         cell.font = Font(bold=True, color="111827")
         cell.fill = HEADER_FILL
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = THIN_BORDER
+
+
+def style_report_header_row(ws) -> None:
+    ws.row_dimensions[1].height = 32
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color="111827")
+        cell.fill = REPORT_HEADER_FILL
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         cell.border = THIN_BORDER
 
@@ -57,8 +68,11 @@ def auto_adjust_row_heights(ws) -> None:
             ws.row_dimensions[row_idx].height = 30
 
 
-def apply_worksheet_style(ws, widths=None) -> None:
-    style_header_row(ws)
+def apply_worksheet_style(ws, widths=None, report_header: bool = False) -> None:
+    if report_header:
+        style_report_header_row(ws)
+    else:
+        style_header_row(ws)
     apply_borders(ws)
     if widths:
         set_column_widths(ws, widths)
@@ -107,7 +121,7 @@ def export_tasks_to_excel(tasks: Iterable[Task], filename_prefix: str = "tasks_e
     for task in tasks:
         ws.append(
             [
-                (task.apartment.label() if task.apartment else ""),
+                (_excel_premise_label(task.apartment) if task.apartment else ""),
                 task.apartment.construction_number,
                 task.apartment.owner_name,
                 task.apartment.phone,
@@ -140,11 +154,30 @@ def _excel_premise_label(apartment: Apartment | None) -> str:
         return ""
     number = str(apartment.apartment_number or apartment.construction_number or f"ID {apartment.id}").strip()
     if apartment.premise_type == "commercial":
-        label = f"коммерция {number}".strip()
-        if apartment.building:
-            label = f"{label} / корпус {apartment.building}"
-        return label
+        return _excel_commercial_label(number, apartment.building)
     return apartment.label()
+
+
+def _excel_commercial_label(number: str | None, building: str | None = None) -> str:
+    text = str(number or "").strip()
+    text = re.sub(r"^коммерци[яи]\s*", "", text, flags=re.IGNORECASE).strip()
+    building_text = str(building or "").strip()
+
+    pair_match = re.match(r"^к?\s*(\d+)\s*/\s*(?:к|корпус)?\s*(\d+)\s*$", text, flags=re.IGNORECASE)
+    if pair_match:
+        commercial_number, parsed_building = pair_match.groups()
+        return f"коммерция {commercial_number}/корпус {building_text or parsed_building}"
+
+    simple_match = re.match(r"^к?\s*(\d+)\s*$", text, flags=re.IGNORECASE)
+    if simple_match:
+        commercial_number = simple_match.group(1)
+        if building_text:
+            return f"коммерция {commercial_number}/корпус {building_text}"
+        return f"коммерция {commercial_number}"
+
+    if building_text and "корпус" not in text.lower() and "/" not in text:
+        return f"коммерция {text}/корпус {building_text}".strip()
+    return f"коммерция {text}".strip()
 
 
 def _excel_premise_finish_label(apartment: Apartment | None) -> str:
@@ -170,13 +203,13 @@ def _group_tasks_by_apartment(tasks: Iterable[Task]) -> list[tuple[Apartment | N
     return [(group["apartment"], group["tasks"]) for group in groups.values()]
 
 
-def _combined_task_lines(tasks: list[Task], include_status: bool = True) -> str:
+def _combined_task_lines(tasks: list[Task], include_status: bool = True, include_point: bool = True) -> str:
     lines = []
     for index, task in enumerate(tasks, start=1):
-        point = task.work_point.display_name if task.work_point else ""
+        point = task.work_point.display_name if include_point and task.work_point else ""
         text = str(task.description or task.source_cell_value or "").strip()
         status = f" ({task.status_label()})" if include_status else ""
-        prefix = f"{index}. "
+        prefix = f"{index}. " if len(tasks) > 1 else ""
         if point:
             lines.append(f"{prefix}{point}: {text}{status}".strip())
         else:
@@ -184,7 +217,7 @@ def _combined_task_lines(tasks: list[Task], include_status: bool = True) -> str:
     return "\n".join(lines)
 
 
-def export_simple_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title: str = "Задачи") -> Path:
+def export_simple_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title: str = "Задачи", *, report_header: bool = False, include_point_in_remarks: bool = True) -> Path:
     tasks = list(tasks)
     folder = Path(current_app.config["EXPORT_FOLDER"])
     folder.mkdir(parents=True, exist_ok=True)
@@ -198,10 +231,10 @@ def export_simple_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title
         ws.append(
             [
                 _excel_premise_finish_label(apartment),
-                _combined_task_lines(group_tasks),
+                _combined_task_lines(group_tasks, include_point=include_point_in_remarks),
             ]
         )
-    apply_worksheet_style(ws, [32, 120])
+    apply_worksheet_style(ws, [32, 120], report_header=report_header)
     wb.save(path)
     return path
 
@@ -304,12 +337,13 @@ def export_report_tasks_excel(tasks: Iterable[Task], filename_prefix: str) -> Pa
     for task in tasks:
         ws.append(
             [
-                (task.apartment.label() if task.apartment else ""),
+                (_excel_premise_label(task.apartment) if task.apartment else ""),
                 _clean_report_remark(task.description or task.source_cell_value),
                 task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
             ]
         )
     apply_worksheet_style(ws, [18, 110, 20])
+    style_report_header_row(ws)
     wb.save(path)
     return path
 
@@ -410,7 +444,7 @@ def export_source_excel_with_strikes(source_path: str | None = None, project_nam
         ws_manual.append(["Помещение", "Пункт", "Замечание", "Статус", "Дата выполнения"])
         for task in manual_tasks:
             ws_manual.append([
-                task.apartment.label() if task.apartment else "",
+                _excel_premise_label(task.apartment) if task.apartment else "",
                 task.work_point.display_name if task.work_point else "",
                 task.description or task.source_cell_value or "",
                 task.status_label(),
@@ -452,7 +486,7 @@ def export_glass_measurements_excel(rows: Iterable[dict], filename_prefix: str =
         measurement = row.get("measurement")
         apartment = task.apartment if task else None
         ws.append([
-            apartment.label() if apartment else "",
+            _excel_premise_label(apartment) if apartment else "",
             getattr(apartment, "building", "") or "",
             "Коммерция" if apartment and apartment.premise_type == "commercial" else "Квартира",
             (task.description or task.source_cell_value or "") if task else "",

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% set selection_title = page_title or 'Выбор для Excel' %}
+{% set form_id = export_form_id or 'contractorExportForm' %}
+{% set endpoint_args = export_endpoint_args or {} %}
+{% set reset_class = reset_button_class or 'js-contractor-premise-reset' %}
+{% set export_class = export_button_class or 'js-contractor-export-submit' %}
+{% block title %}{{ selection_title }}{% endblock %}
+{% block content %}
+<div class="page-head remarks-page-head contractor-excel-page-head">
+  <div>
+    <h1 class="page-title">{{ selection_title }}</h1>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary crm-reset-btn" href="{{ back_url }}"><i class="bi bi-arrow-left me-2"></i>Назад</a>
+    <form id="{{ form_id }}" class="d-none js-remark-export-form" method="get" action="{{ url_for(export_endpoint, **endpoint_args) }}">
+      {% for key, value in export_args.items() if key != 'category_id' %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+      {% endfor %}
+    </form>
+  </div>
+</div>
+
+<div class="remarks-export-scope js-remark-export-scope contractor-excel-selection-page" data-selection-storage="local" data-premise-only-selection="1" data-premise-storage-key="{{ storage_key }}" data-export-form="#{{ form_id }}">
+  <section class="card content-card remarks-selection-card mb-3" data-excel-options-panel>
+    <div class="card-body remarks-selection-body">
+      <div class="remarks-selection-main">
+        <div class="assignment-section-title mb-0">
+          <span><i class="bi bi-check2-square"></i></span>
+          <div>
+            <b>Выбор для Excel</b>
+            <small>Снимите галочки с помещений, которые не нужно показывать в Excel.</small>
+          </div>
+        </div>
+        <div class="remarks-selection-actions">
+          <button class="btn btn-outline-secondary {{ reset_class }}" type="button"><i class="bi bi-arrow-counterclockwise me-2"></i>Показать все</button>
+          <button class="btn btn-success {{ export_class }}" type="submit" form="{{ form_id }}"><i class="bi bi-file-earmark-excel me-2"></i>Скачать Excel</button>
+        </div>
+      </div>
+      {% if premise_options %}
+      <div class="remarks-premise-filter">
+        <div class="remarks-premise-filter-head">
+          <b>Показывать помещения</b>
+        </div>
+        <div class="remarks-premise-grid">
+          {% for premise in premise_options %}
+          <label class="remarks-premise-option">
+            <input class="form-check-input js-premise-visibility" type="checkbox" value="{{ premise.id }}" checked>
+            <span>
+              <b>{{ premise.label }}</b>
+              {% if premise.finish %}<small>{{ premise.finish }}</small>{% endif %}
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <div class="empty-info-box">Помещений для выбранного фильтра нет.</div>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

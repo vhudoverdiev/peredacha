@@ -35,26 +35,38 @@
 <div class="card content-card mb-3">
   <div class="card-body">
     <form class="row g-2 align-items-end crm-filter-form site-errors-filter-form" method="get">
-      <div class="col-12 col-md-3">
-        <label class="form-label">Тип</label>
-        <select class="form-select" name="kind">
-          <option value="" {% if not kind %}selected{% endif %}>Все</option>
-          <option value="user" {% if kind == 'user' %}selected{% endif %}>От пользователей</option>
-          <option value="registration" {% if kind == 'registration' %}selected{% endif %}>Регистрации</option>
-          <option value="system" {% if kind == 'system' %}selected{% endif %}>Системные ошибки</option>
-        </select>
+      <div class="col-12 col-md-4">
+        <div class="site-errors-filter-field">
+          <label class="form-label">Тип</label>
+          <div class="developer-custom-select js-developer-custom-select">
+            <select class="form-select developer-native-select" name="kind">
+            <option value="" {% if not kind %}selected{% endif %}>Все</option>
+            <option value="user" {% if kind == 'user' %}selected{% endif %}>От пользователей</option>
+            <option value="registration" {% if kind == 'registration' %}selected{% endif %}>Регистрации</option>
+            <option value="system" {% if kind == 'system' %}selected{% endif %}>Системные ошибки</option>
+          </select>
+          </div>
+        </div>
       </div>
-      <div class="col-12 col-md-3">
-        <label class="form-label">Статус</label>
-        <select class="form-select" name="status">
-          <option value="" {% if not status %}selected{% endif %}>Все</option>
-          <option value="new" {% if status == 'new' %}selected{% endif %}>Новые</option>
-          <option value="closed" {% if status == 'closed' %}selected{% endif %}>Закрытые / принятые</option>
-        </select>
+      <div class="col-12 col-md-4">
+        <div class="site-errors-filter-field">
+          <label class="form-label">Статус</label>
+          <div class="developer-custom-select js-developer-custom-select">
+            <select class="form-select developer-native-select" name="status">
+            <option value="" {% if not status %}selected{% endif %}>Все</option>
+            <option value="new" {% if status == 'new' %}selected{% endif %}>Новые</option>
+            <option value="closed" {% if status == 'closed' %}selected{% endif %}>Закрытые / принятые</option>
+          </select>
+          </div>
+        </div>
       </div>
-      <div class="col-12 col-md-3 filter-actions">
-        <button class="btn btn-primary" type="submit">Применить</button>
-        <a class="btn btn-outline-secondary" href="{{ url_for('main.site_errors') }}">Сброс</a>
+      <div class="col-12 col-md-4 filter-actions developer-filter-actions">
+        <button class="btn developer-filter-btn developer-filter-btn-apply" type="submit">
+          <i class="bi bi-funnel-fill"></i><span>Применить</span>
+        </button>
+        <a class="btn developer-filter-btn developer-filter-btn-reset" href="{{ url_for('main.site_errors') }}">
+          <i class="bi bi-arrow-counterclockwise"></i><span>Сброс</span>
+        </a>
       </div>
     </form>
   </div>
@@ -62,7 +74,7 @@
 
 <div class="site-errors-list">
   {% for report in reports %}
-  <article class="card content-card site-error-card {% if report.status == 'closed' %}closed{% endif %}">
+  <article class="card content-card site-error-card {% if report.status == 'closed' %}closed{% else %}site-error-card-open{% endif %} {% if report.kind == 'registration' and report.status == 'closed' %}site-error-card-accepted{% endif %}">
     <div class="card-body">
       <div class="site-error-head">
         <div>
@@ -71,7 +83,7 @@
           <span class="badge {{ kind_class }}">
             {{ kind_label }}
           </span>
-          <span class="badge {% if report.status == 'closed' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
+          <span class="badge site-error-state-badge {% if report.kind == 'registration' and report.status == 'closed' %}site-error-state-accepted{% elif report.status == 'closed' %}site-error-state-closed{% else %}site-error-state-new{% endif %}">
             {{ 'Принята' if report.kind == 'registration' and report.status == 'closed' else ('Закрыта' if report.status == 'closed' else 'Новая') }}
           </span>
         </div>
@@ -96,11 +108,11 @@
       <div class="site-error-actions mt-3">
         <form method="post" action="{{ url_for('main.site_error_close', report_id=report.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn btn-sm {% if report.status == 'closed' %}btn-outline-primary{% else %}btn-outline-secondary{% endif %}" type="submit">
+          <button class="btn btn-sm site-error-action-btn {% if report.status == 'closed' or report.kind == 'registration' %}site-error-action-btn-success{% else %}site-error-action-btn-close{% endif %}" type="submit">
             {{ 'Вернуть в новые' if report.status == 'closed' else ('Принять' if report.kind == 'registration' else 'Закрыть ошибку') }}
           </button>
         </form>
-        <button class="btn btn-sm btn-outline-danger site-error-delete-trigger" type="button"
+        <button class="btn btn-sm site-error-action-btn site-error-action-btn-danger site-error-delete-trigger" type="button"
                 data-bs-toggle="modal"
                 data-bs-target="#deleteErrorModal"
                 data-delete-url="{{ url_for('main.site_error_delete', report_id=report.id) }}"
@@ -134,6 +146,133 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.js-developer-custom-select').forEach(function (selectShell) {
+    const select = selectShell.querySelector('select');
+    if (!select || selectShell.querySelector('.developer-select-button')) return;
+
+    select.tabIndex = -1;
+    select.setAttribute('aria-hidden', 'true');
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'developer-select-button';
+    button.setAttribute('aria-haspopup', 'listbox');
+    button.setAttribute('aria-expanded', 'false');
+
+    const valueText = document.createElement('span');
+    valueText.className = 'developer-select-value';
+    const arrow = document.createElement('span');
+    arrow.className = 'developer-select-arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.innerHTML = '<i class="bi bi-chevron-down"></i>';
+    button.append(valueText, arrow);
+
+    const menu = document.createElement('div');
+    menu.className = 'developer-select-menu';
+    menu.setAttribute('role', 'listbox');
+
+    const options = Array.from(select.options).map(function (option) {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'developer-select-option';
+      item.setAttribute('role', 'option');
+      item.dataset.value = option.value;
+      item.textContent = option.textContent;
+      item.addEventListener('click', function () {
+        select.value = option.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        setActiveOption();
+        closeSelect();
+        button.focus();
+      });
+      menu.appendChild(item);
+      return item;
+    });
+
+    function currentOption() {
+      return select.options[select.selectedIndex] || select.options[0];
+    }
+
+    function setActiveOption() {
+      const selected = currentOption();
+      valueText.textContent = selected ? selected.textContent : '';
+      options.forEach(function (item) {
+        const isActive = item.dataset.value === select.value;
+        item.classList.toggle('is-selected', isActive);
+        item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+    }
+
+    function openSelect() {
+      document.querySelectorAll('.js-developer-custom-select.is-open').forEach(function (opened) {
+        if (opened !== selectShell) opened.classList.remove('is-open');
+        const openedButton = opened.querySelector('.developer-select-button');
+        if (openedButton) openedButton.setAttribute('aria-expanded', 'false');
+      });
+      selectShell.classList.add('is-open');
+      button.setAttribute('aria-expanded', 'true');
+      const activeItem = menu.querySelector('.developer-select-option.is-selected') || options[0];
+      if (activeItem) activeItem.focus({ preventScroll: true });
+    }
+
+    function closeSelect() {
+      selectShell.classList.remove('is-open');
+      button.setAttribute('aria-expanded', 'false');
+    }
+
+    button.addEventListener('click', function () {
+      if (selectShell.classList.contains('is-open')) {
+        closeSelect();
+      } else {
+        openSelect();
+      }
+    });
+
+    button.addEventListener('keydown', function (event) {
+      if (['ArrowDown', 'Enter', ' '].includes(event.key)) {
+        event.preventDefault();
+        openSelect();
+      }
+    });
+
+    menu.addEventListener('keydown', function (event) {
+      const currentIndex = options.indexOf(document.activeElement);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeSelect();
+        button.focus();
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const next = options[Math.min(currentIndex + 1, options.length - 1)] || options[0];
+        next.focus();
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const prev = options[Math.max(currentIndex - 1, 0)] || options[0];
+        prev.focus();
+      }
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (document.activeElement && document.activeElement.classList.contains('developer-select-option')) {
+          document.activeElement.click();
+        }
+      }
+    });
+
+    selectShell.append(button, menu);
+    setActiveOption();
+  });
+
+  document.addEventListener('click', function (event) {
+    if (event.target.closest('.js-developer-custom-select')) return;
+    document.querySelectorAll('.js-developer-custom-select.is-open').forEach(function (selectShell) {
+      selectShell.classList.remove('is-open');
+      const button = selectShell.querySelector('.developer-select-button');
+      if (button) button.setAttribute('aria-expanded', 'false');
+    });
+  });
+
   const modal = document.getElementById('deleteErrorModal');
   const form = document.getElementById('deleteErrorForm');
   const text = document.getElementById('deleteErrorText');

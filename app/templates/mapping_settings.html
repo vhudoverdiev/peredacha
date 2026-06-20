@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Распределение{% endblock %}
 {% block content %}
+<div class="mapping-page">
 <div class="page-head">
   <div>
     <h1 class="page-title">Распределение</h1>
@@ -14,7 +15,12 @@
     <div class="col-lg-4">
       <div class="card content-card h-100">
         <div class="card-body">
-          <h2 class="section-title"><span class="badge me-2" style="background: {{ category.color }}">&nbsp;</span>{{ category.name }}</h2>
+          <h2 class="section-title mapping-section-title">
+            <span class="mapping-role-icon" aria-hidden="true">
+              {% if category.name|lower == 'маляры' %}<i class="bi bi-brush"></i>{% elif category.name|lower == 'разнорабочие' %}<i class="bi bi-hammer"></i>{% elif category.name|lower == 'витражники' %}<i class="bi bi-window"></i>{% else %}<i class="bi bi-grid"></i>{% endif %}
+            </span>
+            {{ category.name }}
+          </h2>
           <div class="mapping-list">
           {% for point in points %}
             {% if point.point_number not in hidden_point_numbers %}
@@ -34,4 +40,5 @@
   </div>
   <button class="btn btn-primary mt-3">Сохранить</button>
 </form>
+</div>
 {% endblock %}

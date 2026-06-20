@@ -19,6 +19,8 @@ from openpyxl import Workbook
 from openpyxl.cell.cell import MergedCell
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
+
+EXCEL_HEADER_FILL_COLOR = "FFE2F0D9"
 from app import db
 from app.forms import CommentForm, ProjectForm, TaskEditForm, UploadExcelForm, UserForm, UserPasswordForm
 from app.models import (
@@ -73,7 +75,7 @@ from app.services.avr_document import (
     format_input_date,
     safe_avr_filename,
 )
-from app.services.excel_export import export_glass_measurements_excel, export_remark_tasks_excel, export_report_tasks_excel, export_simple_tasks_excel, export_source_excel_with_strikes, export_tasks_to_excel
+from app.services.excel_export import _excel_premise_label, export_glass_measurements_excel, export_remark_tasks_excel, export_report_tasks_excel, export_simple_tasks_excel, export_source_excel_with_strikes, export_tasks_to_excel
 from app.services.pdf_export import export_assignment_worker_pdf, export_table_pdf, export_tasks_pdf
 from app.services.excel_import import preview_excel, save_upload, sync_excel_file
 from app.services.google_sheets_sync import sync_google_sheets, update_task_strike_in_google_sheet
@@ -1288,6 +1290,100 @@ def contractors_list():
     return _task_list_response(contractor_page=True)
 
 
+def _premise_options_from_tasks(tasks: list[Task]) -> list[dict]:
+    premise_options = []
+    seen_premise_ids = set()
+    for task in tasks:
+        apartment = task.apartment
+        if not apartment or apartment.id in seen_premise_ids:
+            continue
+        seen_premise_ids.add(apartment.id)
+        premise_options.append({"id": apartment.id, "label": apartment.label(), "finish": apartment.finishing_type or ""})
+    premise_options.sort(key=lambda item: (str(item.get("label") or ""), str(item.get("finish") or "")))
+    return premise_options
+
+
+@bp.route("/contractors/excel-selection")
+@login_required
+def contractors_excel_selection():
+    if not can_export(current_user):
+        abort(403)
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    ensure_default_categories()
+    categories = WorkCategory.query.filter_by(is_active=True).order_by(WorkCategory.sort_order.asc()).all()
+    all_cat = next((category for category in categories if (category.name or "").strip().lower() == "все"), None)
+    query_args = request.args.to_dict()
+    query_args.pop("page", None)
+    query_args.pop("task_ids", None)
+    query_args["sort"] = "point"
+    query = build_task_query(query_args, category_id=all_cat.id if all_cat else None, project_id=project.id)
+    if current_user.role in WORKER_ROLES:
+        query = query.filter(Task.responsible_id == current_user.id)
+    tasks = (
+        query.options(selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.glass_measurement))
+        .all()
+    )
+    export_args = {key: value for key, value in request.args.to_dict(flat=True).items() if key not in {"page", "task_ids", "premise_ids"}}
+    back_url = url_for("main.contractors_list", **export_args)
+    return render_template(
+        "contractors_excel_selection.html",
+        page_title="Выбор для Excel",
+        export_form_id="contractorExportForm",
+        export_endpoint="main.contractors_export",
+        storage_key="contractors-premises",
+        reset_button_class="js-contractor-premise-reset",
+        export_button_class="js-contractor-export-submit",
+        args=request.args,
+        export_args=export_args,
+        back_url=back_url,
+        premise_options=_premise_options_from_tasks(tasks),
+        today=date.today(),
+    )
+
+
+@bp.route("/tasks/<int:category_id>/excel-selection")
+@login_required
+def remarks_excel_selection(category_id: int):
+    if not can_export(current_user):
+        abort(403)
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    ensure_default_categories()
+    category = db.session.get(WorkCategory, category_id) or abort(404)
+    query_args = request.args.to_dict()
+    query_args.pop("page", None)
+    query_args.pop("task_ids", None)
+    query = build_task_query(query_args, category_id=category_id, project_id=project.id)
+    if current_user.role in WORKER_ROLES:
+        query = query.filter(Task.responsible_id == current_user.id)
+    tasks = (
+        query.options(selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.glass_measurement))
+        .all()
+    )
+    export_args = {key: value for key, value in request.args.to_dict(flat=True).items() if key not in {"page", "task_ids", "premise_ids"}}
+    export_args["category_id"] = category_id
+    back_url = url_for("main.task_list", **export_args)
+    return render_template(
+        "contractors_excel_selection.html",
+        page_title="Выбор для Excel",
+        export_form_id="remarksExportForm",
+        export_endpoint="main.export_category_tasks",
+        export_endpoint_args={"category_id": category_id},
+        storage_key=f"remarks-{category_id}-premises",
+        reset_button_class="js-contractor-premise-reset",
+        export_button_class="js-contractor-export-submit",
+        args=request.args,
+        export_args=export_args,
+        back_url=back_url,
+        premise_options=_premise_options_from_tasks(tasks),
+        active_category=category,
+        today=date.today(),
+    )
+
+
 @bp.route("/contractors/export")
 @login_required
 def contractors_export():
@@ -1320,6 +1416,21 @@ def _selected_task_ids_from_request() -> list[int]:
     return task_ids
 
 
+def _selected_premise_ids_from_request() -> list[int]:
+    premise_ids = []
+    seen = set()
+    for raw_id in request.args.getlist("premise_ids"):
+        try:
+            premise_id = int(raw_id)
+        except (TypeError, ValueError):
+            continue
+        if premise_id in seen:
+            continue
+        seen.add(premise_id)
+        premise_ids.append(premise_id)
+    return premise_ids
+
+
 def _export_tasks_from_request(query_args: dict, project_id: int, category_id: int | None = None):
     task_ids = _selected_task_ids_from_request()
     if task_ids:
@@ -1330,6 +1441,9 @@ def _export_tasks_from_request(query_args: dict, project_id: int, category_id: i
             .filter(Task.project_id == project_id, Task.id.in_(task_ids))
             .order_by(Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc(), Task.id.asc())
         )
+    premise_ids = _selected_premise_ids_from_request()
+    if premise_ids:
+        return build_task_query(query_args, category_id=category_id, project_id=project_id).filter(Apartment.id.in_(premise_ids))
     return build_task_query(query_args, category_id=category_id, project_id=project_id)
 
 
@@ -1934,7 +2048,7 @@ def assignment_issued_employee_export(user_id: int):
         issued_at = issue_dates.get(task.id)
         employee_status = _issued_status_payload(task)["label"]
         ws.append([
-            apartment.label() if apartment else "—",
+            _excel_premise_label(apartment) if apartment else "—",
             task.description or task.source_cell_value or "",
             task.planned_date.strftime("%d.%m.%Y") if task.planned_date else "—",
             employee_status,
@@ -1952,7 +2066,7 @@ def assignment_issued_employee_export(user_id: int):
     for cell in ws[3]:
         cell.font = Font(bold=True, color="111827")
 
-    header_fill = PatternFill("solid", fgColor="EAF0F7")
+    header_fill = PatternFill(fill_type="solid", start_color=EXCEL_HEADER_FILL_COLOR, end_color=EXCEL_HEADER_FILL_COLOR)
     for cell in ws[5]:
         cell.font = Font(bold=True, color="111827")
         cell.fill = header_fill
@@ -2155,7 +2269,7 @@ def assignments_report_worker_pdf(user_id: int):
     worker_name = user.full_name or user.username or f"worker_{user.id}"
     title = f"Ежедневный отчет - {worker_name} - {report_date.strftime('%d.%m.%Y')}"
     filename_prefix = f"{project.name}_{worker_name}_{report_date.strftime('%d.%m.%Y')}"
-    path = export_simple_tasks_excel(tasks, filename_prefix=filename_prefix, title=title)
+    path = export_simple_tasks_excel(tasks, filename_prefix=filename_prefix, title=title, report_header=True, include_point_in_remarks=False)
     return send_file(path, as_attachment=True, download_name=Path(path).name)
 
 
@@ -2601,7 +2715,7 @@ def glass_order_export():
             }]
         for item in items:
             ws.append([
-                task.apartment.label() if task.apartment else "",
+                _excel_premise_label(task.apartment) if task.apartment else "",
                 task.description or task.source_cell_value or "",
                 item.get("item_type") or "",
                 item.get("size_label") or item.get("title_label") or "",
@@ -3230,9 +3344,9 @@ def _make_excel_response(workbook: Workbook, download_name: str):
 
 
 def _style_excel_header(ws):
-    fill = PatternFill("solid", fgColor="EAF0F7")
+    fill = PatternFill(fill_type="solid", start_color=EXCEL_HEADER_FILL_COLOR, end_color=EXCEL_HEADER_FILL_COLOR)
     for cell in ws[1]:
-        cell.font = Font(bold=True)
+        cell.font = Font(bold=True, color="111827")
         cell.fill = fill
         cell.alignment = Alignment(horizontal="center", vertical="center")
     ws.freeze_panes = "A2"
@@ -3270,7 +3384,7 @@ def material_expense_export():
             tasks = [None]
         start_row = ws.max_row + 1
         for task in tasks:
-            premise = task.apartment.label() if task and task.apartment else ""
+            premise = _excel_premise_label(task.apartment) if task and task.apartment else ""
             remark = (task.description or task.source_cell_value or "").strip() if task else ""
             ws.append([
                 writeoff.writeoff_date.strftime("%d.%m.%Y") if writeoff.writeoff_date else "",
@@ -3566,6 +3680,10 @@ def _task_list_response(contractor_page: bool = False):
         query = query.filter(Apartment.is_app_mode.is_(False))
     if current_user.role in WORKER_ROLES:
         query = query.filter(Task.responsible_id == current_user.id)
+    # Список помещений для выбора Excel строим по всему отфильтрованному набору,
+    # а не только по текущей странице пагинации.
+    premise_source_tasks = query.options(selectinload(Task.apartment)).all()
+
     page = request.args.get("page", 1, type=int)
     pagination = query.options(selectinload(Task.glass_measurement)).paginate(page=page, per_page=50, error_out=False)
     active_category = next((category for category in categories if category.id == category_id), None)
@@ -3590,12 +3708,13 @@ def _task_list_response(contractor_page: bool = False):
     ]
     premise_options = []
     seen_premise_ids = set()
-    for task in pagination.items:
+    for task in premise_source_tasks:
         apartment = task.apartment
         if not apartment or apartment.id in seen_premise_ids:
             continue
         seen_premise_ids.add(apartment.id)
         premise_options.append({"id": apartment.id, "label": apartment.label(), "finish": apartment.finishing_type or ""})
+    premise_options.sort(key=lambda item: (str(item.get("label") or ""), str(item.get("finish") or "")))
     return render_template(
         "task_list.html",
         tasks=pagination.items,
@@ -3610,6 +3729,8 @@ def _task_list_response(contractor_page: bool = False):
         contractor_page=contractor_page,
         list_endpoint="main.contractors_list" if contractor_page else "main.task_list",
         contractor_points=_contractor_point_options() if contractor_page else [],
+        contractor_excel_selection_url=(url_for("main.contractors_excel_selection", **request.args.to_dict(flat=True)) if contractor_page else ""),
+        remarks_excel_selection_url=(url_for("main.remarks_excel_selection", category_id=category_id, **{key: value for key, value in request.args.to_dict(flat=True).items() if key not in {"category_id", "page", "task_ids", "premise_ids"}}) if (not contractor_page and category_id) else ""),
         premise_options=premise_options,
         page_title="Подрядчики" if contractor_page else "Замечания",
         page_subtitle="Раздел для работы с подрядчиками объекта" if contractor_page else "Работа с замечаниями по выбранному объекту.",

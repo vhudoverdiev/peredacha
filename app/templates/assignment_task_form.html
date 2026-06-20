@@ -1,12 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Добавить ручную задачу{% endblock %}
+{% block title %}Р”РѕР±Р°РІРёС‚СЊ СЂСѓС‡РЅСѓСЋ Р·Р°РґР°С‡Сѓ{% endblock %}
 {% block content %}
 <div class="page-head remarks-page-head">
   <div>
-    <h1 class="page-title">Добавить ручную задачу</h1>
-    <p class="page-subtitle">Задача попадёт в выдачу и при необходимости сразу назначится сотруднику.</p>
+    <h1 class="page-title">Р”РѕР±Р°РІРёС‚СЊ СЂСѓС‡РЅСѓСЋ Р·Р°РґР°С‡Сѓ</h1>
   </div>
-  <a class="btn btn-outline-secondary" href="{{ url_for('main.assignments') }}">Назад</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.assignments') }}">РќР°Р·Р°Рґ</a>
 </div>
 
 <form method="post" class="card content-card task-manual-form">
@@ -14,35 +13,35 @@
   <div class="card-body">
     <div class="row g-3">
       <div class="col-12 col-md-4">
-        <label class="form-label">Квартира / коммерция</label>
+        <label class="form-label">РљРІР°СЂС‚РёСЂР° / РєРѕРјРјРµСЂС†РёСЏ</label>
         <select class="form-select" name="apartment_id" required>
-          <option value="">Выберите квартиру / коммерцию</option>
+          <option value="">Р’С‹Р±РµСЂРёС‚Рµ РєРІР°СЂС‚РёСЂСѓ / РєРѕРјРјРµСЂС†РёСЋ</option>
           {% for apartment in apartments %}
             <option value="{{ apartment.id }}">{{ apartment.label() }}</option>
           {% endfor %}
         </select>
       </div>
       <div class="col-12 col-md-4">
-        <label class="form-label">Исполнитель</label>
+        <label class="form-label">РСЃРїРѕР»РЅРёС‚РµР»СЊ</label>
         <select class="form-select" name="responsible_id">
-          <option value="">Пока не назначать</option>
+          <option value="">РџРѕРєР° РЅРµ РЅР°Р·РЅР°С‡Р°С‚СЊ</option>
           {% for user in users %}
-            <option value="{{ user.id }}">{{ user.full_name or user.username }} — {{ ROLE_LABELS.get(user.role, user.role) }}</option>
+            <option value="{{ user.id }}">{{ user.full_name or user.username }} вЂ” {{ ROLE_LABELS.get(user.role, user.role) }}</option>
           {% endfor %}
         </select>
       </div>
       <div class="col-12 col-md-4">
-        <label class="form-label">Дата выполнения</label>
+        <label class="form-label">Р”Р°С‚Р° РІС‹РїРѕР»РЅРµРЅРёСЏ</label>
         <input class="form-control" type="date" name="planned_date">
       </div>
       <div class="col-12">
-        <label class="form-label">Наименование задачи</label>
-        <textarea class="form-control" name="description" rows="4" required placeholder="Например: проверить регулировку окна после устранения"></textarea>
+        <label class="form-label">РќР°РёРјРµРЅРѕРІР°РЅРёРµ Р·Р°РґР°С‡Рё</label>
+        <textarea class="form-control" name="description" rows="4" required placeholder="РќР°РїСЂРёРјРµСЂ: РїСЂРѕРІРµСЂРёС‚СЊ СЂРµРіСѓР»РёСЂРѕРІРєСѓ РѕРєРЅР° РїРѕСЃР»Рµ СѓСЃС‚СЂР°РЅРµРЅРёСЏ"></textarea>
       </div>
     </div>
     <div class="material-form-footer mt-4">
-      <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg me-2"></i>Добавить задачу</button>
-      <a class="btn btn-outline-secondary" href="{{ url_for('main.assignments') }}">Отмена</a>
+      <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg me-2"></i>Р”РѕР±Р°РІРёС‚СЊ Р·Р°РґР°С‡Сѓ</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.assignments') }}">РћС‚РјРµРЅР°</a>
     </div>
   </div>
 </form>

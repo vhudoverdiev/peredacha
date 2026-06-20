@@ -1,7 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Журнал синхронизаций{% endblock %}
+{% block title %}Журнал синхронизаций</div>
+{% endblock %}
 {% block content %}
-<div class="page-head remarks-page-head">
+<div class="sync-logs-page">
+<div class="page-head remarks-page-head sync-logs-head">
   <div>
     <h1 class="page-title">Журнал синхронизаций</h1>
     <p class="page-subtitle">История загрузок по объекту: {{ project.name }}</p>
@@ -29,7 +31,7 @@
           <tr>
             <td>{{ log.started_at|msk_datetime }}</td>
             <td><span class="text-muted">{{ log.source_type }}</span><br><small>{{ log.source_name or '' }}</small></td>
-            <td><span class="badge bg-{{ 'success' if log.status=='success' else 'danger' if log.status=='error' else 'secondary' }}">{{ 'Успешно' if log.status=='success' else 'Ошибка' if log.status=='error' else 'В процессе' }}</span></td>
+            <td><span class="sync-status-pill {{ 'sync-status-pill-success' if log.status=='success' else 'sync-status-pill-error' if log.status=='error' else 'sync-status-pill-progress' }}">{{ 'Успешно' if log.status=='success' else 'Ошибка' if log.status=='error' else 'В процессе' }}</span></td>
             <td>{{ log.created_count }}</td>
             <td>{{ log.updated_count }}</td>
             <td>{{ log.missing_count }}</td>
@@ -44,8 +46,8 @@
             </td>
             <td class="text-end">
               <div class="sync-actions">
-                <button class="btn btn-outline-warning btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#rollbackLogModal{{ log.id }}" title="Откатить"><i class="bi bi-arrow-counterclockwise"></i></button>
-                <button class="btn btn-outline-danger btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#deleteLogModal{{ log.id }}" title="Удалить"><i class="bi bi-trash"></i></button>
+                <button class="btn btn-sm sync-action-btn sync-action-btn-rollback" type="button" data-bs-toggle="modal" data-bs-target="#rollbackLogModal{{ log.id }}" title="Откатить" aria-label="Откатить"><i class="bi bi-arrow-counterclockwise"></i></button>
+                <button class="btn btn-sm sync-action-btn sync-action-btn-delete" type="button" data-bs-toggle="modal" data-bs-target="#deleteLogModal{{ log.id }}" title="Удалить" aria-label="Удалить"><i class="bi bi-trash"></i></button>
               </div>
             </td>
           </tr>
@@ -69,7 +71,7 @@
         <p>Изменения загрузки от {{ log.started_at|msk_datetime }} будут отменены, если для этой синхронизации доступны данные восстановления.</p>
         <div class="modal-actions">
           <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Отмена</button>
-          <button class="btn btn-warning" type="submit">Откатить</button>
+          <button class="btn sync-modal-btn sync-modal-btn-rollback" type="submit">Откатить</button>
         </div>
       </div>
     </form>
@@ -86,11 +88,12 @@
         <p>Запись синхронизации от {{ log.started_at|msk_datetime }} сначала будет откатана: данные вернутся к состоянию до этой загрузки. Эта и более новые записи журнала будут удалены, чтобы журнал не расходился с базой.</p>
         <div class="modal-actions">
           <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Отмена</button>
-          <button class="btn btn-danger" type="submit">Удалить</button>
+          <button class="btn sync-modal-btn sync-modal-btn-delete" type="submit">Удалить</button>
         </div>
       </div>
     </form>
   </div>
 </div>
 {% endfor %}
+</div>
 {% endblock %}

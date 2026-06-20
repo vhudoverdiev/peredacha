@@ -19,7 +19,7 @@
 
 <div class="developer-delete-log-list">
   {% for log in logs %}
-  <article class="card content-card developer-delete-log-card {% if log.is_undone %}is-undone{% endif %}">
+  <article class="card content-card developer-delete-log-card {% if log.is_undone %}is-undone{% endif %} {% if not log.is_undone and log.action_key in ['assignment_delete_from_employee', 'site_error_delete'] %}is-actionable{% endif %}">
     <div class="card-body">
       <div class="developer-delete-log-head">
         <div>

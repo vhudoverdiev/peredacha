@@ -1,75 +1,87 @@
 {% extends "base.html" %}
-{% block title %}Пользователи{% endblock %}
+{% block title %}РџРѕР»СЊР·РѕРІР°С‚РµР»Рё{% endblock %}
 {% block content %}
-<div class="page-head">
-  <div>
-    <h1 class="page-title">Пользователи</h1>
-    <p class="page-subtitle">Управление доступом</p>
-  </div>
-</div>
-<div class="row g-3">
-  <div class="col-lg-4">
-    <div class="card content-card">
-      <div class="card-body">
-        <h2 class="section-title">Создать пользователя</h2>
-        <form method="post">
-          {{ form.hidden_tag() }}
-          <div class="mb-2">{{ form.username.label(class="form-label") }} {{ form.username(class="form-control") }}</div>
-          <div class="mb-2">{{ form.full_name.label(class="form-label") }} {{ form.full_name(class="form-control") }}</div>
-          <div class="mb-2">{{ form.password.label(class="form-label") }} {{ form.password(class="form-control", placeholder="минимум 8 символов") }}</div>
-          <div class="mb-2">{{ form.role.label(class="form-label") }} {{ form.role(class="form-select") }}</div>
-          {{ form.submit(class="btn btn-primary") }}
-        </form>
-      </div>
+<div class="users-page">
+  <div class="page-head users-page-head">
+    <div>
+      <h1 class="page-title">РџРѕР»СЊР·РѕРІР°С‚РµР»Рё</h1>
     </div>
   </div>
-  <div class="col-lg-8">
-    <div class="card table-shell">
-      <div class="card-body p-0 table-responsive">
-        <table class="table align-middle">
-          <thead>
-            <tr>
-              <th>Логин</th>
-              <th>Имя</th>
-              <th>Роль</th>
-              <th>Объект</th>
-              <th>Пароль</th>
-              <th>Создан</th>
-              <th class="text-end">Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-          {% for user in users %}
-            <tr>
-              <td>{{ user.username }}</td>
-              <td>{{ user.full_name or '' }}</td>
-              <td>{{ ROLE_LABELS.get(user.role, user.role) }}</td>
-              <td>{{ 'Все' if user.role == 'admin' or not user.project else user.project.name }}</td>
-              <td>
-                <div class="password-preview" data-hidden="••••••••" data-visible="{{ user.password_plain or 'Пароль не сохранён' }}" data-state="hidden">
-                  <span>••••••••</span>
-                  <button class="password-preview-toggle" type="button" aria-label="Показать пароль"><i class="bi bi-eye"></i></button>
-                </div>
-              </td>
-              <td>{{ user.created_at.strftime('%d.%m.%Y') }}</td>
-              <td class="text-end">
-                {% if user.id != current_user.id %}
-                <div class="d-inline-flex gap-2">
-                  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('main.user_set_password_page', user_id=user.id) }}" title="Сменить пароль" aria-label="Сменить пароль">
-                    <i class="bi bi-key"></i>
-                  </a>
-                  <a class="btn btn-outline-danger btn-sm" href="{{ url_for('main.user_delete_confirm', user_id=user.id) }}" title="Удалить аккаунт" aria-label="Удалить аккаунт">
-                    <i class="bi bi-trash"></i>
-                  </a>
-                </div>
-                {% else %}
-                <span class="text-muted">Текущий</span>
-                {% endif %}
-              </td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
+  <div class="row g-3 users-layout">
+    <div class="col-lg-4">
+      <div class="card content-card users-create-card">
+        <div class="card-body">
+          <h2 class="section-title">РЎРѕР·РґР°С‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ</h2>
+          <form method="post" class="users-create-form">
+            {{ form.hidden_tag() }}
+            <div class="mb-2">{{ form.username.label(class="form-label") }} {{ form.username(class="form-control") }}</div>
+            <div class="mb-2">{{ form.full_name.label(class="form-label") }} {{ form.full_name(class="form-control") }}</div>
+            <div class="mb-3">{{ form.password.label(class="form-label") }} {{ form.password(class="form-control", placeholder="РјРёРЅРёРјСѓРј 8 СЃРёРјРІРѕР»РѕРІ") }}</div>
+            <fieldset class="mb-3 users-role-fieldset">
+              <legend class="form-label mb-2">{{ form.role.label.text }}</legend>
+              <div class="users-role-grid" role="radiogroup" aria-label="{{ form.role.label.text }}">
+                {% for subfield in form.role %}
+                  <label class="users-role-option" for="{{ subfield.id }}">
+                    {{ subfield(class="users-role-input") }}
+                    <span class="users-role-check" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+                    <span class="users-role-copy"><strong>{{ subfield.label.text }}</strong></span>
+                  </label>
+                {% endfor %}
+              </div>
+            </fieldset>
+            {{ form.submit(class="btn btn-primary users-submit-btn") }}
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card table-shell users-table-shell">
+        <div class="card-body p-0 table-responsive">
+          <table class="table align-middle users-table">
+            <thead>
+              <tr>
+                <th>Р›РѕРіРёРЅ</th>
+                <th>РРјСЏ</th>
+                <th>Р РѕР»СЊ</th>
+                <th>РћР±СЉРµРєС‚</th>
+                <th>РџР°СЂРѕР»СЊ</th>
+                <th>РЎРѕР·РґР°РЅ</th>
+                <th class="text-end">Р”РµР№СЃС‚РІРёСЏ</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for user in users %}
+              <tr>
+                <td>{{ user.username }}</td>
+                <td>{{ user.full_name or '' }}</td>
+                <td>{{ ROLE_LABELS.get(user.role, user.role) }}</td>
+                <td>{{ 'Р’СЃРµ' if user.role == 'admin' or not user.project else user.project.name }}</td>
+                <td>
+                  <div class="password-preview" data-hidden="вЂўвЂўвЂўвЂўвЂўвЂўвЂўвЂў" data-visible="{{ user.password_plain or 'РџР°СЂРѕР»СЊ РЅРµ СЃРѕС…СЂР°РЅС‘РЅ' }}" data-state="hidden">
+                    <span>вЂўвЂўвЂўвЂўвЂўвЂўвЂўвЂў</span>
+                    <button class="password-preview-toggle" type="button" aria-label="РџРѕРєР°Р·Р°С‚СЊ РїР°СЂРѕР»СЊ"><i class="bi bi-eye"></i></button>
+                  </div>
+                </td>
+                <td>{{ user.created_at.strftime('%d.%m.%Y') }}</td>
+                <td class="text-end">
+                  {% if user.id != current_user.id %}
+                  <div class="d-inline-flex gap-2 users-actions">
+                    <a class="btn btn-sm users-action-btn users-action-btn-password" href="{{ url_for('main.user_set_password_page', user_id=user.id) }}" title="РЎРјРµРЅРёС‚СЊ РїР°СЂРѕР»СЊ" aria-label="РЎРјРµРЅРёС‚СЊ РїР°СЂРѕР»СЊ">
+                      <i class="bi bi-key"></i>
+                    </a>
+                    <a class="btn btn-sm users-action-btn users-action-btn-delete" href="{{ url_for('main.user_delete_confirm', user_id=user.id) }}" title="РЈРґР°Р»РёС‚СЊ Р°РєРєР°СѓРЅС‚" aria-label="РЈРґР°Р»РёС‚СЊ Р°РєРєР°СѓРЅС‚">
+                      <i class="bi bi-trash"></i>
+                    </a>
+                  </div>
+                  {% else %}
+                  <span class="text-muted">РўРµРєСѓС‰РёР№</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>

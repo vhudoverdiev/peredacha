@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Квартиры{% endblock %}
 {% block content %}
+<div class="apartments-page">
 <div class="page-head">
   <div>
     <h1 class="page-title">Квартиры</h1>
@@ -42,7 +43,7 @@
       </div>
       <div class="col-12 col-lg-2 filter-actions">
         <button class="btn btn-primary" type="submit">Применить</button>
-        <a class="btn btn-outline-secondary" href="{{ url_for('main.apartments') }}">Сброс</a>
+        <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.apartments') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
       </div>
     </form>
   </div>
@@ -59,7 +60,7 @@
     <a class="apartment-card-link" href="{{ url_for('main.apartment_detail', apartment_id=apartment.id) }}">
     <div class="apartment-card-top">
       <div>
-        <div class="apartment-card-label apartment-card-full-label">{{ apartment.full_label() if apartment.premise_type == 'commercial' else apartment.label() }}</div>
+        <div class="apartment-card-label apartment-card-full-label">{{ apartment.label() }}</div>
       </div>
       {% if row.mode == 'АПП' %}
         <span class="status-pill status-pill-success">АПП</span>
@@ -144,6 +145,8 @@
   {% else %}
   <div class="card content-card"><div class="card-body text-muted">Квартир по этому фильтру нет.</div></div>
   {% endfor %}
+</div>
+
 </div>
 
 <a class="po-notification-widget" href="{{ url_for('main.apartments', po='1') }}">

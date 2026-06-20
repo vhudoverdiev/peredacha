@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% block title %}{{ apartment.label() }}{% endblock %}
+{% block title %}{{ apartment.detail_label() }}{% endblock %}
 {% block content %}
+<div class="apartment-detail-page">
 {% set status_labels = {'not_started': 'не выполнено', 'done': 'выполнено', 'finishers': 'чистовики', 'contractor': 'подрядчик', 'problem': 'проблема'} %}
 {% set status_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'problem': 'status-pill-danger'} %}
 {% set field_labels = {'status': 'Статус', 'comment': 'Комментарий', 'description': 'Текст замечания', 'responsible_id': 'Ответственный', 'planned_date': 'Плановая дата', 'is_missing_in_latest_sync': 'Отсутствует в последней синхронизации'} %}
 
 <div class="page-head">
   <div>
-    <h1 class="page-title">{{ apartment.label() }}</h1>
-    <p class="page-subtitle">Вся информация по помещению из разделов CRM.</p>
+    <h1 class="page-title">{{ apartment.detail_label() }}</h1>
   </div>
   <a class="btn btn-outline-secondary" href="{{ url_for('main.apartments') }}">Назад к помещениям</a>
 </div>
@@ -22,7 +22,7 @@
         <div class="apartment-data-list">
           <div class="apartment-data-row">
             <span>Помещение</span>
-            <b>{{ apartment.label() }}</b>
+            <b>{{ apartment.detail_label() }}</b>
           </div>
           {% if apartment.premise_type != 'commercial' %}
           <div class="apartment-data-row">
@@ -177,6 +177,10 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }} apartment-task-status-btn" type="submit" data-status-pill title="Нажмите, чтобы переключить выполнено / не выполнено">{{ status_labels.get(task.status, task.status) }}</button>
               </form>
+              <form class="status-action-form problem-action-form apartment-task-problem-form {% if task.status == 'problem' %}d-none{% endif %}" method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" data-status-action="problem">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="status-pill status-pill-danger apartment-task-problem-btn problem-toggle-btn" type="button" title="Проблема" data-problem-modal-title="Проблема">Проблема</button>
+              </form>
               {% else %}
               <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }}" data-status-pill>{{ status_labels.get(task.status, task.status) }}</span>
               {% endif %}
@@ -253,5 +257,7 @@
       </div>
     </div>
   </div>
+</div>
+
 </div>
 {% endblock %}
