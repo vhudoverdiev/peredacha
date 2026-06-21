@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isStandaloneApp) document.body.classList.add('standalone-app');
   if (isStandaloneApp) document.documentElement.classList.add('standalone-app');
   if (isMobileViewport) document.documentElement.classList.add('mobile-viewport');
+  if (document.querySelector('.mobile-project-topbar')) document.body.classList.add('has-mobile-project-topbar');
   syncAppViewportHeight();
   window.addEventListener('resize', syncAppViewportHeight, { passive: true });
   window.visualViewport?.addEventListener('resize', syncAppViewportHeight, { passive: true });

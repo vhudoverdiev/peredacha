@@ -31612,3 +31612,103 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
   }
 }
 
+/* v188 mobile topbar fix: remove legacy white gap and restore desktop topbar color on phones. */
+@media (max-width: 767.98px) {
+  body.app-body.has-mobile-project-topbar,
+  body.app-body:has(.mobile-project-topbar) {
+    padding-top: 0 !important;
+    background:
+      linear-gradient(180deg, #f7faef 0%, #f7faef 100%) !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .app-layout,
+  body.app-body:has(.mobile-project-topbar) .app-layout {
+    padding-top: 0 !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .app-content,
+  body.app-body:has(.mobile-project-topbar) .app-content {
+    padding-top: 0 !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1045 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) max-content !important;
+    align-items: center !important;
+    gap: .62rem !important;
+    min-height: calc(3.32rem + var(--ios-safe-top)) !important;
+    padding-top: calc(.38rem + var(--ios-safe-top)) !important;
+    padding-bottom: .52rem !important;
+    padding-left: max(.78rem, var(--ios-safe-left)) !important;
+    padding-right: max(.78rem, var(--ios-safe-right)) !important;
+    color: #fff !important;
+    background:
+      linear-gradient(90deg, rgba(255, 255, 255, .03), transparent 62%),
+      linear-gradient(135deg, var(--crm-topbar-start, #5e656a), var(--crm-topbar-end, #4f565b)) !important;
+    border-top: 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, .08) !important;
+    box-shadow: 0 12px 28px rgba(22, 30, 34, .16) !important;
+    transform: none !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar::before,
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar::after,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar::before,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-title,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-title,
+  body.app-body.has-mobile-project-topbar .app-layout:not(.worker-layout) .mobile-project-title,
+  body.app-body:has(.mobile-project-topbar) .app-layout:not(.worker-layout) .mobile-project-title {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    color: #fff !important;
+    font-size: clamp(.92rem, 3.85vw, 1.02rem) !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    letter-spacing: -.02em !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, .14) !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-change,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-change {
+    align-self: center !important;
+    justify-self: end !important;
+    min-height: 2.2rem !important;
+    height: 2.2rem !important;
+    max-width: 9.8rem !important;
+    padding: 0 .72rem !important;
+    transform: none !important;
+    border-radius: .82rem !important;
+    border: 1px solid rgba(255, 255, 255, .22) !important;
+    background: rgba(255, 255, 255, .11) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .08),
+      0 8px 20px rgba(18, 25, 28, .12) !important;
+    color: #fff !important;
+    font-size: clamp(.68rem, 2.85vw, .78rem) !important;
+    line-height: 1 !important;
+    font-weight: 850 !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-change:active,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-change:active {
+    transform: scale(.98) !important;
+  }
+}
+
