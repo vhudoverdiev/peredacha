@@ -43,12 +43,13 @@
 <div class="remarks-tabs mb-3">
   <ul class="nav crm-tabs">
   {% for category in categories if category.name == 'Все' %}
-    <li class="nav-item"><a class="nav-link {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id) }}">{{ category.name }}</a></li>
+    <li class="nav-item"><a class="nav-link {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id) }}"><i class="bi bi-grid-3x3-gap remarks-tab-icon"></i>{{ category.name }}</a></li>
   {% endfor %}
   </ul>
   <ul class="nav crm-tabs justify-content-end">
   {% for category in categories if category.name != 'Все' %}
-    <li class="nav-item"><a class="nav-link {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id) }}">{{ category.name }}</a></li>
+    {% set category_icon = 'bi-brush' if category.name == 'Маляры' else ('bi-tools' if category.name == 'Разнорабочие' else ('bi-window' if category.name == 'Витражники' else ('bi-file-earmark-text' if category.name == 'Доп.Соглашение' else 'bi-tag'))) %}
+    <li class="nav-item"><a class="nav-link {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id) }}"><i class="bi {{ category_icon }} remarks-tab-icon"></i>{{ category.name }}</a></li>
   {% endfor %}
   </ul>
 </div>
