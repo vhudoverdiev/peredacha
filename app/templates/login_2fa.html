@@ -11,10 +11,10 @@
           <div class="captcha-title">
             <span><i class="bi bi-shield-lock"></i> Двухэтапная аутентификация</span>
           </div>
-          <label class="captcha-question" for="{{ form.two_factor_code.id }}">Введите 6-значный код из приложения</label>
+          <label class="visually-hidden" for="{{ form.two_factor_code.id }}">Код 2FA</label>
           <div class="login-input-wrap captcha-answer-wrap">
-            <i class="bi bi-123"></i>
-            {{ form.two_factor_code(class="form-control", inputmode="numeric", autocomplete="one-time-code", placeholder="000000", autofocus=true) }}
+            <i class="bi bi-shield-check"></i>
+            {{ form.two_factor_code(class="form-control", inputmode="numeric", autocomplete="one-time-code", placeholder="Код", autofocus=true) }}
           </div>
         </div>
         <div class="login-form-row login-captcha-actions">

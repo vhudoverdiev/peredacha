@@ -8,6 +8,7 @@ from app.forms import LoginCaptchaForm, LoginForm, LoginTwoFactorForm
 from app.models import ROLE_VERIFIER, SiteErrorReport, User, WORKER_ROLES
 from app.security import (
     clear_captcha,
+    client_ip,
     generate_captcha,
     hit_rate_limit,
     is_account_locked,
@@ -52,6 +53,13 @@ def _render_login_2fa(form: LoginTwoFactorForm):
     return render_template("login_2fa.html", form=form)
 
 
+def _needs_two_factor_for_ip(user: User) -> bool:
+    if not user.two_factor_enabled or not user.two_factor_secret:
+        return False
+    current_ip = client_ip()[:80]
+    return not user.last_login_ip or user.last_login_ip != current_ip
+
+
 def _complete_pending_login(user: User):
     remember = bool(session.get("pending_login_remember"))
     next_url = session.get("pending_login_next") or None
@@ -69,7 +77,7 @@ def _complete_pending_login(user: User):
 
 def _continue_after_password(user: User):
     clear_captcha()
-    if user.two_factor_enabled and not session.get("pending_login_2fa_verified"):
+    if _needs_two_factor_for_ip(user) and not session.get("pending_login_2fa_verified"):
         session["pending_login_2fa"] = True
         return redirect(url_for("auth.login_2fa"))
     if not user.captcha_disabled:
@@ -172,7 +180,7 @@ def login_captcha():
             return _render_login_captcha(form)
 
         clear_captcha()
-        if user.two_factor_enabled and not session.get("pending_login_2fa_verified"):
+        if _needs_two_factor_for_ip(user) and not session.get("pending_login_2fa_verified"):
             session["pending_login_2fa"] = True
             return redirect(url_for("auth.login_2fa"))
         return _complete_pending_login(user)

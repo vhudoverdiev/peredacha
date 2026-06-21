@@ -28358,3 +28358,309 @@ body:has(.users-page) textarea:-webkit-autofill:active {
 .account-profile-list dd {
   font-weight: 500 !important;
 }
+
+/* Worker roles: hide the left brand in the topbar and tint the user name chip. */
+.worker-layout .worker-topbar-brand {
+  min-width: 1px !important;
+  min-height: 2.25rem !important;
+}
+
+.worker-layout .worker-topbar-brand-link {
+  display: none !important;
+}
+
+.worker-layout .worker-person-name {
+  color: #4f8f16 !important;
+  -webkit-text-fill-color: #4f8f16 !important;
+  background: linear-gradient(180deg, #f3faea 0%, #eaf6dc 100%) !important;
+  border-color: rgba(121, 191, 37, .36) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .75), 0 8px 18px rgba(121, 191, 37, .10) !important;
+}
+
+/* Mobile app navigation and iOS standalone refinements. */
+@supports (min-height: 100dvh) {
+  html,
+  body,
+  .app-layout,
+  .objects-layout,
+  .documents-standalone-layout,
+  .auth-shell,
+  .maintenance-screen {
+    min-height: 100dvh;
+  }
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+input,
+select,
+textarea {
+  font-size: max(16px, 1rem);
+}
+
+@media (max-width: 767.98px) {
+  .mobile-bottom-nav {
+    grid-template-columns: repeat(var(--mobile-nav-count, 4), minmax(0, 1fr)) !important;
+    gap: clamp(.08rem, .8vw, .18rem) !important;
+    min-height: 64px !important;
+    padding: .42rem clamp(.28rem, 1.6vw, .48rem) !important;
+    padding-bottom: calc(.42rem + max(0px, env(safe-area-inset-bottom) * .12)) !important;
+    border-radius: clamp(.95rem, 4vw, 1.2rem) !important;
+  }
+
+  .mobile-nav-item,
+  .mobile-bottom-nav .mobile-menu-toggle {
+    min-height: 50px !important;
+    padding-inline: .08rem !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-nav-item i {
+    font-size: clamp(1rem, 4.4vw, 1.16rem) !important;
+  }
+
+  .mobile-nav-item span {
+    font-size: clamp(.58rem, 2.55vw, .68rem) !important;
+    letter-spacing: -.02em !important;
+  }
+
+  .app-content,
+  .objects-content,
+  .documents-content {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .modal-dialog {
+    margin: max(.75rem, env(safe-area-inset-top)) max(.75rem, env(safe-area-inset-right)) max(.75rem, env(safe-area-inset-bottom)) max(.75rem, env(safe-area-inset-left)) !important;
+  }
+}
+
+@media (max-width: 340px) {
+  .mobile-bottom-nav {
+    left: max(.32rem, env(safe-area-inset-left)) !important;
+    right: max(.32rem, env(safe-area-inset-right)) !important;
+  }
+
+  .mobile-nav-item span {
+    font-size: .56rem !important;
+  }
+}
+
+/* Mobile auth install prompt: centered CTA and polished iOS-style card. */
+body.auth-body .mobile-auth-signature {
+  display: none !important;
+}
+
+body.auth-body .ios-install-button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: fit-content !important;
+  max-width: min(100%, 18rem);
+  min-height: 3rem;
+  margin: .9rem auto 0 !important;
+  padding: .62rem 1rem !important;
+  transform: none !important;
+  border-radius: 999px !important;
+  color: #4f8f16 !important;
+  background: linear-gradient(180deg, #f8fff1 0%, #edf8df 100%) !important;
+  border: 1px solid rgba(121, 191, 37, .34) !important;
+  box-shadow: 0 14px 30px rgba(121, 191, 37, .12) !important;
+}
+
+body.auth-body .ios-install-button[hidden] {
+  display: none !important;
+}
+
+body.auth-body .login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+body.auth-body .ios-install-button-logo {
+  width: 1.45rem !important;
+  height: 1.45rem !important;
+  border-radius: .46rem !important;
+}
+
+body.auth-body .ios-install-modal {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .86) !important;
+  border-radius: clamp(1.55rem, 6vw, 2.35rem) !important;
+  padding: clamp(1.25rem, 4.5vw, 2rem) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(121, 191, 37, .16), transparent 15rem),
+    linear-gradient(180deg, rgba(255, 255, 255, .98) 0%, rgba(253, 254, 251, .98) 100%) !important;
+  box-shadow: 0 24px 70px rgba(17, 24, 39, .22), inset 0 0 0 1px rgba(255, 255, 255, .68) !important;
+}
+
+body.auth-body .ios-install-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(121, 191, 37, .12), transparent 9rem),
+    radial-gradient(circle at 94% 2%, rgba(121, 191, 37, .10), transparent 11rem);
+}
+
+body.auth-body .ios-install-modal > * {
+  position: relative;
+  z-index: 1;
+}
+
+body.auth-body .ios-install-hero {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: clamp(1rem, 4vw, 1.45rem) !important;
+  align-items: center !important;
+  margin-bottom: clamp(1.25rem, 4vw, 1.8rem) !important;
+}
+
+body.auth-body .ios-install-app-icon {
+  width: clamp(5rem, 18vw, 6.4rem) !important;
+  height: clamp(5rem, 18vw, 6.4rem) !important;
+  border-radius: clamp(1.25rem, 4.5vw, 1.65rem) !important;
+  box-shadow: 0 18px 34px rgba(121, 191, 37, .22) !important;
+}
+
+body.auth-body .ios-install-eyebrow {
+  margin-bottom: .28rem;
+  color: #62b315 !important;
+  font-size: clamp(.82rem, 3.4vw, 1rem) !important;
+  font-weight: 950 !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase;
+}
+
+body.auth-body .ios-install-modal h2 {
+  margin: 0 !important;
+  color: #111827 !important;
+  font-size: clamp(1.55rem, 7vw, 2.35rem) !important;
+  line-height: 1.04 !important;
+  font-weight: 950 !important;
+  letter-spacing: -.045em !important;
+}
+
+body.auth-body .ios-install-subtitle {
+  margin: .65rem 0 0 !important;
+  color: #565d62 !important;
+  font-size: clamp(1rem, 4.2vw, 1.25rem) !important;
+  line-height: 1.28 !important;
+  font-weight: 650 !important;
+}
+
+body.auth-body .ios-install-body-minimal {
+  padding: 0 !important;
+}
+
+body.auth-body .ios-install-steps {
+  display: grid !important;
+  gap: .78rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.auth-body .ios-install-steps-arrows li {
+  display: grid !important;
+  grid-template-columns: 3.15rem minmax(0, 1fr) !important;
+  align-items: center;
+  min-height: 4.5rem;
+  gap: .9rem;
+  padding: .82rem 1rem !important;
+  border-radius: 1.25rem !important;
+  background: rgba(255, 255, 255, .92) !important;
+  border: 1px solid rgba(213, 223, 239, .76) !important;
+  box-shadow: 0 12px 26px rgba(17, 24, 39, .07) !important;
+}
+
+body.auth-body .ios-install-steps li > span {
+  display: grid !important;
+  place-items: center;
+  width: 3rem !important;
+  height: 3rem !important;
+  border-radius: 1rem !important;
+  color: #67b916 !important;
+  background: linear-gradient(180deg, #f1f9e8, #e6f4d7) !important;
+  font-size: 1.62rem !important;
+  font-weight: 950 !important;
+}
+
+body.auth-body .ios-install-steps-arrows li > div {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .85rem;
+  color: #111827 !important;
+  font-size: clamp(1rem, 4.5vw, 1.35rem) !important;
+  line-height: 1.2 !important;
+  font-weight: 850 !important;
+}
+
+body.auth-body .ios-install-steps-arrows li > div strong {
+  font-weight: 950 !important;
+}
+
+body.auth-body .ios-install-steps-arrows li > div > strong:first-child:last-child {
+  justify-self: end;
+  font-size: 1.45rem;
+  letter-spacing: .14em;
+}
+
+body.auth-body .ios-install-steps-arrows li i {
+  color: #111827 !important;
+  font-size: 1.9rem !important;
+}
+
+body.auth-body .ios-install-actions {
+  margin-top: 1.45rem !important;
+}
+
+body.auth-body .ios-install-actions::before {
+  content: "✦";
+  display: block;
+  width: min(14rem, 62%);
+  margin: 0 auto 1rem;
+  color: #8dd62c;
+  text-align: center;
+  line-height: 1;
+  background: linear-gradient(90deg, transparent 0 28%, rgba(121, 191, 37, .48) 28% 45%, transparent 45% 55%, rgba(121, 191, 37, .48) 55% 72%, transparent 72% 100%);
+}
+
+body.auth-body .ios-install-actions .btn {
+  min-height: 3.8rem !important;
+  border-radius: 1.05rem !important;
+  font-size: 1.2rem !important;
+  font-weight: 950 !important;
+  box-shadow: 0 18px 34px rgba(95, 152, 36, .26) !important;
+}
+
+@media (max-width: 430px) {
+  body.auth-body .ios-install-modal {
+    padding: 1.1rem !important;
+  }
+
+  body.auth-body .ios-install-hero {
+    grid-template-columns: 4.9rem minmax(0, 1fr);
+  }
+
+  body.auth-body .ios-install-steps-arrows li {
+    grid-template-columns: 2.75rem minmax(0, 1fr) !important;
+    min-height: 4rem;
+    padding: .72rem .82rem !important;
+  }
+
+  body.auth-body .ios-install-steps li > span {
+    width: 2.62rem !important;
+    height: 2.62rem !important;
+    border-radius: .86rem !important;
+    font-size: 1.38rem !important;
+  }
+}

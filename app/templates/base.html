@@ -23,7 +23,7 @@
   </script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v173-documents-favicon-account">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v176-mobile-auth-install">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and mobile_version_under_development %} mobile-dev-flag{% endif %}">
 <section class="site-page-loader app-launch-loader js-app-launch-loader" role="status" aria-label="Загрузка приложения">
@@ -98,17 +98,21 @@
 
 {% macro mobile_page_chrome(title='Передача', back_href=None) -%}
   <div class="mobile-app-topbar" aria-label="Мобильная шапка">
-    <a class="mobile-top-avatar" href="{{ url_for('main.my_tasks') if worker_role else url_for('main.objects') }}" aria-label="Главная"><img class="mobile-top-avatar-logo" src="{{ url_for('static', filename='brand-logo.png') }}" alt=""></a>
+    <a class="mobile-top-avatar" href="{{ url_for('main.my_tasks') if worker_role else (url_for('main.dashboard') if current_user.is_authenticated and current_user.role == 'manager' else url_for('main.objects')) }}" aria-label="Главная"><img class="mobile-top-avatar-logo" src="{{ url_for('static', filename='brand-logo.png') }}" alt=""></a>
     <div class="mobile-top-title">{{ title }}</div>
     <a class="mobile-top-icon" href="{{ url_for('main.notifications') }}" aria-label="Уведомления"><i class="bi bi-bell"></i></a>
   </div>
 {%- endmacro %}
 
 {% macro mobile_bottom_nav(active='dashboard') -%}
-  <nav class="mobile-bottom-nav" aria-label="Основная навигация">
+  {% set nav_count = 2 if worker_role else (4 if report_only_role and not hide_documents_section else (3 if report_only_role else 5)) %}
+  <nav class="mobile-bottom-nav" aria-label="Основная навигация" style="--mobile-nav-count: {{ nav_count }}">
     {% if worker_role %}
     <a class="mobile-nav-item active" href="{{ url_for('main.my_tasks') }}">
       <i class="bi bi-check2-square"></i><span>Мои задачи</span>
+    </a>
+    <a class="mobile-nav-item {% if active == 'account' %}active{% endif %}" href="{{ url_for('main.account') }}">
+      <i class="bi bi-person-circle"></i><span>Аккаунт</span>
     </a>
     {% elif report_only_role %}
     <a class="mobile-nav-item {% if active == 'report' %}active{% endif %}" href="{{ url_for('main.work_report') }}">
@@ -121,6 +125,25 @@
     {% endif %}
     <a class="mobile-nav-item {% if active == 'objects' %}active{% endif %}" href="{{ url_for('main.objects') }}">
       <i class="bi bi-diagram-3"></i><span>Объект</span>
+    </a>
+    <a class="mobile-nav-item {% if active == 'account' %}active{% endif %}" href="{{ url_for('main.account') }}">
+      <i class="bi bi-person-circle"></i><span>Аккаунт</span>
+    </a>
+    {% elif current_user.role == 'manager' %}
+    <a class="mobile-nav-item {% if active == 'dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">
+      <i class="bi bi-grid-1x2"></i><span>Дашборд</span>
+    </a>
+    <a class="mobile-nav-item {% if active == 'apartments' %}active{% endif %}" href="{{ url_for('main.apartments') }}">
+      <i class="bi bi-buildings"></i><span>Квартиры</span>
+    </a>
+    <a class="mobile-nav-item {% if active == 'assignments' %}active{% endif %}" href="{{ url_for('main.assignments') }}">
+      <i class="bi bi-person-check"></i><span>Выдача</span>
+    </a>
+    <a class="mobile-nav-item {% if active == 'remarks' %}active{% endif %}" href="{{ url_for('main.task_list') }}">
+      <i class="bi bi-card-checklist"></i><span>Замечания</span>
+    </a>
+    <a class="mobile-nav-item {% if active == 'account' %}active{% endif %}" href="{{ url_for('main.account') }}">
+      <i class="bi bi-person-circle"></i><span>Аккаунт</span>
     </a>
     {% else %}
     <a class="mobile-nav-item {% if active == 'objects' %}active{% endif %}" href="{{ url_for('main.objects') }}">
@@ -140,6 +163,9 @@
     <a class="mobile-nav-item {% if active == 'remarks' %}active{% endif %}" href="{{ url_for('main.task_list') }}">
       <i class="bi bi-card-checklist"></i><span>Замечания</span>
     </a>
+    <a class="mobile-nav-item {% if active == 'account' %}active{% endif %}" href="{{ url_for('main.account') }}">
+      <i class="bi bi-person-circle"></i><span>Аккаунт</span>
+    </a>
     {% if active == 'report' %}
       <a class="mobile-nav-item active" href="{{ url_for('main.work_report') }}"><i class="bi bi-file-earmark-bar-graph"></i><span>Отчет</span></a>
     {% else %}
@@ -155,7 +181,7 @@
 {% set mobile_active = 'dashboard' %}
 {% if request.endpoint == 'main.account' %}
   {% set mobile_title = 'Аккаунт' %}
-  {% set mobile_active = 'objects' %}
+  {% set mobile_active = 'account' %}
 {% elif layout_mode.strip() == 'objects' %}
   {% set mobile_title = 'Объекты' %}
   {% set mobile_active = 'objects' %}
@@ -194,7 +220,7 @@
   {% set mobile_active = 'glass' %}
 {% elif request.endpoint in ['main.assignments', 'main.assignment_manual_task_new'] %}
   {% set mobile_title = 'Выдача задач' %}
-  {% set mobile_active = 'remarks' %}
+  {% set mobile_active = 'assignments' %}
 {% elif request.endpoint == 'main.site_settings' %}
   {% set mobile_title = 'Настройки' %}
   {% set mobile_active = 'objects' %}
@@ -224,7 +250,7 @@
           <span>{{ current_user.full_name or current_user.username }}</span>
         </a>
         <ul class="dropdown-menu dropdown-menu-end">
-          {% if current_user.role == 'admin' %}
+          {% if current_user.role == 'admin' or request.endpoint == 'main.site_settings' %}
           <li><a class="dropdown-item" href="{{ url_for('main.site_settings') }}"><i class="bi bi-sliders me-2"></i>Настройки сайта</a></li>
           <li><hr class="dropdown-divider"></li>
           {% endif %}
@@ -263,7 +289,12 @@
           <span>{{ current_user.full_name or current_user.username }}</span>
         </a>
         <ul class="dropdown-menu dropdown-menu-end global-standalone-user-menu" aria-label="Меню профиля">
-          {# На глобальных страницах Аккаунт/Настройки сайта оставляем только выход. #}
+          {% if current_user.role == 'admin' or request.endpoint == 'main.site_settings' %}
+          <li><a class="dropdown-item" href="{{ url_for('main.site_settings') }}"><i class="bi bi-sliders me-2"></i>Настройки сайта</a></li>
+          <li><hr class="dropdown-divider"></li>
+          {% endif %}
+          <li><a class="dropdown-item" href="{{ url_for('main.account') }}"><i class="bi bi-person-circle me-2"></i>Аккаунт</a></li>
+          <li><hr class="dropdown-divider"></li>
           <li>
             <form class="px-3 py-1 js-auth-safe-submit" method="post" action="{{ url_for('auth.logout') }}" data-loading-text="Выходим...">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -398,6 +429,8 @@
             <li><a class="dropdown-item" href="{{ url_for('main.export_source_with_strikes') }}"><i class="bi bi-file-earmark-arrow-down me-2"></i>Скачать Excel</a></li>
             <li><hr class="dropdown-divider"></li>
             {% endif %}
+            <li><a class="dropdown-item" href="{{ url_for('main.account') }}"><i class="bi bi-person-circle me-2"></i>Аккаунт</a></li>
+            <li><hr class="dropdown-divider"></li>
             <li>
               <form class="px-3 py-1 js-auth-safe-submit" method="post" action="{{ url_for('auth.logout') }}" data-loading-text="Выходим...">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
