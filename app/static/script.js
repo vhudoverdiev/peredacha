@@ -1,4 +1,12 @@
 (() => {
+  const isDesktopViewport = window.matchMedia && window.matchMedia('(min-width: 768px)').matches;
+  if (isDesktopViewport) {
+    document.querySelectorAll('.viewport-transition-loader, .mobile-dev-screen.site-page-loader').forEach(loader => {
+      loader.classList.add('is-hidden');
+      loader.style.display = 'none';
+      loader.style.pointerEvents = 'none';
+    });
+  }
   const loaders = document.querySelectorAll('.js-success-loader, .js-app-launch-loader');
   if (!loaders.length) return;
   const startedAt = Date.now();

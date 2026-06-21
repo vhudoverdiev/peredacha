@@ -32393,3 +32393,30 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
   }
 }
 
+/* v196 desktop loader fix: mobile development loader must never block the PC version. */
+@media (min-width: 768px) {
+  body.app-body.mobile-dev-flag {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  body.app-body.mobile-dev-flag .mobile-dev-screen.site-page-loader,
+  body.app-body .viewport-transition-loader {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  body.app-body .site-page-loader.viewport-transition-loader,
+  body.app-body.mobile-dev-flag .site-page-loader.mobile-dev-screen {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
