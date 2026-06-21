@@ -1,5 +1,5 @@
 (() => {
-  const isDesktopViewport = window.matchMedia && window.matchMedia('(min-width: 768px)').matches;
+  const isDesktopViewport = window.matchMedia && window.matchMedia('(min-width: 1200px)').matches;
   if (isDesktopViewport) {
     document.querySelectorAll('.viewport-transition-loader, .mobile-dev-screen.site-page-loader').forEach(loader => {
       loader.classList.add('is-hidden');
@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isStandaloneApp) document.documentElement.classList.add('standalone-app');
   if (isMobileViewport) document.documentElement.classList.add('mobile-viewport');
   if (document.querySelector('.mobile-project-topbar')) document.body.classList.add('has-mobile-project-topbar');
+  if (document.querySelector('.account-page')) document.body.classList.add('has-account-page');
   syncAppViewportHeight();
   window.addEventListener('resize', syncAppViewportHeight, { passive: true });
   window.visualViewport?.addEventListener('resize', syncAppViewportHeight, { passive: true });
@@ -95,6 +96,41 @@ document.addEventListener('DOMContentLoaded', () => {
     iosInstallModal.addEventListener('show.bs.modal', openIosInstallModal);
     iosInstallModal.addEventListener('shown.bs.modal', openIosInstallModal);
     iosInstallModal.addEventListener('hidden.bs.modal', closeIosInstallModal);
+  }
+
+
+  const accountPage = document.querySelector('.account-page');
+  if (accountPage && (isIosDevice || isMobileViewport)) {
+    const releaseReadonly = input => {
+      if (!input) return;
+      input.readOnly = false;
+      input.removeAttribute('readonly');
+    };
+    const blurAccountField = () => {
+      const active = document.activeElement;
+      if (active && accountPage.contains(active) && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) {
+        active.blur();
+      }
+    };
+
+    accountPage.querySelectorAll('.account-code-row input, .account-2fa-confirm-form input[name="two_factor_code"], .account-2fa-disable-form input[name="two_factor_code"]').forEach(input => {
+      input.setAttribute('autocomplete', 'off');
+      input.setAttribute('autocorrect', 'off');
+      input.setAttribute('autocapitalize', 'off');
+      input.setAttribute('spellcheck', 'false');
+      input.setAttribute('data-mobile-no-autokeyboard', '1');
+      input.readOnly = true;
+      input.addEventListener('pointerdown', () => releaseReadonly(input), { once: true });
+      input.addEventListener('touchstart', () => releaseReadonly(input), { once: true, passive: true });
+      input.addEventListener('keydown', () => releaseReadonly(input), { once: true });
+      input.addEventListener('focus', () => {
+        if (input.readOnly) window.setTimeout(() => input.blur(), 0);
+      });
+    });
+
+    window.setTimeout(blurAccountField, 0);
+    window.setTimeout(blurAccountField, 180);
+    window.setTimeout(blurAccountField, 420);
   }
 
 

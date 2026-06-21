@@ -32420,3 +32420,524 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
   }
 }
 
+/* v197 fix: desktop >=1200 opens normally; intermediate tablet width shows loader animation instead of blank white screen. */
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  body.app-body:not(.mobile-dev-flag) {
+    overflow: hidden !important;
+  }
+
+  body.app-body:not(.mobile-dev-flag) .viewport-transition-loader {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100vw !important;
+    min-width: 100vw !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    padding: max(env(safe-area-inset-top, 0px), 1rem) 1rem max(env(safe-area-inset-bottom, 0px), 1rem) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: 2147483000 !important;
+    background:
+      radial-gradient(circle at 50% 40%, rgba(141, 214, 44, .16), transparent 22rem),
+      linear-gradient(180deg, #fbfdf7 0%, #f7faef 100%) !important;
+  }
+
+  body.app-body.mobile-dev-flag .mobile-dev-screen.site-page-loader {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100vw !important;
+    min-width: 100vw !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: 2147483000 !important;
+    background:
+      radial-gradient(circle at 50% 40%, rgba(141, 214, 44, .16), transparent 22rem),
+      linear-gradient(180deg, #fbfdf7 0%, #f7faef 100%) !important;
+  }
+
+  body.app-body:not(.mobile-dev-flag) .viewport-transition-loader.is-hidden,
+  body.app-body.mobile-dev-flag .mobile-dev-screen.site-page-loader.is-hidden {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  body.app-body.mobile-dev-flag {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  body.app-body .viewport-transition-loader,
+  body.app-body .site-page-loader.viewport-transition-loader,
+  body.app-body.mobile-dev-flag .mobile-dev-screen.site-page-loader,
+  body.app-body.mobile-dev-flag .site-page-loader.mobile-dev-screen {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+  }
+}
+
+/* v198 final mobile fix: iOS install button is text-only and sits directly below registration. */
+@media (max-width: 767.98px) {
+  body.auth-body .login-form {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  body.auth-body .login-submit {
+    order: 30 !important;
+  }
+
+  body.auth-body .login-register-button {
+    order: 40 !important;
+    margin-top: .72rem !important;
+    margin-bottom: 0 !important;
+  }
+
+  body.auth-body .login-form > .ios-install-button,
+  body.auth-body .ios-install-button,
+  body.auth-body .ios-install-button:hover,
+  body.auth-body .ios-install-button:focus,
+  body.auth-body .ios-install-button:active,
+  body.auth-body .ios-install-button:focus-visible {
+    order: 41 !important;
+    position: static !important;
+    inset: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 3rem !important;
+    height: auto !important;
+    margin: .72rem 0 0 !important;
+    padding: .82rem 1rem !important;
+    gap: 0 !important;
+    border-radius: .9rem !important;
+    border: 1px solid rgba(213, 223, 239, .88) !important;
+    outline: 0 !important;
+    background: #ffffff !important;
+    background-image: none !important;
+    box-shadow: 0 10px 24px rgba(20, 36, 68, .06) !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    text-decoration: none !important;
+    transform: none !important;
+  }
+
+  body.auth-body .ios-install-button[hidden] {
+    display: none !important;
+  }
+
+  body.auth-body .ios-install-button::before,
+  body.auth-body .ios-install-button::after,
+  body.auth-body .ios-install-button-logo,
+  body.auth-body .ios-install-button img,
+  body.auth-body .ios-install-button i,
+  body.auth-body .ios-install-button .bi,
+  body.auth-body .ios-install-button > span:first-child:not(:last-child) {
+    display: none !important;
+    content: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  body.auth-body .ios-install-button .ios-install-button-text,
+  body.auth-body .ios-install-button span:last-child {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    font-size: .96rem !important;
+    font-weight: 850 !important;
+    line-height: 1.15 !important;
+    letter-spacing: -.01em !important;
+    text-align: center !important;
+    opacity: 1 !important;
+  }
+}
+
+/* v199 mobile account + topbar UX polish: normal Safari matches iOS Home Screen, no account autokeyboard, clean tabs/safe areas. */
+@media (max-width: 767.98px) {
+  :root {
+    --mobile-topbar-bg-final:
+      radial-gradient(circle at 38% 12%, rgba(141, 214, 44, .20), transparent 22rem),
+      linear-gradient(180deg, #1f2730 0%, #151b22 100%);
+    --mobile-topbar-solid-final: #1f2730;
+    --mobile-home-topbar-height: calc(4.55rem + var(--ios-safe-top));
+    --mobile-project-topbar-height-final: calc(3.75rem + var(--ios-safe-top));
+  }
+
+  html.mobile-viewport,
+  html.mobile-viewport body,
+  html.standalone-app,
+  html.standalone-app body {
+    background: #ffffff !important;
+  }
+
+  body.app-body {
+    min-height: var(--ios-app-height) !important;
+    overflow-x: clip !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    background: #ffffff !important;
+  }
+
+  body.app-body .mobile-app-topbar,
+  body.app-body .mobile-app-topbar.mobile-app-topbar-worker,
+  body.app-body .mobile-project-topbar,
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar,
+  body.worker-layout .mobile-app-topbar,
+  body.worker-layout .mobile-project-topbar {
+    background: var(--mobile-topbar-bg-final) !important;
+    background-color: var(--mobile-topbar-solid-final) !important;
+    border-top: 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, .06) !important;
+    box-shadow: 0 10px 28px rgba(8, 11, 15, .18) !important;
+    color: #ffffff !important;
+    -webkit-font-smoothing: antialiased;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+  }
+
+  body.app-body::before,
+  body.app-body.has-mobile-project-topbar::before,
+  body.app-body:has(.mobile-project-topbar)::before,
+  html.standalone-app body.app-body::before,
+  body.standalone-app.app-body::before,
+  html.standalone-app body.app-body.has-mobile-project-topbar::before,
+  body.standalone-app.app-body.has-mobile-project-topbar::before,
+  html.standalone-app body.app-body:has(.mobile-project-topbar)::before,
+  body.standalone-app.app-body:has(.mobile-project-topbar)::before {
+    content: "" !important;
+    position: fixed !important;
+    inset: 0 0 auto 0 !important;
+    height: calc(var(--ios-safe-top) + .12rem) !important;
+    background: var(--mobile-topbar-bg-final) !important;
+    background-color: var(--mobile-topbar-solid-final) !important;
+    z-index: 1059 !important;
+    pointer-events: none !important;
+  }
+
+  body.app-body::after,
+  body.app-body.has-mobile-project-topbar::after,
+  body.app-body:has(.mobile-project-topbar)::after,
+  html.standalone-app body.app-body::after,
+  body.standalone-app.app-body::after,
+  html.standalone-app body.app-body.has-mobile-project-topbar::after,
+  body.standalone-app.app-body.has-mobile-project-topbar::after,
+  html.standalone-app body.app-body:has(.mobile-project-topbar)::after,
+  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
+    content: "" !important;
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    height: max(var(--ios-safe-bottom), .36rem) !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    z-index: 1037 !important;
+    pointer-events: none !important;
+  }
+
+  body.app-body .mobile-app-topbar {
+    position: fixed !important;
+    inset: 0 0 auto 0 !important;
+    z-index: 1060 !important;
+    display: grid !important;
+    grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem !important;
+    align-items: end !important;
+    gap: .55rem !important;
+    min-height: var(--mobile-home-topbar-height) !important;
+    padding: calc(.72rem + var(--ios-safe-top)) max(.95rem, var(--ios-safe-right)) .9rem max(.95rem, var(--ios-safe-left)) !important;
+    border-radius: 0 0 1.22rem 1.22rem !important;
+  }
+
+  body.app-body .mobile-app-topbar::after {
+    content: "" !important;
+    display: block !important;
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+  }
+
+  body.app-body .mobile-top-avatar {
+    grid-column: 1 !important;
+    justify-self: start !important;
+    align-self: end !important;
+    width: 2.55rem !important;
+    height: 2.55rem !important;
+    min-width: 2.55rem !important;
+    border-radius: .86rem !important;
+    transform: none !important;
+  }
+
+  body.app-body .mobile-top-title {
+    grid-column: 2 !important;
+    justify-self: center !important;
+    align-self: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    text-align: center !important;
+    font-size: clamp(1.06rem, 4.6vw, 1.26rem) !important;
+    line-height: 1.05 !important;
+    font-weight: 950 !important;
+    letter-spacing: -.025em !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  body.app-body:not(.has-mobile-project-topbar) .objects-content,
+  body.app-body:not(.has-mobile-project-topbar) .documents-content,
+  body.app-body:not(.has-mobile-project-topbar) .app-main {
+    padding-top: calc(var(--mobile-home-topbar-height) + .85rem) !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar {
+    position: fixed !important;
+    inset: 0 0 auto 0 !important;
+    z-index: 1060 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) max-content !important;
+    align-items: end !important;
+    gap: .62rem !important;
+    min-height: var(--mobile-project-topbar-height-final) !important;
+    padding-top: calc(.7rem + var(--ios-safe-top)) !important;
+    padding-bottom: .74rem !important;
+    padding-left: max(1.02rem, var(--ios-safe-left)) !important;
+    padding-right: max(.68rem, var(--ios-safe-right)) !important;
+    border-radius: 0 !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-title,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-title,
+  body.app-body.has-mobile-project-topbar .app-layout:not(.worker-layout) .mobile-project-title,
+  body.app-body:has(.mobile-project-topbar) .app-layout:not(.worker-layout) .mobile-project-title {
+    padding-left: .28rem !important;
+    margin: 0 !important;
+    transform: none !important;
+    font-size: clamp(.96rem, 4.05vw, 1.08rem) !important;
+    line-height: 1.08 !important;
+    font-weight: 950 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-change,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-change {
+    margin-right: .34rem !important;
+    min-height: 2.32rem !important;
+    height: 2.32rem !important;
+    max-width: 8.6rem !important;
+    padding: 0 .68rem !important;
+    border-radius: .82rem !important;
+    background: rgba(255, 255, 255, .10) !important;
+    border: 1px solid rgba(255, 255, 255, .24) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    font-size: clamp(.66rem, 2.7vw, .76rem) !important;
+    font-weight: 850 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .app-layout,
+  body.app-body:has(.mobile-project-topbar) .app-layout,
+  body.app-body.has-mobile-project-topbar .app-main,
+  body.app-body:has(.mobile-project-topbar) .app-main {
+    padding-top: calc(var(--mobile-project-topbar-height-final) + .72rem) !important;
+    margin-top: 0 !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .app-content,
+  body.app-body:has(.mobile-project-topbar) .app-content {
+    padding-top: .78rem !important;
+  }
+
+  body.app-body.has-account-page,
+  body.app-body:has(.account-page) {
+    overflow-y: auto !important;
+    overscroll-behavior-y: auto !important;
+    background: #ffffff !important;
+  }
+
+  body.app-body.has-account-page .app-layout,
+  body.app-body.has-account-page .app-main,
+  body.app-body.has-account-page .app-content,
+  body.app-body:has(.account-page) .app-layout,
+  body.app-body:has(.account-page) .app-main,
+  body.app-body:has(.account-page) .app-content {
+    overflow: visible !important;
+    min-height: auto !important;
+  }
+
+  body.app-body.has-account-page .app-content,
+  body.app-body:has(.account-page) .app-content {
+    padding-bottom: calc(7.3rem + var(--ios-safe-bottom)) !important;
+  }
+
+  body.app-body .account-page {
+    width: min(100%, 23.5rem) !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding-bottom: calc(1.2rem + var(--ios-safe-bottom)) !important;
+  }
+
+  body.app-body .account-grid {
+    grid-template-columns: 1fr !important;
+    gap: .9rem !important;
+  }
+
+  body.app-body .account-card {
+    border-radius: 1.22rem !important;
+    overflow: visible !important;
+  }
+
+  body.app-body .account-card .card-body {
+    padding: 1rem !important;
+  }
+
+  body.app-body .account-card-title {
+    gap: .72rem !important;
+    margin-bottom: .86rem !important;
+  }
+
+  body.app-body .account-card-title > span {
+    width: 2.35rem !important;
+    height: 2.35rem !important;
+    border-radius: .78rem !important;
+    font-size: 1.05rem !important;
+  }
+
+  body.app-body .account-card-title h2 {
+    font-size: 1.05rem !important;
+    line-height: 1.12 !important;
+  }
+
+  body.app-body .account-profile-list div {
+    grid-template-columns: 1fr !important;
+    gap: .22rem !important;
+    padding: .72rem .78rem !important;
+    border-radius: .86rem !important;
+  }
+
+  body.app-body .account-code-row {
+    grid-template-columns: 1fr !important;
+    gap: .55rem !important;
+  }
+
+  body.app-body .account-code-row .btn {
+    width: 100% !important;
+  }
+
+  body.app-body .remarks-page-head {
+    gap: .86rem !important;
+    margin-bottom: .85rem !important;
+  }
+
+  body.app-body .remarks-page-head .d-flex {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .55rem !important;
+  }
+
+  body.app-body .remarks-page-head .btn-success {
+    width: 100% !important;
+    min-height: 3.2rem !important;
+    border-radius: 1.08rem !important;
+    font-size: 1.08rem !important;
+    font-weight: 850 !important;
+  }
+
+  body.app-body .remarks-tabs {
+    display: flex !important;
+    align-items: center !important;
+    gap: .48rem !important;
+    width: 100% !important;
+    margin: .6rem 0 .9rem !important;
+    padding: 0 .15rem .18rem !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+
+  body.app-body .remarks-tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  body.app-body .remarks-tabs .crm-tabs {
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    gap: .48rem !important;
+    min-width: max-content !important;
+    margin: 0 !important;
+  }
+
+  body.app-body .remarks-tabs .nav-item {
+    flex: 0 0 auto !important;
+  }
+
+  body.app-body .remarks-tabs .nav-link {
+    min-height: 2.7rem !important;
+    padding: .62rem .88rem !important;
+    border-radius: 999px !important;
+    white-space: nowrap !important;
+    font-size: .9rem !important;
+  }
+
+  body.app-body .remarks-filter-form .form-control,
+  body.app-body .remarks-filter-form .form-select {
+    min-height: 3.35rem !important;
+    border-radius: .98rem !important;
+  }
+
+  body.app-body .mobile-bottom-nav {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    bottom: max(.36rem, var(--ios-safe-bottom)) !important;
+  }
+}
+
