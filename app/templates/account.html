@@ -27,7 +27,7 @@
         <form class="account-logout-form js-auth-safe-submit" method="post" action="{{ url_for('auth.logout') }}" data-loading-text="Выходим...">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn btn-outline-danger account-logout-btn js-auth-submit-button" type="submit">
-            <i class="bi bi-box-arrow-right me-2"></i>Выйти из аккаунта
+            <i class="bi bi-box-arrow-right me-2"></i>Выйти
           </button>
         </form>
       </div>

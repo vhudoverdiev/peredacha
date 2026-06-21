@@ -17,12 +17,30 @@
 document.addEventListener('DOMContentLoaded', () => {
   let activeInlineEditor = null;
 
-  const isIosDevice = /iPhone|iPod/.test(navigator.userAgent);
+  const isIpadOs = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  const isIosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || isIpadOs;
   const isStandaloneApp = window.navigator.standalone === true
     || window.matchMedia('(display-mode: standalone)').matches;
+  const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+  const isMobileViewport = window.matchMedia('(max-width: 767.98px)').matches;
+
+  const syncAppViewportHeight = () => {
+    if (!isIosDevice && !isMobileViewport) return;
+    const height = Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight);
+    if (height > 0) document.documentElement.style.setProperty('--app-height', `${height}px`);
+  };
+
   if (isIosDevice) document.body.classList.add('ios-device');
+  if (isCoarsePointer) document.body.classList.add('touch-device');
   if (isStandaloneApp) document.body.classList.add('standalone-app');
   if (isStandaloneApp) document.documentElement.classList.add('standalone-app');
+  if (isMobileViewport) document.documentElement.classList.add('mobile-viewport');
+  syncAppViewportHeight();
+  window.addEventListener('resize', syncAppViewportHeight, { passive: true });
+  window.visualViewport?.addEventListener('resize', syncAppViewportHeight, { passive: true });
+  window.visualViewport?.addEventListener('scroll', syncAppViewportHeight, { passive: true });
+  window.addEventListener('orientationchange', () => window.setTimeout(syncAppViewportHeight, 250), { passive: true });
+
   if (isIosDevice) {
     document.addEventListener('gesturestart', event => event.preventDefault(), { passive: false });
     document.addEventListener('gesturechange', event => event.preventDefault(), { passive: false });
@@ -33,6 +51,34 @@ document.addEventListener('DOMContentLoaded', () => {
       button.hidden = false;
     }
   });
+
+  const iosInstallModal = document.getElementById('iosInstallModal');
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  const msTileColorMeta = document.querySelector('meta[name="msapplication-TileColor"]');
+  const defaultThemeColor = themeColorMeta?.getAttribute('content') || '#8dd62c';
+  const iosInstallThemeColor = '#eef6df';
+
+  const setThemeColor = value => {
+    if (themeColorMeta) themeColorMeta.setAttribute('content', value);
+    if (msTileColorMeta) msTileColorMeta.setAttribute('content', value);
+  };
+
+  if (iosInstallModal) {
+    const openIosInstallModal = () => {
+      document.body.classList.add('ios-install-open');
+      setThemeColor(iosInstallThemeColor);
+      syncAppViewportHeight();
+    };
+    const closeIosInstallModal = () => {
+      document.body.classList.remove('ios-install-open');
+      setThemeColor(defaultThemeColor);
+      syncAppViewportHeight();
+    };
+
+    iosInstallModal.addEventListener('show.bs.modal', openIosInstallModal);
+    iosInstallModal.addEventListener('shown.bs.modal', openIosInstallModal);
+    iosInstallModal.addEventListener('hidden.bs.modal', closeIosInstallModal);
+  }
 
 
   document.querySelectorAll('.js-mapping-autosave-form').forEach(form => {
@@ -65,11 +111,18 @@ document.addEventListener('DOMContentLoaded', () => {
       'select[data-no-custom-select]',
       '.flatpickr-monthDropdown-months'
     ].join(',');
+    const useNativeMobileSelect = window.matchMedia('(max-width: 767.98px), (pointer: coarse)').matches;
 
     scope.querySelectorAll('select').forEach(select => {
       if (select.matches(excludedSelector)) return;
       if (select.closest('.developer-custom-select')) return;
       if (select.dataset.customSelectReady === '1') return;
+
+      if (useNativeMobileSelect && !select.matches('[data-force-custom-select]')) {
+        select.dataset.nativeSelect = '1';
+        select.classList.add('mobile-native-select');
+        return;
+      }
 
       const shell = document.createElement('div');
       shell.className = 'developer-custom-select js-developer-custom-select global-custom-select';
@@ -1971,6 +2024,9 @@ document.addEventListener('DOMContentLoaded', () => {
       Array.from(row.children).forEach((cell, index) => {
         if (!cell.dataset.label && headers[index]) {
           cell.dataset.label = headers[index];
+        }
+        if (cell.dataset.label) {
+          cell.setAttribute('aria-label', `${cell.dataset.label}: ${cell.textContent.trim()}`.trim());
         }
       });
     });

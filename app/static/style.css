@@ -149,6 +149,17 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
   }
 }
 
+/* v185 true final override: account logout button is mobile-only. */
+.account-logout-form {
+  display: none !important;
+}
+
+@media (max-width: 767.98px) {
+  .account-logout-form {
+    display: block !important;
+  }
+}
+
 /* v184 true final override: intermediate widths show loader; category icons stay mobile-only. */
 .viewport-transition-loader {
   display: none !important;
@@ -183,6 +194,17 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
 @media (max-width: 767.98px) {
   .remarks-tab-icon {
     display: inline-flex !important;
+  }
+}
+
+/* v185: account logout button is mobile-only. */
+.account-logout-form {
+  display: none !important;
+}
+
+@media (max-width: 767.98px) {
+  .account-logout-form {
+    display: block !important;
   }
 }
 
@@ -30660,3 +30682,933 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     padding-bottom: max(.44rem, env(safe-area-inset-bottom)) !important;
   }
 }
+
+/* ======================================================================
+   v186: mobile-only iOS/PWA app polish. Desktop styles are intentionally
+   untouched: everything below is scoped to phone widths or iOS standalone.
+   ====================================================================== */
+:root {
+  --ios-app-height: var(--app-height, 100dvh);
+  --ios-safe-top: env(safe-area-inset-top, 0px);
+  --ios-safe-right: env(safe-area-inset-right, 0px);
+  --ios-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ios-safe-left: env(safe-area-inset-left, 0px);
+}
+
+@media (max-width: 767.98px) {
+  html,
+  body {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100svh;
+    min-height: var(--ios-app-height) !important;
+    overflow-x: clip !important;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    touch-action: manipulation;
+    background: #f7faef !important;
+  }
+
+  body.app-body,
+  body.auth-body {
+    min-height: var(--ios-app-height) !important;
+    overscroll-behavior-y: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body.app-body:not(.worker-layout) {
+    padding-bottom: 0 !important;
+  }
+
+  body.app-body:not(.worker-layout) .app-main,
+  body.app-body:not(.worker-layout) .objects-content,
+  body.app-body:not(.worker-layout) .documents-content,
+  body.app-body:not(.worker-layout) .documents-standalone-content {
+    padding-left: max(.74rem, var(--ios-safe-left)) !important;
+    padding-right: max(.74rem, var(--ios-safe-right)) !important;
+    padding-bottom: calc(6.35rem + var(--ios-safe-bottom)) !important;
+  }
+
+  body.worker-layout .app-main,
+  body.app-body .worker-layout .app-main {
+    padding-bottom: calc(1.25rem + var(--ios-safe-bottom)) !important;
+  }
+
+  .mobile-app-topbar,
+  .mobile-project-topbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1040 !important;
+    min-height: calc(3.75rem + var(--ios-safe-top)) !important;
+    padding-top: calc(.58rem + var(--ios-safe-top)) !important;
+    padding-left: max(.82rem, var(--ios-safe-left)) !important;
+    padding-right: max(.82rem, var(--ios-safe-right)) !important;
+    padding-bottom: .62rem !important;
+    border-bottom: 1px solid rgba(255,255,255,.16) !important;
+    background: linear-gradient(135deg, rgba(79,86,91,.98), rgba(44,51,55,.98)) !important;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, .18) !important;
+    backdrop-filter: saturate(130%) blur(16px);
+    -webkit-backdrop-filter: saturate(130%) blur(16px);
+  }
+
+  .mobile-project-topbar {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+
+  .app-layout:not(.worker-layout) .mobile-project-title {
+    padding-left: 3.25rem !important;
+  }
+
+  .mobile-project-title,
+  .mobile-top-title {
+    color: #fff !important;
+    font-size: clamp(.98rem, 4.1vw, 1.12rem) !important;
+    line-height: 1.1 !important;
+    letter-spacing: -.01em !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .mobile-project-change {
+    min-height: 2.34rem !important;
+    padding: 0 .72rem !important;
+    border-radius: .88rem !important;
+    background: rgba(255,255,255,.12) !important;
+    border: 1px solid rgba(255,255,255,.18) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08) !important;
+  }
+
+  .mobile-menu-toggle {
+    top: calc(.58rem + var(--ios-safe-top)) !important;
+    left: max(.72rem, var(--ios-safe-left)) !important;
+    z-index: 1046 !important;
+    width: 2.54rem !important;
+    min-width: 2.54rem !important;
+    height: 2.54rem !important;
+    min-height: 2.54rem !important;
+    padding: 0 !important;
+    border-radius: .92rem !important;
+    background: rgba(255,255,255,.14) !important;
+    border: 1px solid rgba(255,255,255,.18) !important;
+    color: #fff !important;
+    box-shadow: 0 10px 24px rgba(15,23,42,.18) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .mobile-menu-toggle span {
+    display: none !important;
+  }
+
+  .mobile-menu-toggle i {
+    color: #fff !important;
+    font-size: 1.35rem !important;
+  }
+
+  .app-sidebar {
+    width: min(86vw, 21.5rem) !important;
+    min-height: var(--ios-app-height) !important;
+    max-height: var(--ios-app-height) !important;
+    padding-top: calc(1rem + var(--ios-safe-top)) !important;
+    padding-left: max(.85rem, var(--ios-safe-left)) !important;
+    padding-bottom: calc(1.2rem + var(--ios-safe-bottom)) !important;
+    background: linear-gradient(180deg, #565d62, #42494e) !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-sidebar-backdrop {
+    min-height: var(--ios-app-height) !important;
+  }
+
+  .mobile-bottom-nav {
+    position: fixed !important;
+    left: max(.48rem, var(--ios-safe-left)) !important;
+    right: max(.48rem, var(--ios-safe-right)) !important;
+    bottom: max(.42rem, var(--ios-safe-bottom)) !important;
+    z-index: 1038 !important;
+    display: grid !important;
+    grid-template-columns: repeat(var(--mobile-nav-count, 5), minmax(0, 1fr)) !important;
+    gap: .26rem !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: .38rem !important;
+    padding-bottom: max(.38rem, calc(.38rem + var(--ios-safe-bottom) * .18)) !important;
+    border-radius: 1.28rem !important;
+    background: rgba(255,255,255,.94) !important;
+    border: 1px solid rgba(121,191,37,.20) !important;
+    box-shadow: 0 18px 46px rgba(26, 35, 22, .18) !important;
+    backdrop-filter: saturate(135%) blur(18px);
+    -webkit-backdrop-filter: saturate(135%) blur(18px);
+  }
+
+  html.standalone-app body.app-body:not(.worker-layout) .mobile-bottom-nav,
+  body.standalone-app.app-body:not(.worker-layout) .mobile-bottom-nav {
+    bottom: max(.32rem, var(--ios-safe-bottom)) !important;
+    padding-bottom: max(.38rem, calc(.38rem + var(--ios-safe-bottom) * .2)) !important;
+  }
+
+  .mobile-nav-item {
+    min-width: 0 !important;
+    min-height: 3.2rem !important;
+    padding: .42rem .18rem !important;
+    border-radius: .96rem !important;
+    color: #565d62 !important;
+    text-decoration: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transition: transform .14s ease, background-color .14s ease, box-shadow .14s ease !important;
+  }
+
+  .mobile-nav-item i {
+    font-size: 1.16rem !important;
+    line-height: 1 !important;
+    color: currentColor !important;
+  }
+
+  .mobile-nav-item span {
+    display: block !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: clamp(.59rem, 2.55vw, .72rem) !important;
+    line-height: 1.05 !important;
+    letter-spacing: -.015em !important;
+    color: currentColor !important;
+  }
+
+  .mobile-nav-item.active {
+    color: #fff !important;
+    background: linear-gradient(135deg, #8dd62c, #6fb820) !important;
+    box-shadow: 0 12px 26px rgba(111, 184, 32, .30) !important;
+    transform: translateY(-1px);
+  }
+
+  .mobile-nav-item:active {
+    transform: scale(.97);
+  }
+
+  .auth-shell {
+    min-height: var(--ios-app-height) !important;
+    justify-content: center !important;
+    padding: max(1rem, var(--ios-safe-top)) max(.78rem, var(--ios-safe-right)) calc(6.4rem + var(--ios-safe-bottom)) max(.78rem, var(--ios-safe-left)) !important;
+    overflow-x: clip !important;
+  }
+
+  .login-wrap,
+  .login-card,
+  .registration-request-modal,
+  .account-card,
+  .content-card,
+  .filter-card,
+  .table-shell,
+  .assignment-issued-card,
+  .assignment-shell,
+  .material-form-card,
+  .materials-animated-card,
+  .object-card,
+  .apartment-card {
+    max-width: 100% !important;
+    border-radius: 1.24rem !important;
+    box-shadow: 0 16px 38px rgba(30, 42, 25, .09) !important;
+  }
+
+  .card-body,
+  .content-card .card-body,
+  .filter-card .card-body,
+  .table-shell .card-body,
+  .login-card .card-body {
+    padding: clamp(.88rem, 3.7vw, 1.08rem) !important;
+  }
+
+  .page-head,
+  .remarks-page-head,
+  .materials-page-head,
+  .dashboard-head,
+  .objects-head,
+  .glass-card-header,
+  .assignment-page-head {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .72rem !important;
+    align-items: stretch !important;
+  }
+
+  .page-title,
+  .dashboard-title,
+  .objects-title {
+    font-size: clamp(1.32rem, 7vw, 1.72rem) !important;
+    line-height: 1.08 !important;
+    letter-spacing: -.035em !important;
+  }
+
+  .page-subtitle,
+  .dashboard-subtitle,
+  .objects-subtitle,
+  .text-muted,
+  .small,
+  small {
+    overflow-wrap: anywhere;
+  }
+
+  .btn,
+  button,
+  .form-control,
+  .form-select,
+  select.mobile-native-select,
+  .developer-select-button {
+    min-height: 2.82rem !important;
+    border-radius: .88rem !important;
+    font-size: 16px !important;
+    line-height: 1.2 !important;
+  }
+
+  .btn-sm,
+  .form-control-sm,
+  .form-select-sm {
+    min-height: 2.48rem !important;
+    border-radius: .76rem !important;
+    font-size: 15px !important;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+    max-width: 100% !important;
+    -webkit-appearance: none;
+    appearance: none;
+    color-scheme: light;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: auto !important;
+    -webkit-appearance: auto !important;
+    appearance: auto !important;
+  }
+
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  select.mobile-native-select {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    background-color: #fff !important;
+  }
+
+  textarea.form-control {
+    min-height: 7.5rem !important;
+    resize: vertical;
+  }
+
+  .form-control:focus,
+  .form-select:focus,
+  select.mobile-native-select:focus,
+  textarea.form-control:focus,
+  .developer-select-button:focus,
+  .developer-select-button:focus-visible {
+    border-color: #8dd62c !important;
+    box-shadow: 0 0 0 4px rgba(141, 214, 44, .16) !important;
+    outline: 0 !important;
+  }
+
+  .row,
+  form.row,
+  .filters,
+  .search-form,
+  .crm-filter-form,
+  .glass-filter-form,
+  .materials-filter-form,
+  .assignment-search-form-compact,
+  .assignment-smart-form,
+  .material-form-footer,
+  .object-form-actions,
+  .dashboard-actions,
+  .materials-actions,
+  .filter-actions,
+  .apartment-avr-actions,
+  .apartment-po-form-inline,
+  .apartment-po-row {
+    min-width: 0 !important;
+  }
+
+  .row > [class*="col-"],
+  form.row > [class*="col-"],
+  .crm-filter-form > *,
+  .glass-filter-form > *,
+  .materials-filter-form > * {
+    min-width: 0 !important;
+  }
+
+  .d-flex.gap-2,
+  .action-buttons,
+  .materials-actions,
+  .dashboard-actions,
+  .modal-actions,
+  .object-form-actions,
+  .apartment-avr-actions,
+  .material-form-footer,
+  .assignment-search-actions,
+  .assignment-smart-actions,
+  .assignment-bulk-panel-restored-actions {
+    gap: .55rem !important;
+  }
+
+  .d-flex.gap-2 > .btn,
+  .materials-actions .btn,
+  .dashboard-actions .btn,
+  .object-form-actions .btn,
+  .apartment-avr-actions .btn,
+  .material-form-footer .btn,
+  .assignment-search-actions .btn,
+  .assignment-smart-actions .btn,
+  .assignment-bulk-panel-restored-actions .btn {
+    min-width: 0 !important;
+  }
+
+  .table-responsive,
+  .materials-table-responsive,
+  .glass-ordered-table-responsive,
+  .assignment-table-wrap,
+  .assignment-issued-table-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: clip !important;
+    border-radius: 1.12rem !important;
+  }
+
+  .mobile-card-table,
+  .mobile-card-table thead,
+  .mobile-card-table tbody,
+  .mobile-card-table tr,
+  .mobile-card-table th,
+  .mobile-card-table td {
+    width: 100% !important;
+  }
+
+  .mobile-card-table thead,
+  .mobile-card-table colgroup {
+    display: none !important;
+  }
+
+  .mobile-card-table tbody {
+    display: grid !important;
+    gap: .76rem !important;
+    padding: .72rem !important;
+    background: #f7faef !important;
+  }
+
+  .mobile-card-table tbody tr {
+    display: block !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(121, 191, 37, .18) !important;
+    border-radius: 1.08rem !important;
+    background: #fff !important;
+    box-shadow: 0 12px 28px rgba(30, 42, 25, .075) !important;
+  }
+
+  .mobile-card-table td {
+    display: grid !important;
+    grid-template-columns: minmax(5.9rem, 34%) minmax(0, 1fr) !important;
+    gap: .72rem !important;
+    align-items: start !important;
+    min-width: 0 !important;
+    padding: .7rem .78rem !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(121, 191, 37, .10) !important;
+    background: transparent !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+  }
+
+  .mobile-card-table td:last-child {
+    border-bottom: 0 !important;
+  }
+
+  .mobile-card-table td::before {
+    content: attr(data-label);
+    min-width: 0 !important;
+    color: #565d62 !important;
+    font-size: .74rem !important;
+    font-weight: 900 !important;
+    line-height: 1.18 !important;
+    text-transform: none !important;
+    opacity: .9;
+  }
+
+  .mobile-card-table td:not([data-label])::before,
+  .mobile-card-table td[data-label=""]::before {
+    content: "";
+  }
+
+  .mobile-card-table td > * {
+    max-width: 100% !important;
+  }
+
+  .mobile-card-table .btn,
+  .mobile-card-table form,
+  .mobile-card-table .actions-cell,
+  .mobile-card-table .status-action-form,
+  .mobile-card-table .assignment-issued-actions {
+    min-width: 0 !important;
+  }
+
+  .mobile-card-table td[data-label="Действия"],
+  .mobile-card-table td[data-label="Статус"],
+  .mobile-card-table .task-actions-cell,
+  .mobile-card-table .actions-cell {
+    grid-template-columns: 1fr !important;
+  }
+
+  .mobile-card-table td[data-label="Действия"]::before,
+  .mobile-card-table td[data-label="Статус"]::before,
+  .mobile-card-table .task-actions-cell::before {
+    margin-bottom: .15rem !important;
+  }
+
+  .material-edit-table,
+  .material-edit-table thead,
+  .material-edit-table tbody,
+  .material-edit-table tr,
+  .material-edit-table th,
+  .material-edit-table td {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .material-edit-table thead {
+    display: none !important;
+  }
+
+  .material-edit-table tbody {
+    display: grid !important;
+    gap: .72rem !important;
+    padding: .72rem !important;
+    background: #f7faef !important;
+  }
+
+  .material-edit-table tr {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .56rem !important;
+    padding: .78rem !important;
+    border-radius: 1rem !important;
+    border: 1px solid rgba(121, 191, 37, .18) !important;
+    background: #fff !important;
+    box-shadow: 0 10px 24px rgba(30,42,25,.065) !important;
+  }
+
+  .material-edit-table td {
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .material-edit-table td:first-child {
+    display: inline-flex !important;
+    align-items: center !important;
+    width: fit-content !important;
+    min-width: 2.1rem !important;
+    min-height: 2.1rem !important;
+    justify-content: center !important;
+    padding: 0 .62rem !important;
+    border-radius: 999px !important;
+    background: #eef7df !important;
+    color: #565d62 !important;
+    font-weight: 900 !important;
+  }
+
+  .material-edit-table td:nth-child(2)::before,
+  .material-edit-table td:nth-child(3)::before,
+  .material-edit-table td:nth-child(4)::before {
+    display: block;
+    margin: 0 0 .26rem;
+    color: #565d62;
+    font-size: .74rem;
+    font-weight: 900;
+  }
+
+  .material-edit-table td:nth-child(2)::before { content: "Наименование"; }
+  .material-edit-table td:nth-child(3)::before { content: "Количество"; }
+  .material-edit-table td:nth-child(4)::before { content: "Ед.измерения"; }
+
+  .actions-cell,
+  .assignment-issued-actions,
+  .assignment-status-toggle-form,
+  .status-action-form,
+  .glass-status-button-form,
+  .material-detail-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .46rem !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .actions-cell .btn,
+  .assignment-issued-actions .btn,
+  .assignment-status-toggle-form .btn,
+  .status-action-form .btn,
+  .glass-status-button-form .btn,
+  .material-detail-actions .btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .modal {
+    padding-left: max(.5rem, var(--ios-safe-left)) !important;
+    padding-right: max(.5rem, var(--ios-safe-right)) !important;
+  }
+
+  .modal-dialog {
+    width: auto !important;
+    max-width: none !important;
+    margin: max(.72rem, var(--ios-safe-top)) auto max(.72rem, var(--ios-safe-bottom)) !important;
+  }
+
+  .modal-content,
+  .crm-modal .modal-content,
+  .error-report-modal,
+  .delete-error-modal,
+  .task-problem-modal-content {
+    max-height: calc(var(--ios-app-height) - max(1.44rem, var(--ios-safe-top)) - max(1.44rem, var(--ios-safe-bottom))) !important;
+    overflow: hidden !important;
+    border-radius: 1.35rem !important;
+    border: 1px solid rgba(121,191,37,.18) !important;
+    box-shadow: 0 24px 64px rgba(15, 23, 42, .25) !important;
+  }
+
+  .modal-body,
+  .crm-modal .modal-body {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-footer,
+  .registration-modal-actions,
+  .error-report-modal .modal-footer {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .55rem !important;
+    align-items: stretch !important;
+  }
+
+  .modal-footer .btn,
+  .registration-modal-actions .btn,
+  .error-report-modal .modal-footer .btn {
+    width: 100% !important;
+  }
+
+  .flash-stack,
+  .crm-toast-stack {
+    left: max(.72rem, var(--ios-safe-left)) !important;
+    right: max(.72rem, var(--ios-safe-right)) !important;
+    top: calc(.72rem + var(--ios-safe-top)) !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .crm-toast {
+    border-radius: 1rem !important;
+  }
+
+  .floating-error-corner {
+    right: max(.82rem, var(--ios-safe-right)) !important;
+    bottom: calc(5.88rem + var(--ios-safe-bottom)) !important;
+    z-index: 1039 !important;
+  }
+
+  .po-notification-widget {
+    right: max(.82rem, var(--ios-safe-right)) !important;
+    left: auto !important;
+    bottom: calc(9.05rem + var(--ios-safe-bottom)) !important;
+    z-index: 1039 !important;
+  }
+
+  body.auth-body .floating-error-corner {
+    bottom: max(.86rem, var(--ios-safe-bottom)) !important;
+  }
+
+  body.auth-body .ios-install-button {
+    position: fixed !important;
+    left: max(.82rem, var(--ios-safe-left)) !important;
+    right: max(.82rem, var(--ios-safe-right)) !important;
+    bottom: calc(1rem + var(--ios-safe-bottom)) !important;
+    z-index: 1028 !important;
+    width: auto !important;
+    min-height: 3.05rem !important;
+    justify-content: center !important;
+    border-radius: 1.08rem !important;
+    background: rgba(255,255,255,.94) !important;
+    border: 1px solid rgba(121,191,37,.24) !important;
+    box-shadow: 0 16px 38px rgba(26,35,22,.16) !important;
+    backdrop-filter: saturate(140%) blur(18px);
+    -webkit-backdrop-filter: saturate(140%) blur(18px);
+  }
+
+  body.auth-body .ios-install-button[hidden] {
+    display: none !important;
+  }
+
+  body.auth-body #iosInstallModal .modal-dialog {
+    width: min(94vw, 25.5rem) !important;
+    max-width: min(94vw, 25.5rem) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-modal {
+    max-height: calc(var(--ios-app-height) - max(1.6rem, var(--ios-safe-top)) - max(1.6rem, var(--ios-safe-bottom))) !important;
+    padding: clamp(.86rem, 3.5vw, 1.12rem) !important;
+    background: linear-gradient(180deg, #ffffff, #f7faef) !important;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-steps-arrows {
+    display: grid !important;
+    gap: .48rem !important;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-steps-arrows li {
+    grid-template-columns: 2.15rem minmax(0, 1fr) !important;
+    min-height: 3rem !important;
+    border-radius: .98rem !important;
+    border: 1px solid rgba(121,191,37,.16) !important;
+    background: #fff !important;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-steps-arrows li > span:first-child {
+    background: #eef7df !important;
+    color: #5f9824 !important;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 767.98px) {
+    body.ios-device,
+    body.ios-device.auth-body,
+    body.ios-device.app-body {
+      min-height: var(--ios-app-height) !important;
+      background-attachment: scroll !important;
+    }
+
+    body.ios-device input:not([type="checkbox"]):not([type="radio"]),
+    body.ios-device textarea,
+    body.ios-device select {
+      transform: translateZ(0);
+    }
+
+    body.ios-device .modal,
+    body.ios-device .app-sidebar,
+    body.ios-device .modal-body {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+}
+
+@media (max-width: 767.98px) {
+  .maintenance-body,
+  .maintenance-screen {
+    min-height: var(--ios-app-height) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: clip !important;
+    background: #f7faef !important;
+  }
+
+  .maintenance-screen {
+    padding: max(1rem, var(--ios-safe-top)) max(.82rem, var(--ios-safe-right)) max(1rem, var(--ios-safe-bottom)) max(.82rem, var(--ios-safe-left)) !important;
+  }
+
+  .maintenance-under-dev-page,
+  .maintenance-card {
+    max-width: 100% !important;
+  }
+}
+
+/* v186 tablet/iPad: do not show the intermediate blocker in iOS/PWA; desktop >=1200 remains untouched. */
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  body.app-body:not(.mobile-dev-flag) {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  body.app-body:not(.mobile-dev-flag) .viewport-transition-loader {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  body.app-body:not(.mobile-dev-flag) .app-content,
+  body.app-body:not(.mobile-dev-flag) .objects-content,
+  body.app-body:not(.mobile-dev-flag) .documents-content {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* v187 mobile iOS follow-up: standalone safe areas, object topbar lift, and refined iOS install modal. */
+@media (max-width: 767.98px) {
+  body.app-body:not(.worker-layout) .mobile-project-topbar {
+    min-height: calc(3.15rem + var(--ios-safe-top)) !important;
+    padding-top: calc(.3rem + var(--ios-safe-top)) !important;
+    padding-bottom: .44rem !important;
+    align-items: start !important;
+  }
+
+  body.app-body:not(.worker-layout) .mobile-project-topbar .mobile-project-title,
+  body.app-body:not(.worker-layout) .mobile-project-topbar .mobile-project-change {
+    transform: translateY(-2px);
+  }
+
+  body.app-body:not(.worker-layout) .mobile-project-topbar .mobile-project-change {
+    align-self: start !important;
+  }
+
+  html.standalone-app body.app-body::before,
+  body.standalone-app.app-body::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: calc(var(--ios-safe-top) + .42rem);
+    background: linear-gradient(135deg, rgba(79, 86, 91, .98), rgba(44, 51, 55, .98));
+    z-index: 1039;
+    pointer-events: none;
+  }
+
+  html.standalone-app body.app-body::after,
+  body.standalone-app.app-body::after {
+    content: "";
+    position: fixed;
+    inset: auto 0 0 0;
+    height: calc(var(--ios-safe-bottom) + .9rem);
+    background: #f7faef;
+    z-index: 1037;
+    pointer-events: none;
+  }
+
+  html.standalone-app body.app-body:not(.worker-layout) .app-main,
+  body.standalone-app.app-body:not(.worker-layout) .app-main,
+  html.standalone-app body.app-body:not(.worker-layout) .objects-content,
+  body.standalone-app.app-body:not(.worker-layout) .objects-content,
+  html.standalone-app body.app-body:not(.worker-layout) .documents-content,
+  body.standalone-app.app-body:not(.worker-layout) .documents-content {
+    padding-top: .4rem !important;
+  }
+
+  body.auth-body.ios-install-open,
+  body.auth-body.ios-install-open .auth-shell {
+    background: #eef6df !important;
+  }
+
+  body.auth-body .login-wrap,
+  body.auth-body .login-card,
+  body.auth-body .auth-shell {
+    transition: filter .24s ease, transform .24s ease, opacity .24s ease;
+  }
+
+  body.auth-body.ios-install-open .login-wrap,
+  body.auth-body.ios-install-open .login-card,
+  body.auth-body.ios-install-open .auth-shell > *:not(#iosInstallModal):not(.modal-backdrop) {
+    filter: blur(8px);
+  }
+
+  body.auth-body.ios-install-open .login-wrap,
+  body.auth-body.ios-install-open .login-card {
+    transform: scale(.992);
+  }
+
+  body.auth-body .modal-backdrop.show {
+    opacity: 1 !important;
+    background: rgba(238, 246, 223, .72) !important;
+    backdrop-filter: blur(14px) saturate(122%);
+    -webkit-backdrop-filter: blur(14px) saturate(122%);
+  }
+
+  body.auth-body #iosInstallModal.modal {
+    min-height: var(--ios-app-height) !important;
+    padding: max(.9rem, var(--ios-safe-top)) max(.75rem, var(--ios-safe-right)) max(.9rem, var(--ios-safe-bottom)) max(.75rem, var(--ios-safe-left)) !important;
+    background: linear-gradient(180deg, rgba(240, 247, 228, .96), rgba(247, 250, 239, .97)) !important;
+  }
+
+  body.auth-body #iosInstallModal .modal-dialog {
+    width: min(92vw, 25rem) !important;
+    max-width: min(92vw, 25rem) !important;
+    margin: 0 auto !important;
+  }
+
+  body.auth-body #iosInstallModal .modal-dialog-centered {
+    min-height: calc(var(--ios-app-height) - max(1.8rem, var(--ios-safe-top)) - max(1.8rem, var(--ios-safe-bottom))) !important;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-modal {
+    overflow: hidden !important;
+    border-color: rgba(255, 255, 255, .9) !important;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-hero {
+    grid-template-columns: clamp(3.2rem, 13vw, 4.15rem) minmax(0, 1fr) !important;
+    gap: .78rem !important;
+    align-items: center !important;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-app-icon {
+    width: clamp(3.2rem, 13vw, 4.15rem) !important;
+    height: clamp(3.2rem, 13vw, 4.15rem) !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-app-icon::before,
+  body.auth-body #iosInstallModal .ios-install-app-icon::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-app-icon-image {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-copy {
+    display: grid !important;
+    gap: .34rem !important;
+    align-content: center !important;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-eyebrow {
+    display: none !important;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-modal h2 {
+    margin: 0 !important;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-subtitle {
+    margin: 0 !important;
+    max-width: 15rem;
+  }
+
+  body.auth-body #iosInstallModal .ios-install-actions::before {
+    content: "" !important;
+    display: block !important;
+    width: 1rem !important;
+    height: 1rem !important;
+    margin: 0 auto .5rem !important;
+    background: #8dd62c !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='black' d='M50 4c7 23 23 39 46 46-23 7-39 23-46 46-7-23-23-39-46-46 23-7 39-23 46-46Z'/%3E%3C/svg%3E") center / contain no-repeat !important;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='black' d='M50 4c7 23 23 39 46 46-23 7-39 23-46 46-7-23-23-39-46-46 23-7 39-23 46-46Z'/%3E%3C/svg%3E") center / contain no-repeat !important;
+  }
+}
+
