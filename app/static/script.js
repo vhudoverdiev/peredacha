@@ -57,12 +57,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   const msTileColorMeta = document.querySelector('meta[name="msapplication-TileColor"]');
   const defaultThemeColor = themeColorMeta?.getAttribute('content') || '#8dd62c';
-  const iosInstallThemeColor = '#eef6df';
+  const authThemeColor = '#ffffff';
+  const appTopbarThemeColor = '#5e656a';
+  const iosInstallThemeColor = '#ffffff';
 
   const setThemeColor = value => {
     if (themeColorMeta) themeColorMeta.setAttribute('content', value);
     if (msTileColorMeta) msTileColorMeta.setAttribute('content', value);
   };
+
+  if (document.body.classList.contains('auth-body')) {
+    setThemeColor(authThemeColor);
+  } else if (document.body.classList.contains('app-body')) {
+    setThemeColor(appTopbarThemeColor);
+  }
 
   if (iosInstallModal) {
     const openIosInstallModal = () => {
@@ -72,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const closeIosInstallModal = () => {
       document.body.classList.remove('ios-install-open');
-      setThemeColor(defaultThemeColor);
+      setThemeColor(document.body.classList.contains('auth-body') ? authThemeColor : appTopbarThemeColor);
       syncAppViewportHeight();
     };
 

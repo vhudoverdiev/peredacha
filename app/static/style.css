@@ -31712,3 +31712,518 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
   }
 }
 
+/* v189 mobile auth color fix: match Safari chrome with page and make iOS install button clean white. */
+@media (max-width: 767.98px) {
+  html:has(body.auth-body),
+  body.auth-body,
+  body.auth-body .auth-shell {
+    background: #ffffff !important;
+  }
+
+  body.auth-body .auth-shell {
+    background:
+      radial-gradient(circle at 50% 6%, rgba(141, 214, 44, .07), transparent 15.5rem),
+      linear-gradient(180deg, #ffffff 0%, #ffffff 100%) !important;
+  }
+
+  body.auth-body::before,
+  body.auth-body::after,
+  body.auth-body .auth-shell::before,
+  body.auth-body .auth-shell::after {
+    background-color: #ffffff !important;
+  }
+
+  body.auth-body .ios-install-button,
+  body.auth-body .ios-install-button:hover,
+  body.auth-body .ios-install-button:focus,
+  body.auth-body .ios-install-button:active,
+  body.auth-body .ios-install-button:focus-visible {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(229, 233, 222, .95) !important;
+    outline: 0 !important;
+    box-shadow: 0 12px 30px rgba(25, 32, 20, .10) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  body.auth-body .ios-install-button-logo,
+  body.auth-body .ios-install-button img,
+  body.auth-body .ios-install-button i,
+  body.auth-body .ios-install-button::before,
+  body.auth-body .ios-install-button::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  body.auth-body .ios-install-button span,
+  body.auth-body .ios-install-button span:last-child {
+    display: inline !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    font-size: .86rem !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    letter-spacing: -.01em !important;
+  }
+
+  body.auth-body.ios-install-open,
+  body.auth-body.ios-install-open .auth-shell,
+  body.auth-body #iosInstallModal.modal,
+  body.auth-body .modal-backdrop.show {
+    background-color: #ffffff !important;
+  }
+
+  body.auth-body #iosInstallModal.modal {
+    background: rgba(255, 255, 255, .82) !important;
+  }
+
+  body.auth-body .modal-backdrop.show {
+    background: rgba(255, 255, 255, .78) !important;
+  }
+}
+
+/* v190 mobile iOS chrome match: exact topbar color and white bottom safe area. */
+@media (max-width: 767.98px) {
+  html.mobile-viewport,
+  html.standalone-app,
+  html.standalone-app body.app-body,
+  body.app-body.has-mobile-project-topbar,
+  body.app-body:has(.mobile-project-topbar) {
+    background-color: #ffffff !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar {
+    min-height: calc(3.08rem + var(--ios-safe-top)) !important;
+    padding-top: calc(.22rem + var(--ios-safe-top)) !important;
+    padding-bottom: .46rem !important;
+    background: #5e656a !important;
+    background-color: #5e656a !important;
+    border-bottom-color: rgba(255, 255, 255, .10) !important;
+    box-shadow: 0 10px 24px rgba(22, 30, 34, .14) !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-title,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-title {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-change,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-change {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    background: rgba(255, 255, 255, .13) !important;
+    border-color: rgba(255, 255, 255, .24) !important;
+  }
+
+  html.standalone-app body.app-body.has-mobile-project-topbar::before,
+  body.standalone-app.app-body.has-mobile-project-topbar::before,
+  html.standalone-app body.app-body:has(.mobile-project-topbar)::before,
+  body.standalone-app.app-body:has(.mobile-project-topbar)::before {
+    content: "" !important;
+    position: fixed !important;
+    inset: 0 0 auto 0 !important;
+    height: calc(var(--ios-safe-top) + .5rem) !important;
+    background: #5e656a !important;
+    background-color: #5e656a !important;
+    z-index: 1039 !important;
+    pointer-events: none !important;
+  }
+
+  html.standalone-app body.app-body::after,
+  body.standalone-app.app-body::after,
+  html.standalone-app body.app-body.has-mobile-project-topbar::after,
+  body.standalone-app.app-body.has-mobile-project-topbar::after,
+  html.standalone-app body.app-body:has(.mobile-project-topbar)::after,
+  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
+    content: "" !important;
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    height: calc(var(--ios-safe-bottom) + 1.45rem) !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    z-index: 1037 !important;
+    pointer-events: none !important;
+  }
+
+  body.app-body:not(.worker-layout) .mobile-bottom-nav {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border-color: rgba(214, 222, 206, .95) !important;
+    box-shadow: 0 14px 36px rgba(26, 35, 22, .15) !important;
+  }
+
+  html.standalone-app body.app-body:not(.worker-layout) .mobile-bottom-nav,
+  body.standalone-app.app-body:not(.worker-layout) .mobile-bottom-nav {
+    bottom: max(.36rem, var(--ios-safe-bottom)) !important;
+  }
+}
+
+/* v191 mobile project chrome fix: no top white strip, PC-colored object panel, white bottom safe zone. */
+@media (max-width: 767.98px) {
+  body.app-body.has-mobile-project-topbar,
+  body.app-body:has(.mobile-project-topbar) {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    background: #f3f5f1 !important;
+    background-color: #f3f5f1 !important;
+    overflow-x: clip !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .app-layout,
+  body.app-body:has(.mobile-project-topbar) .app-layout,
+  body.app-body.has-mobile-project-topbar .app-main,
+  body.app-body:has(.mobile-project-topbar) .app-main,
+  body.app-body.has-mobile-project-topbar .app-content,
+  body.app-body:has(.mobile-project-topbar) .app-content {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1045 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) max-content !important;
+    align-items: center !important;
+    gap: .62rem !important;
+    min-height: calc(3.55rem + var(--ios-safe-top)) !important;
+    margin: 0 !important;
+    padding-top: calc(.7rem + var(--ios-safe-top)) !important;
+    padding-bottom: .68rem !important;
+    padding-left: max(.78rem, var(--ios-safe-left)) !important;
+    padding-right: max(.78rem, var(--ios-safe-right)) !important;
+    color: #ffffff !important;
+    background:
+      linear-gradient(90deg, rgba(255, 255, 255, .03), transparent 60%),
+      linear-gradient(135deg, var(--crm-topbar-start, #5e656a), var(--crm-topbar-end, #4f565b)) !important;
+    background-color: var(--crm-topbar-start, #5e656a) !important;
+    border-top: 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, .08) !important;
+    border-radius: 0 !important;
+    box-shadow: 0 10px 24px rgba(22, 30, 34, .14) !important;
+    transform: none !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-title,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-title,
+  body.app-body.has-mobile-project-topbar .app-layout:not(.worker-layout) .mobile-project-title,
+  body.app-body:has(.mobile-project-topbar) .app-layout:not(.worker-layout) .mobile-project-title {
+    display: flex !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 2.18rem !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    font-size: clamp(.98rem, 4vw, 1.08rem) !important;
+    line-height: 1.05 !important;
+    font-weight: 950 !important;
+    letter-spacing: -.02em !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, .16) !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-change,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-change {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: center !important;
+    justify-self: end !important;
+    min-height: 2.32rem !important;
+    height: 2.32rem !important;
+    max-width: 9.7rem !important;
+    padding: 0 .74rem !important;
+    margin: 0 !important;
+    transform: none !important;
+    border-radius: .86rem !important;
+    border: 1px solid rgba(255, 255, 255, .22) !important;
+    background: rgba(255, 255, 255, .10) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 8px 20px rgba(18, 25, 28, .12) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    font-size: clamp(.7rem, 2.9vw, .8rem) !important;
+    line-height: 1 !important;
+    font-weight: 850 !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+  }
+
+  body.app-body.has-mobile-project-topbar::before,
+  body.app-body:has(.mobile-project-topbar)::before {
+    content: "" !important;
+    position: fixed !important;
+    inset: 0 0 auto 0 !important;
+    height: var(--ios-safe-top) !important;
+    background:
+      linear-gradient(90deg, rgba(255, 255, 255, .03), transparent 60%),
+      linear-gradient(135deg, var(--crm-topbar-start, #5e656a), var(--crm-topbar-end, #4f565b)) !important;
+    z-index: 1044 !important;
+    pointer-events: none !important;
+  }
+
+  body.app-body.has-mobile-project-topbar::after,
+  body.app-body:has(.mobile-project-topbar)::after,
+  html.standalone-app body.app-body.has-mobile-project-topbar::after,
+  body.standalone-app.app-body.has-mobile-project-topbar::after,
+  html.standalone-app body.app-body:has(.mobile-project-topbar)::after,
+  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
+    content: "" !important;
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    height: calc(var(--ios-safe-bottom) + 1.75rem) !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    z-index: 1037 !important;
+    pointer-events: none !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-bottom-nav,
+  body.app-body:has(.mobile-project-topbar) .mobile-bottom-nav {
+    bottom: max(.2rem, var(--ios-safe-bottom)) !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border-color: rgba(214, 222, 206, .95) !important;
+    box-shadow: 0 14px 36px rgba(26, 35, 22, .15) !important;
+  }
+}
+
+/* v192 mobile-only fix: fixed object topbar, no desktop strip, no empty account strip. */
+.mobile-project-topbar {
+  display: none !important;
+}
+
+@media (max-width: 767.98px) {
+  body.app-body.has-mobile-project-topbar,
+  body.app-body:has(.mobile-project-topbar) {
+    padding-top: 0 !important;
+    overflow-x: clip !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1060 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) max-content !important;
+    align-items: center !important;
+    gap: .58rem !important;
+    min-height: calc(3.32rem + var(--ios-safe-top)) !important;
+    margin: 0 !important;
+    padding-top: calc(.42rem + var(--ios-safe-top)) !important;
+    padding-bottom: .52rem !important;
+    padding-left: max(.44rem, var(--ios-safe-left)) !important;
+    padding-right: max(.44rem, var(--ios-safe-right)) !important;
+    color: #ffffff !important;
+    background:
+      linear-gradient(90deg, rgba(255, 255, 255, .03), transparent 62%),
+      linear-gradient(135deg, #565d62 0%, #3f474d 100%) !important;
+    background-color: #565d62 !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, .08) !important;
+    border-radius: 0 !important;
+    box-shadow: 0 12px 28px rgba(20, 27, 31, .22) !important;
+    transform: none !important;
+    will-change: transform;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar::before,
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar::after,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar::before,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-title,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-title,
+  body.app-body.has-mobile-project-topbar .app-layout:not(.worker-layout) .mobile-project-title,
+  body.app-body:has(.mobile-project-topbar) .app-layout:not(.worker-layout) .mobile-project-title {
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    font-size: clamp(.88rem, 3.9vw, 1rem) !important;
+    line-height: 1.08 !important;
+    font-weight: 950 !important;
+    letter-spacing: -.02em !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, .18) !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .mobile-project-change,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-change {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: center !important;
+    justify-self: end !important;
+    min-height: 2.28rem !important;
+    height: 2.28rem !important;
+    max-width: 8.8rem !important;
+    padding: 0 .62rem !important;
+    margin: 0 !important;
+    transform: none !important;
+    border-radius: .82rem !important;
+    border: 1px solid rgba(255, 255, 255, .22) !important;
+    background: rgba(255, 255, 255, .10) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 8px 20px rgba(18, 25, 28, .12) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    font-size: clamp(.66rem, 2.75vw, .76rem) !important;
+    line-height: 1 !important;
+    font-weight: 850 !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .app-layout,
+  body.app-body:has(.mobile-project-topbar) .app-layout,
+  body.app-body.has-mobile-project-topbar .app-main,
+  body.app-body:has(.mobile-project-topbar) .app-main {
+    padding-top: calc(3.32rem + var(--ios-safe-top)) !important;
+    margin-top: 0 !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .app-content,
+  body.app-body:has(.mobile-project-topbar) .app-content {
+    padding-top: .74rem !important;
+  }
+
+  body.app-body.has-mobile-project-topbar .account-page-head,
+  body.app-body:has(.mobile-project-topbar) .account-page-head {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+
+  body.app-body.has-mobile-project-topbar::before,
+  body.app-body:has(.mobile-project-topbar)::before,
+  html.standalone-app body.app-body.has-mobile-project-topbar::before,
+  body.standalone-app.app-body.has-mobile-project-topbar::before,
+  html.standalone-app body.app-body:has(.mobile-project-topbar)::before,
+  body.standalone-app.app-body:has(.mobile-project-topbar)::before {
+    content: "" !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: calc(var(--ios-safe-top) + .42rem) !important;
+    background:
+      linear-gradient(90deg, rgba(255, 255, 255, .03), transparent 62%),
+      linear-gradient(135deg, #565d62 0%, #3f474d 100%) !important;
+    background-color: #565d62 !important;
+    z-index: 1059 !important;
+    pointer-events: none !important;
+  }
+
+  body.app-body.has-mobile-project-topbar::after,
+  body.app-body:has(.mobile-project-topbar)::after,
+  html.standalone-app body.app-body.has-mobile-project-topbar::after,
+  body.standalone-app.app-body.has-mobile-project-topbar::after,
+  html.standalone-app body.app-body:has(.mobile-project-topbar)::after,
+  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
+    content: "" !important;
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    height: calc(var(--ios-safe-bottom) + 1.7rem) !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    z-index: 1037 !important;
+    pointer-events: none !important;
+  }
+}
+
+/* v193 mobile-only: every mobile top panel uses the same color as the desktop topbar. */
+@media (max-width: 767.98px) {
+  :root {
+    --mobile-pc-topbar-start: var(--crm-topbar-start, #565d62);
+    --mobile-pc-topbar-end: var(--crm-topbar-end, #3f474d);
+    --mobile-pc-topbar-bg:
+      linear-gradient(90deg, rgba(255, 255, 255, .03), transparent 60%),
+      linear-gradient(135deg, var(--mobile-pc-topbar-start), var(--mobile-pc-topbar-end));
+  }
+
+  body.app-body .mobile-app-topbar,
+  body.app-body .mobile-app-topbar.mobile-app-topbar-worker,
+  body.app-body .mobile-project-topbar,
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar {
+    color: #ffffff !important;
+    background: var(--mobile-pc-topbar-bg) !important;
+    background-color: var(--mobile-pc-topbar-start) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, .08) !important;
+    box-shadow: 0 12px 28px rgba(20, 27, 31, .20) !important;
+  }
+
+  body.app-body .mobile-app-topbar *,
+  body.app-body .mobile-project-topbar *,
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar *,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  body.app-body .mobile-top-avatar,
+  body.app-body .mobile-top-avatar:visited,
+  body.app-body .mobile-top-avatar:hover,
+  body.app-body .mobile-top-avatar:focus {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, .12) !important;
+    border: 1px solid rgba(255, 255, 255, .18) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 8px 20px rgba(18, 25, 28, .12) !important;
+  }
+
+  body.app-body .mobile-top-avatar-logo {
+    -webkit-text-fill-color: initial !important;
+  }
+
+  body.app-body .mobile-project-change,
+  body.app-body.has-mobile-project-topbar .mobile-project-change,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-change {
+    background: rgba(255, 255, 255, .10) !important;
+    border-color: rgba(255, 255, 255, .24) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 8px 20px rgba(18, 25, 28, .12) !important;
+  }
+
+  body.app-body.has-mobile-project-topbar::before,
+  body.app-body:has(.mobile-project-topbar)::before,
+  html.standalone-app body.app-body::before,
+  body.standalone-app.app-body::before,
+  html.standalone-app body.app-body.has-mobile-project-topbar::before,
+  body.standalone-app.app-body.has-mobile-project-topbar::before,
+  html.standalone-app body.app-body:has(.mobile-project-topbar)::before,
+  body.standalone-app.app-body:has(.mobile-project-topbar)::before {
+    background: var(--mobile-pc-topbar-bg) !important;
+    background-color: var(--mobile-pc-topbar-start) !important;
+  }
+}
+
