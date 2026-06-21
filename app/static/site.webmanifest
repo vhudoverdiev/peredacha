@@ -10,24 +10,24 @@
     "standalone"
   ],
   "background_color": "#ffffff",
-  "theme_color": "#5e656a",
+  "theme_color": "#1f2730",
   "orientation": "portrait-primary",
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/static/apple-touch-icon.png?v=v193-mobile-pc-topbar-color",
+      "src": "/static/apple-touch-icon.png?v=v195-mobile-safari-pwa-unified-topbar",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/icon-192.png?v=v193-mobile-pc-topbar-color",
+      "src": "/static/icon-192.png?v=v195-mobile-safari-pwa-unified-topbar",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/static/icon-512.png?v=v193-mobile-pc-topbar-color",
+      "src": "/static/icon-512.png?v=v195-mobile-safari-pwa-unified-topbar",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

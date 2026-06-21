@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const msTileColorMeta = document.querySelector('meta[name="msapplication-TileColor"]');
   const defaultThemeColor = themeColorMeta?.getAttribute('content') || '#8dd62c';
   const authThemeColor = '#ffffff';
-  const appTopbarThemeColor = '#5e656a';
+  const appTopbarThemeColor = '#1f2730';
   const iosInstallThemeColor = '#ffffff';
 
   const setThemeColor = value => {

@@ -32227,3 +32227,169 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
   }
 }
 
+/* v194 mobile iOS install button cleanup: text-only button placed below registration button on phones. */
+@media (max-width: 767.98px) {
+  body.auth-body .login-form {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  body.auth-body .login-register-button {
+    order: 20 !important;
+  }
+
+  body.auth-body .ios-install-button {
+    order: 21 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    margin-top: .72rem !important;
+    margin-bottom: 0 !important;
+    min-height: 3rem !important;
+    width: 100% !important;
+    padding: .82rem 1rem !important;
+  }
+
+  body.auth-body .ios-install-button[hidden] {
+    display: none !important;
+  }
+
+  body.auth-body .ios-install-button-logo,
+  body.auth-body .ios-install-button img,
+  body.auth-body .ios-install-button i,
+  body.auth-body .ios-install-button::before,
+  body.auth-body .ios-install-button::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  body.auth-body .ios-install-button span,
+  body.auth-body .ios-install-button span:last-child {
+    display: inline !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    font-size: .96rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -.01em !important;
+    line-height: 1.15 !important;
+    text-align: center !important;
+  }
+}
+
+/* v195 mobile Safari/PWA unification: normal mobile Safari matches iOS Home Screen and desktop topbar color. */
+@media (max-width: 767.98px) {
+  :root {
+    --mobile-desktop-topbar-bg:
+      radial-gradient(circle at 38% 12%, rgba(141, 214, 44, .22), transparent 22rem),
+      linear-gradient(180deg, #1f2730 0%, #151b22 100%);
+    --mobile-desktop-topbar-solid: #1f2730;
+    --mobile-desktop-topbar-border: rgba(255, 255, 255, .05);
+    --mobile-desktop-topbar-shadow: 0 10px 28px rgba(8, 11, 15, .18);
+  }
+
+  html.mobile-viewport,
+  html.mobile-viewport body.app-body,
+  html.standalone-app,
+  html.standalone-app body.app-body {
+    background: #ffffff !important;
+  }
+
+  body.app-body {
+    background: #ffffff !important;
+  }
+
+  body.app-body .mobile-app-topbar,
+  body.app-body .mobile-app-topbar.mobile-app-topbar-worker,
+  body.app-body .mobile-project-topbar,
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar,
+  body.worker-layout .mobile-app-topbar,
+  body.worker-layout .mobile-project-topbar {
+    color: #ffffff !important;
+    background: var(--mobile-desktop-topbar-bg) !important;
+    background-color: var(--mobile-desktop-topbar-solid) !important;
+    border-top: 0 !important;
+    border-bottom: 1px solid var(--mobile-desktop-topbar-border) !important;
+    box-shadow: var(--mobile-desktop-topbar-shadow) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+  }
+
+  body.app-body .mobile-app-topbar *,
+  body.app-body .mobile-project-topbar *,
+  body.worker-layout .mobile-app-topbar *,
+  body.worker-layout .mobile-project-topbar *,
+  body.app-body.has-mobile-project-topbar .mobile-project-topbar *,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-topbar * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  body.app-body .mobile-top-avatar,
+  body.app-body .mobile-top-avatar:visited,
+  body.app-body .mobile-top-avatar:hover,
+  body.app-body .mobile-top-avatar:focus,
+  body.app-body .mobile-project-change,
+  body.app-body.has-mobile-project-topbar .mobile-project-change,
+  body.app-body:has(.mobile-project-topbar) .mobile-project-change {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    background: rgba(255, 255, 255, .10) !important;
+    border: 1px solid rgba(255, 255, 255, .18) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 8px 20px rgba(18, 25, 28, .14) !important;
+  }
+
+  body.app-body .mobile-top-avatar-logo,
+  body.app-body .mobile-top-avatar-logo * {
+    -webkit-text-fill-color: initial !important;
+  }
+
+  body.app-body::before,
+  body.app-body.has-mobile-project-topbar::before,
+  body.app-body:has(.mobile-project-topbar)::before,
+  html.standalone-app body.app-body::before,
+  body.standalone-app.app-body::before,
+  html.standalone-app body.app-body.has-mobile-project-topbar::before,
+  body.standalone-app.app-body.has-mobile-project-topbar::before,
+  html.standalone-app body.app-body:has(.mobile-project-topbar)::before,
+  body.standalone-app.app-body:has(.mobile-project-topbar)::before {
+    content: "" !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: calc(var(--ios-safe-top) + .42rem) !important;
+    background: var(--mobile-desktop-topbar-bg) !important;
+    background-color: var(--mobile-desktop-topbar-solid) !important;
+    z-index: 1059 !important;
+    pointer-events: none !important;
+  }
+
+  body.app-body::after,
+  body.app-body.has-mobile-project-topbar::after,
+  body.app-body:has(.mobile-project-topbar)::after,
+  html.standalone-app body.app-body::after,
+  body.standalone-app.app-body::after,
+  html.standalone-app body.app-body.has-mobile-project-topbar::after,
+  body.standalone-app.app-body.has-mobile-project-topbar::after,
+  html.standalone-app body.app-body:has(.mobile-project-topbar)::after,
+  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
+    content: "" !important;
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    height: calc(var(--ios-safe-bottom) + 1.7rem) !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    z-index: 1037 !important;
+    pointer-events: none !important;
+  }
+
+  body.app-body .mobile-bottom-nav {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+  }
+}
+
