@@ -6,6 +6,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 from app import db
 from app.forms import LoginCaptchaForm, LoginForm, LoginTwoFactorForm
 from app.models import ROLE_VERIFIER, SiteErrorReport, User, WORKER_ROLES
+from app.services.task_service import get_setting
 from app.security import (
     clear_captcha,
     client_ip,
@@ -56,6 +57,8 @@ def _render_login_2fa(form: LoginTwoFactorForm):
 def _needs_two_factor_for_ip(user: User) -> bool:
     if not user.two_factor_enabled or not user.two_factor_secret:
         return False
+    if str(get_setting("two_factor_every_login", "0") or "").strip().lower() in {"1", "true", "yes", "on", "да", "checked"}:
+        return True
     current_ip = client_ip()[:80]
     return not user.last_login_ip or user.last_login_ip != current_ip
 

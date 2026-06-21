@@ -158,10 +158,10 @@
           <td class="assignment-check-cell">
             <input class="form-check-input remark-task-check js-bulk-check" type="checkbox" value="{{ task.id }}" aria-label="Выбрать замечание">
           </td>
-          <td>{% if task.apartment %}<span class="premise-number">{{ task.apartment.label() }}</span>{% else %}—{% endif %}</td>
-          <td>{{ task.apartment.finishing_type or '' }}</td>
-          <td>{% if task.apartment.is_app_mode %}<span class="status-pill status-pill-success">АПП</span>{% else %}<span class="status-pill status-pill-warning">не принята</span>{% endif %}</td>
-          <td>
+          <td class="task-card-premise-cell" data-label="№">{% if task.apartment %}<span class="premise-number">{{ task.apartment.label() }}</span>{% else %}—{% endif %}</td>
+          <td class="task-card-finish-cell" data-label="Отделка">{{ task.apartment.finishing_type or '' }}</td>
+          <td class="task-card-mode-cell" data-label="Режим">{% if task.apartment.is_app_mode %}<span class="status-pill status-pill-success">АПП</span>{% else %}<span class="status-pill status-pill-warning">не принята</span>{% endif %}</td>
+          <td class="task-card-deadline-cell" data-label="Срок">
             {% if task.apartment %}
               <div>{{ task.apartment.app_deadline_label() }}</div>
               {% set deadline_badge = task.apartment.app_deadline_badge(today) %}
@@ -170,17 +170,17 @@
               <span class="text-muted">Нет срока</span>
             {% endif %}
           </td>
-          <td class="task-text">
+          <td class="task-text" data-label="Замечание">
             <span class="inline-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
             {% if task.glass_measurement and task.glass_measurement.status == 'replaced' %}<span class="glass-ordered-badge glass-replaced-badge" title="Стекла поменяны">Стекла поменяны</span>{% elif task.glass_measurement and task.glass_measurement.status == 'ordered' %}<span class="glass-ordered-badge" title="Стекла заказаны">Стекла заказаны</span>{% endif %}
             {% if current_user.role != 'viewer' %}
             <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
             {% endif %}
           </td>
-          <td class="task-status-cell">
+          <td class="task-status-cell" data-label="Статус">
             <span class="badge bg-{{ task.status_class() }}">{{ task_status_label }}</span>
           </td>
-          <td>
+          <td class="task-actions-cell" data-label="Действия">
             <div class="actions-cell" data-current-status="{{ task.status }}">
             {% if current_user.role != 'viewer' %}
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" class="status-action-form {% if task.status == 'done' %}d-none{% endif %}" data-status-action="done">

@@ -28626,12 +28626,12 @@ body.auth-body .ios-install-actions {
 body.auth-body .ios-install-actions::before {
   content: "✦";
   display: block;
-  width: min(14rem, 62%);
-  margin: 0 auto 1rem;
+  width: auto;
+  margin: 0 auto .7rem;
   color: #8dd62c;
   text-align: center;
   line-height: 1;
-  background: linear-gradient(90deg, transparent 0 28%, rgba(121, 191, 37, .48) 28% 45%, transparent 45% 55%, rgba(121, 191, 37, .48) 55% 72%, transparent 72% 100%);
+  background: none !important;
 }
 
 body.auth-body .ios-install-actions .btn {
@@ -28644,23 +28644,694 @@ body.auth-body .ios-install-actions .btn {
 
 @media (max-width: 430px) {
   body.auth-body .ios-install-modal {
-    padding: 1.1rem !important;
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    padding: .9rem !important;
+    border-radius: 1.45rem !important;
   }
 
   body.auth-body .ios-install-hero {
-    grid-template-columns: 4.9rem minmax(0, 1fr);
+    grid-template-columns: 3.9rem minmax(0, 1fr);
+    gap: .82rem !important;
+    margin-bottom: .85rem !important;
+  }
+
+  body.auth-body .ios-install-app-icon {
+    width: 3.9rem !important;
+    height: 3.9rem !important;
+    border-radius: 1rem !important;
+  }
+
+  body.auth-body .ios-install-eyebrow {
+    margin-bottom: .14rem !important;
+    font-size: .72rem !important;
+    letter-spacing: .07em !important;
+  }
+
+  body.auth-body .ios-install-modal h2 {
+    font-size: clamp(1.55rem, 8vw, 1.95rem) !important;
+    line-height: .98 !important;
+    letter-spacing: -.055em !important;
+  }
+
+  body.auth-body .ios-install-subtitle {
+    margin-top: .38rem !important;
+    font-size: .98rem !important;
+    line-height: 1.2 !important;
+  }
+
+  body.auth-body .ios-install-steps {
+    gap: .55rem !important;
   }
 
   body.auth-body .ios-install-steps-arrows li {
-    grid-template-columns: 2.75rem minmax(0, 1fr) !important;
-    min-height: 4rem;
-    padding: .72rem .82rem !important;
+    grid-template-columns: 2.35rem minmax(0, 1fr) !important;
+    min-height: 3.35rem;
+    gap: .64rem;
+    padding: .52rem .64rem !important;
+    border-radius: .96rem !important;
   }
 
   body.auth-body .ios-install-steps li > span {
-    width: 2.62rem !important;
-    height: 2.62rem !important;
-    border-radius: .86rem !important;
-    font-size: 1.38rem !important;
+    width: 2.24rem !important;
+    height: 2.24rem !important;
+    border-radius: .72rem !important;
+    font-size: 1.16rem !important;
+  }
+
+  body.auth-body .ios-install-steps-arrows li > div {
+    gap: .45rem;
+    font-size: clamp(.88rem, 4.4vw, 1.05rem) !important;
+    line-height: 1.12 !important;
+  }
+
+  body.auth-body .ios-install-steps-arrows li i {
+    font-size: 1.42rem !important;
+  }
+
+  body.auth-body .ios-install-steps-arrows li > div > strong:first-child:last-child {
+    font-size: 1.05rem;
+    letter-spacing: .1em;
+  }
+
+  body.auth-body .ios-install-actions {
+    margin-top: .8rem !important;
+  }
+
+  body.auth-body .ios-install-actions .btn {
+    min-height: 3.1rem !important;
+    border-radius: .88rem !important;
+    font-size: 1rem !important;
+  }
+}
+
+@media (max-width: 380px) {
+  body.auth-body .ios-install-modal {
+    padding: .78rem !important;
+  }
+
+  body.auth-body .ios-install-modal h2 {
+    font-size: 1.55rem !important;
+  }
+
+  body.auth-body .ios-install-subtitle {
+    font-size: .9rem !important;
+  }
+
+  body.auth-body .ios-install-steps-arrows li {
+    min-height: 3.05rem;
+    padding: .46rem .56rem !important;
+  }
+
+  body.auth-body .ios-install-steps li > span {
+    width: 2.04rem !important;
+    height: 2.04rem !important;
+    font-size: 1.04rem !important;
+  }
+
+  body.auth-body .ios-install-steps-arrows li > div {
+    font-size: .88rem !important;
+  }
+}
+
+.account-2fa-disable-form .btn-danger,
+.account-2fa-disable-form .btn-danger:hover,
+.account-2fa-disable-form .btn-danger:focus,
+.account-2fa-disable-form .btn-danger:active,
+.account-2fa-disable-form .btn-danger:focus-visible,
+.account-2fa-disable-form .btn-danger *,
+.account-2fa-disable-form .btn-danger:hover *,
+.account-2fa-disable-form .btn-danger:focus *,
+.account-2fa-disable-form .btn-danger:active * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Compact iOS install modal: keep all instructions readable on small iPhones. */
+body.auth-body #iosInstallModal .modal-dialog {
+  width: min(92vw, 25rem) !important;
+  max-width: min(92vw, 25rem) !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-modal {
+  max-height: min(88dvh, 42rem) !important;
+  overflow-y: auto !important;
+  padding: clamp(.82rem, 3.6vw, 1.15rem) !important;
+  border-radius: clamp(1.1rem, 4.4vw, 1.55rem) !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-hero {
+  grid-template-columns: clamp(3.2rem, 13vw, 4.2rem) minmax(0, 1fr) !important;
+  gap: .82rem !important;
+  margin-bottom: .82rem !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-app-icon {
+  width: clamp(3.2rem, 13vw, 4.2rem) !important;
+  height: clamp(3.2rem, 13vw, 4.2rem) !important;
+  border-radius: .95rem !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-eyebrow {
+  margin-bottom: .12rem !important;
+  font-size: clamp(.66rem, 2.8vw, .78rem) !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-modal h2 {
+  font-size: clamp(1.35rem, 6.6vw, 1.9rem) !important;
+  line-height: 1 !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-subtitle {
+  margin-top: .34rem !important;
+  font-size: clamp(.84rem, 3.8vw, 1rem) !important;
+  line-height: 1.18 !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-steps {
+  gap: .5rem !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-steps-arrows li {
+  grid-template-columns: 2.1rem minmax(0, 1fr) !important;
+  min-height: 3.05rem !important;
+  gap: .55rem !important;
+  padding: .48rem .58rem !important;
+  border-radius: .85rem !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-steps li > span {
+  width: 2rem !important;
+  height: 2rem !important;
+  border-radius: .64rem !important;
+  font-size: 1rem !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-steps-arrows li > div {
+  gap: .38rem !important;
+  font-size: clamp(.82rem, 3.9vw, .98rem) !important;
+  line-height: 1.1 !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-steps-arrows li i {
+  font-size: 1.24rem !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-actions {
+  margin-top: .65rem !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-actions::before {
+  width: auto !important;
+  margin: 0 auto .5rem !important;
+  color: #8dd62c !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.auth-body #iosInstallModal .ios-install-actions .btn {
+  min-height: 2.85rem !important;
+  border-radius: .78rem !important;
+  font-size: .98rem !important;
+}
+
+/* Mobile/iOS polish v180: app-like navigation and compact working screens. */
+html.standalone-app,
+html.standalone-app body,
+body.standalone-app {
+  min-height: 100dvh !important;
+  background: #f7faef !important;
+  overflow-x: hidden !important;
+}
+
+body.standalone-app {
+  padding-bottom: 0 !important;
+}
+
+body.standalone-app .site-page-loader,
+html.standalone-app .site-page-loader {
+  inset: 0 !important;
+  width: 100vw !important;
+  min-height: 100dvh !important;
+  height: 100dvh !important;
+  padding-bottom: env(safe-area-inset-bottom) !important;
+  background:
+    radial-gradient(circle at 50% 39%, rgba(141, 214, 44, .18), transparent 28rem),
+    linear-gradient(180deg, #fbfff4 0%, #f6faef 100%) !important;
+}
+
+@supports not (height: 100dvh) {
+  body.standalone-app .site-page-loader,
+  html.standalone-app .site-page-loader {
+    min-height: -webkit-fill-available !important;
+    height: -webkit-fill-available !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  body.app-body {
+    min-height: 100dvh;
+    background: #f7faef;
+    padding-bottom: calc(5.8rem + env(safe-area-inset-bottom));
+    overflow-x: hidden;
+  }
+
+  body.app-body.worker-layout,
+  body:has(.worker-layout) {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-app-topbar {
+    grid-template-columns: 2.65rem minmax(0, 1fr);
+    gap: .75rem;
+    padding: calc(.7rem + env(safe-area-inset-top)) .9rem .65rem;
+  }
+
+  .mobile-app-topbar-worker {
+    display: flex;
+    justify-content: flex-start;
+    padding: calc(.72rem + env(safe-area-inset-top)) 1rem .38rem;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .mobile-app-topbar-worker .mobile-top-avatar {
+    width: 2.9rem;
+    height: 2.9rem;
+    border-radius: 999px;
+    box-shadow: 0 12px 28px rgba(103, 178, 24, .24);
+  }
+
+  .mobile-top-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-layout > .mobile-menu-toggle {
+    display: none !important;
+  }
+
+  .mobile-bottom-nav {
+    left: .72rem;
+    right: .72rem;
+    bottom: max(.62rem, env(safe-area-inset-bottom));
+    width: auto;
+    grid-template-columns: repeat(var(--mobile-nav-count), minmax(0, 1fr));
+    padding: .52rem;
+    border-radius: 1.35rem;
+    background: rgba(255, 255, 255, .94);
+    box-shadow: 0 18px 42px rgba(22, 32, 18, .14);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+  }
+
+  .mobile-nav-item {
+    min-width: 0;
+    min-height: 3.45rem;
+    border-radius: 1rem;
+    padding: .42rem .18rem;
+  }
+
+  .mobile-nav-item span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .72rem;
+  }
+
+  .worker-layout .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  .worker-layout .app-main,
+  .worker-layout .app-content {
+    padding-top: .2rem !important;
+  }
+
+  .worker-layout .app-topbar,
+  .worker-layout .app-sidebar,
+  .worker-layout .mobile-sidebar-backdrop {
+    display: none !important;
+  }
+
+  .objects-topbar .object-add-button,
+  .app-topbar .topbar-actions .topbar-icon {
+    display: none !important;
+  }
+
+  .app-topbar .topbar-project,
+  .objects-topbar .topbar-project,
+  .documents-topbar .topbar-project {
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .app-topbar .topbar-project .btn-outline-light,
+  .objects-topbar .topbar-project .btn-outline-light,
+  .documents-topbar .topbar-project .btn-outline-light {
+    border-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .dashboard-page.dashboard-redesign .dashboard-roadmap-mini-card,
+  .dashboard-page.dashboard-redesign .dashboard-section-redesign,
+  .dashboard-page.dashboard-redesign .dashboard-specialists-grid,
+  .dashboard-roadmap-modal {
+    display: none !important;
+  }
+
+  .account-page {
+    padding: .15rem .75rem calc(5.65rem + env(safe-area-inset-bottom));
+  }
+
+  .account-page-head {
+    display: none !important;
+  }
+
+  .account-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: .72rem;
+    max-width: 100%;
+  }
+
+  .account-card {
+    border-radius: 1.05rem !important;
+    box-shadow: 0 14px 36px rgba(20, 32, 18, .08) !important;
+  }
+
+  .account-card .card-body {
+    padding: .86rem !important;
+  }
+
+  .account-card-title {
+    gap: .58rem;
+    margin-bottom: .62rem;
+  }
+
+  .account-card-title > span {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: .74rem;
+  }
+
+  .account-card-title h2 {
+    font-size: 1rem !important;
+    line-height: 1.18;
+  }
+
+  .account-profile-list {
+    gap: .42rem !important;
+  }
+
+  .account-profile-list > div {
+    min-height: 2.4rem;
+    padding: .54rem .62rem !important;
+    border-radius: .72rem !important;
+  }
+
+  .account-profile-list dt,
+  .account-profile-list dd {
+    font-size: .86rem !important;
+  }
+
+  .account-security-text {
+    margin-bottom: .2rem;
+    font-size: .88rem;
+    line-height: 1.32;
+  }
+
+  .account-2fa-setup {
+    grid-template-columns: 5.7rem minmax(0, 1fr) !important;
+    gap: .65rem !important;
+    align-items: center;
+  }
+
+  .account-qr-box {
+    width: 5.7rem !important;
+    min-height: 5.7rem !important;
+    padding: .35rem !important;
+  }
+
+  .account-2fa-key code {
+    max-width: 100%;
+    white-space: normal;
+    word-break: break-all;
+    font-size: .72rem;
+  }
+
+  .account-code-row {
+    grid-template-columns: 1fr;
+    gap: .55rem;
+  }
+
+  .account-code-row .btn,
+  .account-enable-2fa-btn {
+    min-height: 2.75rem;
+    width: 100%;
+  }
+
+  .remarks-page-head {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: .75rem;
+    padding: .82rem .9rem !important;
+    border-radius: 1.12rem !important;
+  }
+
+  .remarks-page-head .page-title {
+    font-size: 1.34rem !important;
+    line-height: 1.06;
+  }
+
+  .remarks-page-head .page-subtitle {
+    margin-top: .2rem;
+    font-size: .83rem;
+  }
+
+  .remarks-page-head .remarks-excel-options-toggle,
+  .remarks-page-head .remarks-export-btn,
+  .remarks-page-head .js-remark-export-submit {
+    display: none !important;
+  }
+
+  .remarks-page-head .btn-success {
+    width: 100%;
+    min-height: 2.75rem;
+    border-radius: .85rem;
+  }
+
+  .remarks-tabs {
+    margin: .72rem 0 !important;
+    padding: .1rem .1rem .2rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .remarks-tabs .crm-tabs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    gap: .45rem !important;
+    min-width: max-content;
+  }
+
+  .remarks-tabs .nav-link {
+    min-height: 2.35rem;
+    padding: .52rem .82rem !important;
+    border-radius: 999px !important;
+    font-size: .84rem !important;
+    white-space: nowrap;
+    background: #fff;
+    border: 1px solid rgba(128, 183, 69, .22);
+    box-shadow: 0 8px 20px rgba(20, 32, 18, .06);
+  }
+
+  .remarks-tabs .nav-link.active {
+    color: #fff !important;
+    background: linear-gradient(135deg, #8bd62b, #5ead17) !important;
+    border-color: transparent !important;
+  }
+
+  .remarks-filter-form {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .62rem !important;
+  }
+
+  .remarks-filter-form > [class*="col-"] {
+    width: 100%;
+    max-width: 100%;
+    padding: 0 !important;
+  }
+
+  .remarks-filter-form .form-label {
+    margin-bottom: .24rem;
+    font-size: .75rem;
+    letter-spacing: .045em;
+    text-transform: uppercase;
+    color: #7a8377;
+  }
+
+  .remarks-filter-form .form-control,
+  .remarks-filter-form .form-select,
+  .remarks-filter-form .developer-select-button {
+    min-height: 2.85rem !important;
+    border-radius: .84rem !important;
+    font-size: 1rem !important;
+  }
+
+  .remarks-filter-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: .55rem !important;
+  }
+
+  .remarks-filter-actions .btn {
+    width: 100%;
+    min-height: 2.75rem;
+    border-radius: .84rem;
+  }
+
+  .remarks-export-table-shell {
+    overflow: visible !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .remarks-export-table-shell .card-body,
+  .remarks-export-table-shell .table-responsive {
+    overflow: visible !important;
+  }
+
+  .remarks-export-table-shell table,
+  .remarks-export-table-shell thead,
+  .remarks-export-table-shell tbody,
+  .remarks-export-table-shell tr,
+  .remarks-export-table-shell td {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .remarks-export-table-shell thead {
+    display: none !important;
+  }
+
+  .remarks-export-table-shell tbody {
+    display: grid !important;
+    gap: .72rem;
+  }
+
+  .remarks-export-table-shell tbody tr {
+    position: relative;
+    padding: .82rem !important;
+    border: 1px solid rgba(128, 183, 69, .22) !important;
+    border-radius: 1.05rem !important;
+    background: rgba(255, 255, 255, .96) !important;
+    box-shadow: 0 14px 34px rgba(20, 32, 18, .08) !important;
+  }
+
+  .remarks-export-table-shell td {
+    border: 0 !important;
+    padding: .32rem 0 !important;
+    background: transparent !important;
+  }
+
+  .remarks-export-table-shell .assignment-check-cell {
+    display: none !important;
+  }
+
+  .remarks-export-table-shell .task-col-finish,
+  .remarks-export-table-shell .task-col-mode,
+  .remarks-export-table-shell .task-col-date,
+  .remarks-export-table-shell .task-col-status {
+    display: none !important;
+  }
+
+  .remarks-export-table-shell .task-card-finish-cell,
+  .remarks-export-table-shell .task-card-mode-cell,
+  .remarks-export-table-shell .task-card-deadline-cell,
+  .remarks-export-table-shell .task-status-cell {
+    display: grid !important;
+    grid-template-columns: 5.4rem minmax(0, 1fr);
+    gap: .45rem;
+    align-items: center;
+    font-size: .88rem;
+  }
+
+  .remarks-export-table-shell .task-card-finish-cell::before,
+  .remarks-export-table-shell .task-card-mode-cell::before,
+  .remarks-export-table-shell .task-card-deadline-cell::before,
+  .remarks-export-table-shell .task-status-cell::before,
+  .remarks-export-table-shell .task-text::before,
+  .remarks-export-table-shell .task-actions-cell::before {
+    content: attr(data-label);
+    display: block;
+    color: #7d8a78;
+    font-size: .7rem;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .remarks-export-table-shell .task-text::before,
+  .remarks-export-table-shell .task-actions-cell::before {
+    margin-bottom: .28rem;
+  }
+
+  .remarks-export-table-shell .task-card-premise-cell {
+    display: inline-flex !important;
+    width: auto !important;
+    max-width: 100%;
+    margin-bottom: .38rem;
+    padding: .22rem .55rem !important;
+    border-radius: 999px;
+    background: #eef9e6 !important;
+    color: #4c951a;
+    font-weight: 850;
+  }
+
+  .remarks-export-table-shell .task-text {
+    font-size: .98rem !important;
+    line-height: 1.45 !important;
+    color: #1f271e;
+  }
+
+  .remarks-export-table-shell .task-text .inline-text {
+    display: block;
+    max-height: 12.5rem;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .remarks-export-table-shell .inline-edit-btn {
+    margin-top: .55rem;
+    width: 2.55rem;
+    height: 2.55rem;
+    border-radius: .8rem;
+  }
+
+  .remarks-export-table-shell .actions-cell {
+    display: flex !important;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: .42rem;
+    padding-top: .45rem;
+  }
+
+  .remarks-export-table-shell .actions-cell .btn {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    border-radius: .78rem;
+  }
+
+  .floating-error-corner {
+    right: .9rem;
+    bottom: calc(6.15rem + env(safe-area-inset-bottom));
   }
 }

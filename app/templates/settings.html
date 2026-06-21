@@ -57,9 +57,25 @@
         <label class="settings-switch-row mt-3" for="site-maintenance-setting">
           <span>
             <b>Включить тех работы</b>
-            <small>Если включено, пользователи увидят уведомление о технических работах.</small>
           </span>
           <input class="form-check-input settings-switch" id="site-maintenance-setting" type="checkbox" name="site_maintenance_mode" value="1" {% if site_maintenance_mode %}checked{% endif %}>
+        </label>
+      </div>
+    </article>
+
+    <article class="card content-card settings-card">
+      <div class="card-body">
+        <div class="settings-card-head">
+          <div class="settings-card-icon"><i class="bi bi-shield-lock"></i></div>
+          <div>
+            <h2 class="section-title mb-1">2FA</h2>
+          </div>
+        </div>
+        <label class="settings-switch-row mt-3" for="two-factor-every-login-setting">
+          <span>
+            <b>Запрашивать при каждом входе</b>
+          </span>
+          <input class="form-check-input settings-switch" id="two-factor-every-login-setting" type="checkbox" name="two_factor_every_login" value="1" {% if two_factor_every_login %}checked{% endif %}>
         </label>
       </div>
     </article>

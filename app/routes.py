@@ -46,6 +46,9 @@ from app.models import (
     ROLE_ADMIN,
     ROLE_MANAGER,
     ROLE_EXECUTOR,
+    ROLE_PAINTER,
+    ROLE_HANDYMAN,
+    ROLE_GLAZIER,
     ROLE_VERIFIER,
     ROLE_VIEWER,
     ROLE_LABELS,
@@ -1460,6 +1463,47 @@ def _executor_users(project_id: int | None = None) -> list[User]:
     return query.order_by(User.full_name.asc().nullslast(), User.username.asc()).all()
 
 
+ASSIGNMENT_ROLE_CATEGORY_NAMES = {
+    ROLE_EXECUTOR: ("Маляры",),
+    ROLE_PAINTER: ("Маляры",),
+    ROLE_HANDYMAN: ("Разнорабочие",),
+    ROLE_GLAZIER: ("Витражники",),
+}
+
+
+def _assignment_allowed_point_ids_for_user(user: User | None) -> set[int]:
+    if not user or user.role not in WORKER_ROLES:
+        return set()
+    category_names = ASSIGNMENT_ROLE_CATEGORY_NAMES.get(user.role, ())
+    if not category_names:
+        return set()
+    categories = (
+        WorkCategory.query.options(selectinload(WorkCategory.work_points))
+        .filter(WorkCategory.is_active.is_(True), WorkCategory.name.in_(category_names))
+        .all()
+    )
+    return {
+        point.id
+        for category in categories
+        for point in category.work_points
+        if point.is_active
+    }
+
+
+def _assignment_filter_by_user_mapping(query, user: User | None):
+    point_ids = _assignment_allowed_point_ids_for_user(user)
+    if not point_ids:
+        return query.filter(False)
+    return query.filter(Task.work_point_id.in_(point_ids))
+
+
+def _assignment_task_allowed_for_user(task: Task, user: User | None, allowed_point_ids: set[int] | None = None) -> bool:
+    if not user or user.role not in WORKER_ROLES:
+        return False
+    point_ids = allowed_point_ids if allowed_point_ids is not None else _assignment_allowed_point_ids_for_user(user)
+    return bool(task.work_point_id and task.work_point_id in point_ids)
+
+
 def _assignment_base_query(project_id: int, params=None):
     params = dict(params or {})
     params.setdefault("sort", "apartment")
@@ -1615,6 +1659,8 @@ def assignments():
             new_responsible = db.session.get(User, new_responsible_id) if new_responsible_id else None
             if not _user_can_work_in_project(new_responsible, project):
                 return assignment_error("Выберите нового исполнителя")
+            if not _assignment_task_allowed_for_user(task, new_responsible):
+                return assignment_error("Эта задача не относится к пунктам, отмеченным для выбранного исполнителя в распределении")
             if task.responsible_id == new_responsible.id:
                 return assignment_error("Этот исполнитель уже назначен на задачу")
             old_responsible = task.responsible_id
@@ -1723,11 +1769,22 @@ def assignments():
                 .all()
             )
             already_assigned = [task for task in existing_tasks if task.responsible_id]
-            tasks = [task for task in existing_tasks if not task.responsible_id]
+            allowed_point_ids = _assignment_allowed_point_ids_for_user(responsible)
+            candidate_tasks = [task for task in existing_tasks if not task.responsible_id]
+            incompatible_tasks = [
+                task for task in candidate_tasks
+                if not _assignment_task_allowed_for_user(task, responsible, allowed_point_ids)
+            ]
+            tasks = [
+                task for task in candidate_tasks
+                if _assignment_task_allowed_for_user(task, responsible, allowed_point_ids)
+            ]
             if not tasks:
                 skipped = len(already_assigned)
                 if skipped:
                     flash(f"Задача уже выдана сотруднику. Повторная выдача не выполнена. Пропущено: {task_count_label(skipped)}", "warning")
+                elif incompatible_tasks:
+                    flash("Выбранные задачи не относятся к пунктам, отмеченным для этого исполнителя в распределении", "warning")
                 else:
                     flash("Нет доступных задач для выдачи", "warning")
                 return redirect(url_for("main.assignments"))
@@ -1745,7 +1802,9 @@ def assignments():
             message = f"Выдано: {task_count_label(len(tasks))}"
             if already_assigned:
                 message += f". Уже были выданы и пропущены: {task_count_label(len(already_assigned))}"
-            flash(message, "success" if not already_assigned else "warning")
+            if incompatible_tasks:
+                message += f". Не подходят по распределению и пропущены: {task_count_label(len(incompatible_tasks))}"
+            flash(message, "success" if not already_assigned and not incompatible_tasks else "warning")
             return redirect(url_for("main.assignments"))
 
     # В выдаче задач оставляем один умный поиск. Старые параметры сортировки/узких фильтров
@@ -1776,6 +1835,7 @@ def assignments():
         smart_args = {k: v for k, v in query_args.items() if k not in {"smart", "smart_user_id", "smart_date", "page"}}
         smart_args["status"] = "not_done"
         query = _assignment_base_query(project.id, smart_args).filter(Task.responsible_id.is_(None))
+        query = _assignment_filter_by_user_mapping(query, smart_user)
         tasks = query.limit(smart_limit).all() if smart_limit > 0 else []
         pagination = None
         prev_args = {}
@@ -4277,12 +4337,6 @@ def documents():
     if _setting_bool("hide_documents_section"):
         return _documents_under_development_response()
 
-    # Показываем фирменную загрузку при переходе во вкладку «Документы»,
-    # но не включаем её при внутренних переходах внутри раздела документов.
-    referrer_path = urlparse(request.referrer or "").path
-    if not referrer_path.startswith("/documents"):
-        session["show_success_loader"] = True
-
     return render_template("documents.html", document_type=None)
 
 
@@ -4825,6 +4879,9 @@ def update_task(task_id: int):
             if not _user_can_work_in_project(responsible, project):
                 flash("Выберите корректного исполнителя", "danger")
                 return redirect(url_for("main.task_detail", task_id=task.id))
+            if not _assignment_task_allowed_for_user(task, responsible):
+                flash("Эта задача не относится к пунктам, отмеченным для выбранного исполнителя в распределении", "danger")
+                return redirect(url_for("main.task_detail", task_id=task.id))
         for field, new_value in fields.items():
             old_value = getattr(task, field)
             if old_value != new_value:
@@ -5089,6 +5146,7 @@ def site_settings():
         _set_setting_bool("hide_documents_section", request.form.get("hide_documents_section") == "1")
         _set_setting_bool("mobile_version_under_development", request.form.get("mobile_version_under_development") == "1")
         _set_setting_bool("site_maintenance_mode", request.form.get("site_maintenance_mode") == "1")
+        _set_setting_bool("two_factor_every_login", request.form.get("two_factor_every_login") == "1")
         allowed_section_keys = {choice["key"] for choice in SECTION_LOCK_CHOICES}
         _set_setting_csv("blocked_site_sections", [key for key in request.form.getlist("blocked_site_sections") if key in allowed_section_keys])
         db.session.commit()
@@ -5101,6 +5159,7 @@ def site_settings():
         hide_documents_section=_setting_bool("hide_documents_section"),
         mobile_version_under_development=_setting_bool("mobile_version_under_development"),
         site_maintenance_mode=_setting_bool("site_maintenance_mode"),
+        two_factor_every_login=_setting_bool("two_factor_every_login"),
         blocked_site_sections=_setting_csv("blocked_site_sections"),
         section_lock_choices=SECTION_LOCK_CHOICES,
     )
