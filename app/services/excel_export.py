@@ -203,11 +203,49 @@ def _group_tasks_by_apartment(tasks: Iterable[Task]) -> list[tuple[Apartment | N
     return [(group["apartment"], group["tasks"]) for group in groups.values()]
 
 
-def _combined_task_lines(tasks: list[Task], include_status: bool = True, include_point: bool = True) -> str:
+def _task_remark_text(task: Task) -> str:
+    text = str(task.description or task.source_cell_value or "").strip()
+    if not text:
+        return ""
+
+    point = task.work_point
+    if not point:
+        return text
+
+    prefix_candidates = []
+    if point.display_name:
+        prefix_candidates.append(str(point.display_name).strip())
+    if point.original_column_name:
+        prefix_candidates.append(str(point.original_column_name).strip())
+    if point.short_name:
+        prefix_candidates.append(str(point.short_name).strip())
+
+    def strip_point_name_prefix(value: str) -> str:
+        for prefix in sorted({item for item in prefix_candidates if item}, key=len, reverse=True):
+            if value.lower().startswith(prefix.lower()):
+                cleaned = value[len(prefix):].lstrip(" .:-–—\t")
+                if cleaned:
+                    return cleaned.strip()
+        return value
+
+    text = strip_point_name_prefix(text)
+
+    point_number = re.escape(str(point.point_number).strip()) if point.point_number else r"\d{1,3}"
+    text = re.sub(
+        rf"^\s*(?:пункт|п\.?)?\s*№?\s*{point_number}\s*(?:[.)]|[:\-–—])?\s*",
+        "",
+        text,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    return strip_point_name_prefix(text.strip())
+
+
+def _combined_task_lines(tasks: list[Task], include_status: bool = True, include_point: bool = False) -> str:
     lines = []
     for index, task in enumerate(tasks, start=1):
         point = task.work_point.display_name if include_point and task.work_point else ""
-        text = str(task.description or task.source_cell_value or "").strip()
+        text = _task_remark_text(task)
         status = f" ({task.status_label()})" if include_status else ""
         prefix = f"{index}. " if len(tasks) > 1 else ""
         if point:
@@ -217,7 +255,7 @@ def _combined_task_lines(tasks: list[Task], include_status: bool = True, include
     return "\n".join(lines)
 
 
-def export_simple_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title: str = "Задачи", *, report_header: bool = False, include_point_in_remarks: bool = True) -> Path:
+def export_simple_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title: str = "Задачи", *, report_header: bool = False, include_point_in_remarks: bool = False) -> Path:
     tasks = list(tasks)
     folder = Path(current_app.config["EXPORT_FOLDER"])
     folder.mkdir(parents=True, exist_ok=True)
@@ -255,7 +293,7 @@ def export_remark_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title
 
     for ws, grouped_tasks in ((ws_open, [task for task in tasks if not task.is_done]), (ws_done, [task for task in tasks if task.is_done])):
         for apartment, group_tasks in _group_tasks_by_apartment(grouped_tasks):
-            remark_text = _combined_task_lines(group_tasks, include_status=False)
+            remark_text = _combined_task_lines(group_tasks, include_status=False, include_point=False)
             ws.append([
                 _excel_premise_finish_label(apartment),
                 remark_text,

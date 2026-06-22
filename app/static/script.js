@@ -30,23 +30,59 @@ document.addEventListener('DOMContentLoaded', () => {
   const isStandaloneApp = window.navigator.standalone === true
     || window.matchMedia('(display-mode: standalone)').matches;
   const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
-  const isMobileViewport = window.matchMedia('(max-width: 767.98px)').matches;
+  const mobileViewportMedia = window.matchMedia('(max-width: 767.98px)');
+  const isMobileViewport = mobileViewportMedia.matches;
 
   const syncAppViewportHeight = () => {
-    if (!isIosDevice && !isMobileViewport) return;
+    if (!isIosDevice && !mobileViewportMedia.matches) return;
     const height = Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight);
     if (height > 0) document.documentElement.style.setProperty('--app-height', `${height}px`);
+  };
+
+  const syncMobileViewportClass = () => {
+    document.documentElement.classList.toggle('mobile-viewport', mobileViewportMedia.matches);
+  };
+
+  const viewportTransitionLoader = document.querySelector('.viewport-transition-loader');
+  let wasMobileViewport = mobileViewportMedia.matches;
+  let viewportResizeLoaderTimer = null;
+
+  const showViewportResizeLoader = () => {
+    if (!document.body.classList.contains('app-body') || !viewportTransitionLoader) return;
+    viewportTransitionLoader.style.display = '';
+    viewportTransitionLoader.style.pointerEvents = '';
+    viewportTransitionLoader.classList.remove('is-hidden');
+    document.body.classList.add('viewport-resize-loading');
+    window.clearTimeout(viewportResizeLoaderTimer);
+    viewportResizeLoaderTimer = window.setTimeout(() => {
+      document.body.classList.remove('viewport-resize-loading');
+      viewportTransitionLoader.classList.add('is-hidden');
+    }, 1200);
+  };
+
+  const handleMobileViewportChange = () => {
+    const isNowMobileViewport = mobileViewportMedia.matches;
+    syncMobileViewportClass();
+    if (isNowMobileViewport && !wasMobileViewport) showViewportResizeLoader();
+    wasMobileViewport = isNowMobileViewport;
+    syncAppViewportHeight();
   };
 
   if (isIosDevice) document.body.classList.add('ios-device');
   if (isCoarsePointer) document.body.classList.add('touch-device');
   if (isStandaloneApp) document.body.classList.add('standalone-app');
   if (isStandaloneApp) document.documentElement.classList.add('standalone-app');
-  if (isMobileViewport) document.documentElement.classList.add('mobile-viewport');
+  syncMobileViewportClass();
   if (document.querySelector('.mobile-project-topbar')) document.body.classList.add('has-mobile-project-topbar');
   if (document.querySelector('.account-page')) document.body.classList.add('has-account-page');
   syncAppViewportHeight();
+  if (mobileViewportMedia.addEventListener) {
+    mobileViewportMedia.addEventListener('change', handleMobileViewportChange);
+  } else if (mobileViewportMedia.addListener) {
+    mobileViewportMedia.addListener(handleMobileViewportChange);
+  }
   window.addEventListener('resize', syncAppViewportHeight, { passive: true });
+  window.addEventListener('resize', handleMobileViewportChange, { passive: true });
   window.visualViewport?.addEventListener('resize', syncAppViewportHeight, { passive: true });
   window.visualViewport?.addEventListener('scroll', syncAppViewportHeight, { passive: true });
   window.addEventListener('orientationchange', () => window.setTimeout(syncAppViewportHeight, 250), { passive: true });
