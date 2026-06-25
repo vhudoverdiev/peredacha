@@ -186,6 +186,10 @@ def _excel_premise_finish_label(apartment: Apartment | None) -> str:
     return f"{premise}\n{finish}" if finish else premise
 
 
+def _excel_finish_label(apartment: Apartment | None) -> str:
+    return (apartment.finishing_type or "").strip() if apartment else ""
+
+
 def _task_group_key(task: Task) -> tuple[int, str]:
     apartment = task.apartment
     if apartment:
@@ -264,15 +268,16 @@ def export_simple_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title
     wb = Workbook()
     ws = wb.active
     ws.title = title[:31]
-    ws.append(["Помещение / отделка", "Замечания"])
+    ws.append(["Помещение", "Отделка", "Замечания"])
     for apartment, group_tasks in _group_tasks_by_apartment(tasks):
         ws.append(
             [
-                _excel_premise_finish_label(apartment),
+                _excel_premise_label(apartment) or "—",
+                _excel_finish_label(apartment),
                 _combined_task_lines(group_tasks, include_point=include_point_in_remarks),
             ]
         )
-    apply_worksheet_style(ws, [32, 120], report_header=report_header)
+    apply_worksheet_style(ws, [24, 24, 120], report_header=report_header)
     wb.save(path)
     return path
 
@@ -287,7 +292,7 @@ def export_remark_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title
     ws_open = wb.active
     ws_open.title = "Не выполненные"
     ws_done = wb.create_sheet("Выполненные")
-    headers = ["Помещение / отделка", "Замечания"]
+    headers = ["Помещение", "Отделка", "Замечания"]
     ws_open.append(headers)
     ws_done.append(headers)
 
@@ -295,13 +300,14 @@ def export_remark_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title
         for apartment, group_tasks in _group_tasks_by_apartment(grouped_tasks):
             remark_text = _combined_task_lines(group_tasks, include_status=False, include_point=False)
             ws.append([
-                _excel_premise_finish_label(apartment),
+                _excel_premise_label(apartment) or "—",
+                _excel_finish_label(apartment),
                 remark_text,
             ])
-            _apply_remark_strike_style(ws.cell(row=ws.max_row, column=2), remark_text)
+            _apply_remark_strike_style(ws.cell(row=ws.max_row, column=3), remark_text)
 
     for ws in (ws_open, ws_done):
-        apply_worksheet_style(ws, [32, 120])
+        apply_worksheet_style(ws, [24, 24, 120])
     wb.save(path)
     return path
 
@@ -455,9 +461,10 @@ def export_source_excel_with_strikes(source_path: str | None = None, project_nam
         .filter(Task.source_sheet_name.isnot(None))
         .filter(Task.source_row_index.isnot(None))
         .filter(Task.source_column_index.isnot(None))
-        .order_by(Task.updated_at.asc(), Task.id.asc())
-        .all()
     )
+    if project_name:
+        tasks = tasks.filter(Task.project.has(name=project_name))
+    tasks = tasks.order_by(Task.updated_at.asc(), Task.id.asc()).all()
     for task in tasks:
         if not task.source_sheet_name or not task.source_row_index or not task.source_column_index:
             continue
@@ -488,8 +495,6 @@ def export_source_excel_with_strikes(source_path: str | None = None, project_nam
                 task.status_label(),
                 task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
             ])
-    for ws in wb.worksheets:
-        apply_worksheet_style(ws)
     wb.save(target)
     return target
 

@@ -550,6 +550,67 @@ document.addEventListener('DOMContentLoaded', () => {
     return el ? el.value : '';
   };
 
+  const scrollStateKey = `crm-scroll:${window.location.pathname}${window.location.search}`;
+  const rememberScrollPosition = () => {
+    try {
+      sessionStorage.setItem(scrollStateKey, JSON.stringify({
+        x: window.scrollX || 0,
+        y: window.scrollY || 0,
+        ts: Date.now()
+      }));
+    } catch (error) {}
+  };
+
+  const restoreScrollPosition = () => {
+    try {
+      const raw = sessionStorage.getItem(scrollStateKey);
+      if (!raw) return;
+      const state = JSON.parse(raw);
+      if (!state || typeof state.y !== 'number') return;
+      if (Date.now() - Number(state.ts || 0) > 12000) {
+        sessionStorage.removeItem(scrollStateKey);
+        return;
+      }
+      const targetX = state.x || 0;
+      const targetY = state.y || 0;
+      let attempts = 0;
+      const applyScroll = () => {
+        window.scrollTo(targetX, targetY);
+        attempts += 1;
+        const reachedTarget = Math.abs((window.scrollY || 0) - targetY) < 4;
+        if (reachedTarget || attempts >= 12) {
+          sessionStorage.removeItem(scrollStateKey);
+          return;
+        }
+        window.setTimeout(applyScroll, 120);
+      };
+      requestAnimationFrame(applyScroll);
+    } catch (error) {}
+  };
+
+  restoreScrollPosition();
+  window.addEventListener('beforeunload', rememberScrollPosition);
+  window.addEventListener('pagehide', rememberScrollPosition);
+  document.addEventListener('submit', event => {
+    if (event.target instanceof HTMLFormElement) rememberScrollPosition();
+  }, true);
+  document.addEventListener('click', event => {
+    const submitButton = event.target.closest('button[type="submit"], input[type="submit"]');
+    if (submitButton) rememberScrollPosition();
+    const link = event.target.closest('a[href]');
+    if (!link) return;
+    const href = link.getAttribute('href') || '';
+    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+    try {
+      const targetUrl = new URL(href, window.location.href);
+      if (targetUrl.origin === window.location.origin) rememberScrollPosition();
+    } catch (error) {}
+  }, true);
+  document.addEventListener('click', event => {
+    const hashLink = event.target.closest('a[href="#"]');
+    if (hashLink) event.preventDefault();
+  });
+
   const showCrmNotice = (message, category = 'warning') => {
     const safeCategory = ['success', 'warning', 'danger', 'info'].includes(category) ? category : 'info';
     let stack = document.querySelector('.crm-toast-stack');
@@ -816,15 +877,19 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 
-  document.querySelectorAll('.task-row-link[data-href]').forEach(row => {
+  const bindTaskRowLink = row => {
+    if (!row || row.dataset.rowLinkBound === '1') return;
+    row.dataset.rowLinkBound = '1';
     const openRow = event => {
       if (event.target.closest('a, button, form, input, textarea, select, label, .inline-editor, .problem-comment-wrap')) return;
       const bulkScope = row.closest('.js-bulk-selectable');
       if (bulkScope?.dataset.bulkRowDblclick) return;
       window.location.href = row.dataset.href;
     };
-    row.addEventListener('dblclick', openRow);
-  });
+    const openEvent = row.dataset.openOnClick ? 'click' : 'dblclick';
+    row.addEventListener(openEvent, openRow);
+  };
+  document.querySelectorAll('.task-row-link[data-href]').forEach(bindTaskRowLink);
 
   document.querySelectorAll('.related-task-item[data-href]').forEach(item => {
     item.addEventListener('click', event => {
@@ -928,6 +993,79 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } finally {
         if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll('form[data-apartment-async="1"]').forEach(form => {
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!form.checkValidity()) return;
+
+      const submitter = event.submitter || form.querySelector('button[type="submit"], button:not([type])');
+      const previousHtml = submitter?.innerHTML || '';
+      if (submitter) submitter.disabled = true;
+
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) {
+          throw new Error(data.message || 'Не удалось сохранить изменения');
+        }
+
+        const inspectionDisplay = document.querySelector('[data-apartment-inspection-display]');
+        if (inspectionDisplay && Object.prototype.hasOwnProperty.call(data, 'inspection_date_label')) {
+          inspectionDisplay.textContent = data.inspection_date_label || '—';
+        }
+
+        const commentDisplay = document.querySelector('[data-apartment-comment-display]');
+        if (commentDisplay && Object.prototype.hasOwnProperty.call(data, 'comment')) {
+          commentDisplay.textContent = data.comment || '—';
+        }
+
+        const inspectionNoteDisplay = document.querySelector('[data-apartment-inspection-note-display]');
+        if (inspectionNoteDisplay && Object.prototype.hasOwnProperty.call(data, 'inspection_note')) {
+          inspectionNoteDisplay.textContent = data.inspection_note || '—';
+        }
+
+        if (data.history_entry) {
+          const historyList = document.querySelector('[data-apartment-history-list]');
+          const historyEmpty = document.querySelector('[data-apartment-history-empty]');
+          if (historyList) {
+            const item = document.createElement('div');
+            item.className = 'timeline-item';
+            const meta = document.createElement('div');
+            meta.className = 'small text-muted';
+            meta.textContent = [
+              data.history_entry.timestamp,
+              data.history_entry.actor,
+              data.history_entry.point_label,
+            ].filter(Boolean).join(' · ');
+            const summary = document.createElement('div');
+            summary.textContent = data.history_entry.summary || '';
+            item.append(meta, summary);
+            historyList.prepend(item);
+            historyList.hidden = false;
+            if (historyEmpty) historyEmpty.hidden = true;
+          }
+        }
+
+        showCrmNotice(data.message || 'Сохранено', 'success');
+      } catch (error) {
+        showCrmNotice(error.message || 'Не удалось сохранить изменения', 'danger');
+      } finally {
+        if (submitter) {
+          submitter.disabled = false;
+          submitter.innerHTML = previousHtml;
+        }
       }
     });
   });
@@ -1145,9 +1283,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (document.querySelector('.assignment-shell[data-no-persist-selection="1"]')) {
-    try { window.sessionStorage.removeItem('crm-bulk-selection:assignments'); } catch (error) {}
-  }
   const pluralLabel = (count, scope) => {
     const one = scope.dataset.bulkLabelOne || 'заявка';
     const few = scope.dataset.bulkLabelFew || 'заявки';
@@ -1159,7 +1294,16 @@ document.addEventListener('DOMContentLoaded', () => {
     return many;
   };
   const normalizeConfirmText = (text) => (text || '').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
-  const bulkStorageKey = (scope) => (scope.dataset.noPersistSelection === '1') ? '' : (scope.dataset.selectionKey ? `crm-bulk-selection:${scope.dataset.selectionKey}` : '');
+  const bulkStorageKey = (scope) => {
+    if (scope.dataset.noPersistSelection === '1') return '';
+    if (scope.dataset.selectionKey) return `crm-bulk-selection:${scope.dataset.selectionKey}`;
+    const scopes = Array.from(document.querySelectorAll('.js-bulk-selectable'));
+    const scopeIndex = Math.max(scopes.indexOf(scope), 0);
+    const params = new URLSearchParams(window.location.search || '');
+    params.delete('page');
+    const normalizedQuery = params.toString();
+    return `crm-bulk-selection:auto:${window.location.pathname}:${normalizedQuery}:scope-${scopeIndex}`;
+  };
   const bulkStorage = (scope) => scope.dataset.selectionStorage === 'local' ? window.localStorage : window.sessionStorage;
   const readBulkSelection = (scope) => {
     const key = bulkStorageKey(scope);
@@ -1396,10 +1540,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportFormSelector = scope.dataset.exportForm || '';
     const exportForm = exportFormSelector ? document.querySelector(exportFormSelector) : null;
     const premiseInputs = Array.from(scope.querySelectorAll('.js-premise-visibility'));
-    if (!premiseInputs.length) {
-      syncBulkScope(scope);
-      return;
-    }
     const readPremiseSelection = () => {
       if (!premiseStorageKey) return null;
       try {
@@ -1435,6 +1575,13 @@ document.addEventListener('DOMContentLoaded', () => {
         button.disabled = visiblePremises.size === 0;
       });
     };
+    if (!premiseInputs.length) {
+      const storedPremises = readPremiseSelection();
+      syncPremiseExportForm(storedPremises || new Set());
+      updatePremiseOnlyActions(storedPremises || new Set());
+      syncBulkScope(scope);
+      return;
+    }
     const storedPremises = readPremiseSelection();
     if (storedPremises && premiseInputs.length) {
       premiseInputs.forEach(input => {
@@ -2155,6 +2302,88 @@ document.addEventListener('DOMContentLoaded', () => {
     input.addEventListener('paste', () => setTimeout(clean, 0));
   });
 
+  const autoFilterForms = Array.from(document.querySelectorAll([
+    'form.crm-filter-form[method="get"]',
+    'form.apartments-filter-form[method="get"]',
+    'form.assignment-search-form[method="get"]',
+    'form.assignment-smart-form[method="get"]',
+    'form.assignment-report-filter-form[method="get"]'
+  ].join(',')));
+
+  autoFilterForms.forEach(form => {
+    if (form.dataset.autoSubmitBound === '1' || form.dataset.autoSubmit === '0') return;
+    form.dataset.autoSubmitBound = '1';
+
+    let debounceTimer = null;
+    let isComposing = false;
+    let searchIndicator = null;
+
+    const ensureSearchIndicator = () => {
+      if (searchIndicator) return searchIndicator;
+      searchIndicator = document.createElement('div');
+      searchIndicator.className = 'auto-search-indicator';
+      searchIndicator.setAttribute('role', 'status');
+      searchIndicator.setAttribute('aria-live', 'polite');
+      searchIndicator.innerHTML = '<span class="auto-search-spinner" aria-hidden="true"></span><span>Идет поиск...</span>';
+      form.append(searchIndicator);
+      return searchIndicator;
+    };
+
+    const showSearchIndicator = () => {
+      const indicator = ensureSearchIndicator();
+      indicator.classList.add('is-visible');
+      form.classList.add('is-auto-searching');
+    };
+
+    const submitForm = () => {
+      if (!form.checkValidity()) return;
+      showSearchIndicator();
+      rememberScrollPosition();
+      if (form.requestSubmit) {
+        form.requestSubmit();
+      } else {
+        form.submit();
+      }
+    };
+
+    const scheduleSubmit = (delay = 350) => {
+      showSearchIndicator();
+      window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(() => {
+        if (isComposing) return;
+        submitForm();
+      }, delay);
+    };
+
+    form.querySelectorAll('input, select').forEach(control => {
+      if (control.type === 'hidden') return;
+      if (control.matches('.js-no-auto-submit')) return;
+
+      if (control.tagName === 'SELECT' || ['checkbox', 'radio', 'date'].includes(control.type)) {
+        control.addEventListener('change', () => submitForm());
+        return;
+      }
+
+      if (['text', 'search', 'number', 'tel', 'email', ''].includes(control.type)) {
+        control.addEventListener('compositionstart', () => {
+          isComposing = true;
+        });
+        control.addEventListener('compositionend', () => {
+          isComposing = false;
+          scheduleSubmit(200);
+        });
+        control.addEventListener('input', () => {
+          if (isComposing) return;
+          scheduleSubmit(450);
+        });
+        control.addEventListener('change', () => {
+          if (isComposing) return;
+          scheduleSubmit(0);
+        });
+      }
+    });
+  });
+
   document.querySelectorAll('.material-select-row').forEach(row => {
     const checkbox = row.querySelector('input[type="checkbox"]');
     const syncState = () => row.classList.toggle('is-selected', Boolean(checkbox?.checked));
@@ -2455,6 +2684,237 @@ document.addEventListener('DOMContentLoaded', () => {
       activateGlassType(row, hidden?.value || 'Стеклопакет');
     });
     syncRemoveButtons();
+  });
+
+  const bindGlassNeedMeasureForm = form => {
+    if (!form || form.dataset.glassNeedMeasureBound === '1') return;
+    form.dataset.glassNeedMeasureBound = '1';
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const button = event.submitter || form.querySelector('button[type="submit"]');
+      const previousHtml = button?.innerHTML || '';
+      if (button) button.disabled = true;
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
+        const cell = form.closest('td');
+        if (cell) {
+          cell.innerHTML = '<span class="glass-status-badge glass-status-measured">В заказе</span>';
+        }
+        showCrmNotice(data.message || 'Готово', 'success');
+      } catch (error) {
+        showCrmNotice(error.message || 'Не удалось обновить статус', 'danger');
+        if (button) button.disabled = false;
+      } finally {
+        if (button) button.innerHTML = previousHtml;
+      }
+    });
+  };
+  document.querySelectorAll('.js-glass-need-measure-form').forEach(bindGlassNeedMeasureForm);
+
+  const bindGlassSaveForm = form => {
+    if (!form || form.dataset.glassSaveBound === '1') return;
+    form.dataset.glassSaveBound = '1';
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const button = event.submitter || form.querySelector('button[type="submit"]');
+      const previousHtml = button?.innerHTML || '';
+      if (button) button.disabled = true;
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось сохранить размеры');
+        const savedRow = form.closest('.glass-order-card, .glass-order-row');
+        savedRow?.classList.add('glass-row-saved');
+        if (!form.classList.contains('js-glass-ordered-edit-form')) {
+          const note = savedRow?.querySelector('.glass-order-transferred-note');
+          if (note) {
+            note.hidden = false;
+            note.classList.add('is-visible');
+            const noteText = note.querySelector('span');
+            if (noteText) noteText.textContent = data.message || 'Размеры перенесены в заказ';
+          }
+          form.hidden = true;
+        } else {
+          const view = savedRow?.querySelector('.js-glass-ordered-size-view');
+          if (view && Array.isArray(data.items)) {
+            view.innerHTML = data.items.map(item => `
+              <div class="glass-ordered-size-line glass-ordered-size-line-readable">
+                <span><b>Тип:</b> ${escapeHtml(item.item_type || '—')}</span>
+                <span><b>Размер:</b> ${escapeHtml(item.size_input || item.size_label || '—')}</span>
+                <span><b>Кол-во:</b> ${escapeHtml(item.quantity || 1)}</span>
+                <span class="glass-ordered-size-comment"><b>Комментарий:</b> ${escapeHtml(item.item_comment || '—')}</span>
+              </div>
+            `).join('');
+          }
+          view?.classList.remove('d-none');
+          form.classList.add('d-none');
+          form.hidden = true;
+        }
+        showCrmNotice(data.message || 'Размеры перенесены в заказ', 'success');
+      } catch (error) {
+        showCrmNotice(error.message || 'Не удалось сохранить размеры', 'danger');
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = previousHtml;
+        }
+      }
+    });
+  };
+  document.querySelectorAll('.js-glass-save-form').forEach(bindGlassSaveForm);
+
+  document.querySelectorAll('.js-glass-ordered-edit-toggle').forEach(button => {
+    button.addEventListener('click', () => {
+      const row = button.closest('.glass-order-row');
+      const form = row?.querySelector('.js-glass-ordered-edit-form');
+      const view = row?.querySelector('.js-glass-ordered-size-view');
+      if (!form) return;
+      view?.classList.add('d-none');
+      form.classList.remove('d-none');
+      form.hidden = false;
+      const firstInput = form.querySelector('input, select, textarea');
+      firstInput?.focus();
+    });
+  });
+
+  document.querySelectorAll('.js-glass-ordered-edit-cancel').forEach(button => {
+    button.addEventListener('click', () => {
+      const form = button.closest('.js-glass-ordered-edit-form');
+      const row = form?.closest('.glass-order-row');
+      const view = row?.querySelector('.js-glass-ordered-size-view');
+      form?.classList.add('d-none');
+      if (form) form.hidden = true;
+      view?.classList.remove('d-none');
+    });
+  });
+
+  const bindGlassStatusForm = form => {
+    if (!form || form.dataset.glassStatusBound === '1') return;
+    form.dataset.glassStatusBound = '1';
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const button = event.submitter || form.querySelector('button[type="submit"]');
+      if (!button) return;
+      const previousHtml = button.innerHTML;
+      form.querySelectorAll('button').forEach(item => { item.disabled = true; });
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
+        form.querySelectorAll('.glass-status-choice').forEach(item => {
+          item.classList.remove('is-active');
+        });
+        button.classList.add('is-active');
+        const dateCell = form.closest('tr')?.children?.[4];
+        const statusCell = form.closest('td');
+        if (dateCell && data.ordered_at) {
+          dateCell.textContent = data.ordered_at;
+        }
+        if (statusCell) {
+          const replacedNote = statusCell.querySelector('.small.text-success');
+          if (data.status === 'replaced' && data.replaced_at) {
+            if (replacedNote) {
+              replacedNote.textContent = `Поменяно: ${data.replaced_at}`;
+            } else {
+              const note = document.createElement('div');
+              note.className = 'small text-success mt-1';
+              note.textContent = `Поменяно: ${data.replaced_at}`;
+              statusCell.appendChild(note);
+            }
+          } else if (replacedNote) {
+            replacedNote.remove();
+          }
+        }
+        showCrmNotice(data.message || 'Статус обновлён', 'success');
+      } catch (error) {
+        showCrmNotice(error.message || 'Не удалось обновить статус', 'danger');
+      } finally {
+        form.querySelectorAll('button').forEach(item => { item.disabled = false; });
+        button.innerHTML = previousHtml;
+      }
+    });
+  };
+  document.querySelectorAll('.js-glass-status-form').forEach(bindGlassStatusForm);
+
+  const glassManualModalElement = document.getElementById('glassManualTaskModal');
+  const glassManualOpen = document.querySelector('.js-glass-manual-open');
+  const glassManualForm = document.querySelector('.js-glass-manual-form');
+  const glassManualModal = glassManualModalElement && window.bootstrap ? new bootstrap.Modal(glassManualModalElement) : null;
+  glassManualOpen?.addEventListener('click', () => glassManualModal?.show());
+  glassManualForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = event.submitter || glassManualForm.querySelector('button[type="submit"]');
+    const previousHtml = button?.innerHTML || '';
+    if (button) button.disabled = true;
+    try {
+      const response = await fetch(glassManualForm.action, {
+        method: 'POST',
+        body: new FormData(glassManualForm),
+        credentials: 'same-origin',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json',
+        },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось добавить замечание');
+      const tbody = document.querySelector('.glass-page table tbody');
+      if (tbody && document.querySelector('input[name="tab"][value="all"]')) {
+        const row = document.createElement('tr');
+        row.className = 'task-row-link';
+        row.dataset.href = data.task_url || '';
+        row.innerHTML = `
+          <td><span class="js-highlight-text">${escapeHtml(data.apartment_label || '—')}</span></td>
+          <td class="task-text"><span class="js-highlight-text">${escapeHtml(data.description || '')}</span></td>
+          <td><span class="badge bg-${escapeHtml(data.status_class || 'secondary')}">${escapeHtml(data.status_label || '')}</span></td>
+          <td class="text-end">
+            <form method="post" action="/glass/${data.task_id}/need-measure" class="js-glass-need-measure-form">
+              <input type="hidden" name="csrf_token" value="${escapeHtml(getCsrfToken())}">
+              <button class="btn btn-sm btn-primary glass-measure-icon-btn" type="submit" title="Сделать замер" aria-label="Сделать замер"><i class="bi bi-rulers"></i></button>
+            </form>
+          </td>
+        `;
+        tbody.prepend(row);
+        bindTaskRowLink(row);
+        bindGlassNeedMeasureForm(row.querySelector('.js-glass-need-measure-form'));
+      }
+      glassManualForm.reset();
+      glassManualModal?.hide();
+      showCrmNotice(data.message || 'Замечание добавлено', 'success');
+    } catch (error) {
+      showCrmNotice(error.message || 'Не удалось добавить замечание', 'danger');
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = previousHtml;
+      }
+    }
   });
 });
 

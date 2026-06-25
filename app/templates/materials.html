@@ -137,7 +137,7 @@
               {% if can_edit_materials %}
                 <input class="form-check-input material-request-check js-bulk-check d-none" type="checkbox" name="request_ids" value="{{ req.id }}" form="material-requests-delete-form" aria-label="Выбрать заявку {{ request_title }}">
               {% endif %}
-              {{ req.request_date.strftime('%d.%m.%Y') if req.request_date else '' }}
+              {{ req.request_date|ru_date if req.request_date else '' }}
             </td>
             <td><span class="material-request-title-text">{{ request_title }}</span></td>
             <td>{{ req.items|length }}</td>
@@ -200,7 +200,7 @@
                   <td><span class="badge bg-{{ task.status_class() }}">{{ task.status_label() }}</span></td>
                 </tr>
               {% else %}
-                <tr><td colspan="4" class="text-center text-muted py-4">Замечаний по этому поиску нет</td></tr>
+                <tr><td colspan="4" class="text-center text-muted py-4">{% if args.get('q') %}По поиску "{{ args.get('q') }}" ничего не найдено{% else %}Замечаний для списания нет{% endif %}</td></tr>
               {% endfor %}
               </tbody>
             </table>
@@ -286,7 +286,7 @@
               {% if can_edit_materials %}
                 <input class="form-check-input material-writeoff-check js-bulk-check d-none" type="checkbox" name="writeoff_ids" value="{{ writeoff.id }}" form="material-writeoffs-delete-form" aria-label="Выбрать списание">
               {% endif %}
-              {{ writeoff.writeoff_date.strftime('%d.%m.%Y') if writeoff.writeoff_date else '' }}
+              {{ writeoff.writeoff_date|ru_date if writeoff.writeoff_date else '' }}
             </td>
             <td>
               {% set labels = [] %}

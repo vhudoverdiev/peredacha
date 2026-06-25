@@ -20,7 +20,7 @@
     <summary>
       <span>
         <b>Отчет по выполненным работам</b>
-        <em>{{ bucket.start.strftime('%d.%m.%Y') }} - {{ bucket.end.strftime('%d.%m.%Y') }}</em>
+        <em>{{ bucket.start|ru_date }} - {{ bucket.end|ru_date }}</em>
       </span>
       <span class="report-summary-actions">
         <span class="stat-badge stat-badge-white">{{ bucket.tasks|length }}</span>
@@ -30,7 +30,7 @@
     <div class="report-task-list">
       {% for task in bucket.tasks %}
       <div class="report-task-item">
-        <b>{{ task.apartment.label() if task.apartment else '—' }} · {{ task.completed_date.strftime('%d.%m.%Y') if task.completed_date else '' }}</b>
+        <b>{{ task.apartment.label() if task.apartment else '—' }} · {{ task.completed_date|ru_date if task.completed_date else '' }}</b>
         <span>{{ remark_text(task.description or task.source_cell_value) }}</span>
       </div>
       {% else %}

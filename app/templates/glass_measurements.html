@@ -7,13 +7,18 @@
     <h1 class="page-title">Замеры</h1>
     <p class="page-subtitle"></p>
   </div>
+  {% if current_user.role != 'viewer' %}
+  <div class="glass-head-actions">
+    <button class="btn btn-primary js-glass-manual-open" type="button"><i class="bi bi-plus-lg me-2"></i>Добавить</button>
+  </div>
+  {% endif %}
 </div>
 
 <div class="remarks-tabs mb-3">
   <ul class="nav crm-tabs">
-    <li class="nav-item"><a class="nav-link {% if tab == 'all' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='all', q=q, point=selected_point) }}">Все</a></li>
-    <li class="nav-item"><a class="nav-link {% if tab == 'order' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='order') }}">Заказать</a></li>
-    <li class="nav-item"><a class="nav-link {% if tab == 'ordered' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='ordered') }}">Заказано</a></li>
+    <li class="nav-item"><a class="nav-link {% if tab == 'all' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='all', q=q) }}">Все</a></li>
+    <li class="nav-item"><a class="nav-link {% if tab == 'order' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='order', q=q) }}">Заказать</a></li>
+    <li class="nav-item"><a class="nav-link {% if tab == 'ordered' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='ordered', q=q) }}">Заказано</a></li>
   </ul>
 </div>
 
@@ -26,16 +31,7 @@
         <label class="form-label">Поиск</label>
         <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="Введите цифру или текст">
       </div>
-      <div class="col-12 col-lg-3">
-        <label class="form-label">Сортировка по пункту</label>
-        <select class="form-select" name="point">
-          <option value="">Все пункты</option>
-          {% for point in glass_point_options %}
-          <option value="{{ point.number }}" {% if selected_point == point.number %}selected{% endif %}>{{ point.label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-12 col-lg-3 filter-actions glass-filter-actions">
+      <div class="col-12 col-lg-6 filter-actions glass-filter-actions">
         <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
         <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.glass_measurements', tab='all') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
       </div>
@@ -65,12 +61,12 @@
             <td class="text-end">
               {% if current_user.role != 'viewer' %}
                 {% if row.status == 'none' %}
-                <form method="post" action="{{ url_for('main.glass_need_measure', task_id=task.id) }}">
+                <form method="post" action="{{ url_for('main.glass_need_measure', task_id=task.id) }}" class="js-glass-need-measure-form">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button class="btn btn-sm btn-primary glass-measure-icon-btn" type="submit" title="Сделать замер" aria-label="Сделать замер"><i class="bi bi-rulers"></i></button>
                 </form>
                 {% elif row.status == 'measure_needed' %}
-                  <a class="btn btn-sm btn-outline-primary glass-measure-start-btn" href="{{ url_for('main.glass_measurements', tab='order') }}">В заказе</a>
+                  <a class="btn btn-sm btn-outline-primary glass-measure-start-btn" href="{{ url_for('main.glass_measurements', tab='order', q=q) }}">В заказе</a>
                 {% elif row.status == 'ordered' %}
                   <span class="glass-status-badge glass-status-ordered">Заказано</span>
                 {% elif row.status == 'replaced' %}
@@ -82,7 +78,7 @@
             </td>
           </tr>
         {% else %}
-          <tr><td colspan="4" class="text-center text-muted py-5">Замечаний не найдено</td></tr>
+          <tr><td colspan="4" class="text-center text-muted py-5">{% if q %}По поиску "{{ q }}" ничего не найдено{% else %}Замечаний не найдено{% endif %}</td></tr>
         {% endfor %}
         </tbody>
       </table>
@@ -92,6 +88,21 @@
 {% endif %}
 
 {% if tab == 'order' %}
+<div class="card content-card mb-3">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end crm-filter-form glass-filter-form">
+      <input type="hidden" name="tab" value="order">
+      <div class="col-12 col-lg-6">
+        <label class="form-label">Поиск</label>
+        <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="Введите цифру или текст">
+      </div>
+      <div class="col-12 col-lg-6 filter-actions glass-filter-actions">
+        <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
+        <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.glass_measurements', tab='order') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
+      </div>
+    </form>
+  </div>
+</div>
 <form id="glass-order-delete-form" method="post" action="{{ url_for('main.glass_measurements_delete') }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="scope" value="order">
@@ -120,7 +131,7 @@
           <div class="d-none">
             <input class="form-check-input glass-order-check glass-order-delete-check js-bulk-check" type="checkbox" name="measurement_ids" value="{{ measurement.id }}" form="glass-order-delete-form" aria-label="Выбрать позицию">
           </div>
-          <form method="post" action="{{ url_for('main.glass_measurement_save', task_id=task.id) }}" class="glass-measure-form glass-multi-measure-form js-glass-multi-form">
+          <form method="post" action="{{ url_for('main.glass_measurement_save', task_id=task.id) }}" class="glass-measure-form glass-multi-measure-form js-glass-multi-form js-glass-save-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="glass-measure-items js-glass-measure-items">
               <div class="glass-measure-item-row glass-measure-item-card">
@@ -152,9 +163,13 @@
               <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-check2 me-1"></i>Сохранить</button>
             </div>
           </form>
+          <div class="glass-order-transferred-note" hidden>
+            <i class="bi bi-check2-circle"></i>
+            <span>Размеры перенесены в заказ</span>
+          </div>
         </article>
       {% else %}
-        <div class="glass-empty-state text-center text-muted py-5">Нет позиций для заказа. Нажмите иконку замера во вкладке «Все».</div>
+        <div class="glass-empty-state text-center text-muted py-5">{% if q %}По поиску "{{ q }}" ничего не найдено{% else %}Нет позиций для заказа. Нажмите иконку замера во вкладке «Все».{% endif %}</div>
       {% endfor %}
     </div>
   </div>
@@ -162,6 +177,21 @@
 {% endif %}
 
 {% if tab == 'ordered' %}
+<div class="card content-card mb-3">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end crm-filter-form glass-filter-form">
+      <input type="hidden" name="tab" value="ordered">
+      <div class="col-12 col-lg-6">
+        <label class="form-label">Поиск</label>
+        <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="Введите цифру или текст">
+      </div>
+      <div class="col-12 col-lg-6 filter-actions glass-filter-actions">
+        <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
+        <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.glass_measurements', tab='ordered') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
+      </div>
+    </form>
+  </div>
+</div>
 <form id="glass-bulk-request-form" method="post" action="{{ url_for('main.glass_create_material_request') }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="scope" value="ordered">
@@ -204,23 +234,102 @@
           <tr class="glass-order-row js-bulk-row {% if task.is_done %}done-task{% endif %}">
             <td class="glass-select-col"><input class="form-check-input glass-order-check js-bulk-check" type="checkbox" name="measurement_ids" value="{{ measurement.id }}" form="glass-bulk-request-form" {% if linked_request %}disabled title="Уже внесено в заявку"{% endif %}></td>
             <td>{{ task.apartment.label() if task.apartment else '—' }}</td>
-            <td class="task-text">{{ remark_text(task.description or task.source_cell_value) }}</td>
-            <td>
-              {% for item in row["items"] %}
-                <div class="glass-ordered-size-line"><b>{{ item.title_label }}</b><span>{{ item.quantity }} шт</span></div>
-              {% else %}
-                <span class="text-muted">—</span>
-              {% endfor %}
+            <td class="task-text">
+              <div class="d-flex align-items-start gap-2">
+                <span class="inline-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
+                {% if current_user.role != 'viewer' %}
+                <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
+                {% endif %}
+              </div>
             </td>
-            <td>{{ measurement.ordered_at.strftime('%d.%m.%Y') if measurement and measurement.ordered_at else '—' }}</td>
             <td>
-              <form method="post" action="{{ url_for('main.glass_status_update', measurement_id=measurement.id) }}" class="glass-status-button-form">
+              <div class="glass-ordered-size-view js-glass-ordered-size-view">
+                {% for item in row["items"] %}
+                <div class="glass-ordered-size-line glass-ordered-size-line-readable">
+                  <span><b>Тип:</b> {{ item.item_type or '—' }}</span>
+                  <span><b>Размер:</b> {{ item.size_input or item.size_label or '—' }}</span>
+                  <span><b>Кол-во:</b> {{ item.quantity or 1 }}</span>
+                  <span class="glass-ordered-size-comment"><b>Комментарий:</b> {{ item.item_comment or '—' }}</span>
+                </div>
+                {% else %}
+                <div class="glass-ordered-size-line glass-ordered-size-line-readable">
+                  <span><b>Тип:</b> {{ measurement.glass_type if measurement and measurement.glass_type else '—' }}</span>
+                  <span><b>Размер:</b> {{ measurement.size if measurement and measurement.size else '—' }}</span>
+                  <span><b>Кол-во:</b> {{ measurement.quantity if measurement and measurement.quantity else 1 }}</span>
+                  <span class="glass-ordered-size-comment"><b>Комментарий:</b> —</span>
+                </div>
+                {% endfor %}
+              </div>
+              <form method="post" action="{{ url_for('main.glass_measurement_save', task_id=task.id) }}" class="glass-measure-form glass-multi-measure-form js-glass-multi-form js-glass-save-form js-glass-ordered-edit-form d-none" hidden>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="ordered_at" value="{{ measurement.ordered_at.isoformat() if measurement and measurement.ordered_at else today.isoformat() }}">
+                <div class="glass-measure-items js-glass-measure-items">
+                  {% for item in row["items"] %}
+                  <div class="glass-measure-item-row glass-measure-item-card">
+                    <div class="glass-field glass-type-field glass-type-select-field">
+                      <span>Тип:</span>
+                      <select class="form-select form-select-sm glass-type-select js-glass-type-select" name="item_type[]" aria-label="Тип заказа">
+                        {% for item_type in glass_item_types %}
+                          <option value="{{ item_type }}" {% if item.item_type == item_type %}selected{% endif %}>{{ item_type }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <label class="glass-field glass-size-field">
+                      <span>Размер</span>
+                      <input class="form-control form-control-sm" name="size[]" value="{{ item.size_input }}" required>
+                    </label>
+                    <label class="glass-field glass-comment-field">
+                      <span>Комментарий</span>
+                      <input class="form-control form-control-sm" name="item_comment[]" value="{{ item.item_comment }}">
+                    </label>
+                    <label class="glass-field glass-qty-field">
+                      <span>Кол-во</span>
+                      <input class="form-control form-control-sm glass-qty-input" name="quantity[]" inputmode="numeric" value="{{ item.quantity }}">
+                    </label>
+                  </div>
+                  {% else %}
+                  <div class="glass-measure-item-row glass-measure-item-card">
+                    <div class="glass-field glass-type-field glass-type-select-field">
+                      <span>Тип:</span>
+                      <select class="form-select form-select-sm glass-type-select js-glass-type-select" name="item_type[]" aria-label="Тип заказа">
+                        {% for item_type in glass_item_types %}
+                          <option value="{{ item_type }}" {% if measurement and measurement.glass_type == item_type %}selected{% endif %}>{{ item_type }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <label class="glass-field glass-size-field">
+                      <span>Размер</span>
+                      <input class="form-control form-control-sm" name="size[]" value="{{ row['items'][0].size_input if row['items'] else (measurement.size if measurement and measurement.size else '') }}" required>
+                    </label>
+                    <label class="glass-field glass-comment-field">
+                      <span>Комментарий</span>
+                      <input class="form-control form-control-sm" name="item_comment[]" value="{{ row['items'][0].item_comment if row['items'] else '' }}">
+                    </label>
+                    <label class="glass-field glass-qty-field">
+                      <span>Кол-во</span>
+                      <input class="form-control form-control-sm glass-qty-input" name="quantity[]" inputmode="numeric" value="{{ measurement.quantity if measurement and measurement.quantity else 1 }}">
+                    </label>
+                  </div>
+                  {% endfor %}
+                </div>
+                {% if current_user.role != 'viewer' %}
+                <div class="glass-measure-actions mt-2">
+                  <button class="btn btn-sm btn-outline-primary js-glass-add-item" type="button"><i class="bi bi-plus-lg me-1"></i>Ещё размер</button>
+                  <button class="btn btn-sm btn-outline-secondary js-glass-ordered-edit-cancel" type="button">Отмена</button>
+                  <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-check2 me-1"></i>Сохранить</button>
+                </div>
+                {% endif %}
+              </form>
+            </td>
+            <td>{{ measurement.ordered_at|ru_date if measurement and measurement.ordered_at else '—' }}</td>
+            <td>
+              <form method="post" action="{{ url_for('main.glass_status_update', measurement_id=measurement.id) }}" class="glass-status-button-form js-glass-status-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="status_date" value="{{ today.isoformat() }}">
                 <button class="glass-status-choice {% if measurement.status == 'ordered' %}is-active is-ordered{% endif %}" name="status" value="ordered" type="submit">Заказано</button>
                 <button class="glass-status-choice {% if measurement.status == 'replaced' %}is-active is-replaced{% endif %}" name="status" value="replaced" type="submit">Поменяно</button>
               </form>
-              {% if measurement.status == 'replaced' and measurement.replaced_at %}<div class="small text-success mt-1">Поменяно: {{ measurement.replaced_at.strftime('%d.%m.%Y') }}</div>{% endif %}
+              {% if measurement.status == 'replaced' and measurement.replaced_at %}<div class="small text-success mt-1">Поменяно: {{ measurement.replaced_at|ru_date }}</div>{% endif %}
             </td>
             <td>
               {% if linked_request %}
@@ -230,6 +339,9 @@
               {% endif %}
             </td>
             <td class="text-end glass-actions-col">
+              {% if current_user.role != 'viewer' %}
+              <button class="btn btn-sm btn-outline-primary js-glass-ordered-edit-toggle" type="button" title="Редактировать размеры"><i class="bi bi-pencil-square"></i></button>
+              {% endif %}
               <form method="post" action="{{ url_for('main.glass_measurements_delete') }}" class="glass-row-delete-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="scope" value="ordered">
@@ -245,12 +357,47 @@
     {% else %}
     <div class="glass-empty-state glass-ordered-empty-state text-center text-muted py-5">
       <i class="bi bi-inbox"></i>
-      <div class="glass-empty-title">Пока нет ничего</div>
-      <div class="glass-empty-subtitle">Заказанные позиции появятся здесь после оформления замера.</div>
+      <div class="glass-empty-title">{% if q %}По поиску "{{ q }}" ничего не найдено{% else %}Пока нет ничего{% endif %}</div>
+      {% if not q %}<div class="glass-empty-subtitle">Заказанные позиции появятся здесь после оформления замера.</div>{% endif %}
     </div>
     {% endif %}
   </div>
 </div>
 {% endif %}
 </div>
+
+{% if current_user.role != 'viewer' %}
+<div class="modal fade" id="glassManualTaskModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content js-glass-manual-form" method="post" action="{{ url_for('main.glass_manual_task_new') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-header">
+        <h2 class="modal-title">Добавить замечание</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Квартира / коммерция</label>
+          <select class="form-select" name="apartment_id" required>
+            <option value="">Выберите квартиру / коммерцию</option>
+            {% for apt in glass_apartments %}
+            {% if apt %}
+            <option value="{{ apt.id }}">{{ apt.full_label() if apt.premise_type == 'commercial' else apt.label() }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-0">
+          <label class="form-label">Описание работы</label>
+          <textarea class="form-control" name="description" rows="4" required placeholder="Например: Требуется новый замер створки"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Отмена</button>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Добавить</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

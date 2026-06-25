@@ -61,7 +61,7 @@
                   </td>
                 </tr>
               {% else %}
-                <tr><td colspan="4" class="text-center text-muted py-4">Замечаний для списания нет</td></tr>
+                <tr><td colspan="4" class="text-center text-muted py-4">{% if args.get('q') %}По поиску "{{ args.get('q') }}" ничего не найдено{% else %}Замечаний для списания нет{% endif %}</td></tr>
               {% endfor %}
               </tbody>
             </table>

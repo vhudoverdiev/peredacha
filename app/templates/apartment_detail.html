@@ -4,7 +4,7 @@
 <div class="apartment-detail-page">
 {% set status_labels = {'not_started': 'не выполнено', 'done': 'выполнено', 'finishers': 'чистовики', 'contractor': 'подрядчик', 'problem': 'проблема'} %}
 {% set status_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'problem': 'status-pill-danger'} %}
-{% set field_labels = {'status': 'Статус', 'comment': 'Комментарий', 'description': 'Текст замечания', 'responsible_id': 'Ответственный', 'planned_date': 'Плановая дата', 'is_missing_in_latest_sync': 'Отсутствует в последней синхронизации'} %}
+{% set field_labels = {'status': 'Статус', 'comment': 'Комментарий', 'description': 'Текст замечания', 'responsible_id': 'Исполнитель', 'planned_date': 'Плановая дата', 'is_missing_in_latest_sync': 'Отсутствует в последней синхронизации'} %}
 
 <div class="page-head">
   <div>
@@ -38,20 +38,34 @@
               {% else %}<span class="status-pill status-pill-warning">не принята</span>{% endif %}
             </b>
           </div>
-          {% if row.inspection_status %}
+          {% if row.inspection_date %}
           <div class="apartment-data-row">
             <span>Осмотр</span>
-            <b><span class="status-pill {{ 'status-pill-success' if row.inspection_status == 'Был' else 'status-pill-danger' }}">{{ row.inspection_status }}</span></b>
+            <b data-apartment-inspection-display>{{ row.inspection_date|ru_date }}</b>
+          </div>
+          {% else %}
+          <div class="apartment-data-row">
+            <span>Осмотр</span>
+            <b data-apartment-inspection-display><span class="status-pill {{ 'status-pill-success' if row.inspection_status == 'Был' else 'status-pill-danger' }}">{{ row.inspection_status }}</span></b>
           </div>
           {% endif %}
-          {% if current_user.role != 'viewer' and row.mode != 'не продана' %}
+          {% if current_user.role != 'viewer' and row.mode != 'не продана' and row.inspection_date %}
+          <form method="post" action="{{ url_for('main.update_apartment_inspection_date', apartment_id=apartment.id) }}" class="apartment-inspection-date-form apartment-inspection-status-form-detail mb-3" data-apartment-async="1">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="apartment-inspection-status-label" for="inspection-date-{{ apartment.id }}">Изменить осмотр</label>
+            <div class="apartment-inspection-date-actions">
+              <input class="form-control" type="date" id="inspection-date-{{ apartment.id }}" name="inspection_date" value="{{ row.inspection_date.isoformat() if row.inspection_date else '' }}">
+              <button class="btn btn-primary btn-sm" type="submit">Сохранить</button>
+            </div>
+          </form>
+          {% elif current_user.role != 'viewer' and row.mode != 'не продана' %}
           <form method="post" action="{{ url_for('main.update_apartment_inspection_status', apartment_id=apartment.id) }}" class="apartment-inspection-status-form apartment-inspection-status-form-detail mb-3">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <span class="apartment-inspection-status-label">Изменить осмотр</span>
             <div class="apartment-inspection-status-actions">
-              <input class="btn-check" type="radio" name="inspection_status" id="inspection-detail-was-{{ apartment.id }}" value="was" {% if row.inspection_status == 'Был' %}checked{% endif %} onchange="this.form.submit()">
+              <input class="btn-check" type="radio" name="inspection_status" id="inspection-detail-was-{{ apartment.id }}" value="was" {% if row.inspection_status == 'Был' %}checked{% endif %} onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
               <label class="inspection-option inspection-option-was" for="inspection-detail-was-{{ apartment.id }}">Был</label>
-              <input class="btn-check" type="radio" name="inspection_status" id="inspection-detail-not-was-{{ apartment.id }}" value="not_was" {% if row.inspection_status != 'Был' %}checked{% endif %} onchange="this.form.submit()">
+              <input class="btn-check" type="radio" name="inspection_status" id="inspection-detail-not-was-{{ apartment.id }}" value="not_was" {% if row.inspection_status != 'Был' %}checked{% endif %} onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
               <label class="inspection-option inspection-option-not-was" for="inspection-detail-not-was-{{ apartment.id }}">Не был</label>
             </div>
           </form>
@@ -77,7 +91,7 @@
             <span>АВР</span>
             <b>
               {% if row.avr_status == avr_status_signed %}
-                <span class="badge-avr-signed">Подписан{% if row.avr_signed_date %} от {{ row.avr_signed_date.strftime('%d.%m.%Y') }}{% endif %}</span>
+                <span class="badge-avr-signed">Подписан{% if row.avr_signed_date %} от {{ row.avr_signed_date|ru_date }}{% endif %}</span>
               {% else %}
                 <span class="badge-avr-needed">Нужен</span>
               {% endif %}
@@ -98,23 +112,23 @@
           {% if row.mode == 'АПП' %}
           <div class="apartment-data-note">
             <span>Комментарий</span>
-            <p>{{ row.manual_comment or '—' }}</p>
+            <p data-apartment-comment-display>{{ row.manual_comment or '—' }}</p>
           </div>
           {% elif row.mode == 'не принята' %}
           <div class="apartment-data-note">
             <span>Комментарий</span>
-            <p>{{ row.inspection_comment or '—' }}</p>
+            <p data-apartment-inspection-note-display>{{ row.inspection_comment or '—' }}</p>
           </div>
           {% endif %}
           {% if row.mode == 'АПП' and current_user.role != 'viewer' %}
-          <form method="post" action="{{ url_for('main.update_apartment_comment', apartment_id=apartment.id) }}" class="inspection-note-form">
+          <form method="post" action="{{ url_for('main.update_apartment_comment', apartment_id=apartment.id) }}" class="inspection-note-form" data-apartment-async="1">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label class="form-label" for="apartment-comment-{{ apartment.id }}">Комментарий</label>
             <textarea class="form-control" id="apartment-comment-{{ apartment.id }}" name="apartment_comment" rows="3" placeholder="Например: Собственник не подписывает АВР">{{ row.manual_comment or '' }}</textarea>
             <button class="btn btn-primary btn-sm" type="submit">Сохранить</button>
           </form>
           {% elif row.mode == 'не принята' and current_user.role != 'viewer' %}
-          <form method="post" action="{{ url_for('main.update_apartment_inspection_note', apartment_id=apartment.id) }}" class="inspection-note-form">
+          <form method="post" action="{{ url_for('main.update_apartment_inspection_note', apartment_id=apartment.id) }}" class="inspection-note-form" data-apartment-async="1">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label class="form-label" for="inspection-note-{{ apartment.id }}">Комментарий</label>
             <textarea class="form-control" id="inspection-note-{{ apartment.id }}" name="inspection_note" rows="3">{{ row.inspection_comment or '' }}</textarea>
@@ -124,12 +138,12 @@
           {% if row.po_status %}
           <div class="apartment-data-po">
             <span>ПО</span>
-            <form method="post" action="{{ url_for('main.update_apartment_po_status', apartment_id=apartment.id) }}" class="apartment-po-form apartment-po-form-inline">
+            <form method="post" action="{{ url_for('main.update_apartment_po_status', apartment_id=apartment.id) }}" class="apartment-po-form apartment-po-form-inline" data-apartment-async="1">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <div class="apartment-po-row apartment-po-options">
               {% if current_user.role != 'viewer' %}
                 {% for value, label in po_status_labels.items() %}
-                <input class="btn-check" type="radio" name="po_status" id="po-detail-{{ apartment.id }}-{{ value }}" value="{{ value }}" {% if row.po_status == value %}checked{% endif %} onchange="this.form.submit()">
+                <input class="btn-check" type="radio" name="po_status" id="po-detail-{{ apartment.id }}-{{ value }}" value="{{ value }}" {% if row.po_status == value %}checked{% endif %} onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
                 <label class="po-option po-option-{{ value }}" for="po-detail-{{ apartment.id }}-{{ value }}">{{ label }}</label>
                 {% endfor %}
               {% else %}
@@ -168,7 +182,7 @@
         <div class="apartment-task-list">
           {% for task in row.tasks %}
           {% set point_name = task.work_point.display_name | replace(task.work_point.point_number ~ '. ', '') | replace(task.work_point.point_number ~ '.', '') if task.work_point else 'Без пункта' %}
-          <div class="apartment-task-item task-row-link {% if task.is_done %}is-done{% endif %}" data-href="{{ url_for('main.task_detail', task_id=task.id) }}">
+          <div class="apartment-task-item task-row-link {% if task.is_done %}is-done{% endif %}" data-href="{{ url_for('main.task_detail', task_id=task.id) }}" data-open-on-click="1">
             <div class="apartment-task-head">
               <span class="apartment-task-point">{{ point_name }}</span>
               {% if current_user.role != 'viewer' %}
@@ -176,10 +190,6 @@
               <form class="apartment-task-status-form" method="post" action="{{ url_for('main.quick_status', task_id=task.id, status=toggle_status) }}" data-apartment-status-toggle data-reload-after-status="1" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }} apartment-task-status-btn" type="submit" data-status-pill title="Нажмите, чтобы переключить выполнено / не выполнено">{{ status_labels.get(task.status, task.status) }}</button>
-              </form>
-              <form class="status-action-form problem-action-form apartment-task-problem-form {% if task.status == 'problem' %}d-none{% endif %}" method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" data-status-action="problem">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="status-pill status-pill-danger apartment-task-problem-btn problem-toggle-btn" type="button" title="Проблема" data-problem-modal-title="Проблема">Проблема</button>
               </form>
               {% else %}
               <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }}" data-status-pill>{{ status_labels.get(task.status, task.status) }}</span>
@@ -189,7 +199,7 @@
             <div class="apartment-task-meta">
               <span>Пункт: {{ task.work_point.point_number if task.work_point else '—' }}</span>
               <span>Раздел: {% for category in task.work_point.categories %}{{ category.name }}{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</span>
-              <span>Ответственный: {{ task.responsible.full_name or task.responsible.username if task.responsible else '—' }}</span>
+              <span>Исполнитель: {{ task.responsible.full_name or task.responsible.username if task.responsible else '—' }}</span>
               {% if task.is_missing_in_latest_sync %}<span class="text-warning">нет в последней синхронизации</span>{% endif %}
               {% if task.is_archived %}<span class="text-muted">архив</span>{% endif %}
             </div>
@@ -211,7 +221,7 @@
           {% set task = item.task %}
           {% set comment = item.comment %}
           <div class="apartment-activity-item">
-            <div class="small text-muted">{{ comment.created_at.strftime('%d.%m.%Y %H:%M') }} · {{ comment.user.full_name if comment.user else 'пользователь' }}</div>
+            <div class="small text-muted">{{ comment.created_at|ru_datetime }} · {{ comment.user.full_name if comment.user else 'пользователь' }}</div>
             <b>{{ task.work_point.display_name if task.work_point else 'Задача' }}</b>
             <div>{{ comment.body }}</div>
           </div>
@@ -226,34 +236,15 @@
     <div class="card content-card">
       <div class="card-body">
         <h2 class="section-title">История изменений по помещению</h2>
-        {% if row.changes %}
-        <div class="timeline">
-          {% for item in row.changes %}
-          {% set task = item.task %}
-          {% set change = item.change %}
+        <div class="timeline" data-apartment-history-list {% if not history_entries %}hidden{% endif %}>
+          {% for entry in history_entries %}
           <div class="timeline-item">
-            <div class="small text-muted">{{ change.created_at.strftime('%d.%m.%Y %H:%M') }} · {{ change.user.full_name if change.user else 'система' }} · {{ task.work_point.display_name if task.work_point else 'задача' }}</div>
-            {% if change.action == 'status_change' %}
-              <b>Статус изменен</b>:
-              с <span class="status-pill {{ status_classes.get(change.old_value, 'status-pill-muted') }}">{{ status_labels.get(change.old_value, change.old_value or 'не задано') }}</span>
-              на <span class="status-pill {{ status_classes.get(change.new_value, 'status-pill-muted') }}">{{ status_labels.get(change.new_value, change.new_value or 'не задано') }}</span>
-            {% elif change.action == 'field_update' %}
-              <b>{{ field_labels.get(change.field_name, change.field_name or 'Поле') }} изменен(о)</b>:
-              с <span class="text-muted">{{ status_labels.get(change.old_value, change.old_value or 'не задано') }}</span>
-              на <span>{{ status_labels.get(change.new_value, change.new_value or 'не задано') }}</span>
-            {% elif change.action == 'comment_added' %}
-              <b>Добавлен комментарий</b>: {{ change.new_value }}
-            {% elif change.action == 'missing_in_latest_sync' %}
-              <b>Задача отсутствует в последней синхронизации</b>
-            {% else %}
-              <b>Изменение</b>: {{ change.action }}
-            {% endif %}
+            <div class="small text-muted">{{ entry.timestamp }} · {{ entry.actor }}{% if entry.point_label %} · {{ entry.point_label }}{% endif %}</div>
+            <div>{{ entry.summary }}</div>
           </div>
           {% endfor %}
         </div>
-        {% else %}
-        <div class="text-muted">Истории изменений по помещению нет.</div>
-        {% endif %}
+        <div class="text-muted" data-apartment-history-empty {% if history_entries %}hidden{% endif %}>Истории изменений по помещению нет.</div>
       </div>
     </div>
   </div>

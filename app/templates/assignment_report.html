@@ -49,7 +49,7 @@
         <div class="assignment-report-date-picker js-assignment-report-date-picker">
           <input class="js-assignment-report-date-input" type="hidden" name="date" value="{{ report_date.isoformat() }}">
           <button class="assignment-report-date-button js-assignment-report-date-open" type="button" data-current-date="{{ report_date.isoformat() }}">
-            <span class="assignment-report-date-value js-assignment-report-date-value">{{ report_date.strftime('%d.%m.%Y') }}</span>
+            <span class="assignment-report-date-value js-assignment-report-date-value">{{ report_date|ru_date }}</span>
             <span class="assignment-report-date-icon" aria-hidden="true"><i class="bi bi-calendar3"></i></span>
           </button>
         </div>

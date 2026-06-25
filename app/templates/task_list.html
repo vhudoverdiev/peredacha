@@ -126,12 +126,12 @@
   {% if pagination.total %}
     Найдено: <b>{{ pagination.total }}</b>
   {% else %}
-    По запросу ничего не найдено
+    По поиску "{{ args.get('q') }}" ничего не найдено
   {% endif %}
 </div>
 {% endif %}
 
-<div class="remarks-export-scope js-bulk-selectable js-remark-export-scope" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-no-persist-selection="1" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" data-export-form="#{{ export_form_id }}">
+<div class="remarks-export-scope js-bulk-selectable js-remark-export-scope" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" data-export-form="#{{ export_form_id }}" data-selection-storage="local" data-premise-storage-key="{{ premise_storage_key }}">
 
 <div class="card table-shell task-table-shell remarks-export-table-shell" data-search-query="{{ args.get('q', '')|e }}">
   <div class="card-body p-0">

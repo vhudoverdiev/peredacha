@@ -40,7 +40,7 @@
           </span>
           {% endif %}
         </div>
-        <div class="text-muted small">{{ log.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+        <div class="text-muted small">{{ log.created_at|ru_datetime }}</div>
       </div>
 
       <h3 class="developer-delete-log-title">{{ log.entity_title or 'Удалённое действие' }}</h3>
@@ -51,7 +51,7 @@
         {% if log.project %}<span><i class="bi bi-building me-1"></i>{{ log.project.name }}</span>{% endif %}
         <span><i class="bi bi-code-square me-1"></i>{{ log.entity_type }}</span>
         {% if log.undone_at %}
-        <span><i class="bi bi-check2-circle me-1"></i>Отменено: {{ log.undone_at.strftime('%d.%m.%Y %H:%M') }}</span>
+        <span><i class="bi bi-check2-circle me-1"></i>Отменено: {{ log.undone_at|ru_datetime }}</span>
         {% endif %}
       </div>
 

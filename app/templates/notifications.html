@@ -23,9 +23,9 @@
         {% if tab == 'po' %}
         <em>почти готова к ПО</em>
         {% elif tab == 'archive' and row.apartment.avr_archived_at %}
-        <em>АВР отмечен {{ row.apartment.avr_archived_at.strftime('%d.%m.%Y') }}</em>
+        <em>АВР отмечен {{ row.apartment.avr_archived_at|ru_date }}</em>
         {% elif row.apartment.app_deadline_date %}
-        <em>{{ 'истёк' if row.apartment.app_deadline_date < today else 'истекает' }}: {{ row.apartment.app_deadline_date.strftime('%d.%m.%Y') }}</em>
+        <em>{{ 'истёк' if row.apartment.app_deadline_date < today else 'истекает' }}: {{ row.apartment.app_deadline_date|ru_date }}</em>
         {% endif %}
       </span>
       <span class="notification-counts">

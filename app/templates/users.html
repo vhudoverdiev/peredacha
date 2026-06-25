@@ -74,7 +74,7 @@
                     </label>
                   </form>
                 </td>
-                <td>{{ user.created_at.strftime('%d.%m.%Y') }}</td>
+                <td>{{ user.created_at|ru_date }}</td>
                 <td class="text-end">
                   {% if user.id != current_user.id %}
                   <div class="d-inline-flex gap-2 users-actions">

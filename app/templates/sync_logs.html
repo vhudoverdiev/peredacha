@@ -37,7 +37,7 @@
             <td>{{ log.missing_count }}</td>
             <td>
               {% if log.rolled_back_at %}
-                <span class="badge bg-secondary">Откат {{ log.rolled_back_at|msk_datetime('%d.%m.%Y') }}</span>
+                <span class="badge bg-secondary">Откат {{ log.rolled_back_at|msk_datetime }}</span>
               {% elif log.rollback_note %}
                 <span class="badge bg-warning text-dark" title="{{ log.rollback_note }}">Недоступен</span>
               {% else %}

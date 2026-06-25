@@ -14,7 +14,7 @@
     <form method="get" class="row g-2 align-items-end apartments-filter-form">
       <div class="col-12 col-lg-4">
         <label class="form-label">Поиск</label>
-        <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите цифру" inputmode="numeric" pattern="[0-9]*" data-digits-only="1">
+        <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите цифры или текст">
       </div>
       <div class="col-12 col-sm-6 col-lg-2">
         <label class="form-label">Осмотр</label>
@@ -93,7 +93,7 @@
         <i class="bi bi-file-earmark-check"></i>
         АВР:
         {% if row.avr_status == avr_status_signed %}
-          <b class="badge-avr-signed">Подписан{% if row.avr_signed_date %} от {{ row.avr_signed_date.strftime('%d.%m.%Y') }}{% endif %}</b>
+          <b class="badge-avr-signed">Подписан{% if row.avr_signed_date %} от {{ row.avr_signed_date|ru_date }}{% endif %}</b>
         {% else %}
           <b class="badge-avr-needed">Нужен</b>
         {% endif %}
@@ -143,7 +143,7 @@
     </div>
   </article>
   {% else %}
-  <div class="card content-card"><div class="card-body text-muted">Квартир по этому фильтру нет.</div></div>
+  <div class="card content-card"><div class="card-body text-muted">{% if args.get('q') %}По поиску "{{ args.get('q') }}" ничего не найдено{% else %}Квартир по этому фильтру нет.{% endif %}</div></div>
   {% endfor %}
 </div>
 

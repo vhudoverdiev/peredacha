@@ -87,7 +87,7 @@
             {{ 'Принята' if report.kind == 'registration' and report.status == 'closed' else ('Закрыта' if report.status == 'closed' else 'Новая') }}
           </span>
         </div>
-        <div class="text-muted small">{{ report.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+        <div class="text-muted small">{{ report.created_at|ru_datetime }}</div>
       </div>
 
       <div class="site-error-message">{{ report.message }}</div>
@@ -116,7 +116,7 @@
                 data-bs-toggle="modal"
                 data-bs-target="#deleteErrorModal"
                 data-delete-url="{{ url_for('main.site_error_delete', report_id=report.id) }}"
-                data-error-title="{{ ('Системная ошибка' if report.kind == 'system' else ('Заявка на регистрацию' if report.kind == 'registration' else 'Пользовательская ошибка')) ~ ' от ' ~ report.created_at.strftime('%d.%m.%Y %H:%M') }}">
+                data-error-title="{{ ('Системная ошибка' if report.kind == 'system' else ('Заявка на регистрацию' if report.kind == 'registration' else 'Пользовательская ошибка')) ~ ' от ' ~ (report.created_at|ru_datetime) }}">
           <i class="bi bi-trash me-1"></i>Удалить
         </button>
       </div>

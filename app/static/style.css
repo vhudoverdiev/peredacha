@@ -22,6 +22,170 @@
   --crm-radius: 1.35rem;
 }
 
+/* v189: apartment inspection date UI, glass cleanup, button icon contrast */
+.apartment-inspection-date-form {
+  display: grid;
+  gap: .5rem;
+  padding: .75rem;
+  border: 1px solid rgba(15, 23, 42, .08);
+  border-radius: 1rem;
+  background: #f8fafc;
+}
+
+.apartment-inspection-date-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+  align-items: center;
+}
+
+.apartment-inspection-date-actions .form-control {
+  max-width: 220px;
+}
+
+.apartment-inspection-date-actions .btn {
+  min-width: 132px;
+}
+
+.glass-head-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.glass-row-saved {
+  box-shadow: inset 0 0 0 1px rgba(141, 214, 44, .4);
+  background: rgba(141, 214, 44, .08);
+}
+
+.glass-page .bulk-actions-panel .btn.btn-danger,
+.glass-page .bulk-actions-panel .btn.btn-danger:hover,
+.glass-page .bulk-actions-panel .btn.btn-danger:focus,
+.glass-page .bulk-actions-panel .btn.btn-danger:focus-visible {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%) !important;
+  border-color: #dc2626 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(220, 38, 38, .18) !important;
+}
+
+.glass-page .bulk-actions-panel .btn.btn-danger:hover,
+.glass-page .bulk-actions-panel .btn.btn-danger:focus,
+.glass-page .bulk-actions-panel .btn.btn-danger:focus-visible {
+  background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%) !important;
+  border-color: #b91c1c !important;
+}
+
+.glass-page .bulk-actions-panel .btn.btn-danger *,
+.glass-page .bulk-actions-panel .btn.btn-danger i,
+.glass-page .bulk-actions-panel .btn.btn-danger .bi,
+.glass-page .bulk-actions-panel .btn.btn-danger .bi::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.glass-page .bulk-actions-panel .btn.btn-danger:disabled,
+.glass-page .bulk-actions-panel .btn.btn-danger.disabled {
+  opacity: .6;
+  box-shadow: none !important;
+}
+
+.glass-page .form-control,
+.glass-page .form-select,
+.glass-page .developer-select-button {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  box-shadow: inset 0 0 0 1000px #ffffff !important;
+}
+
+.glass-page input:-webkit-autofill,
+.glass-page input:-webkit-autofill:hover,
+.glass-page input:-webkit-autofill:focus,
+.glass-page textarea:-webkit-autofill,
+.glass-page textarea:-webkit-autofill:hover,
+.glass-page textarea:-webkit-autofill:focus,
+.glass-page select:-webkit-autofill,
+.glass-page select:-webkit-autofill:hover,
+.glass-page select:-webkit-autofill:focus {
+  -webkit-text-fill-color: #111827 !important;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  caret-color: #5f9824 !important;
+}
+
+.glass-page .glass-measure-item-row .form-control,
+.glass-page .glass-measure-item-row .form-select,
+.glass-page .glass-measure-item-row input,
+.glass-page .glass-measure-item-row textarea,
+.glass-page .glass-qty-input {
+  font-weight: 400 !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+.glass-page .glass-measure-start-btn,
+.glass-page .glass-measure-start-btn:hover,
+.glass-page .glass-measure-start-btn:focus,
+.glass-page .glass-measure-start-btn:focus-visible,
+.glass-page .glass-measure-start-btn span,
+.glass-page .glass-measure-start-btn i,
+.glass-page .glass-measure-start-btn .bi,
+.glass-page .glass-measure-start-btn .bi::before {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+.glass-page .btn-primary i,
+.glass-page .btn-primary .bi,
+.glass-page .btn-primary .bi::before,
+.glass-page .btn-success i,
+.glass-page .btn-success .bi,
+.glass-page .btn-success .bi::before,
+.material-form-footer .btn-primary i,
+.material-form-footer .btn-primary .bi,
+.material-form-footer .btn-primary .bi::before,
+.material-detail-actions .btn-primary i,
+.material-detail-actions .btn-primary .bi,
+.material-detail-actions .btn-primary .bi::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+body:has(.materials-page-head) .material-icon-delete-btn {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%) !important;
+  border-color: #dc2626 !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(220, 38, 38, .18) !important;
+}
+
+body:has(.materials-page-head) .material-icon-delete-btn:hover,
+body:has(.materials-page-head) .material-icon-delete-btn:focus,
+body:has(.materials-page-head) .material-icon-delete-btn:focus-visible {
+  background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%) !important;
+  border-color: #b91c1c !important;
+}
+
+body:has(.materials-page-head) .material-icon-delete-btn i,
+body:has(.materials-page-head) .material-icon-delete-btn .bi,
+body:has(.materials-page-head) .material-icon-delete-btn .bi::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-size: 1rem !important;
+}
+
+@media (max-width: 767px) {
+  .apartment-inspection-date-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .apartment-inspection-date-actions .form-control,
+  .apartment-inspection-date-actions .btn {
+    max-width: none;
+    width: 100%;
+  }
+}
+
 /* v182: same loader for hidden mobile version in iOS standalone mode. */
 body.mobile-dev-flag .mobile-dev-screen.site-page-loader {
   position: fixed !important;
@@ -25262,13 +25426,13 @@ a.btn.assignment-manual-task-btn .bi-plus-lg::before {
   display: none !important;
 }
 
-.assignment-shell[data-no-persist-selection="1"] .js-bulk-row.is-selected > *,
-.assignment-shell[data-no-persist-selection="1"] .assignment-task-row.is-selected td {
+.assignment-shell .js-bulk-row.is-selected > *,
+.assignment-shell .assignment-task-row.is-selected td {
   background: #f4f8ee !important;
   box-shadow: none !important;
 }
-.assignment-shell[data-no-persist-selection="1"] .js-bulk-row.is-selected > *:first-child,
-.assignment-shell[data-no-persist-selection="1"] .assignment-task-row.is-selected td:first-child {
+.assignment-shell .js-bulk-row.is-selected > *:first-child,
+.assignment-shell .assignment-task-row.is-selected td:first-child {
   box-shadow: none !important;
 }
 
@@ -33542,4 +33706,404 @@ body.app-body.viewport-resize-loading .viewport-transition-loader .site-page-loa
     white-space: nowrap !important;
   }
 }
+/* v190: fix ordered glass table layout after inline edit expansion */
+.glass-page .glass-ordered-table-responsive {
+  overflow-x: auto !important;
+}
 
+.glass-page .glass-ordered-table {
+  min-width: 1480px !important;
+  table-layout: fixed !important;
+}
+
+.glass-page .glass-ordered-table th:nth-child(3),
+.glass-page .glass-ordered-table td:nth-child(3) {
+  width: 34% !important;
+}
+
+.glass-page .glass-ordered-table th:nth-child(4),
+.glass-page .glass-ordered-table td:nth-child(4) {
+  width: 31% !important;
+}
+
+.glass-page .glass-ordered-table th:nth-child(5),
+.glass-page .glass-ordered-table td:nth-child(5) {
+  width: 10% !important;
+}
+
+.glass-page .glass-ordered-table th:nth-child(6),
+.glass-page .glass-ordered-table td:nth-child(6) {
+  width: 13% !important;
+}
+
+.glass-page .glass-ordered-table th:nth-child(7),
+.glass-page .glass-ordered-table td:nth-child(7) {
+  width: 16% !important;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form {
+  min-width: 0;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-measure-items {
+  display: grid;
+  gap: .8rem;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-measure-item-row,
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-measure-item-card {
+  display: grid !important;
+  grid-template-columns: 150px minmax(140px, 1fr) minmax(180px, 1.2fr) 78px !important;
+  gap: .8rem !important;
+  align-items: end !important;
+  min-width: 0 !important;
+  padding: .9rem !important;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-field {
+  min-width: 0 !important;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-field > span {
+  display: block;
+  margin-bottom: .35rem;
+  white-space: normal !important;
+  word-break: keep-all !important;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-field .form-control,
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-field .form-select {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-qty-field .form-control {
+  min-width: 72px !important;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-measure-actions {
+  display: flex !important;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .65rem;
+}
+
+@media (max-width: 1400px) {
+  .glass-page .glass-ordered-table {
+    min-width: 1560px !important;
+  }
+}
+
+/* v191: keep ordered measurement edit controls inside the Sizes column */
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-measure-item-row,
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-measure-item-card {
+  box-sizing: border-box;
+  width: 100% !important;
+  max-width: 100% !important;
+  grid-template-columns: minmax(112px, 1fr) minmax(104px, 1fr) 72px !important;
+  grid-template-areas:
+    "type size qty"
+    "comment comment comment" !important;
+  gap: .65rem .7rem !important;
+  padding: .75rem !important;
+  border-radius: 14px !important;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-type-field {
+  grid-area: type;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-size-field {
+  grid-area: size;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-comment-field {
+  grid-area: comment;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-qty-field {
+  grid-area: qty;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-comment-field .form-control {
+  width: 100% !important;
+}
+
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-measure-actions {
+  justify-content: flex-start !important;
+}
+
+/* v204: global auto-search feedback for filter forms */
+.crm-filter-form,
+.apartments-filter-form,
+.assignment-search-form,
+.assignment-smart-form,
+.assignment-report-filter-form {
+  position: relative;
+}
+
+.auto-search-indicator {
+  position: absolute;
+  right: 14px;
+  bottom: -18px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid rgba(95, 152, 36, .24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .96);
+  color: #31591b;
+  font-size: .86rem;
+  font-weight: 800;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, .12);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity .16s ease, transform .16s ease;
+}
+
+.auto-search-indicator.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.glass-order-transferred-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid rgba(95, 152, 36, .22);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(240, 253, 232, .98) 0%, rgba(229, 247, 211, .92) 100%);
+  color: #31591b;
+  font-weight: 850;
+  box-shadow: 0 12px 24px rgba(95, 152, 36, .12);
+}
+
+.glass-order-transferred-note i,
+.glass-order-transferred-note .bi,
+.glass-order-transferred-note .bi::before {
+  color: #5f9824;
+  -webkit-text-fill-color: #5f9824;
+  font-size: 1.1rem;
+}
+
+.auto-search-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(95, 152, 36, .24);
+  border-top-color: #5f9824;
+  border-radius: 50%;
+  animation: auto-search-spin .7s linear infinite;
+}
+
+@keyframes auto-search-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 767px) {
+  .auto-search-indicator {
+    right: 10px;
+    bottom: -14px;
+    max-width: calc(100% - 20px);
+  }
+}
+
+/* v207: remove blue undertones from measurements tables and empty states */
+.glass-page .glass-table-shell,
+.glass-page .glass-order-page-card,
+.glass-page .glass-order-card-body,
+.glass-page .glass-card-header,
+.glass-page .glass-order-page-header,
+.glass-page .glass-order-list,
+.glass-page .glass-table-shell .card-body,
+.glass-page .glass-table-shell .table-responsive,
+.glass-page .glass-ordered-table-responsive,
+.glass-page .glass-request-panel {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+.glass-page .glass-order-card,
+.glass-page .glass-measure-item-row,
+.glass-page .glass-measure-item-card,
+.glass-page .glass-ordered-size-line {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+.glass-page .glass-empty-state,
+.glass-page .glass-ordered-empty-state {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: rgba(141, 214, 44, .32) !important;
+  color: #111827 !important;
+}
+
+.glass-page .glass-ordered-table thead th,
+.glass-page .glass-measure-table thead th {
+  background: #f7faef !important;
+  background-color: #f7faef !important;
+  color: #111827 !important;
+}
+
+.glass-page .glass-type-select,
+.glass-page .glass-order-card .glass-type-field .form-select,
+.glass-page .glass-ordered-table .js-glass-ordered-edit-form .glass-field .form-select {
+  border-color: rgba(141, 214, 44, .46) !important;
+  color: #111827 !important;
+  box-shadow: none !important;
+}
+
+/* v208: assignment validation keeps selection and highlights incompatible tasks */
+.assignment-invalid-selection-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(220, 38, 38, .28);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(254, 242, 242, .98), rgba(254, 226, 226, .9));
+  color: #991b1b;
+  font-weight: 800;
+}
+
+.assignment-invalid-selection-note i {
+  color: #dc2626;
+  -webkit-text-fill-color: #dc2626;
+  margin-top: 2px;
+}
+
+body:has(.assignments-page-head) .assignment-task-row-invalid,
+body:has(.assignments-page-head) .assignment-task-row-invalid > td {
+  background: #fff1f2 !important;
+  color: #7f1d1d !important;
+}
+
+body:has(.assignments-page-head) .assignment-task-row-invalid > td:first-child {
+  box-shadow: inset 5px 0 0 #dc2626 !important;
+}
+
+body:has(.assignments-page-head) .assignment-task-row-invalid .assignment-task-text,
+body:has(.assignments-page-head) .assignment-task-row-invalid .assignment-room-pill {
+  color: #7f1d1d !important;
+}
+
+body:has(.assignments-page-head) .assignment-task-row-invalid .assignment-task-check {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, .12) !important;
+}
+
+body:has(.assignments-page-head) .assignment-task-row-invalid .assignment-task-check:checked {
+  background-color: #dc2626 !important;
+  border-color: #dc2626 !important;
+}
+
+/* v209: ordered measurements read-only sizes with edit-on-demand */
+.glass-page .glass-ordered-size-view {
+  display: grid;
+  gap: .55rem;
+  min-width: 0;
+}
+
+.glass-page .glass-ordered-size-line-readable {
+  display: grid !important;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(74px, .45fr);
+  gap: .35rem .7rem;
+  max-width: none !important;
+  padding: .75rem .85rem !important;
+  background: #ffffff !important;
+  border-color: rgba(141, 214, 44, .26) !important;
+}
+
+.glass-page .glass-ordered-size-line-readable span,
+.glass-page .glass-ordered-size-line-readable b {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  color: #111827 !important;
+  font-weight: 700;
+}
+
+.glass-page .glass-ordered-size-line-readable b {
+  color: #31591b !important;
+  font-weight: 900;
+}
+
+.glass-page .glass-ordered-size-comment {
+  grid-column: 1 / -1;
+}
+
+.glass-page .glass-actions-col {
+  white-space: nowrap;
+}
+
+.glass-page .glass-actions-col .js-glass-ordered-edit-toggle,
+.glass-page .glass-actions-col .glass-row-delete-form {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: .35rem;
+}
+
+/* v210: persistent table selection and requested hover colors */
+.glass-page .glass-measure-start-btn,
+.glass-page a.glass-measure-start-btn {
+  background: #5faf16 !important;
+  border-color: #4f9912 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 10px 20px rgba(95, 175, 22, .18) !important;
+}
+
+.glass-page .glass-measure-start-btn *,
+.glass-page .glass-measure-start-btn i,
+.glass-page .glass-measure-start-btn .bi,
+.glass-page .glass-measure-start-btn .bi::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.glass-page .glass-measure-start-btn:hover,
+.glass-page .glass-measure-start-btn:focus,
+.glass-page .glass-measure-start-btn:focus-visible {
+  background: #ffffff !important;
+  border-color: #5faf16 !important;
+  color: #31591b !important;
+  -webkit-text-fill-color: #31591b !important;
+  box-shadow: 0 0 0 .18rem rgba(95, 175, 22, .12) !important;
+}
+
+.glass-page .glass-measure-start-btn:hover *,
+.glass-page .glass-measure-start-btn:focus *,
+.glass-page .glass-measure-start-btn:hover i,
+.glass-page .glass-measure-start-btn:focus i,
+.glass-page .glass-measure-start-btn:hover .bi,
+.glass-page .glass-measure-start-btn:focus .bi,
+.glass-page .glass-measure-start-btn:hover .bi::before,
+.glass-page .glass-measure-start-btn:focus .bi::before {
+  color: #31591b !important;
+  -webkit-text-fill-color: #31591b !important;
+}
+
+.apartment-avr-actions .btn-success:hover,
+.apartment-avr-actions .btn-success:focus,
+.apartment-avr-actions .btn-success:focus-visible {
+  background: #3f7f12 !important;
+  border-color: #376f0f !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 0 0 .18rem rgba(63, 127, 18, .18) !important;
+}

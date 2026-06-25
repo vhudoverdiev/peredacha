@@ -16,7 +16,7 @@
   <div>
     <h1 class="page-title">{{ request_title }}</h1>
     <p class="page-subtitle">
-      {{ material_request.request_date.strftime('%d.%m.%Y') if material_request.request_date else '' }}
+      {{ material_request.request_date|ru_date if material_request.request_date else '' }}
       {% if material_request.author %} · {{ material_request.author.full_name or material_request.author.username }}{% endif %}
     </p>
   </div>
@@ -47,7 +47,7 @@
         <tbody>
         {% for item in material_request.items %}
           <tr>
-            <td>{{ material_request.request_date.strftime('%d.%m.%Y') if material_request.request_date else '' }}</td>
+            <td>{{ material_request.request_date|ru_date if material_request.request_date else '' }}</td>
             <td>{{ item.name }}</td>
             <td>{{ fmt_quantity(item.quantity) }}</td>
             <td>{{ item.unit }}</td>

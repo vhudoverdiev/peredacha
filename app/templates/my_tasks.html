@@ -20,7 +20,7 @@
       <div class="worker-task-main">
         <div class="worker-task-meta-minimal">
           <span class="worker-room">{{ task.apartment.label() if task.apartment else '—' }}</span>
-          {% if task.planned_date %}<span>{{ task.planned_date.strftime('%d.%m.%Y') }}</span>{% endif %}
+          {% if task.planned_date %}<span>{{ task.planned_date|ru_date }}</span>{% endif %}
         </div>
         <div class="worker-task-text">{{ remark_text(task.description or task.source_cell_value) }}</div>
       </div>

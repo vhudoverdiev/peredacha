@@ -80,11 +80,11 @@ def _complete_pending_login(user: User):
 
 def _continue_after_password(user: User):
     clear_captcha()
+    if not user.captcha_disabled:
+        return redirect(url_for("auth.login_captcha"))
     if _needs_two_factor_for_ip(user) and not session.get("pending_login_2fa_verified"):
         session["pending_login_2fa"] = True
         return redirect(url_for("auth.login_2fa"))
-    if not user.captcha_disabled:
-        return redirect(url_for("auth.login_captcha"))
     return _complete_pending_login(user)
 
 
@@ -220,7 +220,7 @@ def login_2fa():
             return _render_login_2fa(form)
         session.pop("pending_login_2fa", None)
         session["pending_login_2fa_verified"] = True
-        return _continue_after_password(user)
+        return _complete_pending_login(user)
 
     return _render_login_2fa(form)
 

@@ -5,13 +5,46 @@ from flask_login import LoginManager, current_user, logout_user
 from flask_wtf import CSRFProtect
 from config import Config
 from sqlalchemy import inspect, text
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 
 
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 csrf = CSRFProtect()
+
+RU_MONTHS_GENITIVE = {
+    1: "января",
+    2: "февраля",
+    3: "марта",
+    4: "апреля",
+    5: "мая",
+    6: "июня",
+    7: "июля",
+    8: "августа",
+    9: "сентября",
+    10: "октября",
+    11: "ноября",
+    12: "декабря",
+}
+
+
+def _format_ru_date(value) -> str:
+    if not value:
+        return "—"
+    if isinstance(value, datetime):
+        value = value.date()
+    if not isinstance(value, date):
+        return str(value)
+    return f"{value.day} {RU_MONTHS_GENITIVE.get(value.month, '')} {value.year}".strip()
+
+
+def _format_ru_datetime(value) -> str:
+    if not value:
+        return "—"
+    if not isinstance(value, datetime):
+        return str(value)
+    return f"{_format_ru_date(value)} {value.strftime('%H:%M')}"
 
 
 def create_app(config_class=Config):
@@ -70,10 +103,21 @@ def create_app(config_class=Config):
         return response
 
     @app.template_filter("msk_datetime")
-    def msk_datetime(value, fmt="%d.%m.%Y %H:%M"):
+    def msk_datetime(value, fmt=None):
         if not value:
             return "—"
-        return (value + timedelta(hours=3)).strftime(fmt)
+        value = value + timedelta(hours=3)
+        if fmt:
+            return value.strftime(fmt)
+        return _format_ru_datetime(value)
+
+    @app.template_filter("ru_date")
+    def ru_date(value):
+        return _format_ru_date(value)
+
+    @app.template_filter("ru_datetime")
+    def ru_datetime(value):
+        return _format_ru_datetime(value)
 
 
     from app.models import User

@@ -43,7 +43,7 @@
             <td><span class="assignment-room-pill"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else '—' }}</span></td>
             <td class="task-text"><a class="assignment-task-text assignment-task-open-link" href="{{ url_for('main.task_detail', task_id=task.id) }}">{{ remark_text(task.description or task.source_cell_value) }}</a></td>
             <td class="assignment-issued-date-cell">
-              <span>{{ task.planned_date.strftime('%d.%m.%Y') if task.planned_date else '—' }}</span>
+              <span>{{ task.planned_date|ru_date if task.planned_date else '—' }}</span>
               {% if overdue_view and row.overdue_days %}<small class="assignment-overdue-days">просрочено {{ row.overdue_days }} дн.</small>{% endif %}
             </td>
             <td>
@@ -244,7 +244,7 @@
   </div>
 </div>
 
-<form method="post" action="{{ url_for('main.assignments') }}" class="card table-shell task-table-shell assignment-shell assignment-contractor-shell js-bulk-selectable" data-no-persist-selection="1" data-search-highlight="{{ args.get('q', '') }}" data-bulk-label-one="задача" data-bulk-label-few="задачи" data-bulk-label-many="задач">
+<form method="post" action="{{ url_for('main.assignments') }}" class="card table-shell task-table-shell assignment-shell assignment-contractor-shell js-bulk-selectable" data-selection-key="assignments-{{ project.id }}-{{ args.get('q', '') }}" data-search-highlight="{{ args.get('q', '') }}" data-bulk-label-one="задача" data-bulk-label-few="задачи" data-bulk-label-many="задач">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="card-body border-bottom assignment-issue-panel assignment-issue-panel-restored">
     <div class="assignment-section-title mb-3">
@@ -260,14 +260,14 @@
           <select class="form-select developer-native-select" name="responsible_id">
             <option value="">Выберите пользователя</option>
             {% for user in users %}
-            <option value="{{ user.id }}" {% if smart_user and smart_user.id == user.id %}selected{% endif %}>{{ user.full_name or user.username }} — {{ ROLE_LABELS.get(user.role, user.role) }}</option>
+            <option value="{{ user.id }}" {% if (issue_responsible_id and issue_responsible_id == user.id) or (not issue_responsible_id and smart_user and smart_user.id == user.id) %}selected{% endif %}>{{ user.full_name or user.username }} — {{ ROLE_LABELS.get(user.role, user.role) }}</option>
             {% endfor %}
           </select>
         </div>
       </div>
       <div class="col-12 col-lg-3">
         <label class="form-label">Дата выполнения</label>
-        <input class="form-control" type="date" name="planned_date" value="{{ smart_date.isoformat() if smart_mode else '' }}">
+        <input class="form-control" type="date" name="planned_date" value="{{ issue_planned_date.isoformat() if issue_planned_date else (smart_date.isoformat() if smart_mode else '') }}">
       </div>
       <div class="col-12 col-lg-4">
         <div class="assignment-bulk-panel-restored-actions">
@@ -280,6 +280,12 @@
         Выбрано: <span class="js-bulk-count">0</span> <span class="js-bulk-label">задач</span>
       </div>
     </div>
+    {% if invalid_task_ids %}
+    <div class="assignment-invalid-selection-note mt-3">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>Красным выделены задачи, которые не относятся к выбранному исполнителю. Снимите отметку с этих задач и повторите выдачу.</span>
+    </div>
+    {% endif %}
   </div>
   <div class="card-body p-0">
     <div class="table-responsive assignment-table-wrap">
@@ -304,9 +310,9 @@
         </thead>
         <tbody>
         {% for task in tasks %}
-          <tr class="assignment-task-row js-bulk-row" data-task-id="{{ task.id }}">
+          <tr class="assignment-task-row js-bulk-row {% if task.id in invalid_task_ids %}assignment-task-row-invalid{% endif %}" data-task-id="{{ task.id }}">
             <td class="assignment-check-cell">
-              <input class="form-check-input assignment-task-check js-bulk-check" type="checkbox" name="task_ids" value="{{ task.id }}" {% if smart_mode %}checked{% endif %}>
+              <input class="form-check-input assignment-task-check js-bulk-check" type="checkbox" name="task_ids" value="{{ task.id }}" {% if smart_mode or task.id in selected_task_ids %}checked{% endif %}>
             </td>
             <td><span class="assignment-room-pill js-highlight-text"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else '—' }}</span></td>
             <td class="task-text"><span class="assignment-task-text js-highlight-text" title="{{ task.description or task.source_cell_value }}">{{ remark_text(task.description or task.source_cell_value) }}</span></td>
@@ -322,10 +328,10 @@
               <span class="assignment-user-empty">—</span>
               {% endif %}
             </td>
-            <td class="assignment-date-cell">{{ task.planned_date.strftime('%d.%m.%Y') if task.planned_date else '—' }}</td>
+            <td class="assignment-date-cell">{{ task.planned_date|ru_date if task.planned_date else '—' }}</td>
           </tr>
         {% else %}
-          <tr><td colspan="6" class="text-center text-muted py-5">Задач по этому поиску нет</td></tr>
+          <tr><td colspan="6" class="text-center text-muted py-5">{% if args.get('q') %}По поиску "{{ args.get('q') }}" ничего не найдено{% else %}Задач по этому поиску нет{% endif %}</td></tr>
         {% endfor %}
         </tbody>
       </table>

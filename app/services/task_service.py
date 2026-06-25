@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 import re
 from typing import Any, Iterable
 
-from sqlalchemy import Integer, cast, case, func, or_
+from sqlalchemy import Integer, cast, case, func, or_, and_
 from app import db
 from app.models import (
     AppSetting,
@@ -161,6 +161,64 @@ def detect_search_mode(query: str | None) -> tuple[str, str]:
     if match:
         return "premise_number", match.group(1)
     return "text", text
+
+
+def parse_multi_premise_search(query: str | None) -> tuple[list[tuple[str, str]], str]:
+    text = str(query or "").strip()
+    if not text:
+        return [], ""
+    parts = text.split()
+    selectors: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    text_start = len(parts)
+    for index, part in enumerate(parts):
+        mode, value = detect_search_mode(part)
+        if mode == "text" or not str(value or "").strip():
+            text_start = index
+            break
+        selector = (mode, str(value).strip())
+        if selector in seen:
+            continue
+        seen.add(selector)
+        selectors.append(selector)
+    if not selectors:
+        return [], text
+    tail = " ".join(parts[text_start:]).strip() if text_start < len(parts) else ""
+    return selectors, tail
+
+
+def premise_matches_selector(apartment: Apartment | None, selector: tuple[str, str]) -> bool:
+    mode, value = selector
+    return premise_matches_search(apartment, mode, value)
+
+
+def premise_selector_value(selector: tuple[str, str]) -> str:
+    mode, value = selector
+    if mode == "commercial_pair":
+        number, _, building = str(value).partition("|")
+        return f"{number}/{building}".strip("/")
+    return str(value or "").strip()
+
+
+def premise_selector_clause(selector: tuple[str, str]):
+    mode, value = selector
+    if mode == "commercial_pair":
+        number, _, building = str(value).partition("|")
+        return and_(
+            Apartment.premise_type == "commercial",
+            Apartment.apartment_number == number,
+            Apartment.building == building,
+        )
+    if mode == "construction_number":
+        return Apartment.construction_number == value
+    if mode == "premise_number_or_building":
+        return or_(
+            Apartment.apartment_number == value,
+            and_(Apartment.premise_type == "commercial", Apartment.building == value),
+        )
+    if mode == "premise_number":
+        return Apartment.apartment_number == value
+    return None
 
 
 def premise_matches_search(apartment: Apartment | None, mode: str, value: str | None) -> bool:
@@ -470,10 +528,8 @@ def is_non_white_finishing(finishing_type: str | None) -> bool:
 
 
 def should_auto_finishers(apartment: Apartment, work_point: WorkPoint) -> bool:
-    return (
-        str(work_point.point_number).strip() in {"11", "12", "13", "14"}
-        and is_non_white_finishing(apartment.finishing_type)
-    )
+    # Auto-marking finishers for clean-finish apartments is disabled by product rules.
+    return False
 
 
 
@@ -1067,9 +1123,12 @@ def upsert_task_from_cell(
     if should_auto_finishers(apartment, work_point):
         auto_status = STATUS_FINISHERS
     if auto_status and (not task.manually_edited or task.status == STATUS_NOT_STARTED or should_auto_finishers(apartment, work_point)):
+        old_status = task.status
         task.status = auto_status
         task.is_done = auto_status in DONE_STATUSES
         task.completed_date = task.completed_date or sync_time if task.is_done else None
+        if old_status != auto_status:
+            log_change(task, "status_change", "status", old_status, auto_status, user_id=None)
     db.session.flush()
     return task, created
 
@@ -1329,42 +1388,66 @@ def build_task_query(params, category_id: int | None = None, project_id: int | N
             query = query.filter(Apartment.apartment_number == apartment_number)
 
     q = (params.get("q") or "").strip()
+    premise_selectors: list[tuple[str, str]] = []
     if q:
-        search_mode, search_value = detect_search_mode(q)
-        if search_mode == "commercial_pair":
-            number, _, building = search_value.partition("|")
-            query = query.filter(
-                Apartment.premise_type == "commercial",
-                Apartment.apartment_number == number,
-                Apartment.building == building,
-            )
-        elif search_mode == "construction_number":
-            query = query.filter(Apartment.construction_number == search_value)
-        elif search_mode == "premise_number_or_building":
-            query = query.filter(
-                or_(
-                    Apartment.apartment_number == search_value,
-                    (Apartment.premise_type == "commercial") & (Apartment.building == search_value),
+        premise_selectors, tail_query = parse_multi_premise_search(q)
+        if premise_selectors:
+            selector_clauses = [premise_selector_clause(selector) for selector in premise_selectors]
+            selector_clauses = [clause for clause in selector_clauses if clause is not None]
+            if selector_clauses:
+                query = query.filter(or_(*selector_clauses))
+            if tail_query:
+                like = f"%{tail_query}%"
+                query = query.filter(
+                    or_(
+                        Apartment.apartment_number.ilike(like),
+                        Apartment.construction_number.ilike(like),
+                        Apartment.owner_name.ilike(like),
+                        Apartment.phone.ilike(like),
+                        Task.description.ilike(like),
+                        Task.source_cell_value.ilike(like),
+                        WorkPoint.point_number.ilike(like),
+                        WorkPoint.short_name.ilike(like),
+                        User.full_name.ilike(like),
+                        User.username.ilike(like),
+                    )
                 )
-            )
-        elif search_mode == "premise_number":
-            query = query.filter(Apartment.apartment_number == search_value)
         else:
-            like = f"%{search_value}%"
-            query = query.filter(
-                or_(
-                    Apartment.apartment_number.ilike(like),
-                    Apartment.construction_number.ilike(like),
-                    Apartment.owner_name.ilike(like),
-                    Apartment.phone.ilike(like),
-                    Task.description.ilike(like),
-                    Task.source_cell_value.ilike(like),
-                    WorkPoint.point_number.ilike(like),
-                    WorkPoint.short_name.ilike(like),
-                    User.full_name.ilike(like),
-                    User.username.ilike(like),
+            search_mode, search_value = detect_search_mode(q)
+            if search_mode == "commercial_pair":
+                number, _, building = search_value.partition("|")
+                query = query.filter(
+                    Apartment.premise_type == "commercial",
+                    Apartment.apartment_number == number,
+                    Apartment.building == building,
                 )
-            )
+            elif search_mode == "construction_number":
+                query = query.filter(Apartment.construction_number == search_value)
+            elif search_mode == "premise_number_or_building":
+                query = query.filter(
+                    or_(
+                        Apartment.apartment_number == search_value,
+                        (Apartment.premise_type == "commercial") & (Apartment.building == search_value),
+                    )
+                )
+            elif search_mode == "premise_number":
+                query = query.filter(Apartment.apartment_number == search_value)
+            else:
+                like = f"%{search_value}%"
+                query = query.filter(
+                    or_(
+                        Apartment.apartment_number.ilike(like),
+                        Apartment.construction_number.ilike(like),
+                        Apartment.owner_name.ilike(like),
+                        Apartment.phone.ilike(like),
+                        Task.description.ilike(like),
+                        Task.source_cell_value.ilike(like),
+                        WorkPoint.point_number.ilike(like),
+                        WorkPoint.short_name.ilike(like),
+                        User.full_name.ilike(like),
+                        User.username.ilike(like),
+                    )
+                )
 
     status = params.get("status")
     if status != "missing":
@@ -1424,6 +1507,15 @@ def build_task_query(params, category_id: int | None = None, project_id: int | N
         sort = "apartment"
 
     done_last = Task.is_done.asc()
+    premise_order_rank = None
+    if premise_selectors:
+        rank_clauses = []
+        for index, selector in enumerate(premise_selectors):
+            clause = premise_selector_clause(selector)
+            if clause is not None:
+                rank_clauses.append((clause, index))
+        if rank_clauses:
+            premise_order_rank = case(*rank_clauses, else_=len(rank_clauses))
     deadline_rank = case(
         (Apartment.app_deadline_date.is_(None), 3),
         (Apartment.app_deadline_date < today_value, 0),
@@ -1431,30 +1523,35 @@ def build_task_query(params, category_id: int | None = None, project_id: int | N
         else_=2,
     )
 
+    def ordered(*parts):
+        if premise_order_rank is None:
+            return parts
+        return (done_last, premise_order_rank.asc(), *parts[1:]) if parts and parts[0] is done_last else (premise_order_rank.asc(), *parts)
+
     if sort == "apartment":
-        query = query.order_by(done_last, cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc())
+        query = query.order_by(*ordered(done_last, cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc()))
     elif sort == "construction_number":
-        query = query.order_by(done_last, Apartment.construction_number.asc(), WorkPoint.point_number.asc())
+        query = query.order_by(*ordered(done_last, Apartment.construction_number.asc(), WorkPoint.point_number.asc()))
     elif sort == "owner":
-        query = query.order_by(done_last, Apartment.owner_name.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc())
+        query = query.order_by(*ordered(done_last, Apartment.owner_name.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()))
     elif sort == "finishing_type":
-        query = query.order_by(done_last, Apartment.finishing_type.asc().nullslast(), Apartment.apartment_number.asc())
+        query = query.order_by(*ordered(done_last, Apartment.finishing_type.asc().nullslast(), Apartment.apartment_number.asc()))
     elif sort == "point":
-        query = query.order_by(done_last, WorkPoint.point_number.asc(), Apartment.apartment_number.asc())
+        query = query.order_by(*ordered(done_last, WorkPoint.point_number.asc(), Apartment.apartment_number.asc()))
     elif sort == "status":
-        query = query.order_by(done_last, deadline_rank.asc(), Apartment.app_deadline_date.asc().nullslast(), Task.status.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc())
+        query = query.order_by(*ordered(done_last, deadline_rank.asc(), Apartment.app_deadline_date.asc().nullslast(), Task.status.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()))
     elif sort == "mode":
-        query = query.order_by(done_last, Apartment.is_app_mode.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc())
+        query = query.order_by(*ordered(done_last, Apartment.is_app_mode.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()))
     elif sort == "priority":
-        query = query.order_by(done_last, Task.priority.desc(), Task.updated_at.desc())
+        query = query.order_by(*ordered(done_last, Task.priority.desc(), Task.updated_at.desc()))
     elif sort == "planned_old":
-        query = query.order_by(done_last, Task.planned_date.asc().nullslast(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc())
+        query = query.order_by(*ordered(done_last, Task.planned_date.asc().nullslast(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()))
     elif sort == "planned_new":
-        query = query.order_by(done_last, Task.planned_date.desc().nullslast(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc())
+        query = query.order_by(*ordered(done_last, Task.planned_date.desc().nullslast(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()))
     elif sort == "done_first":
-        query = query.order_by(done_last, Task.updated_at.desc())
+        query = query.order_by(*ordered(done_last, Task.updated_at.desc()))
     else:
-        query = query.order_by(done_last, Task.updated_at.desc())
+        query = query.order_by(*ordered(done_last, Task.updated_at.desc()))
     return query
 
 
