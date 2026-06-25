@@ -61,7 +61,7 @@
         </div>
       </div>
       <div class="col-12 col-md-4 filter-actions developer-filter-actions">
-        <button class="btn developer-filter-btn developer-filter-btn-apply" type="submit">
+        <button class="btn developer-filter-btn developer-filter-btn-apply" type="submit" data-site-error-close-btn="1">
           <i class="bi bi-funnel-fill"></i><span>Применить</span>
         </button>
         <a class="btn developer-filter-btn developer-filter-btn-reset" href="{{ url_for('main.site_errors') }}">
@@ -74,7 +74,7 @@
 
 <div class="site-errors-list">
   {% for report in reports %}
-  <article class="card content-card site-error-card {% if report.status == 'closed' %}closed{% else %}site-error-card-open{% endif %} {% if report.kind == 'registration' and report.status == 'closed' %}site-error-card-accepted{% endif %}">
+  <article class="card content-card site-error-card {% if report.status == 'closed' %}closed{% else %}site-error-card-open{% endif %} {% if report.kind == 'registration' and report.status == 'closed' %}site-error-card-accepted{% endif %}" data-site-error-card="{{ report.id }}" data-site-error-kind="{{ report.kind }}" data-site-error-status="{{ report.status }}">
     <div class="card-body">
       <div class="site-error-head">
         <div>
@@ -106,7 +106,7 @@
       {% endif %}
 
       <div class="site-error-actions mt-3">
-        <form method="post" action="{{ url_for('main.site_error_close', report_id=report.id) }}">
+        <form method="post" action="{{ url_for('main.site_error_close', report_id=report.id) }}" data-site-error-close-form="1" data-report-id="{{ report.id }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn btn-sm site-error-action-btn {% if report.status == 'closed' or report.kind == 'registration' %}site-error-action-btn-success{% else %}site-error-action-btn-close{% endif %}" type="submit">
             {{ 'Вернуть в новые' if report.status == 'closed' else ('Принять' if report.kind == 'registration' else 'Закрыть ошибку') }}
@@ -298,5 +298,71 @@ document.addEventListener('DOMContentLoaded', function () {
     if (text) text.textContent = 'Удалить запись: ' + title + '? Это действие нельзя отменить.';
   });
 });
+
+
+  document.querySelectorAll('[data-site-error-close-form="1"]').forEach(function (form) {
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const button = form.querySelector('[data-site-error-close-btn="1"]');
+      const card = document.querySelector('[data-site-error-card="' + form.dataset.reportId + '"]');
+      const badge = document.querySelector('.site-errors-nav-badge');
+      const sidebar = document.querySelector('.developer-sidebar-link');
+      const previousText = button ? button.textContent : '';
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'Сохраняем...';
+      }
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(function () { return {}; });
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
+        const isClosed = data.status === 'closed';
+        const isRegistration = card && card.dataset.siteErrorKind === 'registration';
+        if (card) {
+          card.dataset.siteErrorStatus = data.status || '';
+          card.classList.toggle('closed', isClosed);
+          card.classList.toggle('site-error-card-open', !isClosed);
+          card.classList.toggle('site-error-card-accepted', Boolean(isRegistration && isClosed));
+          const stateBadge = card.querySelector('.site-error-state-badge');
+          if (stateBadge) {
+            stateBadge.textContent = isRegistration && isClosed ? 'Принята' : (isClosed ? 'Закрыта' : 'Новая');
+            stateBadge.classList.toggle('site-error-state-accepted', Boolean(isRegistration && isClosed));
+            stateBadge.classList.toggle('site-error-state-closed', Boolean(!isRegistration && isClosed));
+            stateBadge.classList.toggle('site-error-state-new', !isClosed);
+          }
+        }
+        if (button) {
+          button.textContent = isClosed ? 'Вернуть в новые' : (isRegistration ? 'Принять' : 'Закрыть ошибку');
+          button.classList.toggle('site-error-action-btn-success', Boolean(isClosed || isRegistration));
+          button.classList.toggle('site-error-action-btn-close', Boolean(!isClosed && !isRegistration));
+        }
+        if (badge) {
+          const nextCount = Math.max(0, Number.parseInt(badge.textContent || '0', 10) + (isClosed ? -1 : 1));
+          if (nextCount > 0) {
+            badge.textContent = String(nextCount);
+          } else {
+            badge.remove();
+          }
+          if (sidebar) sidebar.classList.toggle('has-nav-count', nextCount > 0);
+        }
+      } catch (error) {
+        window.alert(error.message || 'Не удалось обновить статус');
+      } finally {
+        if (button) {
+          button.disabled = false;
+          if (button.textContent === 'Сохраняем...') button.textContent = previousText;
+        }
+      }
+    });
+  });
+
 </script>
 {% endblock %}

@@ -550,25 +550,40 @@ document.addEventListener('DOMContentLoaded', () => {
     return el ? el.value : '';
   };
 
+  try {
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+  } catch (error) {}
+
   const scrollStateKey = `crm-scroll:${window.location.pathname}${window.location.search}`;
+  const scrollLastStateKey = 'crm-scroll:last';
   const rememberScrollPosition = () => {
     try {
-      sessionStorage.setItem(scrollStateKey, JSON.stringify({
+      const state = {
+        path: window.location.pathname,
+        search: window.location.search,
         x: window.scrollX || 0,
         y: window.scrollY || 0,
-        ts: Date.now()
-      }));
+        ts: Date.now(),
+      };
+      const encoded = JSON.stringify(state);
+      sessionStorage.setItem(scrollStateKey, encoded);
+      sessionStorage.setItem(scrollLastStateKey, encoded);
     } catch (error) {}
   };
 
   const restoreScrollPosition = () => {
     try {
-      const raw = sessionStorage.getItem(scrollStateKey);
+      const raw = sessionStorage.getItem(scrollStateKey) || sessionStorage.getItem(scrollLastStateKey);
       if (!raw) return;
       const state = JSON.parse(raw);
       if (!state || typeof state.y !== 'number') return;
-      if (Date.now() - Number(state.ts || 0) > 12000) {
+      if ((state.path && state.path !== window.location.pathname) || (state.search && state.search !== window.location.search)) {
+        sessionStorage.removeItem(scrollLastStateKey);
+        return;
+      }
+      if (Date.now() - Number(state.ts || 0) > 45000) {
         sessionStorage.removeItem(scrollStateKey);
+        sessionStorage.removeItem(scrollLastStateKey);
         return;
       }
       const targetX = state.x || 0;
@@ -578,17 +593,20 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo(targetX, targetY);
         attempts += 1;
         const reachedTarget = Math.abs((window.scrollY || 0) - targetY) < 4;
-        if (reachedTarget || attempts >= 12) {
+        if (reachedTarget || attempts >= 30) {
           sessionStorage.removeItem(scrollStateKey);
+          sessionStorage.removeItem(scrollLastStateKey);
           return;
         }
-        window.setTimeout(applyScroll, 120);
+        window.setTimeout(applyScroll, 150);
       };
       requestAnimationFrame(applyScroll);
     } catch (error) {}
   };
 
   restoreScrollPosition();
+  window.addEventListener('load', restoreScrollPosition);
+  window.addEventListener('pageshow', restoreScrollPosition);
   window.addEventListener('beforeunload', rememberScrollPosition);
   window.addEventListener('pagehide', rememberScrollPosition);
   document.addEventListener('submit', event => {
@@ -857,6 +875,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const data = await resp.json();
         span.innerHTML = formatRemarkHtml(data.text ?? next);
+        appendTimelineEntry(
+          document.querySelector('[data-task-history-list]'),
+          document.querySelector('[data-task-history-empty]'),
+          data.history_entry,
+        );
         closeEditor();
       });
     });
@@ -909,14 +932,32 @@ document.addEventListener('DOMContentLoaded', () => {
     card.addEventListener('click', event => {
       if (event.target.closest('a, button, form, input, textarea, select, label')) return;
       const href = card.querySelector('.apartment-card-link')?.getAttribute('href');
-      if (href) window.location.href = href;
+      if (href) {
+        window.location.href = href;
+      }
     });
   });
 
+  const appendTimelineEntry = (list, emptyNode, entry) => {
+    if (!list || !entry) return;
+    const item = document.createElement('div');
+    item.className = 'timeline-item';
+    const meta = document.createElement('div');
+    meta.className = 'small text-muted';
+    meta.textContent = [entry.timestamp, entry.actor, entry.point_label].filter(Boolean).join(' · ');
+    const summary = document.createElement('div');
+    summary.textContent = entry.summary || '';
+    item.append(meta, summary);
+    list.prepend(item);
+    list.hidden = false;
+    if (emptyNode) emptyNode.hidden = true;
+  };
+
   document.querySelectorAll('form[action*="/status/"]').forEach(form => {
     form.addEventListener('submit', async event => {
-      const row = form.closest('.task-row-link');
-      if (!row) return;
+      const row = form.closest('.task-row-link, [data-task-detail-shell]');
+      const isTaskDetail = form.dataset.taskDetailStatus === '1';
+      if (!row && !isTaskDetail) return;
       if (!form.checkValidity()) {
         return;
       }
@@ -939,7 +980,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        const badge = row.querySelector('[data-status-pill]') || row.querySelector('.task-status-cell .badge') || row.querySelector('td .badge');
+        const badge = row?.querySelector('[data-status-pill]') || row?.querySelector('.task-status-cell .badge') || row?.querySelector('td .badge');
         if (badge) {
           if (badge.classList.contains('status-pill')) {
             const pillClassMap = {
@@ -955,10 +996,18 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           badge.textContent = data.status_label || data.status || '';
         }
-        row.classList.toggle('table-success', Boolean(data.is_done));
-        row.classList.toggle('done-task', Boolean(data.is_done));
-        row.classList.toggle('is-done', Boolean(data.is_done));
-        moveDoneItemToBottom(row);
+        row?.classList.toggle('table-success', Boolean(data.is_done));
+        row?.classList.toggle('done-task', Boolean(data.is_done));
+        row?.classList.toggle('is-done', Boolean(data.is_done));
+        if (row) moveDoneItemToBottom(row);
+        if (isTaskDetail) {
+          document.querySelector('.task-text')?.classList.toggle('text-decoration-line-through', Boolean(data.is_done));
+          appendTimelineEntry(
+            document.querySelector('[data-task-history-list]'),
+            document.querySelector('[data-task-history-empty]'),
+            data.history_entry,
+          );
+        }
 
         if (form.dataset.reloadAfterStatus === '1') {
           // Не обновляем страницу сразу: пользователь должен видеть строку/карточку на месте
@@ -969,11 +1018,11 @@ document.addEventListener('DOMContentLoaded', () => {
           form.action = data.is_done ? (form.dataset.notStartedUrl || form.action) : (form.dataset.doneUrl || form.action);
         }
 
-        const actionsCell = row.querySelector('.actions-cell');
+        const actionsCell = row?.querySelector('.actions-cell');
         if (actionsCell) {
           actionsCell.dataset.currentStatus = data.status || '';
         }
-        row.querySelectorAll('.status-action-form[data-status-action]').forEach(actionForm => {
+        row?.querySelectorAll('.status-action-form[data-status-action]').forEach(actionForm => {
           actionForm.classList.toggle('d-none', actionForm.dataset.statusAction === data.status);
         });
 
@@ -1007,9 +1056,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (submitter) submitter.disabled = true;
 
       try {
+        const formData = new FormData(form);
+        if (submitter?.name) {
+          formData.set(submitter.name, submitter.value ?? '');
+        }
         const response = await fetch(form.action, {
           method: 'POST',
-          body: new FormData(form),
+          body: formData,
           credentials: 'same-origin',
           headers: {
             'X-Requested-With': 'XMLHttpRequest',
@@ -1023,7 +1076,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const inspectionDisplay = document.querySelector('[data-apartment-inspection-display]');
         if (inspectionDisplay && Object.prototype.hasOwnProperty.call(data, 'inspection_date_label')) {
-          inspectionDisplay.textContent = data.inspection_date_label || '—';
+          const status = escapeHtml(data.inspection_status || '');
+          const statusClass = escapeHtml(data.inspection_status_class || 'status-pill-muted');
+          const label = escapeHtml(data.inspection_date_label || '—');
+          inspectionDisplay.innerHTML = status
+            ? `<span class="status-pill ${statusClass}">${status}</span><span>${label}</span>`
+            : label;
         }
 
         const commentDisplay = document.querySelector('[data-apartment-comment-display]');
@@ -1036,10 +1094,30 @@ document.addEventListener('DOMContentLoaded', () => {
           inspectionNoteDisplay.textContent = data.inspection_note || '—';
         }
 
+        const avrDisplay = document.querySelector('[data-apartment-avr-display]');
+        if (avrDisplay && Object.prototype.hasOwnProperty.call(data, 'avr_status')) {
+          avrDisplay.innerHTML = data.avr_status === 'signed'
+            ? `<span class="badge-avr-signed">Подписан${data.avr_signed_date_label ? ` от ${escapeHtml(data.avr_signed_date_label)}` : ''}</span>`
+            : '<span class="badge-avr-needed">Нужен</span>';
+        }
+        if (form.classList.contains('apartment-avr-form') && Object.prototype.hasOwnProperty.call(data, 'avr_status')) {
+          form.querySelectorAll('button[name="avr_status"]').forEach(statusButton => {
+            const isActive = statusButton.value === data.avr_status;
+            statusButton.classList.remove('btn-primary', 'btn-outline-primary', 'btn-success', 'btn-outline-success');
+            if (statusButton.value === 'signed') {
+              statusButton.classList.add(isActive ? 'btn-success' : 'btn-outline-success');
+            } else {
+              statusButton.classList.add(isActive ? 'btn-primary' : 'btn-outline-primary');
+            }
+          });
+          const signedDateInput = form.querySelector('input[name="avr_signed_date"]');
+          if (signedDateInput && data.avr_signed_date) signedDateInput.value = data.avr_signed_date;
+        }
+
         if (data.history_entry) {
           const historyList = document.querySelector('[data-apartment-history-list]');
           const historyEmpty = document.querySelector('[data-apartment-history-empty]');
-          if (historyList) {
+          if (historyList && String(historyList.dataset.currentPage || '1') === '1') {
             const item = document.createElement('div');
             item.className = 'timeline-item';
             const meta = document.createElement('div');
@@ -1305,6 +1383,40 @@ document.addEventListener('DOMContentLoaded', () => {
     return `crm-bulk-selection:auto:${window.location.pathname}:${normalizedQuery}:scope-${scopeIndex}`;
   };
   const bulkStorage = (scope) => scope.dataset.selectionStorage === 'local' ? window.localStorage : window.sessionStorage;
+  const removeStorageKey = (storage, key) => {
+    try { storage.removeItem(key); } catch (error) {}
+  };
+  const clearStorageByPrefix = (storage, prefix) => {
+    try {
+      for (let index = storage.length - 1; index >= 0; index -= 1) {
+        const key = storage.key(index);
+        if (key && key.startsWith(prefix)) storage.removeItem(key);
+      }
+    } catch (error) {}
+  };
+  const clearAllBulkSelectionStorage = () => {
+    clearStorageByPrefix(window.sessionStorage, 'crm-bulk-selection:');
+    clearStorageByPrefix(window.localStorage, 'crm-bulk-selection:');
+  };
+  const shouldClearBulkSelectionOnLink = (link, url) => {
+    if (url.origin !== window.location.origin) return false;
+    if (link.dataset.preserveBulkSelection === '1') return false;
+    if (link.closest('.pagination') || isPaginationNavigation(url)) return false;
+    if (link.closest('.task-row-link, .related-task-item, .apartment-card, .object-card')) return false;
+    if (link.classList.contains('task-detail-back-btn')) return false;
+    if (link.closest('.sidebar-link, .sidebar-sublink, .crm-tabs, .developer-section-tabs, .site-errors-kind-tabs, .remarks-tabs, .nav')) return true;
+    return url.pathname !== window.location.pathname;
+  };
+  window.clearCrmBulkSelectionStorage = clearAllBulkSelectionStorage;
+  const clearBulkSelectionForScope = (scope, { resetUi = true } = {}) => {
+    const key = bulkStorageKey(scope);
+    if (key) removeStorageKey(bulkStorage(scope), key);
+    if (!(scope.__bulkSelectedIds instanceof Set)) return;
+    scope.__bulkSelectedIds.clear();
+    if (!resetUi) return;
+    scope.querySelectorAll('.js-bulk-check').forEach(check => { check.checked = false; });
+    syncBulkScope(scope);
+  };
   const readBulkSelection = (scope) => {
     const key = bulkStorageKey(scope);
     if (!key) return null;
@@ -1361,6 +1473,43 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
   const isBulkCheckAvailable = (check) => !check.disabled && !check.closest('.js-bulk-row[hidden]');
+
+  const isPaginationNavigation = (url) => {
+    if (url.origin !== window.location.origin || url.pathname !== window.location.pathname) return false;
+    const currentParams = new URLSearchParams(window.location.search || '');
+    const nextParams = new URLSearchParams(url.search || '');
+    const currentPage = currentParams.get('page') || '';
+    const nextPage = nextParams.get('page') || '';
+    currentParams.delete('page');
+    nextParams.delete('page');
+    return currentPage !== nextPage && currentParams.toString() === nextParams.toString();
+  };
+
+  document.addEventListener('submit', event => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    const method = (form.getAttribute('method') || 'get').toLowerCase();
+    if (method === 'get' && form.matches('.crm-filter-form, .apartments-filter-form, .assignment-search-form, .assignment-smart-form, .assignment-report-filter-form')) {
+      clearAllBulkSelectionStorage();
+      return;
+    }
+    const scope = form.closest('.js-bulk-selectable') || document.querySelector(`.js-bulk-selectable button[form="${form.id}"]`)?.closest('.js-bulk-selectable');
+    if (scope && (form.id || form.querySelector('[name="measurement_ids"], [name="task_ids"]'))) {
+      clearBulkSelectionForScope(scope, { resetUi: false });
+    }
+  }, true);
+
+  document.addEventListener('click', event => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest('a[href]');
+    if (!link || link.target || link.hasAttribute('download')) return;
+    const href = link.getAttribute('href') || '';
+    if (!href || href === '#' || href.startsWith('#')) return;
+    try {
+      const url = new URL(href, window.location.href);
+      if (shouldClearBulkSelectionOnLink(link, url)) clearAllBulkSelectionStorage();
+    } catch (error) {}
+  }, true);
 
   const syncBulkScope = (scope) => {
     const checks = Array.from(scope.querySelectorAll('.js-bulk-check')).filter(isBulkCheckAvailable);
@@ -1504,7 +1653,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const href = row.dataset.href;
           if (href) {
             window.clearTimeout(openTimer);
-            openTimer = window.setTimeout(() => { window.location.href = href; }, 220);
+            openTimer = window.setTimeout(() => {
+              clearAllBulkSelectionStorage();
+              window.location.href = href;
+            }, 220);
           }
           return;
         }
@@ -1575,10 +1727,45 @@ document.addEventListener('DOMContentLoaded', () => {
         button.disabled = visiblePremises.size === 0;
       });
     };
+    const syncPremiseCount = (visiblePremises) => {
+      const count = visiblePremises.size;
+      if (!scope.querySelector('.js-premise-selection-count')) {
+        const host = scope.querySelector('.assignment-section-title > div');
+        if (host) {
+          const note = document.createElement('small');
+          note.className = 'remarks-selection-count js-premise-selection-count';
+          host.appendChild(note);
+        }
+      }
+      scope.querySelectorAll('.js-premise-selection-count').forEach(node => {
+        node.textContent = `(Выбрано ${count})`;
+      });
+    };
+    const applyStoredPremiseVisibilityToRows = (visiblePremises) => {
+      scope.querySelectorAll('.js-bulk-row[data-apartment-id]').forEach(row => {
+        const apartmentId = String(row.dataset.apartmentId || '');
+        row.hidden = visiblePremises !== null && apartmentId ? !visiblePremises.has(apartmentId) : false;
+      });
+      const master = scope.querySelector('.js-bulk-master');
+      if (master) {
+        const visibleChecks = Array.from(scope.querySelectorAll('.js-bulk-row:not([hidden]) .js-bulk-check')).filter(check => !check.disabled);
+        master.disabled = visibleChecks.length === 0;
+      }
+    };
     if (!premiseInputs.length) {
       const storedPremises = readPremiseSelection();
       syncPremiseExportForm(storedPremises || new Set());
       updatePremiseOnlyActions(storedPremises || new Set());
+      syncPremiseCount(storedPremises || new Set());
+      applyStoredPremiseVisibilityToRows(storedPremises);
+      window.addEventListener('pageshow', () => {
+        const refreshedPremises = readPremiseSelection();
+        syncPremiseExportForm(refreshedPremises || new Set());
+        updatePremiseOnlyActions(refreshedPremises || new Set());
+        syncPremiseCount(refreshedPremises || new Set());
+        applyStoredPremiseVisibilityToRows(refreshedPremises);
+        syncBulkScope(scope);
+      });
       syncBulkScope(scope);
       return;
     }
@@ -1588,6 +1775,9 @@ document.addEventListener('DOMContentLoaded', () => {
         input.checked = storedPremises.has(String(input.value));
       });
     }
+    scope.querySelectorAll('.js-contractor-export-submit').forEach(button => {
+      button.classList.add('d-none');
+    });
     const syncPremiseVisibility = () => {
       const visiblePremises = new Set(
         Array.from(scope.querySelectorAll('.js-premise-visibility:checked')).map(input => String(input.value))
@@ -1595,6 +1785,7 @@ document.addEventListener('DOMContentLoaded', () => {
       writePremiseSelection(visiblePremises);
       syncPremiseExportForm(visiblePremises);
       updatePremiseOnlyActions(visiblePremises);
+      syncPremiseCount(visiblePremises);
       scope.querySelectorAll('.js-bulk-row[data-apartment-id]').forEach(row => {
         const apartmentId = String(row.dataset.apartmentId || '');
         const visible = !apartmentId || visiblePremises.has(apartmentId);
@@ -1622,6 +1813,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     scope.querySelectorAll('.js-premise-visibility').forEach(input => {
       input.addEventListener('change', syncPremiseVisibility);
+    });
+    window.addEventListener('pageshow', () => {
+      const refreshedPremises = readPremiseSelection();
+      if (refreshedPremises && premiseInputs.length) {
+        premiseInputs.forEach(input => {
+          input.checked = refreshedPremises.has(String(input.value));
+        });
+      }
+      syncPremiseVisibility();
     });
     syncPremiseVisibility();
   });
@@ -2302,88 +2502,6 @@ document.addEventListener('DOMContentLoaded', () => {
     input.addEventListener('paste', () => setTimeout(clean, 0));
   });
 
-  const autoFilterForms = Array.from(document.querySelectorAll([
-    'form.crm-filter-form[method="get"]',
-    'form.apartments-filter-form[method="get"]',
-    'form.assignment-search-form[method="get"]',
-    'form.assignment-smart-form[method="get"]',
-    'form.assignment-report-filter-form[method="get"]'
-  ].join(',')));
-
-  autoFilterForms.forEach(form => {
-    if (form.dataset.autoSubmitBound === '1' || form.dataset.autoSubmit === '0') return;
-    form.dataset.autoSubmitBound = '1';
-
-    let debounceTimer = null;
-    let isComposing = false;
-    let searchIndicator = null;
-
-    const ensureSearchIndicator = () => {
-      if (searchIndicator) return searchIndicator;
-      searchIndicator = document.createElement('div');
-      searchIndicator.className = 'auto-search-indicator';
-      searchIndicator.setAttribute('role', 'status');
-      searchIndicator.setAttribute('aria-live', 'polite');
-      searchIndicator.innerHTML = '<span class="auto-search-spinner" aria-hidden="true"></span><span>Идет поиск...</span>';
-      form.append(searchIndicator);
-      return searchIndicator;
-    };
-
-    const showSearchIndicator = () => {
-      const indicator = ensureSearchIndicator();
-      indicator.classList.add('is-visible');
-      form.classList.add('is-auto-searching');
-    };
-
-    const submitForm = () => {
-      if (!form.checkValidity()) return;
-      showSearchIndicator();
-      rememberScrollPosition();
-      if (form.requestSubmit) {
-        form.requestSubmit();
-      } else {
-        form.submit();
-      }
-    };
-
-    const scheduleSubmit = (delay = 350) => {
-      showSearchIndicator();
-      window.clearTimeout(debounceTimer);
-      debounceTimer = window.setTimeout(() => {
-        if (isComposing) return;
-        submitForm();
-      }, delay);
-    };
-
-    form.querySelectorAll('input, select').forEach(control => {
-      if (control.type === 'hidden') return;
-      if (control.matches('.js-no-auto-submit')) return;
-
-      if (control.tagName === 'SELECT' || ['checkbox', 'radio', 'date'].includes(control.type)) {
-        control.addEventListener('change', () => submitForm());
-        return;
-      }
-
-      if (['text', 'search', 'number', 'tel', 'email', ''].includes(control.type)) {
-        control.addEventListener('compositionstart', () => {
-          isComposing = true;
-        });
-        control.addEventListener('compositionend', () => {
-          isComposing = false;
-          scheduleSubmit(200);
-        });
-        control.addEventListener('input', () => {
-          if (isComposing) return;
-          scheduleSubmit(450);
-        });
-        control.addEventListener('change', () => {
-          if (isComposing) return;
-          scheduleSubmit(0);
-        });
-      }
-    });
-  });
-
   document.querySelectorAll('.material-select-row').forEach(row => {
     const checkbox = row.querySelector('input[type="checkbox"]');
     const syncState = () => row.classList.toggle('is-selected', Boolean(checkbox?.checked));
@@ -2400,7 +2518,9 @@ document.addEventListener('DOMContentLoaded', () => {
     row.addEventListener('dblclick', event => {
       if (event.target.closest('a, button, form, input, textarea, select, label')) return;
       const href = row.dataset.href;
-      if (href) window.location.href = href;
+      if (href) {
+        window.location.href = href;
+      }
     });
     if (checkbox) {
       checkbox.addEventListener('change', syncState);
@@ -2744,6 +2864,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedRow = form.closest('.glass-order-card, .glass-order-row');
         savedRow?.classList.add('glass-row-saved');
         if (!form.classList.contains('js-glass-ordered-edit-form')) {
+          const checkbox = savedRow?.querySelector('.js-bulk-check');
+          if (checkbox) {
+            checkbox.checked = false;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            checkbox.disabled = true;
+          }
+          savedRow?.classList.remove('is-selected');
           const note = savedRow?.querySelector('.glass-order-transferred-note');
           if (note) {
             note.hidden = false;
@@ -2816,9 +2943,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const previousHtml = button.innerHTML;
       form.querySelectorAll('button').forEach(item => { item.disabled = true; });
       try {
+        const formData = new FormData(form);
+        if (button.name) {
+          formData.set(button.name, button.value ?? '');
+        }
         const response = await fetch(form.action, {
           method: 'POST',
-          body: new FormData(form),
+          body: formData,
           credentials: 'same-origin',
           headers: {
             'X-Requested-With': 'XMLHttpRequest',
@@ -2828,9 +2959,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
         form.querySelectorAll('.glass-status-choice').forEach(item => {
-          item.classList.remove('is-active');
+          const isActive = item.value === data.status;
+          item.classList.toggle('is-active', isActive);
+          item.classList.toggle('is-ordered', isActive && item.value === 'ordered');
+          item.classList.toggle('is-replaced', isActive && item.value === 'replaced');
         });
-        button.classList.add('is-active');
         const dateCell = form.closest('tr')?.children?.[4];
         const statusCell = form.closest('td');
         if (dateCell && data.ordered_at) {
@@ -3816,4 +3949,98 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
   dateObserver.observe(document.body, { childList: true, subtree: true });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('form[action*="/site-errors/"][action$="/close"]').forEach(form => {
+    if (form.dataset.asyncBound === '1') return;
+    form.dataset.asyncBound = '1';
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const button = event.submitter || form.querySelector('button[type="submit"]');
+      const card = form.closest('.site-error-card');
+      const stateBadge = card?.querySelector('.site-error-state-badge');
+      const isRegistration = button?.textContent?.includes('Принять') || Boolean(card?.querySelector('.badge.bg-success'));
+      const previousHtml = button?.innerHTML || '';
+      if (button) button.disabled = true;
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
+        const isClosed = data.status === 'closed';
+        card?.classList.toggle('closed', isClosed);
+        card?.classList.toggle('site-error-card-open', !isClosed);
+        card?.classList.toggle('site-error-card-accepted', isClosed && isRegistration);
+        if (stateBadge) {
+          stateBadge.className = `badge site-error-state-badge ${isClosed ? (isRegistration ? 'site-error-state-accepted' : 'site-error-state-closed') : 'site-error-state-new'}`;
+          stateBadge.textContent = isClosed ? (isRegistration ? 'Принята' : 'Закрыта') : 'Новая';
+        }
+        if (button) {
+          button.className = `btn btn-sm site-error-action-btn ${isClosed || isRegistration ? 'site-error-action-btn-success' : 'site-error-action-btn-close'}`;
+          button.textContent = isClosed ? 'Вернуть в новые' : (isRegistration ? 'Принять' : 'Закрыть ошибку');
+        }
+        showCrmNotice(data.message || 'Статус ошибки обновлен', 'success');
+      } catch (error) {
+        showCrmNotice(error.message || 'Не удалось обновить статус', 'danger');
+      } finally {
+        if (button) {
+          button.disabled = false;
+          if (previousHtml && !button.innerHTML) button.innerHTML = previousHtml;
+        }
+      }
+    });
+  });
+});
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('form[data-task-comment-async="1"]').forEach(form => {
+    if (form.dataset.taskCommentBound === '1') return;
+    form.dataset.taskCommentBound = '1';
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const button = event.submitter || form.querySelector('button[type="submit"], input[type="submit"]');
+      const previousText = button?.tagName === 'INPUT' ? button.value : (button?.innerHTML || '');
+      if (button) button.disabled = true;
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось добавить комментарий');
+        const commentsCard = form.closest('.card-body');
+        const emptyComment = commentsCard?.querySelector('.text-muted');
+        if (emptyComment && !commentsCard.querySelector('.comment-item')) emptyComment.remove();
+        if (commentsCard && data.comment) {
+          const item = document.createElement('div');
+          item.className = 'comment-item mb-2';
+          item.innerHTML = '<div class="comment-meta">' + escapeHtml(data.comment.author || '') + ' · ' + escapeHtml(data.comment.timestamp || '') + '</div><div class="comment-body">' + escapeHtml(data.comment.body || '') + '</div>';
+          form.before(item);
+        }
+        const textarea = form.querySelector('textarea');
+        if (textarea) textarea.value = '';
+        appendTimelineEntry(document.querySelector('[data-task-history-list]'), document.querySelector('[data-task-history-empty]'), data.history_entry);
+        showCrmNotice(data.message || 'Комментарий добавлен', 'success');
+      } catch (error) {
+        showCrmNotice(error.message || 'Не удалось добавить комментарий', 'danger');
+      } finally {
+        if (button) {
+          button.disabled = false;
+          if (button.tagName === 'INPUT') button.value = previousText;
+          else button.innerHTML = previousText;
+        }
+      }
+    });
+  });
 });

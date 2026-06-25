@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -142,6 +142,39 @@ def _parse_app_date(value: Any) -> date | None:
     return date(year, month, day)
 
 
+def _parse_inspection_schedule(value: Any) -> datetime | date | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, datetime):
+        return value.replace(microsecond=0)
+    if isinstance(value, date):
+        return value
+    text = str(value).strip()
+    if not text or _is_app_mode(text):
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%d.%m.%Y %H:%M:%S", "%d.%m.%Y %H:%M", "%Y-%m-%d", "%d.%m.%Y", "%d.%m.%y"):
+        try:
+            parsed = datetime.strptime(text, fmt)
+            if "H" not in fmt:
+                return parsed.date()
+            return parsed
+        except ValueError:
+            continue
+    parsed_date = parse_date(text)
+    return parsed_date
+
+
+def _inspection_schedule_marker(value: datetime | date | None) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        value = value.replace(microsecond=0)
+        payload = value.isoformat(timespec="seconds")
+    else:
+        payload = value.isoformat()
+    return f"__inspection_schedule__:{payload}"
+
+
 def _is_app_mode(value: Any) -> bool:
     return bool(APP_MODE_RE.search(str(value or "").strip()))
 
@@ -217,8 +250,9 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
                 inspection_text = str(inspection_note or "").strip()
                 # Принято / АПП считаем по цвету ячейки номера помещения:
                 # зелёная ячейка в колонке «№ кв» / «№ ком.» = принято.
-                is_app_mode = bool(_is_green_fill(number_cell) and not is_unsold)
                 accepted_date = _parse_app_date(inspection_note)
+                scheduled_inspection = _parse_inspection_schedule(inspection_note)
+                is_app_mode = bool((_is_green_fill(number_cell) and not is_unsold) or accepted_date)
 
                 premise_type = "commercial" if is_commercial_sheet else "apartment"
                 if is_commercial_sheet:
@@ -254,15 +288,18 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
                 apartment.is_unsold = is_unsold
                 apartment.phone = phone
                 apartment.finishing_type = finishing_type
-                apartment.inspection_date = accepted_date
+                apartment.inspection_date = accepted_date or (scheduled_inspection.date() if isinstance(scheduled_inspection, datetime) else scheduled_inspection)
                 apartment.first_inspection_date = parse_date(first_inspection_value)
-                apartment.first_inspection_present = first_inspection_present
+                apartment.first_inspection_present = bool(first_inspection_present or scheduled_inspection)
                 apartment.reinspection_date = None
                 apartment.deadline_date = accepted_date
-                apartment.inspection_note = inspection_text or None
+                apartment.inspection_note = _inspection_schedule_marker(scheduled_inspection) or None
                 apartment.is_app_mode = is_app_mode
-                if mapping.get("remark_deadline_date") is not None:
-                    apply_app_deadline_logic(apartment, _value_at(row, mapping.get("remark_deadline_date")))
+                remark_deadline_value = _value_at(row, mapping.get("remark_deadline_date"))
+                if remark_deadline_value is not None and str(remark_deadline_value).strip():
+                    apply_app_deadline_logic(apartment, remark_deadline_value)
+                elif accepted_date:
+                    apply_app_deadline_logic(apartment, accepted_date + timedelta(days=60))
                 if not is_app_mode and not apartment.po_status_manual:
                     apartment.po_status = "not_ready"
 

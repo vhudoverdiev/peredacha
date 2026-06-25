@@ -19,7 +19,7 @@
 
 <div class="developer-delete-log-list">
   {% for log in logs %}
-  <article class="card content-card developer-delete-log-card {% if log.is_undone %}is-undone{% endif %} {% if not log.is_undone and log.action_key in ['assignment_delete_from_employee', 'site_error_delete'] %}is-actionable{% endif %}">
+  <article class="card content-card developer-delete-log-card {% if log.is_undone %}is-undone{% endif %} {% if not log.is_undone %}is-actionable{% endif %}">
     <div class="card-body">
       <div class="developer-delete-log-head">
         <div>
@@ -30,13 +30,9 @@
           <span class="badge bg-success-subtle text-success developer-delete-log-badge">
             <i class="bi bi-arrow-counterclockwise me-1"></i>Отменено
           </span>
-          {% elif log.action_key in ['assignment_delete_from_employee', 'site_error_delete'] %}
+          {% else %}
           <span class="badge bg-warning-subtle text-warning-emphasis developer-delete-log-badge">
             <i class="bi bi-exclamation-circle me-1"></i>Можно отменить
-          </span>
-          {% else %}
-          <span class="badge bg-secondary-subtle text-secondary developer-delete-log-badge">
-            <i class="bi bi-info-circle me-1"></i>Отмена недоступна
           </span>
           {% endif %}
         </div>
@@ -56,7 +52,7 @@
       </div>
 
       <div class="developer-delete-log-actions">
-        {% if not log.is_undone and log.action_key in ['assignment_delete_from_employee', 'site_error_delete'] %}
+        {% if not log.is_undone %}
         <form method="post" action="{{ url_for('main.developer_delete_log_undo', log_id=log.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn btn-primary btn-sm" type="submit">
@@ -65,8 +61,6 @@
         </form>
         {% elif log.is_undone %}
         <span class="developer-delete-log-done"><i class="bi bi-check2 me-1"></i>Действие уже отменено</span>
-        {% else %}
-        <span class="developer-delete-log-done muted"><i class="bi bi-info-circle me-1"></i>Отмена недоступна</span>
         {% endif %}
       </div>
     </div>

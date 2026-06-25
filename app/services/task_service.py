@@ -342,35 +342,64 @@ def find_header_row(rows: list[list[Any]]) -> int:
         score += min(work_point_hits, 12)
         if idx + 1 < len(rows) and is_index_number_row(rows[idx + 1]):
             score += 10
+        if idx + 1 < len(rows):
+            indexed_hits = sum(1 for raw in rows[idx + 1] if _indexed_visible_point_number(raw))
+            if indexed_hits:
+                score += min(indexed_hits, 15) * 2
+                if indexed_hits >= 5:
+                    score += 8
         if score > best_score:
             best_score = score
             best_index = idx
     return best_index
 
 
-def map_base_columns(headers: list[str]) -> dict[str, int]:
+def _header_matches_base_field(field: str, header: str) -> bool:
+    if not header:
+        return False
+    if field == "remark_deadline_date":
+        return header == "срок устранения замечаний по апп"
+    if field == "app_signed_date":
+        return header == "апп" or "дата подписания апп" in header
+    return any(alias in header for alias in APARTMENT_HEADERS_RU.get(field, ()))
+
+
+def map_base_columns(headers: list[str], anchor_before_col: int | None = None) -> dict[str, int]:
     mapping: dict[str, int] = {}
     normalized_headers = [normalize_text(h) for h in headers]
-
-    # Жесткое правило: срок устранения по квартире берём только из точной колонки
-    # «Срок устранения замечаний  по АПП». Старые/похожие колонки не используем.
-    app_deadline_idx = next((idx for idx, header in enumerate(normalized_headers) if header == "срок устранения замечаний по апп"), None)
+    indexes = range(len(normalized_headers))
+    if anchor_before_col is not None:
+        indexes = range(max(anchor_before_col, 0))
+    # Когда слева от основной таблицы добавили вспомогательный блок с похожими
+    # заголовками, нужны колонки именно того блока, который стоит перед пунктами.
+    # Поэтому при привязке к первому пункту идём справа налево.
+    search_indexes = list(indexes)
+    if anchor_before_col is not None:
+        search_indexes.reverse()
 
     for field, aliases in APARTMENT_HEADERS_RU.items():
-        if field == "remark_deadline_date":
-            if app_deadline_idx is not None:
-                mapping[field] = app_deadline_idx
-            continue
-        for idx, header in enumerate(normalized_headers):
-            if field == "app_signed_date":
-                if header == "апп" or "дата подписания апп" in header:
-                    mapping[field] = idx
-                    break
-                continue
-            if any(alias in header for alias in aliases):
+        for idx in search_indexes:
+            header = normalized_headers[idx]
+            if _header_matches_base_field(field, header):
                 mapping[field] = idx
                 break
     return mapping
+
+
+def _indexed_visible_point_number(raw: Any) -> str | None:
+    point_number = None
+    if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+        point_number = str(int(raw)) if float(raw).is_integer() else str(raw)
+    else:
+        value = str(raw or "").strip()
+        if value.replace(",", ".").replace(" ", "").endswith(".0"):
+            value = value.replace(",", ".").replace(" ", "")
+        value_norm = value.replace(".", "").replace(",", "")
+        if value_norm.isdigit():
+            point_number = value.split(".", 1)[0]
+    if point_number and point_number.isdigit() and is_visible_work_point_number(point_number):
+        return point_number
+    return None
 
 
 def is_work_point_header(header: str, index: int) -> bool:
@@ -415,6 +444,51 @@ def parse_date(value) -> date | None:
         except ValueError:
             pass
     return None
+
+
+INSPECTION_SCHEDULE_PREFIX = "__inspection_schedule__:"
+
+
+def _parse_inspection_schedule_value(value) -> date | datetime | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, datetime):
+        return value.replace(microsecond=0)
+    if isinstance(value, date):
+        return value
+    text = str(value).strip()
+    if not text:
+        return None
+    for fmt in (
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%d.%m.%Y %H:%M:%S",
+        "%d.%m.%Y %H:%M",
+        "%Y-%m-%d",
+        "%d.%m.%Y",
+        "%d.%m.%y",
+        "%d/%m/%Y",
+    ):
+        try:
+            parsed = datetime.strptime(text, fmt)
+            if "%H" in fmt:
+                return parsed.replace(microsecond=0)
+            return parsed.date()
+        except ValueError:
+            continue
+    return parse_date(text)
+
+
+def _inspection_schedule_marker(value: datetime | date | None) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return f"{INSPECTION_SCHEDULE_PREFIX}{value.replace(microsecond=0).isoformat(timespec='seconds')}"
+    return None
+
+
+def _is_inspection_schedule_marker(value: str | None) -> bool:
+    return str(value or "").strip().startswith(INSPECTION_SCHEDULE_PREFIX)
 
 
 def is_visible_work_point_number(point_number: str | int | None) -> bool:
@@ -859,15 +933,30 @@ def get_or_update_apartment(
         column_index=col_for("floor"),
         conflict_on_change=not created_apartment,
     )
+    raw_inspection_value = value_at(row, base_mapping.get("inspection_date"))
+    inspection_schedule = _parse_inspection_schedule_value(raw_inspection_value)
+    inspection_date = inspection_schedule.date() if isinstance(inspection_schedule, datetime) else inspection_schedule
     _set_apartment_import_field(
         apartment,
         "inspection_date",
-        parse_date(value_at(row, base_mapping.get("inspection_date"))),
+        inspection_date,
         sheet_name=sheet_name,
         row_index=row_index,
         column_index=col_for("inspection_date"),
         conflict_on_change=not created_apartment,
     )
+    schedule_marker = _inspection_schedule_marker(inspection_schedule)
+    has_raw_inspection_value = raw_inspection_value is not None and str(raw_inspection_value).strip() != ""
+    if schedule_marker or (has_raw_inspection_value and _is_inspection_schedule_marker(apartment.inspection_note)):
+        _set_apartment_import_field(
+            apartment,
+            "inspection_note",
+            schedule_marker,
+            sheet_name=sheet_name,
+            row_index=row_index,
+            column_index=col_for("inspection_date"),
+            conflict_on_change=not created_apartment and not _is_inspection_schedule_marker(apartment.inspection_note),
+        )
     _set_apartment_import_field(
         apartment,
         "reinspection_date",
@@ -1176,23 +1265,23 @@ def sync_rows(
         for col_idx, raw in enumerate(index_row):
             if col_idx in base_indexes:
                 continue
-            point_number = None
-            if isinstance(raw, (int, float)) and not isinstance(raw, bool):
-                point_number = str(int(raw)) if float(raw).is_integer() else str(raw)
-            else:
-                val = str(raw or "").strip()
-                if val.replace(",", ".").replace(" ", "").endswith(".0"):
-                    val = val.replace(",", ".").replace(" ", "")
-                val_norm = val.replace(".", "").replace(",", "")
-                if val_norm.isdigit():
-                    point_number = val.split(".", 1)[0]
-            if point_number and point_number.isdigit() and is_visible_work_point_number(point_number):
+            point_number = _indexed_visible_point_number(raw)
+            if point_number:
                 header = headers[col_idx] if col_idx < len(headers) else ""
                 if header:
                     indexed_points[col_idx] = f"{point_number}. {header}"
         if indexed_points:
             point_columns = indexed_points
         data_start += 1
+
+    if point_columns:
+        anchored_mapping = map_base_columns(headers, anchor_before_col=min(point_columns))
+        if anchored_mapping.get("apartment_number") is not None or anchored_mapping.get("construction_number") is not None:
+            base_mapping = anchored_mapping
+            base_indexes = set(base_mapping.values())
+            point_columns = {idx: header for idx, header in point_columns.items() if idx not in base_indexes}
+    if not point_columns:
+        return result.as_dict() | {"seen_uids": set()}
 
     for row_zero_idx, row in enumerate(rows[data_start:], start=data_start + 1):
         if not any(str(c or "").strip() for c in row):
@@ -1344,12 +1433,12 @@ def sync_rows(
         missing_query = missing_query.filter(Task.work_point.has(WorkPoint.point_number.in_(VISIBLE_WORK_POINT_NUMBERS)))
         if result.seen_uids:
             missing_query = missing_query.filter(~Task.source_uid.in_(result.seen_uids))
-        missing_tasks = missing_query.all()
-        for task in missing_tasks:
-            if not task.is_missing_in_latest_sync:
-                task.is_missing_in_latest_sync = True
-                log_change(task, "missing_in_latest_sync", "is_missing_in_latest_sync", False, True)
-            result.missing_count += 1
+            missing_tasks = missing_query.all()
+            for task in missing_tasks:
+                if not task.is_missing_in_latest_sync:
+                    task.is_missing_in_latest_sync = True
+                    log_change(task, "missing_in_latest_sync", "is_missing_in_latest_sync", False, True)
+                result.missing_count += 1
     set_setting("last_sync_at", sync_time.isoformat())
     set_setting("last_sync_source", source_name or sheet_name)
     apply_default_point_mapping(commit=False)

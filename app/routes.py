@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import copy
 from datetime import date, datetime, timedelta
 import json
 import random
@@ -17,10 +18,16 @@ from sqlalchemy import Integer, cast, distinct, func
 from sqlalchemy.orm import selectinload
 from openpyxl import Workbook
 from openpyxl.cell.cell import MergedCell
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Border, Font, PatternFill, Alignment, Side
 from openpyxl.utils import get_column_letter
 
 EXCEL_HEADER_FILL_COLOR = "FFE2F0D9"
+EXCEL_DOWNLOAD_BORDER = Border(
+    left=Side(style="thin", color="000000"),
+    right=Side(style="thin", color="000000"),
+    top=Side(style="thin", color="000000"),
+    bottom=Side(style="thin", color="000000"),
+)
 from app import db
 from app.forms import CommentForm, ProjectForm, TaskEditForm, UploadExcelForm, UserForm, UserPasswordForm
 from app.models import (
@@ -78,7 +85,7 @@ from app.services.avr_document import (
     format_input_date,
     safe_avr_filename,
 )
-from app.services.excel_export import _excel_premise_label, export_glass_measurements_excel, export_remark_tasks_excel, export_report_tasks_excel, export_simple_tasks_excel, export_source_excel_with_strikes, export_tasks_to_excel
+from app.services.excel_export import _excel_premise_label, _safe_filename_part, export_glass_measurements_excel, export_remark_tasks_excel, export_report_tasks_excel, export_simple_tasks_excel, export_source_excel_with_strikes, export_tasks_to_excel
 from app.services.pdf_export import export_assignment_worker_pdf, export_table_pdf, export_tasks_pdf
 from app.services.excel_import import preview_excel, save_upload, sync_excel_file
 from app.services.google_sheets_sync import sync_google_sheets, update_task_strike_in_google_sheet
@@ -168,7 +175,7 @@ SECTION_LOCK_CHOICES = [
         "label": "Квартиры",
         "icon": "bi-building",
         "endpoints": {
-            "main.apartments", "main.apartment_detail", "main.update_apartment_po_status",
+            "main.apartments", "main.apartments_export", "main.apartment_detail", "main.update_apartment_po_status",
             "main.update_apartment_inspection_status", "main.update_apartment_inspection_date", "main.update_apartment_inspection_note",
             "main.update_apartment_comment", "main.update_apartment_avr_status",
         },
@@ -444,6 +451,11 @@ def _history_field_value(field_name: str | None, value: object, users_cache: dic
     text = str(value or "").strip()
     if field_name == "status":
         return TASK_STATUSES.get(text, {}).get("label", text or "не задан")
+    if field_name == "avr_status":
+        return "Подписан" if text == AVR_STATUS_SIGNED else ("Нужен" if text == AVR_STATUS_NEEDED else (text or "не задан"))
+    if field_name == "avr_signed_date":
+        parsed = _parse_history_date_value(value)
+        return format_ru_date(parsed) if parsed else "не задана"
     if field_name == "responsible_id":
         return _history_responsible_label(value, users_cache)
     if field_name in {"planned_date", "completed_date"}:
@@ -453,6 +465,8 @@ def _history_field_value(field_name: str | None, value: object, users_cache: dic
         return text or "пусто"
     if field_name in {"apartment_comment", "apartment_inspection_note"}:
         return text or "пусто"
+    if field_name == "po_status":
+        return PO_STATUS_LABELS.get(text, text or "не задан")
     if field_name == "description":
         return text or "пусто"
     if field_name == "is_missing_in_latest_sync":
@@ -479,16 +493,33 @@ def _build_change_history_entry(change: ChangeLog, task: Task | None = None, use
     point_label = ""
     if task and task.work_point:
         point_label = task.work_point.display_name
+    task_text = str(task.description or task.source_cell_value or "").strip() if task else ""
 
     if change.action == "status_change":
+        if task_text:
+            point_label = task_text
         if not change.user and (change.old_value or "") not in DONE_STATUSES and (change.new_value or "") in DONE_STATUSES:
             summary = f"Синхронизация отметила замечание выполненным и зачеркнула его: было «{old_value}», стало «{new_value}»."
         elif not change.user:
             summary = f"Синхронизация изменила статус замечания: было «{old_value}», стало «{new_value}»."
+        elif field_name == "avr_status":
+            summary = (
+                f"Статус АВР помещения изменён: было «{old_value}», стало «{new_value}»."
+                if change.user
+                else f"Синхронизация изменила статус АВР помещения: было «{old_value}», стало «{new_value}»."
+            )
+        elif field_name == "avr_signed_date":
+            summary = (
+                f"Дата подписания АВР изменена: была «{old_value}», стала «{new_value}»."
+                if change.user
+                else f"Синхронизация изменила дату подписания АВР: была «{old_value}», стала «{new_value}»."
+            )
         else:
             summary = f"Статус замечания изменён: было «{old_value}», стало «{new_value}»."
     elif change.action == "field_update":
         if field_name == "status":
+            if task_text:
+                point_label = task_text
             summary = (
                 f"Синхронизация изменила статус замечания: было «{old_value}», стало «{new_value}»."
                 if not change.user
@@ -533,9 +564,35 @@ def _build_change_history_entry(change: ChangeLog, task: Task | None = None, use
             )
     elif change.action == "apartment_field_update":
         if field_name == "apartment_inspection_note":
-            summary = f"Комментарий осмотра помещения изменён: было «{old_value}», стало «{new_value}»."
+            summary = (
+                f"Синхронизация изменила комментарий осмотра помещения: было «{old_value}», стало «{new_value}»."
+                if not change.user
+                else f"Комментарий осмотра помещения изменён: было «{old_value}», стало «{new_value}»."
+            )
+        elif field_name == "po_status":
+            summary = (
+                f"Синхронизация изменила внутренний статус помещения: было «{old_value}», стало «{new_value}»."
+                if not change.user
+                else f"Внутренний статус помещения изменён: было «{old_value}», стало «{new_value}»."
+            )
         else:
-            summary = f"Комментарий помещения изменён: было «{old_value}», стало «{new_value}»."
+            summary = (
+                f"Синхронизация изменила комментарий помещения: было «{old_value}», стало «{new_value}»."
+                if not change.user
+                else f"Комментарий помещения изменён: было «{old_value}», стало «{new_value}»."
+            )
+        if field_name == "avr_status":
+            summary = (
+                f"Статус АВР помещения изменён: было «{old_value}», стало «{new_value}»."
+                if change.user
+                else f"Синхронизация изменила статус АВР помещения: было «{old_value}», стало «{new_value}»."
+            )
+        elif field_name == "avr_signed_date":
+            summary = (
+                f"Дата подписания АВР изменена: была «{old_value}», стала «{new_value}»."
+                if change.user
+                else f"Синхронизация изменила дату подписания АВР: была «{old_value}», стала «{new_value}»."
+            )
         point_label = "Помещение"
     elif change.action == "comment_added":
         summary = f"Добавлен новый комментарий: «{str(change.new_value or '').strip() or 'без текста'}»."
@@ -642,18 +699,116 @@ def _record_simple_deletion(
     )
 
 
+def _snapshot_children(items) -> list[dict]:
+    return [_snapshot_model(item) for item in list(items or [])]
+
+
+def _coerce_snapshot_value(model_cls, field_name: str, value):
+    if value is None:
+        return None
+    column = getattr(getattr(model_cls, "__table__", None), "columns", {}).get(field_name)
+    if column is None:
+        return value
+    try:
+        python_type = column.type.python_type
+    except NotImplementedError:
+        return value
+    except Exception:
+        return value
+    if python_type is datetime:
+        if isinstance(value, datetime):
+            return value
+        try:
+            return datetime.fromisoformat(str(value))
+        except ValueError:
+            return None
+    if python_type is date:
+        if isinstance(value, date) and not isinstance(value, datetime):
+            return value
+        try:
+            return date.fromisoformat(str(value))
+        except ValueError:
+            return None
+    if python_type is bool:
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in {"1", "true", "yes", "on", "да"}
+    if python_type is int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+    if python_type is float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+    if python_type is str:
+        return str(value)
+    return value
+
+
+def _restore_model_from_snapshot(model_cls, snapshot: dict, *, force: dict | None = None, skip: set[str] | None = None):
+    if not isinstance(snapshot, dict) or not snapshot:
+        return None
+    force = force or {}
+    skip = set(skip or set())
+    columns = getattr(getattr(model_cls, "__table__", None), "columns", [])
+    entity_id = snapshot.get("id")
+    if entity_id:
+        try:
+            existing_id = int(entity_id)
+        except (TypeError, ValueError):
+            existing_id = None
+        if existing_id and db.session.get(model_cls, existing_id):
+            raise ValueError("Запись уже существует")
+    obj = model_cls()
+    for column in columns:
+        name = column.name
+        if name in skip or name in force or name not in snapshot:
+            continue
+        setattr(obj, name, _coerce_snapshot_value(model_cls, name, snapshot.get(name)))
+    for name, value in force.items():
+        setattr(obj, name, _coerce_snapshot_value(model_cls, name, value))
+    db.session.add(obj)
+    db.session.flush()
+    return obj
+
+
+def _restore_children_from_snapshots(model_cls, rows: list[dict], *, force: dict) -> int:
+    restored = 0
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        try:
+            _restore_model_from_snapshot(model_cls, row, force=force)
+            restored += 1
+        except ValueError:
+            continue
+    return restored
+
+
+def _mark_deletion_log_undone(log: DeletionActionLog) -> None:
+    log.is_undone = True
+    log.undone_at = datetime.utcnow()
+    log.undone_by_user_id = current_user.id
+
+
 PO_STATUS_NOT_READY = "not_ready"
+PO_STATUS_DO_NOT_INVITE = "do_not_invite"
 PO_STATUS_TO_THROW = "to_throw"
 PO_STATUS_THROWN = "thrown"
 PO_STATUS_PO = "po"
 PO_STATUS_LABELS = {
     PO_STATUS_NOT_READY: "Не готова",
+    PO_STATUS_DO_NOT_INVITE: "Не приглашать",
     PO_STATUS_TO_THROW: "Кинуть",
     PO_STATUS_THROWN: "Кинуто",
-    PO_STATUS_PO: "ПО",
+    PO_STATUS_PO: "По",
 }
 PO_STATUS_CLASSES = {
     PO_STATUS_NOT_READY: "status-pill-danger",
+    PO_STATUS_DO_NOT_INVITE: "status-pill-muted",
     PO_STATUS_TO_THROW: "status-pill-warning",
     PO_STATUS_THROWN: "status-pill-info",
     PO_STATUS_PO: "status-pill-success",
@@ -706,6 +861,7 @@ def inject_globals():
         "format_ru_date": format_ru_date,
         "format_ru_weekday": format_ru_weekday,
         "remark_text": remark_text_html,
+        "glass_measurement_action_label": glass_measurement_action_label,
     }
 
 
@@ -1311,6 +1467,8 @@ def site_error_close(report_id: int):
         abort(404)
     report.status = "closed" if report.status != "closed" else "new"
     db.session.commit()
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+        return jsonify(ok=True, status=report.status, message="Статус ошибки обновлен")
     flash("Статус ошибки обновлен", "success")
     return redirect(request.referrer or url_for("main.site_errors"))
 
@@ -1366,6 +1524,166 @@ def developer_delete_logs():
     return render_template("developer_delete_logs.html", logs=logs, project=project)
 
 
+def _restore_glass_measurement_from_snapshot(snapshot: dict) -> tuple[bool, str]:
+    task_id = snapshot.get("task_id")
+    if not task_id or not db.session.get(Task, int(task_id)):
+        return False, "Не удалось восстановить замер: связанное замечание уже отсутствует."
+    if GlassMeasurement.query.filter(GlassMeasurement.task_id == int(task_id)).first():
+        return False, "Не удалось восстановить замер: у замечания уже есть замер."
+    if snapshot.get("material_request_item_id") and not db.session.get(MaterialRequestItem, int(snapshot.get("material_request_item_id"))):
+        snapshot = dict(snapshot)
+        snapshot["material_request_item_id"] = None
+    measurement = _restore_model_from_snapshot(
+        GlassMeasurement,
+        snapshot,
+        skip={"items"},
+    )
+    _restore_children_from_snapshots(
+        GlassMeasurementItem,
+        snapshot.get("items") or [],
+        force={"measurement_id": measurement.id},
+    )
+    return True, "Замер восстановлен."
+
+
+def _restore_task_from_snapshot(snapshot: dict) -> tuple[bool, str]:
+    project_id = snapshot.get("project_id")
+    apartment_id = snapshot.get("apartment_id")
+    work_point_id = snapshot.get("work_point_id")
+    if not project_id or not db.session.get(Project, int(project_id)):
+        return False, "Не удалось восстановить замечание: объект уже отсутствует."
+    if not apartment_id or not db.session.get(Apartment, int(apartment_id)):
+        return False, "Не удалось восстановить замечание: помещение уже отсутствует."
+    if not work_point_id or not db.session.get(WorkPoint, int(work_point_id)):
+        return False, "Не удалось восстановить замечание: пункт работ уже отсутствует."
+    task_snapshot = dict(snapshot)
+    source_uid = str(task_snapshot.get("source_uid") or "").strip()
+    if source_uid and Task.query.filter(Task.source_uid == source_uid).first():
+        task_snapshot["source_uid"] = stable_hash([source_uid, "restored", datetime.utcnow().isoformat()])
+    task = _restore_model_from_snapshot(
+        Task,
+        task_snapshot,
+        skip={"comments", "changes", "glass_measurement", "material_writeoff_ids", "comment_count", "change_count", "apartment_label", "work_point"},
+    )
+    comments = [
+        row for row in (snapshot.get("comments") or [])
+        if not row.get("user_id") or db.session.get(User, int(row.get("user_id")))
+    ]
+    changes = [
+        row for row in (snapshot.get("changes") or [])
+        if not row.get("user_id") or db.session.get(User, int(row.get("user_id")))
+    ]
+    _restore_children_from_snapshots(TaskComment, comments, force={"task_id": task.id})
+    _restore_children_from_snapshots(ChangeLog, changes, force={"task_id": task.id})
+    glass_snapshot = snapshot.get("glass_measurement")
+    if isinstance(glass_snapshot, dict) and glass_snapshot:
+        glass_snapshot = dict(glass_snapshot)
+        glass_snapshot["task_id"] = task.id
+        _restore_glass_measurement_from_snapshot(glass_snapshot)
+    for writeoff_id in snapshot.get("material_writeoff_ids") or []:
+        writeoff = db.session.get(MaterialWriteOff, int(writeoff_id)) if writeoff_id else None
+        if writeoff and writeoff.project_id == task.project_id and task not in writeoff.tasks:
+            writeoff.tasks.append(task)
+    return True, "Замечание восстановлено."
+
+
+def _restore_material_request_from_snapshot(snapshot: dict) -> tuple[bool, str]:
+    project_id = snapshot.get("project_id")
+    if not project_id or not db.session.get(Project, int(project_id)):
+        return False, "Не удалось восстановить заявку: объект уже отсутствует."
+    if snapshot.get("author_id") and not db.session.get(User, int(snapshot.get("author_id"))):
+        snapshot = dict(snapshot)
+        snapshot["author_id"] = None
+    material_request = _restore_model_from_snapshot(MaterialRequest, snapshot, skip={"items"})
+    _restore_children_from_snapshots(
+        MaterialRequestItem,
+        snapshot.get("items") or [],
+        force={"request_id": material_request.id},
+    )
+    return True, "Заявка на материалы восстановлена."
+
+
+def _restore_material_writeoff_from_snapshot(snapshot: dict) -> tuple[bool, str]:
+    project_id = snapshot.get("project_id")
+    if not project_id or not db.session.get(Project, int(project_id)):
+        return False, "Не удалось восстановить списание: объект уже отсутствует."
+    if snapshot.get("author_id") and not db.session.get(User, int(snapshot.get("author_id"))):
+        snapshot = dict(snapshot)
+        snapshot["author_id"] = None
+    writeoff = _restore_model_from_snapshot(MaterialWriteOff, snapshot, skip={"items", "task_ids"})
+    _restore_children_from_snapshots(
+        MaterialWriteOffItem,
+        snapshot.get("items") or [],
+        force={"writeoff_id": writeoff.id},
+    )
+    for task_id in snapshot.get("task_ids") or []:
+        task = db.session.get(Task, int(task_id)) if task_id else None
+        if task and task.project_id == writeoff.project_id and task not in writeoff.tasks:
+            writeoff.tasks.append(task)
+    return True, "Списание материалов восстановлено."
+
+
+def _restore_material_balance_from_snapshot(snapshot: dict) -> tuple[bool, str]:
+    restored = 0
+    skipped = 0
+    for item_snapshot in snapshot.get("request_items") or []:
+        request_id = item_snapshot.get("request_id")
+        if request_id and db.session.get(MaterialRequest, int(request_id)):
+            try:
+                _restore_model_from_snapshot(MaterialRequestItem, item_snapshot)
+                restored += 1
+            except ValueError:
+                skipped += 1
+        else:
+            skipped += 1
+    for item_snapshot in snapshot.get("writeoff_items") or []:
+        writeoff_id = item_snapshot.get("writeoff_id")
+        if writeoff_id and db.session.get(MaterialWriteOff, int(writeoff_id)):
+            try:
+                _restore_model_from_snapshot(MaterialWriteOffItem, item_snapshot)
+                restored += 1
+            except ValueError:
+                skipped += 1
+        else:
+            skipped += 1
+    if restored:
+        message = f"Строки баланса восстановлены: {restored}."
+        if skipped:
+            message += f" Не восстановлено: {skipped}."
+        return True, message
+    return False, "Не удалось восстановить баланс: в логе нет полного снимка строк или родительские заявки уже отсутствуют."
+
+
+def _restore_user_from_snapshot(snapshot: dict) -> tuple[bool, str]:
+    username = str(snapshot.get("username") or "").strip()
+    if username and User.query.filter(User.username == username).first():
+        return False, "Не удалось восстановить пользователя: такой логин уже существует."
+    if snapshot.get("project_id") and not db.session.get(Project, int(snapshot.get("project_id"))):
+        snapshot = dict(snapshot)
+        snapshot["project_id"] = None
+    _restore_model_from_snapshot(User, snapshot, skip={"project_ids"})
+    return True, "Пользователь восстановлен."
+
+
+def _restore_site_error_from_snapshot(snapshot: dict) -> tuple[bool, str]:
+    if snapshot.get("user_id") and not db.session.get(User, int(snapshot.get("user_id"))):
+        snapshot = dict(snapshot)
+        snapshot["user_id"] = None
+    if snapshot.get("project_id") and not db.session.get(Project, int(snapshot.get("project_id"))):
+        snapshot = dict(snapshot)
+        snapshot["project_id"] = None
+    _restore_model_from_snapshot(SiteErrorReport, snapshot)
+    return True, "Запись для разработчика восстановлена."
+
+
+def _restore_sync_log_from_snapshot(snapshot: dict) -> tuple[bool, str]:
+    if snapshot.get("project_id") and not db.session.get(Project, int(snapshot.get("project_id"))):
+        snapshot = dict(snapshot)
+        snapshot["project_id"] = None
+    _restore_model_from_snapshot(SyncLog, snapshot)
+    return True, "Запись синхронизации восстановлена."
+
+
 @bp.route("/developer/delete-logs/<int:log_id>/undo", methods=["POST"])
 @login_required
 def developer_delete_log_undo(log_id: int):
@@ -1383,52 +1701,65 @@ def developer_delete_log_undo(log_id: int):
     except Exception:
         snapshot = {}
 
-    if log.action_key == "assignment_delete_from_employee":
-        task_id = int(snapshot.get("task_id") or log.entity_id or 0)
-        task = db.session.get(Task, task_id) or abort(404)
-        if log.project_id and task.project_id != log.project_id:
-            abort(404)
-        responsible_id = snapshot.get("responsible_id")
-        responsible = db.session.get(User, int(responsible_id)) if responsible_id else None
-        if not responsible or not _user_can_work_in_project(responsible, task.project):
-            flash("Не удалось вернуть исполнителя: пользователь больше недоступен для этого объекта.", "warning")
-            return redirect(request.referrer or url_for("main.developer_delete_logs"))
-        old_responsible = task.responsible_id
-        old_date = task.planned_date
-        restored_date = parse_date(snapshot.get("planned_date"))
-        task.responsible_id = responsible.id
-        task.planned_date = restored_date
-        task.manually_edited = True
-        log_change(task, "field_update", "responsible_id", old_responsible, responsible.id, user_id=current_user.id)
-        if old_date != restored_date:
-            log_change(task, "field_update", "planned_date", old_date, restored_date, user_id=current_user.id)
-        log.is_undone = True
-        log.undone_at = datetime.utcnow()
-        log.undone_by_user_id = current_user.id
-        db.session.commit()
-        flash("Удаление задачи у исполнителя отменено. Исполнитель восстановлен.", "success")
-        return redirect(request.referrer or url_for("main.developer_delete_logs"))
+    try:
+        ok = False
+        message = "Для этого действия отмена пока недоступна."
+        if log.action_key == "assignment_delete_from_employee":
+            task_id = int(snapshot.get("task_id") or log.entity_id or 0)
+            task = db.session.get(Task, task_id) or abort(404)
+            if log.project_id and task.project_id != log.project_id:
+                abort(404)
+            responsible_id = snapshot.get("responsible_id")
+            responsible = db.session.get(User, int(responsible_id)) if responsible_id else None
+            if not responsible or not _user_can_work_in_project(responsible, task.project):
+                flash("Не удалось вернуть исполнителя: пользователь больше недоступен для этого объекта.", "warning")
+                return redirect(request.referrer or url_for("main.developer_delete_logs"))
+            old_responsible = task.responsible_id
+            old_date = task.planned_date
+            restored_date = parse_date(snapshot.get("planned_date"))
+            task.responsible_id = responsible.id
+            task.planned_date = restored_date
+            task.manually_edited = True
+            log_change(task, "field_update", "responsible_id", old_responsible, responsible.id, user_id=current_user.id)
+            if old_date != restored_date:
+                log_change(task, "field_update", "planned_date", old_date, restored_date, user_id=current_user.id)
+            ok, message = True, "Удаление задачи у исполнителя отменено. Исполнитель восстановлен."
+        elif log.action_key == "site_error_delete":
+            ok, message = _restore_site_error_from_snapshot(snapshot)
+        elif log.action_key == "task_delete":
+            ok, message = _restore_task_from_snapshot(snapshot)
+        elif log.action_key == "glass_measurement_delete":
+            ok, message = _restore_glass_measurement_from_snapshot(snapshot)
+        elif log.action_key in {"material_request_delete", "material_request_delete_empty_after_balance"}:
+            ok, message = _restore_material_request_from_snapshot(snapshot)
+        elif log.action_key in {"material_writeoff_delete", "material_writeoff_delete_empty_after_balance"}:
+            ok, message = _restore_material_writeoff_from_snapshot(snapshot)
+        elif log.action_key == "material_balance_delete":
+            ok, message = _restore_material_balance_from_snapshot(snapshot)
+        elif log.action_key == "user_delete":
+            ok, message = _restore_user_from_snapshot(snapshot)
+        elif log.action_key == "sync_log_delete":
+            ok, message = _restore_sync_log_from_snapshot(snapshot)
+        elif log.action_key == "object_delete":
+            ok, message = False, "Объект нельзя восстановить полностью: в старом логе нет полного снимка квартир и замечаний."
 
-    if log.action_key == "site_error_delete":
-        restored = SiteErrorReport(
-            project_id=snapshot.get("project_id"),
-            user_id=snapshot.get("user_id"),
-            kind=(snapshot.get("kind") or "user")[:30],
-            message=(snapshot.get("message") or "Восстановленная запись")[:5000],
-            page_url=(snapshot.get("page_url") or "")[:500],
-            user_agent=(snapshot.get("user_agent") or "")[:500],
-            traceback_text=snapshot.get("traceback_text"),
-            status=(snapshot.get("status") or "new")[:30],
-        )
-        db.session.add(restored)
-        log.is_undone = True
-        log.undone_at = datetime.utcnow()
-        log.undone_by_user_id = current_user.id
-        db.session.commit()
-        flash("Удалённая запись для разработчика восстановлена.", "success")
-        return redirect(url_for("main.site_errors"))
-
-    flash("Для этого действия отмена пока недоступна.", "warning")
+        if ok:
+            _mark_deletion_log_undone(log)
+            db.session.commit()
+            flash(message, "success")
+        else:
+            db.session.rollback()
+            flash(message, "warning")
+    except ValueError as exc:
+        db.session.rollback()
+        flash(f"Не удалось отменить действие: {exc}", "warning")
+    except HTTPException:
+        db.session.rollback()
+        raise
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Failed to undo deletion action")
+        flash("Не удалось отменить действие. Подробности записаны в ошибки сайта.", "danger")
     return redirect(request.referrer or url_for("main.developer_delete_logs"))
 
 
@@ -1471,7 +1802,7 @@ def _premise_options_from_tasks(tasks: list[Task]) -> list[dict]:
             "label": apartment.label(),
             "finish": apartment.finishing_type or "",
             "_sort_key": (
-                0 if (apartment.premise_type or "apartment") != "commercial" else 1,
+                0 if (apartment.premise_type or "apartment") == "commercial" else 1,
                 _apartment_number_sort_value(apartment.apartment_number or apartment.construction_number),
                 str(apartment.building or "").strip().lower(),
                 str(apartment.label() or "").strip().lower(),
@@ -1507,7 +1838,7 @@ def contractors_excel_selection():
     query_args = request.args.to_dict()
     query_args.pop("page", None)
     query_args.pop("task_ids", None)
-    query_args["sort"] = "point"
+    query_args["sort"] = "apartment"
     query = build_task_query(query_args, category_id=all_cat.id if all_cat else None, project_id=project.id)
     if current_user.role in WORKER_ROLES:
         query = query.filter(Task.responsible_id == current_user.id)
@@ -1585,11 +1916,11 @@ def contractors_export():
     if project is None:
         return redirect(url_for("main.objects"))
     query_args = request.args.to_dict()
-    query_args["sort"] = "point"
+    query_args["sort"] = "apartment"
     tasks = _export_tasks_from_request(query_args, project.id).all()
     point = request.args.get("point")
     point_label = CONTRACTOR_POINT_LABELS.get(point, "Все пункты") if point else "Все пункты"
-    path = export_simple_tasks_excel(tasks, f"{project.name}_Подрядчики", title=f"Подрядчики - {point_label}")
+    path = export_remark_tasks_excel(tasks, f"{project.name}_Подрядчики", title=f"Подрядчики - {point_label}")
     return send_file(path, as_attachment=True, download_name=Path(path).name)
 
 
@@ -2663,7 +2994,78 @@ GLASS_STATUS_LABELS = {
     GLASS_STATUS_REPLACED: "Поменяно",
 }
 
-GLASS_ITEM_TYPES = ["Стеклопакет", "Стекло", "Рама/Створка", "Подоконник"]
+GLASS_ITEM_TYPES = ["Стеклопакет", "Стекло", "Фр.стекло", "Рама/Створка", "Подоконник"]
+
+GLASS_ITEM_WORDS = {
+    "стеклопакет": {"singular": "стеклопакет", "plural": "стеклопакеты", "gender": "m"},
+    "стекло": {"singular": "стекло", "plural": "стекла", "gender": "n"},
+    "рама/створка": {"singular": "рама/створка", "plural": "рамы/створки", "gender": "f"},
+    "подоконник": {"singular": "подоконник", "plural": "подоконники", "gender": "m"},
+}
+
+
+def _glass_item_key(value: str | None) -> str:
+    return " ".join(str(value or "").strip().lower().replace("ё", "е").split())
+
+
+def _glass_item_quantity(value) -> int:
+    try:
+        quantity = int(float(value or 1))
+    except (TypeError, ValueError):
+        quantity = 1
+    return max(quantity, 1)
+
+
+def _glass_status_verb(status: str, gender: str, quantity: int) -> str:
+    if status == GLASS_STATUS_REPLACED:
+        if quantity != 1:
+            return "Поменяны"
+        return {"m": "Поменян", "f": "Поменяна", "n": "Поменяно"}.get(gender, "Поменяно")
+    if quantity != 1:
+        return "Заказаны"
+    return {"m": "Заказан", "f": "Заказана", "n": "Заказано"}.get(gender, "Заказано")
+
+
+def _glass_item_noun(item_type: str | None, quantity: int) -> tuple[str, str]:
+    key = _glass_item_key(item_type)
+    meta = GLASS_ITEM_WORDS.get(key)
+    if meta:
+        return (meta["singular"] if quantity == 1 else meta["plural"], meta["gender"])
+    fallback = str(item_type or "позиция").strip().lower() or "позиция"
+    return (fallback, "f")
+
+
+def glass_measurement_action_label(measurement: GlassMeasurement | None) -> str:
+    status = _measurement_status(measurement)
+    if status not in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}:
+        return GLASS_STATUS_LABELS.get(status, status)
+    items = _glass_item_rows(measurement)
+    type_quantities: dict[str, dict[str, object]] = {}
+    for item in items:
+        item_type = str(item.get("item_type") or "Стеклопакет").strip() or "Стеклопакет"
+        key = _glass_item_key(item_type)
+        entry = type_quantities.setdefault(key, {"type": item_type, "quantity": 0})
+        entry["quantity"] = int(entry["quantity"]) + _glass_item_quantity(item.get("quantity"))
+    if not type_quantities and measurement:
+        item_type = measurement.glass_type or "Стеклопакет"
+        type_quantities[_glass_item_key(item_type)] = {
+            "type": item_type,
+            "quantity": _glass_item_quantity(measurement.quantity),
+        }
+    if not type_quantities:
+        return GLASS_STATUS_LABELS.get(status, status)
+    if len(type_quantities) == 1:
+        entry = next(iter(type_quantities.values()))
+        quantity = _glass_item_quantity(entry.get("quantity"))
+        noun, gender = _glass_item_noun(str(entry.get("type") or ""), quantity)
+        return f"{_glass_status_verb(status, gender, quantity)} {noun}"
+    prefix = "Поменяно" if status == GLASS_STATUS_REPLACED else "Заказано"
+    nouns = []
+    for entry in type_quantities.values():
+        quantity = _glass_item_quantity(entry.get("quantity"))
+        noun, _gender = _glass_item_noun(str(entry.get("type") or ""), quantity)
+        nouns.append(noun)
+    return f"{prefix}: {', '.join(nouns)}"
 
 
 def _glass_item_rows(measurement: GlassMeasurement | None) -> list[dict[str, object]]:
@@ -2735,7 +3137,7 @@ def _all_project_tasks(project_id: int) -> list[Task]:
         .join(Apartment)
         .join(WorkPoint)
         .filter(Task.project_id == project_id)
-        .order_by(Task.is_done.asc(), Apartment.premise_type.asc(), Apartment.building.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc(), Task.id.asc())
+        .order_by(Apartment.premise_type.asc(), Apartment.building.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc(), Task.id.asc())
         .limit(3000)
         .all()
     )
@@ -2815,7 +3217,7 @@ def _filter_glass_rows(tasks: list[Task], q: str = "", status: str = "", point: 
             "measurement": measurement,
             "items": _glass_item_rows(measurement),
             "status": current_status,
-            "status_label": GLASS_STATUS_LABELS.get(current_status, current_status),
+            "status_label": glass_measurement_action_label(measurement),
         })
     def _glass_row_sort_key(row: dict[str, object]):
         task = row["task"]
@@ -2825,7 +3227,7 @@ def _filter_glass_rows(tasks: list[Task], q: str = "", status: str = "", point: 
             if premise_matches_selector(apartment, selector):
                 requested_order = index
                 break
-        return (requested_order, *_task_apartment_sort_value(task))
+        return (requested_order, *_task_apartment_sort_value_no_done(task))
 
     return sorted(rows, key=_glass_row_sort_key)
 
@@ -2842,15 +3244,26 @@ def glass_measurements():
         tab = "all"
     q = (request.args.get("q") or "").strip()
     point = (request.args.get("point") or "").strip()
+    ordered_status = (request.args.get("ordered_status") or "").strip()
+    if ordered_status not in {"", GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}:
+        ordered_status = ""
     tasks = _glass_tasks(project.id)
-    rows = _filter_glass_rows(tasks, q=q, point=point)
-    order_rows = _filter_glass_rows(tasks, q=q, status=GLASS_STATUS_MEASURE_NEEDED)
-    ordered_rows = [
-        row for row in _filter_glass_rows(tasks, q=q)
-        if row["status"] in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}
-    ]
-    order_rows.sort(key=lambda row: _task_apartment_sort_value(row["task"]))
-    ordered_rows.sort(key=lambda row: _task_apartment_sort_value(row["task"]))
+    rows = []
+    order_rows = []
+    ordered_rows = []
+    if tab == "all":
+        rows = _filter_glass_rows(tasks, q=q, point=point)
+    elif tab == "order":
+        order_rows = _filter_glass_rows(tasks, q=q, status=GLASS_STATUS_MEASURE_NEEDED)
+        order_rows.sort(key=lambda row: _task_apartment_sort_value_no_done(row["task"]))
+    elif tab == "ordered":
+        ordered_rows = [
+            row for row in _filter_glass_rows(tasks, q=q)
+            if row["status"] in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}
+        ]
+        if ordered_status:
+            ordered_rows = [row for row in ordered_rows if row["status"] == ordered_status]
+        ordered_rows.sort(key=lambda row: _task_apartment_sort_value_no_done(row["task"]))
     return render_template(
         "glass_measurements.html",
         project=project,
@@ -2864,6 +3277,7 @@ def glass_measurements():
         glass_item_types=GLASS_ITEM_TYPES,
         glass_point_options=_glass_point_options(project.id),
         selected_point=point,
+        ordered_status=ordered_status,
         today=date.today(),
     )
 
@@ -3013,7 +3427,7 @@ def glass_status_update(measurement_id: int):
             "ok": True,
             "message": "Статус стеклопакета обновлён",
             "status": measurement.status,
-            "status_label": GLASS_STATUS_LABELS.get(measurement.status, measurement.status),
+            "status_label": glass_measurement_action_label(measurement),
             "ordered_at": format_ru_date(measurement.ordered_at) if measurement.ordered_at else "—",
             "replaced_at": format_ru_date(measurement.replaced_at) if measurement.replaced_at else "",
         })
@@ -3034,7 +3448,7 @@ def glass_order_export():
         row for row in _filter_glass_rows(_glass_tasks(project.id))
         if row["status"] in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}
     ]
-    rows.sort(key=lambda row: _task_apartment_sort_value(row["task"]))
+    rows.sort(key=lambda row: _task_apartment_sort_value_no_done(row["task"]))
 
     wb = Workbook()
     ws = wb.active
@@ -3363,6 +3777,8 @@ def material_balance_delete():
     removed_items = 0
     touched_requests: set[MaterialRequest] = set()
     touched_writeoffs: set[MaterialWriteOff] = set()
+    deleted_request_item_snapshots: list[dict] = []
+    deleted_writeoff_item_snapshots: list[dict] = []
 
     for item in request_items:
         if _normalize_material_identity(item.name, item.unit) not in selected_pairs:
@@ -3372,6 +3788,7 @@ def material_balance_delete():
             synchronize_session=False,
         )
         touched_requests.add(item.request)
+        deleted_request_item_snapshots.append(_snapshot_model(item))
         db.session.delete(item)
         removed_items += 1
 
@@ -3379,6 +3796,7 @@ def material_balance_delete():
         if _normalize_material_identity(item.name, item.unit) not in selected_pairs:
             continue
         touched_writeoffs.add(item.writeoff)
+        deleted_writeoff_item_snapshots.append(_snapshot_model(item))
         db.session.delete(item)
         removed_items += 1
 
@@ -3418,6 +3836,8 @@ def material_balance_delete():
         {
             "selected_pairs": sorted([{"name": name, "unit": unit} for name, unit in selected_pairs], key=lambda row: (row["name"], row["unit"])),
             "removed_items": removed_items,
+            "request_items": deleted_request_item_snapshots,
+            "writeoff_items": deleted_writeoff_item_snapshots,
         },
         project_id=project.id,
     )
@@ -3748,6 +4168,7 @@ def material_writeoffs_bulk_delete():
 
 
 def _make_excel_response(workbook: Workbook, download_name: str):
+    _style_excel_workbook_for_download(workbook)
     output = BytesIO()
     workbook.save(output)
     output.seek(0)
@@ -3759,12 +4180,29 @@ def _make_excel_response(workbook: Workbook, download_name: str):
     )
 
 
+def _style_excel_workbook_for_download(workbook: Workbook) -> None:
+    for ws in workbook.worksheets:
+        for row in ws.iter_rows():
+            for cell in row:
+                if isinstance(cell, MergedCell):
+                    continue
+                alignment = copy(cell.alignment)
+                alignment.wrap_text = True
+                if not alignment.vertical:
+                    alignment.vertical = "top"
+                cell.alignment = alignment
+                cell.border = EXCEL_DOWNLOAD_BORDER
+        if ws.max_row >= 1 and ws.max_column >= 1:
+            ws.auto_filter.ref = ws.dimensions
+
+
 def _style_excel_header(ws):
     fill = PatternFill(fill_type="solid", start_color=EXCEL_HEADER_FILL_COLOR, end_color=EXCEL_HEADER_FILL_COLOR)
     for cell in ws[1]:
         cell.font = Font(bold=True, color="111827")
         cell.fill = fill
-        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = EXCEL_DOWNLOAD_BORDER
     ws.freeze_panes = "A2"
     for column_cells in ws.columns:
         max_len = max(len(str(cell.value or "")) for cell in column_cells)
@@ -4087,7 +4525,7 @@ def _task_list_response(contractor_page: bool = False):
     if contractor_page:
         # В разделе "Подрядчики" показываем ту же таблицу замечаний, но группируем/фильтруем по пунктам 10-22.
         # Не принудительно фильтруем по статусу "Подрядчик", иначе вкладка пустая до ручной разметки задач.
-        query_args["sort"] = "point"
+        query_args["sort"] = "apartment"
     query = build_task_query(query_args, category_id=category_id, project_id=project.id)
     acceptance_status = request.args.get("acceptance_status")
     if acceptance_status == "accepted":
@@ -4101,7 +4539,7 @@ def _task_list_response(contractor_page: bool = False):
     premise_source_tasks = query.options(selectinload(Task.apartment)).all()
 
     page = request.args.get("page", 1, type=int)
-    pagination = query.options(selectinload(Task.glass_measurement)).paginate(page=page, per_page=50, error_out=False)
+    pagination = query.options(selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items)).paginate(page=page, per_page=50, error_out=False)
     active_category = next((category for category in categories if category.id == category_id), None)
 
     prev_args = request.args.to_dict()
@@ -4180,6 +4618,20 @@ def _task_apartment_sort_value(task: Task):
         return (done_rank, 1, 1, (1, 0, ""), "", "", 0)
     return (
         done_rank,
+        0,
+        0 if (apartment.premise_type or "apartment") != "commercial" else 1,
+        _apartment_number_sort_value(apartment.apartment_number or apartment.construction_number),
+        str(apartment.building or "").strip().lower(),
+        str(task.work_point.point_number if task.work_point else "").strip(),
+        int(task.id or 0),
+    )
+
+
+def _task_apartment_sort_value_no_done(task: Task):
+    apartment = getattr(task, "apartment", None)
+    if not apartment:
+        return (1, 1, (1, 0, ""), "", "", 0)
+    return (
         0,
         0 if (apartment.premise_type or "apartment") != "commercial" else 1,
         _apartment_number_sort_value(apartment.apartment_number or apartment.construction_number),
@@ -4307,8 +4759,9 @@ def _po_status_for_group(apartments: list[Apartment], tasks: list[Task]) -> str 
 
 def _apartment_inspection_comment(apartments: list[Apartment]) -> str | None:
     for apartment in apartments:
-        if apartment.inspection_note:
-            return apartment.inspection_note
+        note = str(apartment.inspection_note or "").strip()
+        if note and not note.startswith("__inspection_schedule__:"):
+            return note
     return None
 
 
@@ -4379,9 +4832,74 @@ def _log_apartment_field_change(apartments: list[Apartment], field_name: str, ol
     return entry, anchor_task
 
 
+def _parse_inspection_schedule_marker(note: str | None) -> date | datetime | None:
+    text = str(note or "").strip()
+    prefix = "__inspection_schedule__:"
+    if not text.startswith(prefix):
+        return None
+    payload = text[len(prefix):].strip()
+    if not payload:
+        return None
+    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            parsed = datetime.strptime(payload, fmt)
+            if fmt == "%Y-%m-%d":
+                return parsed.date()
+            return parsed
+        except ValueError:
+            continue
+    return None
+
+
+def _apartment_inspection_value(apartment: Apartment) -> date | datetime | None:
+    scheduled = _parse_inspection_schedule_marker(apartment.inspection_note)
+    if scheduled is not None:
+        return scheduled
+    return apartment.inspection_date or apartment.first_inspection_date
+
+
+def _inspection_sort_datetime(value: date | datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    return datetime.combine(value, datetime.max.time().replace(microsecond=0))
+
+
+def _format_inspection_display_value(value: date | datetime | None) -> str:
+    if value is None:
+        return "—"
+    if isinstance(value, datetime):
+        return value.strftime("%d.%m.%Y %H:%M")
+    return format_ru_date(value)
+
+
 def _apartment_inspection_date(apartments: list[Apartment]) -> date | None:
-    dates = [apartment.inspection_date or apartment.first_inspection_date for apartment in apartments if apartment.inspection_date or apartment.first_inspection_date]
+    dates: list[date] = []
+    for apartment in apartments:
+        value = _apartment_inspection_value(apartment)
+        if isinstance(value, datetime):
+            dates.append(value.date())
+        elif isinstance(value, date):
+            dates.append(value)
     return min(dates) if dates else None
+
+
+def _apartment_inspection_display(apartments: list[Apartment]) -> str:
+    values = [_apartment_inspection_value(apartment) for apartment in apartments]
+    values = [value for value in values if value is not None]
+    if not values:
+        return "—"
+    chosen = min(values, key=lambda value: _inspection_sort_datetime(value) or datetime.max)
+    return _format_inspection_display_value(chosen)
+
+
+def _apartment_inspection_status_class(status: str | None) -> str:
+    if status == "Будет":
+        return "status-pill-warning"
+    if status == "Был":
+        return "status-pill-danger"
+    return "status-pill-muted"
 
 
 def _apartment_inspection_status(apartments: list[Apartment]) -> str | None:
@@ -4395,7 +4913,8 @@ def _apartment_inspection_status(apartments: list[Apartment]) -> str | None:
 
 
 def _group_remark_deadline(apartments: list[Apartment]) -> date | None:
-    deadlines = [apartment.app_deadline_date for apartment in apartments if apartment.app_deadline_date]
+    deadlines = [apartment.effective_app_deadline_date() for apartment in apartments]
+    deadlines = [deadline for deadline in deadlines if deadline]
     return min(deadlines) if deadlines else None
 
 
@@ -4456,6 +4975,25 @@ def _group_app_deadline_status(apartments: list[Apartment]) -> str | None:
     return None
 
 
+def _apartment_inspection_status(apartments: list[Apartment]) -> str | None:
+    if apartments and any(_is_unsold_apartment(apartment) for apartment in apartments):
+        return "Был"
+    values = [_apartment_inspection_value(apartment) for apartment in apartments]
+    values = [value for value in values if value is not None]
+    if values:
+        nearest = min(values, key=lambda value: _inspection_sort_datetime(value) or datetime.max)
+        nearest_dt = _inspection_sort_datetime(nearest)
+        if nearest_dt is not None:
+            return "Будет" if nearest_dt >= datetime.now() else "Был"
+    if any(apartment.first_inspection_present for apartment in apartments):
+        return "Был"
+    return "Не был"
+
+
+def _is_app_inspection_locked(apartments: list[Apartment]) -> bool:
+    return _apartment_group_mode(apartments) == "АПП" and _apartment_inspection_date(apartments) is not None
+
+
 def _premise_label(apartment: Apartment) -> str:
     return "Комм" if (apartment.premise_type or "apartment") == "commercial" else "кв"
 
@@ -4502,7 +5040,10 @@ def _contractor_point_options() -> list[dict[str, str]]:
 
 def _group_project_apartments(project_id: int) -> list[list[Apartment]]:
     apartments = (
-        Apartment.query.options(selectinload(Apartment.tasks).selectinload(Task.work_point), selectinload(Apartment.tasks).selectinload(Task.glass_measurement))
+        Apartment.query.options(
+            selectinload(Apartment.tasks).selectinload(Task.work_point),
+            selectinload(Apartment.tasks).selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items),
+        )
         .filter(Apartment.project_id == project_id)
         .all()
     )
@@ -4531,6 +5072,8 @@ def _build_apartment_overview(apartment_or_group) -> dict:
     done_tasks = [task for task in active_tasks if task.is_done]
     left_tasks = [task for task in active_tasks if not task.is_done]
     problem_tasks = [task for task in active_tasks if task.status == "problem"]
+    replaced_glass = [task.glass_measurement for task in tasks if task.glass_measurement and task.glass_measurement.status == GLASS_STATUS_REPLACED]
+    ordered_glass = [task.glass_measurement for task in tasks if task.glass_measurement and task.glass_measurement.status == GLASS_STATUS_ORDERED]
     comments = []
     changes = []
     for task in tasks:
@@ -4557,7 +5100,9 @@ def _build_apartment_overview(apartment_or_group) -> dict:
         "inspection_comment": _apartment_inspection_comment(apartments),
         "manual_comment": _apartment_manual_comment(apartments),
         "inspection_date": _apartment_inspection_date(apartments),
+        "inspection_display": _apartment_inspection_display(apartments),
         "inspection_status": _apartment_inspection_status(apartments),
+        "inspection_status_class": _apartment_inspection_status_class(_apartment_inspection_status(apartments)),
         "tasks": tasks,
         "active_tasks": active_tasks,
         "done_tasks": done_tasks,
@@ -4577,8 +5122,9 @@ def _build_apartment_overview(apartment_or_group) -> dict:
         "avr_signed_date": _group_avr_signed_date(apartments),
         "show_avr": mode == "АПП" and (apartment.premise_type or "apartment") == "apartment",
         "po_status": _po_status_for_group(apartments, active_tasks),
-        "has_ordered_glass": any(task.glass_measurement and task.glass_measurement.status == GLASS_STATUS_ORDERED for task in tasks),
-        "has_replaced_glass": any(task.glass_measurement and task.glass_measurement.status == GLASS_STATUS_REPLACED for task in tasks),
+        "has_ordered_glass": bool(ordered_glass),
+        "has_replaced_glass": bool(replaced_glass),
+        "glass_status_label": glass_measurement_action_label(replaced_glass[0] if replaced_glass else (ordered_glass[0] if ordered_glass else None)),
     }
 
 
@@ -4588,17 +5134,65 @@ def apartments():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    q = (request.args.get("q") or "").strip()
-    premise_selectors, _tail_query = parse_multi_premise_search(q)
-    po_only = request.args.get("po") == "1"
-    inspection_filter = (request.args.get("inspection_status") or "").strip()
-    app_status_filter = (request.args.get("app_status") or "").strip()
-    po_status_filter = (request.args.get("po_status") or "").strip()
+    rows, premise_selectors, po_only = _filtered_apartment_overview_rows(project.id, request.args)
 
+    all_rows = [_build_apartment_overview(group) for group in _group_project_apartments(project.id)]
+    po_alert_count = sum(1 for row in all_rows if row.get("po_status") == PO_STATUS_TO_THROW)
+    finishing_types = [
+        x[0]
+        for x in db.session.query(distinct(Apartment.finishing_type))
+        .filter(Apartment.project_id == project.id, Apartment.finishing_type.isnot(None), Apartment.finishing_type != "")
+        .order_by(Apartment.finishing_type.asc())
+        .all()
+    ]
+    return render_template(
+        "apartments.html",
+        rows=rows,
+        args=request.args,
+        export_args=request.args.to_dict(flat=True),
+        finishing_types=finishing_types,
+        total_count=len(rows),
+        po_only=po_only,
+        po_alert_count=po_alert_count,
+        po_status_labels=PO_STATUS_LABELS,
+        po_status_classes=PO_STATUS_CLASSES,
+        avr_status_needed=AVR_STATUS_NEEDED,
+        avr_status_signed=AVR_STATUS_SIGNED,
+    )
+
+
+def _apartment_overview_search_haystack(row: dict) -> str:
+    values: list[str] = []
+    for apartment in row.get("apartments") or []:
+        values.extend([
+            apartment.label(),
+            apartment.full_label(),
+            apartment.detail_label(),
+            apartment.apartment_number or "",
+            apartment.construction_number or "",
+            apartment.owner_name or "",
+            apartment.phone or "",
+            apartment.finishing_type or "",
+            apartment.comment or "",
+            apartment.inspection_note or "",
+        ])
+    values.append(str(row.get("glass_status_label") or ""))
+    values.append(str(row.get("mode") or ""))
+    values.append(str(PO_STATUS_LABELS.get(row.get("po_status"), row.get("po_status") or "")))
+    return " ".join(values).lower().replace("ё", "е")
+
+
+def _filtered_apartment_overview_rows(project_id: int, args) -> tuple[list[dict], list[dict], bool]:
+    q = (args.get("q") or "").strip()
+    premise_selectors, _tail_query = parse_multi_premise_search(q)
+    po_only = args.get("po") == "1"
+    inspection_filter = (args.get("inspection_status") or "").strip()
+    app_status_filter = (args.get("app_status") or "").strip()
+    avr_status_filter = (args.get("avr_status") or "").strip()
+    po_status_filter = (args.get("po_status") or "").strip()
     rows = []
-    for group in _group_project_apartments(project.id):
+    for group in _group_project_apartments(project_id):
         row = _build_apartment_overview(group)
-        apartment = row["apartment"]
         if q:
             premise_selectors, tail_query = parse_multi_premise_search(q)
             search_mode, search_value = detect_search_mode(q)
@@ -4611,15 +5205,7 @@ def apartments():
                     continue
                 if tail_query:
                     needle = tail_query.lower().replace("ё", "е")
-                    haystack = " ".join([
-                        apartment.label(),
-                        apartment.apartment_number or "",
-                        apartment.construction_number or "",
-                        apartment.owner_name or "",
-                        apartment.finishing_type or "",
-                        apartment.comment or "",
-                        apartment.inspection_note or "",
-                    ]).lower().replace("ё", "е")
+                    haystack = _apartment_overview_search_haystack(row)
                     if needle not in haystack:
                         continue
             elif search_mode in {"premise_number", "premise_number_or_building", "commercial_pair", "construction_number"}:
@@ -4627,15 +5213,7 @@ def apartments():
                     continue
             else:
                 needle = search_value.lower().replace("ё", "е")
-                haystack = " ".join([
-                    apartment.label(),
-                    apartment.apartment_number or "",
-                    apartment.construction_number or "",
-                    apartment.owner_name or "",
-                    apartment.finishing_type or "",
-                    apartment.comment or "",
-                    apartment.inspection_note or "",
-                ]).lower().replace("ё", "е")
+                haystack = _apartment_overview_search_haystack(row)
                 if needle not in haystack:
                     continue
         if po_only and row.get("po_status") != PO_STATUS_TO_THROW:
@@ -4644,11 +5222,13 @@ def apartments():
             continue
         if app_status_filter == "not_accepted" and row.get("mode") != "не принята":
             continue
+        if avr_status_filter in {AVR_STATUS_NEEDED, AVR_STATUS_SIGNED} and (not row.get("show_avr") or row.get("avr_status") != avr_status_filter):
+            continue
         if po_status_filter and row.get("po_status") != po_status_filter:
             continue
         if inspection_filter == "was" and row.get("inspection_status") != "Был":
             continue
-        if inspection_filter == "not_was" and row.get("inspection_status") != "Не был":
+        if inspection_filter == "not_was" and row.get("inspection_status") not in {"Не был", "Будет"}:
             continue
         rows.append(row)
 
@@ -4666,31 +5246,50 @@ def apartments():
                 _apartment_number_sort_value(row["apartment"].apartment_number or row["apartment"].construction_number),
             )
         )
-
-    all_rows = [_build_apartment_overview(group) for group in _group_project_apartments(project.id)]
-    po_alert_count = sum(1 for row in all_rows if row.get("po_status") == PO_STATUS_TO_THROW)
-    if not premise_selectors:
+    else:
         rows.sort(key=lambda row: _apartment_number_sort_value(row["apartment"].apartment_number or row["apartment"].construction_number))
-    finishing_types = [
-        x[0]
-        for x in db.session.query(distinct(Apartment.finishing_type))
-        .filter(Apartment.project_id == project.id, Apartment.finishing_type.isnot(None), Apartment.finishing_type != "")
-        .order_by(Apartment.finishing_type.asc())
-        .all()
-    ]
-    return render_template(
-        "apartments.html",
-        rows=rows,
-        args=request.args,
-        finishing_types=finishing_types,
-        total_count=len(rows),
-        po_only=po_only,
-        po_alert_count=po_alert_count,
-        po_status_labels=PO_STATUS_LABELS,
-        po_status_classes=PO_STATUS_CLASSES,
-        avr_status_needed=AVR_STATUS_NEEDED,
-        avr_status_signed=AVR_STATUS_SIGNED,
-    )
+    return rows, premise_selectors, po_only
+
+
+def _apartments_export_filename_stem(project_name: str | None) -> str:
+    text = str(project_name or "").strip()
+    match = re.search(r"\b(\d+)\s+Квартал\s+(\d+)\b", text, flags=re.IGNORECASE)
+    if match:
+        return f"Квартал {match.group(1)}-{match.group(2)}"
+    return _safe_filename_part(text or "квартиры")
+
+
+@bp.route("/apartments/export")
+@login_required
+def apartments_export():
+    if not can_export(current_user):
+        abort(403)
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    rows, _premise_selectors, _po_only = _filtered_apartment_overview_rows(project.id, request.args)
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Квартиры"
+    ws.append([
+        "Помещение",
+        "Отделка",
+        "Режим",
+        "Осмотр",
+        "Срок устранения",
+    ])
+    for row in rows:
+        apartment = row["apartment"]
+        ws.append([
+            apartment.full_label(),
+            apartment.finishing_type or "",
+            row.get("mode") or "",
+            row.get("inspection_status") or "",
+            row.get("remark_deadline_display") or "",
+        ])
+    _style_excel_header(ws)
+    filename = f"{_apartments_export_filename_stem(project.name)}_квартиры.xlsx"
+    return _make_excel_response(wb, filename)
 
 
 @bp.route("/avr", methods=["GET", "POST"])
@@ -4918,13 +5517,25 @@ def update_apartment_po_status(apartment_id: int):
         for item in Apartment.query.filter(Apartment.project_id == project.id).all()
         if _is_visible_apartment_row(item) and _apartment_group_key(item) == group_key
     ]
+    target_group = group or [apartment]
+    old_status = _build_apartment_overview(target_group).get("po_status")
     for item in group or [apartment]:
         item.po_status = status
         item.po_status_manual = True
+    logged_change = _log_apartment_field_change(target_group, "po_status", old_status, status)
+    history_entry = None
+    if logged_change:
+        history_entry = _build_change_history_entry(logged_change[0], task=logged_change[1], users_cache={})
     db.session.commit()
     if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
-        return jsonify({"ok": True, "message": "Статус ПО обновлен", "po_status": status, "po_label": PO_STATUS_LABELS.get(status, status)})
-    flash("Статус ПО обновлен", "success")
+        return jsonify({
+            "ok": True,
+            "message": "Внутренний статус обновлён",
+            "po_status": status,
+            "po_label": PO_STATUS_LABELS.get(status, status),
+            "history_entry": history_entry,
+        })
+    flash("Внутренний статус обновлён", "success")
     return redirect(request.referrer or url_for("main.apartments"))
 
 
@@ -4948,8 +5559,15 @@ def update_apartment_inspection_status(apartment_id: int):
         for item in Apartment.query.filter(Apartment.project_id == project.id).all()
         if _is_visible_apartment_row(item) and _apartment_group_key(item) == group_key
     ]
-    if any(_is_unsold_apartment(item) for item in group or [apartment]):
-        for item in group or [apartment]:
+    target_group = group or [apartment]
+    if _is_app_inspection_locked(target_group):
+        message = "В режиме АПП осмотр с датой изменить нельзя"
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+            return jsonify({"ok": False, "message": message}), 400
+        flash(message, "warning")
+        return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
+    if any(_is_unsold_apartment(item) for item in target_group):
+        for item in target_group:
             item.first_inspection_present = True
             item.first_inspection_date = item.first_inspection_date or date.today()
         db.session.commit()
@@ -4957,7 +5575,7 @@ def update_apartment_inspection_status(apartment_id: int):
         return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
 
     was_present = status == "was"
-    for item in group or [apartment]:
+    for item in target_group:
         item.first_inspection_present = was_present
         item.first_inspection_date = (item.first_inspection_date or date.today()) if was_present else None
     db.session.commit()
@@ -4984,7 +5602,14 @@ def update_apartment_inspection_date(apartment_id: int):
         for item in Apartment.query.filter(Apartment.project_id == project.id).all()
         if _is_visible_apartment_row(item) and _apartment_group_key(item) == group_key
     ]
-    for item in group or [apartment]:
+    target_group = group or [apartment]
+    if _is_app_inspection_locked(target_group):
+        message = "В режиме АПП осмотр с датой изменить нельзя"
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+            return jsonify({"ok": False, "message": message}), 400
+        flash(message, "warning")
+        return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
+    for item in target_group:
         item.inspection_date = inspection_date
         item.first_inspection_date = inspection_date
         item.first_inspection_present = inspection_date is not None
@@ -4992,11 +5617,14 @@ def update_apartment_inspection_date(apartment_id: int):
 
     message = "Дата осмотра обновлена" if inspection_date else "Дата осмотра очищена"
     if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+        overview = _build_apartment_overview(target_group)
         return jsonify({
             "ok": True,
             "message": message,
             "inspection_date": inspection_date.isoformat() if inspection_date else "",
-            "inspection_date_label": format_ru_date(inspection_date) if inspection_date else "—",
+            "inspection_date_label": overview.get("inspection_display") or "—",
+            "inspection_status": overview.get("inspection_status") or "",
+            "inspection_status_class": overview.get("inspection_status_class") or "status-pill-muted",
         })
     flash(message, "success")
     return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
@@ -5088,17 +5716,33 @@ def update_apartment_avr_status(apartment_id: int):
         for item in Apartment.query.filter(Apartment.project_id == project.id).all()
         if _is_visible_apartment_row(item) and _apartment_group_key(item) == group_key
     ]
-    for item in group or [apartment]:
+    target_group = group or [apartment]
+    old_status = _group_avr_status(target_group)
+    old_signed_date = next((item.avr_signed_date for item in target_group if item.avr_signed_date), None)
+    for item in target_group:
         item.avr_status = status
         item.avr_signed_date = signed_date if status == AVR_STATUS_SIGNED else None
+    status_history_change = _log_apartment_field_change(target_group, "avr_status", old_status, status)
+    date_history_change = _log_apartment_field_change(
+        target_group,
+        "avr_signed_date",
+        old_signed_date.isoformat() if old_signed_date else "",
+        signed_date.isoformat() if signed_date and status == AVR_STATUS_SIGNED else "",
+    )
     db.session.commit()
     if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+        history_entry = None
+        for history_change in (date_history_change, status_history_change):
+            if history_change:
+                history_entry = _build_change_history_entry(history_change[0], task=history_change[1], users_cache={})
+                break
         return jsonify({
             "ok": True,
             "message": "Статус АВР обновлен",
             "avr_status": status,
             "avr_signed_date": signed_date.isoformat() if signed_date and status == AVR_STATUS_SIGNED else "",
             "avr_signed_date_label": format_ru_date(signed_date) if signed_date and status == AVR_STATUS_SIGNED else "",
+            "history_entry": history_entry,
         })
     flash("Статус АВР обновлен", "success")
     return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
@@ -5119,7 +5763,7 @@ def apartment_detail(apartment_id: int):
         for item in (
             Apartment.query.options(
                 selectinload(Apartment.tasks).selectinload(Task.work_point),
-                selectinload(Apartment.tasks).selectinload(Task.glass_measurement),
+                selectinload(Apartment.tasks).selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items),
                 selectinload(Apartment.tasks).selectinload(Task.responsible),
                 selectinload(Apartment.tasks).selectinload(Task.comments).selectinload(TaskComment.user),
                 selectinload(Apartment.tasks).selectinload(Task.changes),
@@ -5133,15 +5777,28 @@ def apartment_detail(apartment_id: int):
         group = [apartment]
     overview = _build_apartment_overview(group)
     users_cache: dict[int, str] = {}
-    history_entries = [
+    history_entries_all = [
         _build_change_history_entry(item["change"], task=item["task"], users_cache=users_cache)
         for item in overview["changes"]
     ]
+    history_page = max(request.args.get("history_page", 1, type=int), 1)
+    history_per_page = 12
+    history_total = len(history_entries_all)
+    history_pages = max((history_total + history_per_page - 1) // history_per_page, 1)
+    if history_page > history_pages:
+        history_page = history_pages
+    history_start = (history_page - 1) * history_per_page
+    history_entries = history_entries_all[history_start:history_start + history_per_page]
+    requested_back_url = request.args.get("back")
+    back_url = requested_back_url if _is_local_redirect(requested_back_url) else url_for("main.apartments")
     return render_template(
         "apartment_detail.html",
         row=overview,
         history_entries=history_entries,
+        history_page=history_page,
+        history_pages=history_pages,
         apartment=overview["apartment"],
+        back_url=back_url,
         today=date.today(),
         po_status_labels=PO_STATUS_LABELS,
         po_status_classes=PO_STATUS_CLASSES,
@@ -5308,7 +5965,7 @@ def task_detail(task_id: int):
     history_entries = [_build_change_history_entry(change, task=task, users_cache=users_cache) for change in visible_changes]
     other_open_tasks = (
         Task.query.join(WorkPoint)
-        .options(selectinload(Task.work_point), selectinload(Task.glass_measurement))
+        .options(selectinload(Task.work_point), selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items))
         .filter(
             Task.project_id == project.id,
             Task.apartment_id == task.apartment_id,
@@ -5320,6 +5977,8 @@ def task_detail(task_id: int):
         .limit(30)
         .all()
     )
+    requested_back_url = request.args.get("back")
+    back_url = requested_back_url if _is_local_redirect(requested_back_url) else url_for("main.task_list")
     return render_template(
         "task_detail.html",
         task=task,
@@ -5328,6 +5987,7 @@ def task_detail(task_id: int):
         visible_changes=visible_changes,
         history_entries=history_entries,
         other_open_tasks=other_open_tasks,
+        back_url=back_url,
         can_delete_task=_is_crm_created_task(task) and current_user.role != "viewer",
     )
 
@@ -5358,6 +6018,17 @@ def task_delete(task_id: int):
         extra={
             "apartment_label": task.apartment.label() if task.apartment else None,
             "work_point": task.work_point.display_name if task.work_point else None,
+            "comments": _snapshot_children(task.comments),
+            "changes": _snapshot_children(task.changes),
+            "glass_measurement": (
+                _snapshot_model(
+                    task.glass_measurement,
+                    extra={"items": _snapshot_children(task.glass_measurement.items)},
+                )
+                if task.glass_measurement
+                else None
+            ),
+            "material_writeoff_ids": [writeoff.id for writeoff in list(task.material_writeoffs)],
             "comment_count": len(task.comments),
             "change_count": len(task.changes),
         },
@@ -5435,12 +6106,28 @@ def add_task_comment(task_id: int):
     if not can_change_task(current_user, task):
         abort(403)
     form = CommentForm()
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
     if form.validate_on_submit():
         comment = TaskComment(task_id=task.id, user_id=current_user.id, body=form.body.data)
         db.session.add(comment)
         log_change(task, "comment_added", "comment", "", form.body.data)
         db.session.commit()
+        if wants_json:
+            history_change = next((change for change in reversed(task.changes) if change.action == "comment_added"), None)
+            history_entry = _build_change_history_entry(history_change, task=task, users_cache={}) if history_change else None
+            return jsonify({
+                "ok": True,
+                "message": "Комментарий добавлен",
+                "comment": {
+                    "author": current_user.full_name or current_user.username,
+                    "timestamp": format_ru_datetime(comment.created_at),
+                    "body": comment.body,
+                },
+                "history_entry": history_entry,
+            })
         flash("Комментарий добавлен", "success")
+    elif wants_json:
+        return jsonify({"ok": False, "message": "Не удалось добавить комментарий"}), 400
     return redirect(url_for("main.task_detail", task_id=task.id))
 
 
@@ -5480,6 +6167,8 @@ def quick_status(task_id: int, status: str):
             flash(f"Статус сохранён, но зачёркивание в Google Sheets не применилось: {exc}", "warning")
             return redirect(request.referrer or url_for("main.task_list"))
     if wants_json:
+        history_change = next((change for change in reversed(task.changes) if change.action in {"status_change", "field_update"}), None)
+        history_entry = _build_change_history_entry(history_change, task=task, users_cache={}) if history_change else None
         return jsonify(
             {
                 "ok": True,
@@ -5489,6 +6178,7 @@ def quick_status(task_id: int, status: str):
                 "status_class": task.status_class(),
                 "is_done": task.is_done,
                 "message": f"Статус изменён: {TASK_STATUSES[status]['label']}",
+                "history_entry": history_entry,
             }
         )
     flash(f"Статус изменён: {TASK_STATUSES[status]['label']}", "success")
@@ -6046,4 +6736,6 @@ def inline_update_text(task_id: int):
         log_change(task, "field_update", "description", old_text, task.description, user_id=current_user.id)
     task.manually_edited = True
     db.session.commit()
-    return jsonify({"ok": True, "text": task.description or ""})
+    history_change = next((change for change in reversed(task.changes) if change.action == "field_update" and change.field_name == "description"), None)
+    history_entry = _build_change_history_entry(history_change, task=task, users_cache={}) if history_change else None
+    return jsonify({"ok": True, "text": task.description or "", "history_entry": history_entry})

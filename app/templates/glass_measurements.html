@@ -54,7 +54,7 @@
         <tbody>
         {% for row in rows %}
           {% set task = row.task %}
-          <tr class="task-row-link {% if task.is_done %}done-task{% endif %}" data-href="{{ url_for('main.task_detail', task_id=task.id) }}">
+          <tr class="task-row-link {% if task.is_done %}done-task{% endif %}" data-href="{{ url_for('main.task_detail', task_id=task.id, back=request.full_path) }}">
             <td><span class="js-highlight-text">{{ task.apartment.label() if task.apartment else '—' }}</span></td>
             <td class="task-text"><span class="js-highlight-text">{{ remark_text(task.description or task.source_cell_value) }}</span></td>
             <td><span class="badge bg-{{ task.status_class() }}">{{ task.status_label() }}</span></td>
@@ -68,9 +68,9 @@
                 {% elif row.status == 'measure_needed' %}
                   <a class="btn btn-sm btn-outline-primary glass-measure-start-btn" href="{{ url_for('main.glass_measurements', tab='order', q=q) }}">В заказе</a>
                 {% elif row.status == 'ordered' %}
-                  <span class="glass-status-badge glass-status-ordered">Заказано</span>
+                  <span class="glass-status-badge glass-status-ordered">{{ row.status_label }}</span>
                 {% elif row.status == 'replaced' %}
-                  <span class="glass-status-badge glass-status-replaced">Поменяно</span>
+                  <span class="glass-status-badge glass-status-replaced">{{ row.status_label }}</span>
                 {% else %}
                   <span class="glass-status-badge glass-status-measured">{{ row.status_label }}</span>
                 {% endif %}
@@ -181,11 +181,19 @@
   <div class="card-body">
     <form method="get" class="row g-2 align-items-end crm-filter-form glass-filter-form">
       <input type="hidden" name="tab" value="ordered">
-      <div class="col-12 col-lg-6">
+      <div class="col-12 col-lg-4">
         <label class="form-label">Поиск</label>
         <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="Введите цифру или текст">
       </div>
-      <div class="col-12 col-lg-6 filter-actions glass-filter-actions">
+      <div class="col-12 col-lg-3">
+        <label class="form-label">Статус</label>
+        <select class="form-select" name="ordered_status">
+          <option value="">Все</option>
+          <option value="ordered" {% if ordered_status == 'ordered' %}selected{% endif %}>Заказано</option>
+          <option value="replaced" {% if ordered_status == 'replaced' %}selected{% endif %}>Поменяно</option>
+        </select>
+      </div>
+      <div class="col-12 col-lg-5 filter-actions glass-filter-actions">
         <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
         <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.glass_measurements', tab='ordered') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
       </div>
@@ -201,9 +209,6 @@
     <div>
       <b>Заказано</b>
       <div class="text-muted small"></div>
-    </div>
-    <div class="d-flex gap-2 flex-wrap glass-ordered-actions">
-      <a class="btn btn-outline-success glass-excel-btn" href="{{ url_for('main.glass_order_export') }}"><i class="bi bi-file-earmark-excel me-2"></i><span>Скачать Excel</span></a>
     </div>
   </div>
   <div class="bulk-actions-panel js-bulk-panel d-none glass-request-panel">
@@ -314,9 +319,8 @@
                 </div>
                 {% if current_user.role != 'viewer' %}
                 <div class="glass-measure-actions mt-2">
-                  <button class="btn btn-sm btn-outline-primary js-glass-add-item" type="button"><i class="bi bi-plus-lg me-1"></i>Ещё размер</button>
                   <button class="btn btn-sm btn-outline-secondary js-glass-ordered-edit-cancel" type="button">Отмена</button>
-                  <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-check2 me-1"></i>Сохранить</button>
+                  <button class="btn btn-sm btn-primary" type="submit">Сохранить</button>
                 </div>
                 {% endif %}
               </form>
@@ -339,6 +343,7 @@
               {% endif %}
             </td>
             <td class="text-end glass-actions-col">
+              <div class="glass-row-actions">
               {% if current_user.role != 'viewer' %}
               <button class="btn btn-sm btn-outline-primary js-glass-ordered-edit-toggle" type="button" title="Редактировать размеры"><i class="bi bi-pencil-square"></i></button>
               {% endif %}
@@ -348,6 +353,7 @@
                 <input type="hidden" name="measurement_ids" value="{{ measurement.id }}">
                 <button class="btn btn-sm btn-outline-danger" type="submit" data-confirm="Удалить позицию?\n\nЗаявка: {{ measurement.size_label() or (task.description or task.source_cell_value) }}\n\nЭто действие нельзя отменить." title="Удалить позицию"><i class="bi bi-trash"></i></button>
               </form>
+              </div>
             </td>
           </tr>
         {% endfor %}

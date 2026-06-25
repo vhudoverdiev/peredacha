@@ -117,6 +117,8 @@ def workbook_sheets_to_rows_with_strikes(path: Path) -> list[tuple[str, list[lis
 
 
 def mark_missing_tasks(project_id: int, seen_uids: set[str]) -> int:
+    if not seen_uids:
+        return 0
     query = Task.query.filter(Task.project_id == project_id)
     query = query.filter(Task.work_point.has(WorkPoint.point_number.in_(VISIBLE_WORK_POINT_NUMBERS)))
     if seen_uids:

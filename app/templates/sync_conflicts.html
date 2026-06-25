@@ -22,7 +22,7 @@
 
 <div class="card table-shell">
   <div class="card-body p-0 table-responsive">
-  <table class="table table-sm table-hover align-middle">
+  <table class="table table-sm table-hover align-middle sync-conflicts-table">
     <thead>
       <tr>
         <th>Помещение</th>
@@ -39,8 +39,8 @@
           <div class="text-muted small">{{ c.field_label or 'Ячейка замечания' }}</div>
           <div class="text-muted small">{{ c.sheet_name }} · {{ c.cell_address or '' }}</div>
         </td>
-        <td style="min-width:320px;max-width:520px;white-space:normal;overflow-wrap:anywhere;">{{ c.old_value or '' }}</td>
-        <td style="min-width:320px;max-width:520px;white-space:normal;overflow-wrap:anywhere;">{{ c.new_value or '' }}</td>
+        <td class="sync-conflict-value">{{ c.old_value or '' }}</td>
+        <td class="sync-conflict-value">{{ c.new_value or '' }}</td>
         <td>
           <div class="d-flex gap-2 flex-wrap">
             <form method="post" action="{{ url_for('main.resolve_conflict', conflict_id=c.id, action='keep_old') }}">

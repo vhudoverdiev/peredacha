@@ -18,7 +18,7 @@ from app.services.task_service import get_setting
 EXCEL_HEADER_FILL_COLOR = "FFE2F0D9"
 HEADER_FILL = PatternFill(fill_type="solid", start_color=EXCEL_HEADER_FILL_COLOR, end_color=EXCEL_HEADER_FILL_COLOR)
 REPORT_HEADER_FILL = PatternFill(fill_type="solid", start_color=EXCEL_HEADER_FILL_COLOR, end_color=EXCEL_HEADER_FILL_COLOR)
-THIN_BORDER = Border(left=Side(style="thin", color="D0D5DD"), right=Side(style="thin", color="D0D5DD"), top=Side(style="thin", color="D0D5DD"), bottom=Side(style="thin", color="D0D5DD"))
+THIN_BORDER = Border(left=Side(style="thin", color="000000"), right=Side(style="thin", color="000000"), top=Side(style="thin", color="000000"), bottom=Side(style="thin", color="000000"))
 
 
 def style_header_row(ws) -> None:
@@ -44,6 +44,16 @@ def apply_borders(ws) -> None:
         for cell in row:
             cell.border = THIN_BORDER
             cell.alignment = Alignment(vertical="top", wrap_text=True)
+
+
+def enable_wrap_text(ws) -> None:
+    for row in ws.iter_rows():
+        for cell in row:
+            alignment = copy(cell.alignment)
+            alignment.wrap_text = True
+            if not alignment.vertical:
+                alignment.vertical = "top"
+            cell.alignment = alignment
 
 
 def set_column_widths(ws, widths) -> None:
@@ -495,6 +505,9 @@ def export_source_excel_with_strikes(source_path: str | None = None, project_nam
                 task.status_label(),
                 task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
             ])
+        apply_worksheet_style(ws_manual, [20, 36, 100, 20, 18])
+    for worksheet in wb.worksheets:
+        apply_borders(worksheet)
     wb.save(target)
     return target
 

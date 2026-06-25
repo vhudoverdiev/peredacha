@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import re
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -238,19 +238,31 @@ class Apartment(TimestampMixin, db.Model):
 
     def app_deadline_label(self) -> str:
         """Единое отображение срока устранения по колонке Excel «Срок устранения замечаний  по АПП»."""
-        if self.app_deadline_date:
-            return self.app_deadline_date.strftime("%d.%m.%Y")
+        effective_deadline = self.effective_app_deadline_date()
+        if effective_deadline:
+            return effective_deadline.strftime("%d.%m.%Y")
         raw = str(self.app_deadline_raw or "").strip()
         if raw and not self._is_no_deadline_text(raw):
             return raw
         return "Нет срока"
 
+    def effective_app_deadline_date(self) -> date | None:
+        if self.app_deadline_date:
+            return self.app_deadline_date
+        if not self.is_app_mode:
+            return None
+        base_date = self.inspection_date or self.first_inspection_date
+        if not base_date:
+            return None
+        return base_date + timedelta(days=60)
+
     def app_deadline_badge(self, today: date | None = None) -> dict | None:
         """Статус показываем только для реальной даты. «Без замечаний»/пусто = нет срока без тревожной плашки."""
-        if not self.app_deadline_date:
+        deadline = self.effective_app_deadline_date()
+        if not deadline:
             return None
         today = today or date.today()
-        days_left = (self.app_deadline_date - today).days
+        days_left = (deadline - today).days
         if days_left < 0:
             return {"label": "Срок истёк", "class": "expired", "days_left": days_left}
         if days_left <= 15:

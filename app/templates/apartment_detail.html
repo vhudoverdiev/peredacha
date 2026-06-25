@@ -10,7 +10,7 @@
   <div>
     <h1 class="page-title">{{ apartment.detail_label() }}</h1>
   </div>
-  <a class="btn btn-outline-secondary" href="{{ url_for('main.apartments') }}">Назад к помещениям</a>
+  <a class="btn btn-outline-secondary" href="{{ back_url }}">Назад к помещениям</a>
 </div>
 
 <div class="row g-3">
@@ -41,15 +41,19 @@
           {% if row.inspection_date %}
           <div class="apartment-data-row">
             <span>Осмотр</span>
-            <b data-apartment-inspection-display>{{ row.inspection_date|ru_date }}</b>
+            <b class="apartment-inspection-display" data-apartment-inspection-display>
+              <span class="status-pill {{ row.inspection_status_class }}">{{ row.inspection_status }}</span>
+              <span>{{ row.inspection_display }}</span>
+            </b>
           </div>
           {% else %}
           <div class="apartment-data-row">
             <span>Осмотр</span>
-            <b data-apartment-inspection-display><span class="status-pill {{ 'status-pill-success' if row.inspection_status == 'Был' else 'status-pill-danger' }}">{{ row.inspection_status }}</span></b>
+            <b data-apartment-inspection-display><span class="status-pill {{ row.inspection_status_class }}">{{ row.inspection_status }}</span></b>
           </div>
           {% endif %}
-          {% if current_user.role != 'viewer' and row.mode != 'не продана' and row.inspection_date %}
+          {% set can_edit_inspection = current_user.role != 'viewer' and row.mode != 'не продана' and not (row.mode == 'АПП' and row.inspection_date) %}
+          {% if can_edit_inspection and row.inspection_date %}
           <form method="post" action="{{ url_for('main.update_apartment_inspection_date', apartment_id=apartment.id) }}" class="apartment-inspection-date-form apartment-inspection-status-form-detail mb-3" data-apartment-async="1">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label class="apartment-inspection-status-label" for="inspection-date-{{ apartment.id }}">Изменить осмотр</label>
@@ -58,7 +62,7 @@
               <button class="btn btn-primary btn-sm" type="submit">Сохранить</button>
             </div>
           </form>
-          {% elif current_user.role != 'viewer' and row.mode != 'не продана' %}
+          {% elif can_edit_inspection %}
           <form method="post" action="{{ url_for('main.update_apartment_inspection_status', apartment_id=apartment.id) }}" class="apartment-inspection-status-form apartment-inspection-status-form-detail mb-3">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <span class="apartment-inspection-status-label">Изменить осмотр</span>
@@ -89,7 +93,7 @@
           {% if row.show_avr %}
           <div class="apartment-data-row">
             <span>АВР</span>
-            <b>
+            <b data-apartment-avr-display>
               {% if row.avr_status == avr_status_signed %}
                 <span class="badge-avr-signed">Подписан{% if row.avr_signed_date %} от {{ row.avr_signed_date|ru_date }}{% endif %}</span>
               {% else %}
@@ -98,7 +102,7 @@
             </b>
           </div>
           {% if current_user.role != 'viewer' %}
-          <form method="post" action="{{ url_for('main.update_apartment_avr_status', apartment_id=apartment.id) }}" class="apartment-avr-form mb-3">
+          <form method="post" action="{{ url_for('main.update_apartment_avr_status', apartment_id=apartment.id) }}" class="apartment-avr-form mb-3" data-apartment-async="1">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label class="form-label mb-0">Изменить АВР</label>
             <div class="apartment-avr-actions">
@@ -137,14 +141,16 @@
           {% endif %}
           {% if row.po_status %}
           <div class="apartment-data-po">
-            <span>ПО</span>
+            <span>Внутренний статус</span>
             <form method="post" action="{{ url_for('main.update_apartment_po_status', apartment_id=apartment.id) }}" class="apartment-po-form apartment-po-form-inline" data-apartment-async="1">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <div class="apartment-po-row apartment-po-options">
               {% if current_user.role != 'viewer' %}
                 {% for value, label in po_status_labels.items() %}
+                {% if value != 'po' %}
                 <input class="btn-check" type="radio" name="po_status" id="po-detail-{{ apartment.id }}-{{ value }}" value="{{ value }}" {% if row.po_status == value %}checked{% endif %} onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
                 <label class="po-option po-option-{{ value }}" for="po-detail-{{ apartment.id }}-{{ value }}">{{ label }}</label>
+                {% endif %}
                 {% endfor %}
               {% else %}
                 <span class="po-option po-option-{{ row.po_status }} is-static">{{ po_status_labels.get(row.po_status, row.po_status) }}</span>
@@ -177,12 +183,12 @@
   <div class="col-xl-8">
     <div class="card content-card mb-3">
       <div class="card-body">
-        <h2 class="section-title">Все замечания помещения</h2>
+        <h2 class="section-title">Все замечания по помещению</h2>
         {% if row.tasks %}
         <div class="apartment-task-list">
           {% for task in row.tasks %}
           {% set point_name = task.work_point.display_name | replace(task.work_point.point_number ~ '. ', '') | replace(task.work_point.point_number ~ '.', '') if task.work_point else 'Без пункта' %}
-          <div class="apartment-task-item task-row-link {% if task.is_done %}is-done{% endif %}" data-href="{{ url_for('main.task_detail', task_id=task.id) }}" data-open-on-click="1">
+          <div class="apartment-task-item task-row-link {% if task.is_done %}is-done{% endif %}" data-href="{{ url_for('main.task_detail', task_id=task.id, back=request.full_path) }}" data-open-on-click="1">
             <div class="apartment-task-head">
               <span class="apartment-task-point">{{ point_name }}</span>
               {% if current_user.role != 'viewer' %}
@@ -236,7 +242,7 @@
     <div class="card content-card">
       <div class="card-body">
         <h2 class="section-title">История изменений по помещению</h2>
-        <div class="timeline" data-apartment-history-list {% if not history_entries %}hidden{% endif %}>
+        <div class="timeline" data-apartment-history-list data-current-page="{{ history_page }}" {% if not history_entries %}hidden{% endif %}>
           {% for entry in history_entries %}
           <div class="timeline-item">
             <div class="small text-muted">{{ entry.timestamp }} · {{ entry.actor }}{% if entry.point_label %} · {{ entry.point_label }}{% endif %}</div>
@@ -245,6 +251,19 @@
           {% endfor %}
         </div>
         <div class="text-muted" data-apartment-history-empty {% if history_entries %}hidden{% endif %}>Истории изменений по помещению нет.</div>
+        {% if history_pages > 1 %}
+        <nav class="mt-3" aria-label="История изменений по помещению">
+          <ul class="pagination justify-content-center mb-0">
+            <li class="page-item {% if history_page <= 1 %}disabled{% endif %}">
+              <a class="page-link" href="{% if history_page > 1 %}{{ url_for('main.apartment_detail', apartment_id=apartment.id, back=request.args.get('back'), history_page=history_page - 1) }}{% else %}#{% endif %}">Назад</a>
+            </li>
+            <li class="page-item disabled"><span class="page-link">Стр. {{ history_page }} / {{ history_pages }}</span></li>
+            <li class="page-item {% if history_page >= history_pages %}disabled{% endif %}">
+              <a class="page-link" href="{% if history_page < history_pages %}{{ url_for('main.apartment_detail', apartment_id=apartment.id, back=request.args.get('back'), history_page=history_page + 1) }}{% else %}#{% endif %}">Далее</a>
+            </li>
+          </ul>
+        </nav>
+        {% endif %}
       </div>
     </div>
   </div>

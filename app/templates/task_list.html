@@ -134,6 +134,9 @@
 <div class="remarks-export-scope js-bulk-selectable js-remark-export-scope" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" data-export-form="#{{ export_form_id }}" data-selection-storage="local" data-premise-storage-key="{{ premise_storage_key }}">
 
 <div class="card table-shell task-table-shell remarks-export-table-shell" data-search-query="{{ args.get('q', '')|e }}">
+  <div class="bulk-actions-panel js-bulk-panel d-none remarks-export-bulk-panel">
+    <div class="bulk-actions-count">Выбрано: <b class="js-bulk-count">0</b> <span class="js-bulk-label">замечаний</span></div>
+  </div>
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle task-table">
@@ -155,7 +158,7 @@
         {% if is_dop %}
           {% if task.status == 'done' %}{% set task_status_label = 'Занесен' %}{% elif task.status == 'not_started' %}{% set task_status_label = 'Не занесен' %}{% endif %}
         {% endif %}
-        <tr class="task-row-link js-bulk-row {% if task.is_done %}table-success done-task{% endif %} {% if task.is_missing_in_latest_sync %}table-warning{% endif %}" data-task-id="{{ task.id }}" data-apartment-id="{{ task.apartment.id if task.apartment else '' }}" data-href="{{ url_for('main.task_detail', task_id=task.id) }}">
+        <tr class="task-row-link js-bulk-row {% if task.is_done %}table-success done-task{% endif %} {% if task.is_missing_in_latest_sync %}table-warning{% endif %}" data-task-id="{{ task.id }}" data-apartment-id="{{ task.apartment.id if task.apartment else '' }}" data-href="{{ url_for('main.task_detail', task_id=task.id, back=request.full_path) }}">
           <td class="assignment-check-cell">
             <input class="form-check-input remark-task-check js-bulk-check" type="checkbox" value="{{ task.id }}" aria-label="Выбрать замечание">
           </td>
@@ -173,7 +176,7 @@
           </td>
           <td class="task-text" data-label="Замечание">
             <span class="inline-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
-            {% if task.glass_measurement and task.glass_measurement.status == 'replaced' %}<span class="glass-ordered-badge glass-replaced-badge" title="Стекла поменяны">Стекла поменяны</span>{% elif task.glass_measurement and task.glass_measurement.status == 'ordered' %}<span class="glass-ordered-badge" title="Стекла заказаны">Стекла заказаны</span>{% endif %}
+            {% if task.glass_measurement and task.glass_measurement.status == 'replaced' %}<span class="glass-ordered-badge glass-replaced-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% elif task.glass_measurement and task.glass_measurement.status == 'ordered' %}<span class="glass-ordered-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% endif %}
             {% if current_user.role != 'viewer' %}
             <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
             {% endif %}
