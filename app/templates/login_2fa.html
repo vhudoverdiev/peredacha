@@ -14,7 +14,7 @@
           <label class="visually-hidden" for="{{ form.two_factor_code.id }}">Код 2FA</label>
           <div class="login-input-wrap captcha-answer-wrap">
             <i class="bi bi-shield-check"></i>
-            {{ form.two_factor_code(class="form-control", inputmode="numeric", autocomplete="one-time-code", placeholder="Код", autofocus=true) }}
+            {{ form.two_factor_code(class="form-control", inputmode="numeric", autocomplete="one-time-code", placeholder="Код", data_desktop_autofocus="1") }}
           </div>
         </div>
         <div class="login-form-row login-captcha-actions">

@@ -43,6 +43,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.classList.toggle('mobile-viewport', mobileViewportMedia.matches);
   };
 
+  const syncMobileOrientationLockState = () => {
+    const landscapeLocked = mobileViewportMedia.matches && window.matchMedia('(orientation: landscape)').matches;
+    document.documentElement.classList.toggle('mobile-landscape-locked', landscapeLocked);
+    document.body.classList.toggle('mobile-landscape-locked', landscapeLocked);
+  };
+
+  const tryLockPortraitOrientation = () => {
+    if (!mobileViewportMedia.matches) return;
+    if (!screen.orientation || typeof screen.orientation.lock !== 'function') return;
+    screen.orientation.lock('portrait').catch(() => {});
+  };
+
   const viewportTransitionLoader = document.querySelector('.viewport-transition-loader');
   let wasMobileViewport = mobileViewportMedia.matches;
   let viewportResizeLoaderTimer = null;
@@ -63,9 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const handleMobileViewportChange = () => {
     const isNowMobileViewport = mobileViewportMedia.matches;
     syncMobileViewportClass();
+    syncMobileOrientationLockState();
     if (isNowMobileViewport && !wasMobileViewport) showViewportResizeLoader();
     wasMobileViewport = isNowMobileViewport;
     syncAppViewportHeight();
+    tryLockPortraitOrientation();
   };
 
   if (isIosDevice) document.body.classList.add('ios-device');
@@ -73,9 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isStandaloneApp) document.body.classList.add('standalone-app');
   if (isStandaloneApp) document.documentElement.classList.add('standalone-app');
   syncMobileViewportClass();
+  syncMobileOrientationLockState();
   if (document.querySelector('.mobile-project-topbar')) document.body.classList.add('has-mobile-project-topbar');
   if (document.querySelector('.account-page')) document.body.classList.add('has-account-page');
   syncAppViewportHeight();
+  tryLockPortraitOrientation();
   if (mobileViewportMedia.addEventListener) {
     mobileViewportMedia.addEventListener('change', handleMobileViewportChange);
   } else if (mobileViewportMedia.addListener) {
@@ -84,8 +100,13 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', syncAppViewportHeight, { passive: true });
   window.addEventListener('resize', handleMobileViewportChange, { passive: true });
   window.visualViewport?.addEventListener('resize', syncAppViewportHeight, { passive: true });
+  window.visualViewport?.addEventListener('resize', syncMobileOrientationLockState, { passive: true });
   window.visualViewport?.addEventListener('scroll', syncAppViewportHeight, { passive: true });
-  window.addEventListener('orientationchange', () => window.setTimeout(syncAppViewportHeight, 250), { passive: true });
+  window.addEventListener('orientationchange', () => {
+    window.setTimeout(syncAppViewportHeight, 140);
+    window.setTimeout(syncMobileOrientationLockState, 40);
+    window.setTimeout(tryLockPortraitOrientation, 80);
+  }, { passive: true });
 
   if (isIosDevice) {
     document.addEventListener('gesturestart', event => event.preventDefault(), { passive: false });
@@ -131,7 +152,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     iosInstallModal.addEventListener('show.bs.modal', openIosInstallModal);
     iosInstallModal.addEventListener('shown.bs.modal', openIosInstallModal);
+    iosInstallModal.addEventListener('hide.bs.modal', closeIosInstallModal);
     iosInstallModal.addEventListener('hidden.bs.modal', closeIosInstallModal);
+  }
+
+  if (document.body.classList.contains('auth-body')) {
+    if (!mobileViewportMedia.matches && !isCoarsePointer) {
+      const desktopAutofocusField = document.querySelector('[data-desktop-autofocus="1"]');
+      window.setTimeout(() => desktopAutofocusField?.focus(), 120);
+    }
+
+    if (isIosDevice || mobileViewportMedia.matches) {
+      const authFieldSelector = '.auth-body input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), .auth-body textarea, .auth-body select';
+      let authViewportBaseHeight = Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight);
+
+      const syncAuthKeyboardState = () => {
+        const activeElement = document.activeElement;
+        const isTypingField = activeElement instanceof HTMLElement && activeElement.matches(authFieldSelector);
+        const viewportHeight = Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight);
+        if (!document.body.classList.contains('auth-keyboard-open')) {
+          authViewportBaseHeight = Math.max(authViewportBaseHeight || 0, viewportHeight);
+        }
+        const keyboardOpen = isTypingField || (authViewportBaseHeight - viewportHeight) > 120;
+        document.body.classList.toggle('auth-keyboard-open', keyboardOpen);
+        if (!keyboardOpen && viewportHeight > authViewportBaseHeight) {
+          authViewportBaseHeight = viewportHeight;
+        }
+      };
+
+      document.addEventListener('focusin', event => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement) || !target.matches(authFieldSelector)) return;
+        document.body.classList.add('auth-keyboard-open');
+        window.setTimeout(() => {
+          syncAuthKeyboardState();
+          target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+        }, 120);
+      });
+
+      document.addEventListener('focusout', event => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement) || !target.matches(authFieldSelector)) return;
+        window.setTimeout(syncAuthKeyboardState, 120);
+      });
+
+      window.visualViewport?.addEventListener('resize', syncAuthKeyboardState, { passive: true });
+      window.addEventListener('orientationchange', () => window.setTimeout(syncAuthKeyboardState, 140), { passive: true });
+      window.setTimeout(syncAuthKeyboardState, 0);
+    }
   }
 
 
@@ -172,15 +240,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.js-mapping-autosave-form').forEach(form => {
     let timer = null;
-    let submitting = false;
+    let requestController = null;
+    const statusNote = form.closest('.mapping-page')?.querySelector('.js-mapping-save-note');
+    const idleText = statusNote?.dataset.idleText || 'Изменения сохраняются автоматически.';
+    const setStatus = (text, state = '') => {
+      if (!statusNote) return;
+      statusNote.textContent = text || idleText;
+      statusNote.dataset.state = state || '';
+    };
     form.querySelectorAll('input[type="checkbox"]').forEach(input => {
       input.addEventListener('change', () => {
-        if (submitting) return;
         window.clearTimeout(timer);
         form.classList.add('is-autosaving');
+        setStatus(form.dataset.autosaveText || 'Сохраняем...', 'saving');
         timer = window.setTimeout(() => {
-          submitting = true;
-          form.requestSubmit ? form.requestSubmit() : form.submit();
+          if (requestController) requestController.abort();
+          const controller = new AbortController();
+          requestController = controller;
+          fetch(form.action || window.location.pathname, {
+            method: 'POST',
+            body: new FormData(form),
+            credentials: 'same-origin',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'Accept': 'application/json',
+            },
+            signal: controller.signal,
+          })
+            .then(async response => {
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok || data.ok === false) {
+                throw new Error(data.message || 'Не удалось сохранить распределение');
+              }
+              setStatus('Сохранено', 'saved');
+            })
+            .catch(error => {
+              if (error.name === 'AbortError') return;
+              form.classList.remove('is-autosaving');
+              setStatus('Ошибка сохранения. Попробуйте ещё раз.', 'error');
+              showCrmNotice(error.message || 'Не удалось сохранить распределение', 'danger');
+            })
+            .finally(() => {
+              if (requestController === controller) {
+                requestController = null;
+              }
+              if (controller.signal.aborted) return;
+              form.classList.remove('is-autosaving');
+              window.setTimeout(() => {
+                if (!form.classList.contains('is-autosaving')) {
+                  setStatus(idleText, '');
+                }
+              }, 1600);
+            });
         }, 180);
       });
     });
@@ -835,10 +946,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const saveBtn = editor.querySelector('.btn-primary');
       const cancelBtn = editor.querySelector('.btn-outline-secondary');
       const host = span.closest('.task-text') || span.parentElement;
+      const row = span.closest('tr, .glass-order-card, .apartment-task-item, .related-task-item');
       if (!host) return;
 
       textarea.value = current;
       host.classList.add('inline-editing-host');
+      row?.classList.add('inline-editor-open-row');
       host.appendChild(editor);
       textarea.focus();
       textarea.setSelectionRange(textarea.value.length, textarea.value.length);
@@ -847,6 +960,7 @@ document.addEventListener('DOMContentLoaded', () => {
         editor.remove();
         span.dataset.editing = '0';
         host.classList.remove('inline-editing-host');
+        row?.classList.remove('inline-editor-open-row');
         if (activeInlineEditor && activeInlineEditor.taskId === taskId) {
           activeInlineEditor = null;
         }
@@ -882,6 +996,208 @@ document.addEventListener('DOMContentLoaded', () => {
         );
         closeEditor();
       });
+    });
+  });
+
+  const remarkSplitStatuses = [
+    ['not_started', 'Не выполнено'],
+    ['done', 'Выполнено'],
+    ['finishers', 'Чистовики'],
+    ['contractor', 'Подрядчик'],
+    ['guarantee', 'Гарантия'],
+  ];
+
+  const trimOuterQuotes = value => {
+    const text = String(value || '').trim();
+    const quotePairs = { '"': '"', '«': '»', '“': '”', '„': '“', '‹': '›' };
+    if (text.length >= 2 && Object.prototype.hasOwnProperty.call(quotePairs, text[0]) && text[text.length - 1] === quotePairs[text[0]]) {
+      return text.slice(1, -1).trim();
+    }
+    return text;
+  };
+
+  const compactRemarkText = value => String(value || '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .trim();
+
+  const extractQuotedRemarkRanges = text => {
+    const pairs = { '"': '"', '«': '»', '“': '”', '„': '“', '‹': '›' };
+    const stack = [];
+    const ranges = [];
+    for (let i = 0; i < text.length; i += 1) {
+      const char = text[i];
+      if (Object.prototype.hasOwnProperty.call(pairs, char)) {
+        if (char === '"' && stack.length && stack[stack.length - 1].close === char) {
+          const item = stack.pop();
+          if (i > item.start) ranges.push([item.start, i + 1]);
+        } else {
+          stack.push({ close: pairs[char], start: i });
+        }
+        continue;
+      }
+      if (stack.length && char === stack[stack.length - 1].close) {
+        const item = stack.pop();
+        if (i > item.start) ranges.push([item.start, i + 1]);
+      }
+    }
+    return ranges.sort((a, b) => a[0] - b[0]);
+  };
+
+  const buildSplitSuggestion = (text, currentStatus) => {
+    const source = String(text || '').trim();
+    const ranges = extractQuotedRemarkRanges(source);
+    if (!source || !ranges.length) {
+      return {
+        currentText: source,
+        newText: '',
+        currentStatus: currentStatus || 'not_started',
+        newStatus: 'not_started',
+        autoDetected: false,
+      };
+    }
+    let cursor = 0;
+    const openParts = [];
+    const doneParts = [];
+    ranges.forEach(([start, end]) => {
+      if (start > cursor) {
+        openParts.push(source.slice(cursor, start));
+      }
+      doneParts.push(trimOuterQuotes(source.slice(start, end)));
+      cursor = end;
+    });
+    if (cursor < source.length) {
+      openParts.push(source.slice(cursor));
+    }
+    const unfinishedText = compactRemarkText(openParts.join(' '));
+    const finishedText = compactRemarkText(doneParts.join(' '));
+    if (!unfinishedText || !finishedText) {
+      return {
+        currentText: source,
+        newText: '',
+        currentStatus: currentStatus || 'not_started',
+        newStatus: 'not_started',
+        autoDetected: false,
+      };
+    }
+    return {
+      currentText: unfinishedText,
+      newText: finishedText,
+      currentStatus: 'not_started',
+      newStatus: 'done',
+      autoDetected: true,
+    };
+  };
+
+  const ensureRemarkSplitModal = () => {
+    let modal = document.querySelector('.js-remark-split-modal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.className = 'crm-confirm-overlay js-remark-split-modal d-none';
+    modal.innerHTML = `
+      <div class="crm-confirm-card remark-split-modal-card" role="dialog" aria-modal="true" aria-labelledby="remark-split-title">
+        <div class="remark-split-modal-head">
+          <h2 id="remark-split-title">Разделить замечание</h2>
+          <button class="remark-split-close js-remark-split-cancel" type="button" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="remark-split-grid">
+          <div class="remark-split-pane">
+            <label class="form-label">Текущая строка</label>
+            <textarea class="form-control js-remark-split-current-text" rows="4"></textarea>
+            <select class="form-select js-remark-split-current-status"></select>
+          </div>
+          <div class="remark-split-pane">
+            <label class="form-label">Новая строка</label>
+            <textarea class="form-control js-remark-split-new-text" rows="4"></textarea>
+            <select class="form-select js-remark-split-new-status"></select>
+          </div>
+        </div>
+        <div class="modal-actions remark-split-actions">
+          <button class="btn btn-outline-secondary js-remark-split-cancel" type="button">Отмена</button>
+          <button class="btn btn-primary js-remark-split-save" type="button"><i class="bi bi-scissors me-2"></i>Разделить</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    const currentStatus = modal.querySelector('.js-remark-split-current-status');
+    const newStatus = modal.querySelector('.js-remark-split-new-status');
+    [currentStatus, newStatus].forEach(select => {
+      if (!select) return;
+      select.innerHTML = remarkSplitStatuses.map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`).join('');
+    });
+    return modal;
+  };
+
+  document.querySelectorAll('.js-split-remark-open').forEach(button => {
+    button.addEventListener('click', () => {
+      const taskId = button.dataset.taskId;
+      const span = document.querySelector(`.inline-text[data-task-id="${taskId}"]`);
+      if (!taskId || !span) return;
+      const modal = ensureRemarkSplitModal();
+      const currentText = modal.querySelector('.js-remark-split-current-text');
+      const newText = modal.querySelector('.js-remark-split-new-text');
+      const currentStatus = modal.querySelector('.js-remark-split-current-status');
+      const newStatus = modal.querySelector('.js-remark-split-new-status');
+      const save = modal.querySelector('.js-remark-split-save');
+      const suggestion = buildSplitSuggestion(span.textContent || '', button.dataset.taskStatus || 'not_started');
+
+      modal.dataset.taskId = taskId;
+      currentText.value = suggestion.currentText || span.textContent || '';
+      newText.value = suggestion.newText || '';
+      currentStatus.value = suggestion.currentStatus || button.dataset.taskStatus || 'not_started';
+      newStatus.value = suggestion.newStatus || 'not_started';
+      modal.classList.remove('d-none');
+      currentText.focus();
+      currentText.setSelectionRange(currentText.value.length, currentText.value.length);
+
+      const close = () => {
+        modal.classList.add('d-none');
+        modal.dataset.taskId = '';
+      };
+
+      modal.querySelectorAll('.js-remark-split-cancel').forEach(cancel => {
+        cancel.onclick = close;
+      });
+      modal.onclick = event => {
+        if (event.target === modal) close();
+      };
+      save.onclick = async () => {
+        const nextCurrent = compactRemarkText(currentText.value);
+        const nextNew = compactRemarkText(newText.value);
+        if (!nextCurrent || !nextNew) {
+          showCrmNotice('Заполните обе части замечания', 'warning');
+          return;
+        }
+        save.disabled = true;
+        try {
+          const response = await fetch(`/tasks/${taskId}/split`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCsrfToken(),
+              'X-Requested-With': 'XMLHttpRequest',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              current_text: nextCurrent,
+              new_text: nextNew,
+              current_status: currentStatus.value || 'not_started',
+              new_status: newStatus.value || 'not_started',
+            }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || data.ok === false) {
+            throw new Error(data.message || 'Не удалось разделить замечание');
+          }
+          close();
+          showCrmNotice(data.message || 'Замечание разделено', 'success');
+          window.setTimeout(() => window.location.reload(), 220);
+        } catch (error) {
+          showCrmNotice(error.message || 'Не удалось разделить замечание', 'danger');
+        } finally {
+          save.disabled = false;
+        }
+      };
     });
   });
 
@@ -974,8 +1290,20 @@ document.addEventListener('DOMContentLoaded', () => {
           },
           body: new FormData(form),
         });
-        const data = await resp.json().catch(() => ({}));
-        if (!resp.ok || data.ok === false) {
+        const data = await resp.json().catch(() => null);
+        if (!resp.ok) {
+          if (!data || !data.message) {
+            HTMLFormElement.prototype.submit.call(form);
+            return;
+          }
+          window.alert(data.message || 'Не удалось изменить статус');
+          return;
+        }
+        if (!data || data.ok === false) {
+          if (!data) {
+            HTMLFormElement.prototype.submit.call(form);
+            return;
+          }
           window.alert(data.message || 'Не удалось изменить статус');
           return;
         }
@@ -987,6 +1315,7 @@ document.addEventListener('DOMContentLoaded', () => {
               success: 'status-pill-success',
               info: 'status-pill-info',
               warning: 'status-pill-warning',
+              primary: 'status-pill-primary',
               danger: 'status-pill-danger',
               secondary: 'status-pill-muted'
             };
@@ -1040,6 +1369,9 @@ document.addEventListener('DOMContentLoaded', () => {
           problemToggle.classList.remove('d-none');
           problemToggle.classList.remove('problem-toggle-open');
         }
+      } catch (error) {
+        HTMLFormElement.prototype.submit.call(form);
+        return;
       } finally {
         if (submitBtn) submitBtn.disabled = false;
       }
@@ -2871,6 +3203,8 @@ document.addEventListener('DOMContentLoaded', () => {
             checkbox.disabled = true;
           }
           savedRow?.classList.remove('is-selected');
+          const actions = savedRow?.querySelector('.glass-order-row-actions');
+          if (actions) actions.hidden = true;
           const note = savedRow?.querySelector('.glass-order-transferred-note');
           if (note) {
             note.hidden = false;

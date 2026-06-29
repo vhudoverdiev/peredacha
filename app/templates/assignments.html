@@ -315,7 +315,14 @@
               <input class="form-check-input assignment-task-check js-bulk-check" type="checkbox" name="task_ids" value="{{ task.id }}" {% if smart_mode or task.id in selected_task_ids %}checked{% endif %}>
             </td>
             <td><span class="assignment-room-pill js-highlight-text"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else '—' }}</span></td>
-            <td class="task-text"><span class="assignment-task-text js-highlight-text" title="{{ task.description or task.source_cell_value }}">{{ remark_text(task.description or task.source_cell_value) }}</span></td>
+            <td class="task-text">
+              <div class="d-flex align-items-start gap-2">
+                <span class="assignment-task-text inline-text js-highlight-text" data-task-id="{{ task.id }}" title="{{ task.description or task.source_cell_value }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
+                {% if current_user.role != 'viewer' %}
+                <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
+                {% endif %}
+              </div>
+            </td>
             <td><span class="badge bg-{{ task.status_class() }}">{{ task.status_label() }}</span></td>
             <td class="assignment-assignee-cell" data-task-id="{{ task.id }}">
               {% if task.responsible_id %}

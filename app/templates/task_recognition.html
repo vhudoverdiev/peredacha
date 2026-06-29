@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Распознавание замечаний{% endblock %}
+{% block content %}
+<div class="page-head remarks-page-head">
+  <div>
+    <h1 class="page-title">Распознавание PDF-актов</h1>
+    <p class="page-subtitle">Загрузите 1-3 акта, проверьте распознанные данные по каждому пункту и только потом сохраните их в базу.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.task_new', mode='manual') }}">Ручное добавление</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.task_list') }}">Назад</a>
+  </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="card content-card mb-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="action" value="preview">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-lg-8">
+        <label class="form-label">PDF-акты</label>
+        <input class="form-control" type="file" name="pdf_files" accept=".pdf,application/pdf" multiple required>
+        <div class="form-text">Можно загрузить сразу до 3 файлов. Поддерживаются PDF с текстовым слоем.</div>
+      </div>
+      <div class="col-12 col-lg-4">
+        <button class="btn btn-primary w-100" type="submit"><i class="bi bi-search me-2"></i>Распознать</button>
+      </div>
+    </div>
+  </div>
+</form>
+
+{% if previews %}
+<form method="post" class="card content-card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="action" value="save">
+  <input type="hidden" name="act_count" value="{{ previews|length }}">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <div>
+        <h2 class="section-title mb-1">Проверка перед занесением</h2>
+        <div class="text-muted">Проверьте ЖК, квартиру, дату и каждую строку замечаний. Ненужные строки можно снять галочкой.</div>
+      </div>
+      <button class="btn btn-success" type="submit"><i class="bi bi-database-check me-2"></i>Подтвердить и сохранить</button>
+    </div>
+
+    {% for act in previews %}
+    {% set act_idx = loop.index0 %}
+    <input type="hidden" name="act_{{ act_idx }}_filename" value="{{ act.filename }}">
+    <input type="hidden" name="act_{{ act_idx }}_template_ok" value="{{ 1 if act.template_ok else 0 }}">
+    <input type="hidden" name="act_{{ act_idx }}_project_ok" value="{{ 1 if act.project_ok else 0 }}">
+    <input type="hidden" name="act_{{ act_idx }}_project_name" value="{{ act.project_name }}">
+    <input type="hidden" name="act_{{ act_idx }}_project_prefix" value="{{ act.project_prefix }}">
+    <input type="hidden" name="act_{{ act_idx }}_used_ocr" value="{{ 1 if act.used_ocr else 0 }}">
+    <input type="hidden" name="act_{{ act_idx }}_apartment_number" value="{{ act.apartment_number }}">
+    <input type="hidden" name="act_{{ act_idx }}_row_count" value="{{ act.remarks|length }}">
+    <input type="hidden" name="act_{{ act_idx }}_warnings" value="{{ (act.warnings or [])|join('\n') }}">
+
+    <div class="border rounded-4 p-3 mb-3">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <div>
+          <h3 class="h5 mb-1">{{ act.filename }}</h3>
+          <div class="d-flex flex-wrap gap-2">
+            <span class="badge {{ 'text-bg-success' if act.template_ok else 'text-bg-danger' }}">
+              Шаблон: {{ 'подходит' if act.template_ok else 'не подходит' }}
+            </span>
+            <span class="badge {{ 'text-bg-success' if act.project_ok else 'text-bg-warning' }}">
+              ЖК: {{ 'совпадает' if act.project_ok else 'сверить' }}
+            </span>
+            {% if act.used_ocr %}
+            <span class="badge text-bg-warning">OCR</span>
+            {% endif %}
+            {% if act.apartment_number %}
+            <span class="badge text-bg-light">Квартира из PDF: {{ act.apartment_number }}</span>
+            {% endif %}
+          </div>
+        </div>
+        {% if act.project_name %}
+        <div class="text-muted small">ЖК в файле: {{ act.project_name }}</div>
+        {% endif %}
+      </div>
+
+      {% if act.warnings %}
+      <div class="alert {{ 'alert-danger' if not act.template_ok else ('alert-warning' if not act.project_ok else 'alert-warning') }} mb-3">
+        {% for warning in act.warnings %}
+        <div>{{ warning }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-lg-7">
+          <label class="form-label">Квартира / коммерция</label>
+          <select class="form-select" name="act_{{ act_idx }}_apartment_id" required>
+            <option value="">Выберите квартиру / коммерцию</option>
+            {% for apartment in apartments %}
+            <option value="{{ apartment.id }}" {% if act.apartment_id == apartment.id %}selected{% endif %}>
+              {{ apartment.full_label() if apartment.premise_type == 'commercial' else apartment.label() }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-lg-5">
+          <label class="form-label">Дата осмотра</label>
+          <input class="form-control" type="date" name="act_{{ act_idx }}_inspection_date" value="{{ act.inspection_date }}">
+        </div>
+      </div>
+
+      {% if act.remarks %}
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th style="width: 72px;">Оставить</th>
+              <th style="width: 140px;">Пункт</th>
+              <th>Замечание</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for remark in act.remarks %}
+            {% set row_idx = loop.index0 %}
+            <tr>
+              <td>
+                <input class="form-check-input" type="checkbox" name="act_{{ act_idx }}_row_{{ row_idx }}_active" value="1" {% if remark.active %}checked{% endif %}>
+              </td>
+              <td>
+                <select class="form-select form-select-sm" name="act_{{ act_idx }}_row_{{ row_idx }}_point">
+                  {% for point in points %}
+                  <option value="{{ point.number }}" {% if point.number == remark.point_number %}selected{% endif %}>{{ point.number }}. {{ point.label }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td>
+                <textarea class="form-control form-control-sm" name="act_{{ act_idx }}_row_{{ row_idx }}_description" rows="2">{{ remark.description }}</textarea>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-muted">Распознанных замечаний по пунктам нет.</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" value="1" id="confirmImportRemarks" name="confirm_import" required>
+      <label class="form-check-label" for="confirmImportRemarks">Подтверждаю, что проверил распознанные строки перед занесением в базу</label>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-success" type="submit"><i class="bi bi-database-check me-2"></i>Подтвердить и сохранить</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.task_recognition') }}">Очистить</a>
+    </div>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

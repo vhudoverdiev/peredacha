@@ -2,6 +2,7 @@
 {% block title %}{{ page_title or 'Замечания' }}{% endblock %}
 {% block content %}
 {% set is_dop = active_category and active_category.name == 'Доп.Соглашение' %}
+{% set selected_finishing_groups = args.getlist('finishing_group') %}
 <div class="page-head remarks-page-head">
   <div>
     <h1 class="page-title">{{ page_title or 'Замечания' }}</h1>
@@ -83,14 +84,6 @@
         <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите текст или цифру">
       </div>
       <div class="col-12 col-md-2">
-        <label class="form-label">Отделка</label>
-        <select class="form-select" name="finishing_group">
-          <option value="">Все</option>
-          <option value="white" {% if args.get('finishing_group') == 'white' %}selected{% endif %}>Белая</option>
-          <option value="clean" {% if args.get('finishing_group') == 'clean' %}selected{% endif %}>Чистовые</option>
-        </select>
-      </div>
-      <div class="col-12 col-md-2">
         <label class="form-label">Режим</label>
         <select class="form-select" name="acceptance_status">
           <option value="">Все</option>
@@ -107,11 +100,29 @@
           {% if not is_dop %}
           <option value="finishers" {% if args.get('status') == 'finishers' %}selected{% endif %}>чистовики</option>
           <option value="contractor" {% if args.get('status') == 'contractor' %}selected{% endif %}>подрядчик</option>
+          <option value="guarantee" {% if args.get('status') == 'guarantee' %}selected{% endif %}>гарантия</option>
           <option value="problem" {% if args.get('status') == 'problem' %}selected{% endif %}>проблема</option>
           <option value="deadline_expiring" {% if args.get('status') == 'deadline_expiring' %}selected{% endif %}>срок истекает</option>
           <option value="deadline_expired" {% if args.get('status') == 'deadline_expired' %}selected{% endif %}>срок истёк</option>
           {% endif %}
         </select>
+      </div>
+      <div class="col-12 col-md-auto remarks-filter-finishing-col">
+        <label class="form-label d-block">Отделка</label>
+        <div class="remarks-filter-checks">
+          <label class="form-check remarks-filter-check">
+            <input class="form-check-input" type="checkbox" name="finishing_group" value="white" {% if 'white' in selected_finishing_groups %}checked{% endif %}>
+            <span class="form-check-label">Белая</span>
+          </label>
+          <label class="form-check remarks-filter-check">
+            <input class="form-check-input" type="checkbox" name="finishing_group" value="clean" {% if 'clean' in selected_finishing_groups %}checked{% endif %}>
+            <span class="form-check-label">Чистовые</span>
+          </label>
+          <label class="form-check remarks-filter-check">
+            <input class="form-check-input" type="checkbox" name="finishing_group" value="none" {% if 'none' in selected_finishing_groups %}checked{% endif %}>
+            <span class="form-check-label">Без отделки</span>
+          </label>
+        </div>
       </div>
       <div class="col-12 col-md-auto ms-md-auto filter-actions remarks-filter-actions">
         <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
@@ -179,6 +190,7 @@
             {% if task.glass_measurement and task.glass_measurement.status == 'replaced' %}<span class="glass-ordered-badge glass-replaced-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% elif task.glass_measurement and task.glass_measurement.status == 'ordered' %}<span class="glass-ordered-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% endif %}
             {% if current_user.role != 'viewer' %}
             <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
+            <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
             {% endif %}
           </td>
           <td class="task-status-cell" data-label="Статус">
@@ -199,6 +211,10 @@
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" class="status-action-form {% if task.status == 'contractor' %}d-none{% endif %}" data-status-action="contractor">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="btn btn-sm btn-outline-warning" title="Подрядчик">П</button>
+              </form>
+              <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" class="status-action-form {% if task.status == 'guarantee' %}d-none{% endif %}" data-status-action="guarantee">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-primary" title="Гарантия">Г</button>
               </form>
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="status-action-form problem-action-form problem-action-form-inline {% if task.status == 'problem' %}d-none{% endif %}" data-status-action="problem">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

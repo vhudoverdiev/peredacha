@@ -87,10 +87,11 @@ from app.services.avr_document import (
 )
 from app.services.excel_export import _excel_premise_label, _safe_filename_part, export_glass_measurements_excel, export_remark_tasks_excel, export_report_tasks_excel, export_simple_tasks_excel, export_source_excel_with_strikes, export_tasks_to_excel
 from app.services.pdf_export import export_assignment_worker_pdf, export_table_pdf, export_tasks_pdf
-from app.services.excel_import import preview_excel, save_upload, sync_excel_file
+from app.services.excel_import import inspect_remarks_workbook, preview_excel, save_upload, sync_excel_file
 from app.services.google_sheets_sync import sync_google_sheets, update_task_strike_in_google_sheet
 from app.services.mapping_service import ensure_default_categories, update_category_points
-from app.services.transfer_import import _is_app_mode, _parse_app_date, sync_transfer_statistics
+from app.services.pdf_recognition import is_no_remark_text, recognize_pdf_act
+from app.services.transfer_import import _is_app_mode, _parse_app_date, inspect_transfer_workbook, sync_transfer_statistics
 from app.services.task_service import (
     MAIN_WORK_POINT_NUMBERS,
     VISIBLE_WORK_POINT_NUMBERS,
@@ -161,7 +162,8 @@ SECTION_LOCK_CHOICES = [
         "icon": "bi-card-checklist",
         "endpoints": {
             "main.task_list", "main.task_detail", "main.task_new", "main.task_delete",
-            "main.update_task", "main.add_task_comment", "main.quick_status", "main.inline_update_text",
+            "main.task_recognition", "main.update_task", "main.add_task_comment", "main.quick_status",
+            "main.inline_update_text", "main.split_task_remark",
         },
     },
     {
@@ -217,7 +219,7 @@ SECTION_LOCK_CHOICES = [
         "icon": "bi-window",
         "endpoints": {
             "main.glass_measurements", "main.glass_need_measure", "main.glass_measurement_save",
-            "main.glass_status_update", "main.glass_order_export", "main.glass_create_material_request",
+            "main.glass_measurement_return_to_all", "main.glass_status_update", "main.glass_order_export", "main.glass_create_material_request",
             "main.glass_measurements_delete", "main.glass_order",
         },
     },
@@ -3192,7 +3194,8 @@ def _measurement_status(measurement: GlassMeasurement | None) -> str:
 def _filter_glass_rows(tasks: list[Task], q: str = "", status: str = "", point: str = "") -> list[dict[str, object]]:
     premise_selectors, tail_query = parse_multi_premise_search(q)
     search_mode, search_value = detect_search_mode(q)
-    needle = (tail_query or search_value).strip().lower().replace("ё", "е")
+    needle_source = tail_query if premise_selectors else search_value
+    needle = needle_source.strip().lower().replace("ё", "е")
     selector_count = len(premise_selectors)
     rows = []
     for task in tasks:
@@ -3393,6 +3396,43 @@ def glass_measurement_save(task_id: int):
     return redirect(url_for("main.glass_measurements", tab="ordered"))
 
 
+@bp.route("/glass/<int:measurement_id>/return-to-all", methods=["POST"])
+@login_required
+def glass_measurement_return_to_all(measurement_id: int):
+    if current_user.role == "viewer":
+        abort(403)
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    measurement = (
+        GlassMeasurement.query.options(selectinload(GlassMeasurement.task))
+        .filter(GlassMeasurement.id == measurement_id, GlassMeasurement.project_id == project.id)
+        .first()
+        or abort(404)
+    )
+    measurement.status = GLASS_STATUS_NONE
+    measurement.width = None
+    measurement.height = None
+    measurement.quantity = 1
+    measurement.glass_type = None
+    measurement.size = None
+    measurement.comment = None
+    measurement.measured_at = None
+    measurement.ordered_at = None
+    measurement.replaced_at = None
+    measurement.material_request_item = None
+    measurement.items.clear()
+    db.session.commit()
+    return_tab = (request.form.get("return_tab") or request.args.get("tab") or "all").strip().lower()
+    if return_tab not in {"all", "order"}:
+        return_tab = "all"
+    if wants_json:
+        return jsonify({"ok": True, "message": "Позиция снова доступна как «Сделать замер»", "status": GLASS_STATUS_NONE})
+    flash("Позиция снова доступна как «Сделать замер»", "success")
+    return redirect(url_for("main.glass_measurements", tab=return_tab))
+
+
 @bp.route("/glass/<int:measurement_id>/status", methods=["POST"])
 @login_required
 def glass_status_update(measurement_id: int):
@@ -3443,44 +3483,69 @@ def glass_order_export():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-
-    rows = [
-        row for row in _filter_glass_rows(_glass_tasks(project.id))
-        if row["status"] in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}
-    ]
+    scope = (request.args.get("scope") or "ordered").strip().lower()
+    q = (request.args.get("q") or "").strip()
+    all_rows = _filter_glass_rows(_glass_tasks(project.id), q=q)
+    if scope == "order":
+        rows = [row for row in all_rows if row["status"] == GLASS_STATUS_MEASURE_NEEDED]
+    else:
+        rows = [row for row in all_rows if row["status"] in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}]
     rows.sort(key=lambda row: _task_apartment_sort_value_no_done(row["task"]))
 
     wb = Workbook()
     ws = wb.active
-    ws.title = "Заказано"
-    ws.append([
-        "Помещение",
-        "Замечание",
-        "Тип",
-        "Размер / комментарий",
-        "Количество",
-    ])
-
-    for row in rows:
-        task = row["task"]
-        measurement = row["measurement"]
-        items = row.get("items") or []
-        if not items:
-            items = [{
-                "item_type": getattr(measurement, "glass_type", "") or "",
-                "size_label": measurement.size_label() if measurement else "",
-                "quantity": getattr(measurement, "quantity", "") or "",
-            }]
-        for item in items:
+    if scope == "order":
+        ws.title = "Заказать"
+        ws.append(["Номер квартиры", "Замечание", "Тип", "Размеры"])
+        for row in rows:
+            task = row["task"]
             ws.append([
                 _excel_premise_label(task.apartment) if task.apartment else "",
                 task.description or task.source_cell_value or "",
-                item.get("item_type") or "",
-                item.get("size_label") or item.get("title_label") or "",
-                item.get("quantity") or "",
+                "",
+                "",
             ])
+    else:
+        ws.title = "Заказано"
+        ws.append([
+            "Помещение",
+            "Замечание",
+            "Тип",
+            "Размер / комментарий",
+            "Количество",
+        ])
+
+        for row in rows:
+            task = row["task"]
+            measurement = row["measurement"]
+            items = row.get("items") or []
+            if not items:
+                items = [{
+                    "item_type": getattr(measurement, "glass_type", "") or "",
+                    "size_label": measurement.size_label() if measurement else "",
+                    "quantity": getattr(measurement, "quantity", "") or "",
+                }]
+            for item in items:
+                ws.append([
+                    _excel_premise_label(task.apartment) if task.apartment else "",
+                    task.description or task.source_cell_value or "",
+                    item.get("item_type") or "",
+                    item.get("size_label") or item.get("title_label") or "",
+                    item.get("quantity") or "",
+                ])
 
     _style_excel_header(ws)
+    if scope == "order":
+        ws.column_dimensions["A"].width = 18
+        ws.column_dimensions["B"].width = 56
+        ws.column_dimensions["C"].width = 24
+        ws.column_dimensions["D"].width = 38
+    else:
+        ws.column_dimensions["A"].width = 18
+        ws.column_dimensions["B"].width = 56
+        ws.column_dimensions["C"].width = 24
+        ws.column_dimensions["D"].width = 42
+        ws.column_dimensions["E"].width = 14
     for row in ws.iter_rows():
         for cell in row:
             cell.alignment = Alignment(
@@ -3488,8 +3553,10 @@ def glass_order_export():
                 vertical="center" if cell.row == 1 else "top",
                 wrap_text=True,
             )
-    ws.auto_filter.ref = f"A1:E{ws.max_row}"
-    filename = f"{project.name}_замеры_заказано_{date.today().strftime('%Y-%m-%d')}.xlsx".replace("/", "-")
+    last_column = "D" if scope == "order" else "E"
+    ws.auto_filter.ref = f"A1:{last_column}{ws.max_row}"
+    suffix = "замеры_заказать" if scope == "order" else "замеры_заказано"
+    filename = f"{project.name}_{suffix}_{date.today().strftime('%Y-%m-%d')}.xlsx".replace("/", "-")
     return _make_excel_response(wb, filename)
 
 
@@ -4406,6 +4473,173 @@ def _project_work_point_options() -> list[WorkPoint]:
     )
 
 
+def _remark_point_options() -> list[dict[str, str]]:
+    return [{"number": number, "label": label} for number, label in CONTRACTOR_POINT_LABELS.items()]
+
+
+def _get_or_create_manual_work_point(point_number: str | None = None) -> WorkPoint:
+    number = str(point_number or "22").strip() or "22"
+    label = CONTRACTOR_POINT_LABELS.get(number, "Прочее")
+    point = WorkPoint.query.filter_by(point_number=number).order_by(WorkPoint.id.asc()).first()
+    if point is None:
+        point = WorkPoint(
+            point_number=number,
+            short_name=label,
+            original_column_name=label,
+            source_sheet_name="manual",
+            is_active=True,
+        )
+        db.session.add(point)
+        db.session.flush()
+    return point
+
+
+def _apartment_group_for_project(apartment: Apartment, project_id: int) -> list[Apartment]:
+    group_key = _apartment_group_key(apartment)
+    group = [
+        item
+        for item in Apartment.query.filter(Apartment.project_id == project_id).all()
+        if _is_visible_apartment_row(item) and _apartment_group_key(item) == group_key
+    ]
+    return group or [apartment]
+
+
+def _apply_inspection_date_to_group(apartments: list[Apartment], inspection_date: date | None) -> None:
+    if not inspection_date:
+        return
+    formatted = inspection_date.strftime("%d.%m.%Y")
+    for item in apartments:
+        existing_dates = {value for value in (item.inspection_date, item.first_inspection_date, item.reinspection_date) if value}
+        if inspection_date in existing_dates:
+            item.first_inspection_present = True
+            continue
+        if not item.inspection_date and not item.first_inspection_date:
+            item.inspection_date = inspection_date
+            item.first_inspection_date = inspection_date
+            item.first_inspection_present = True
+            continue
+        if not item.first_inspection_date:
+            item.first_inspection_date = inspection_date
+            item.first_inspection_present = True
+            continue
+        if not item.reinspection_date:
+            item.reinspection_date = inspection_date
+            item.first_inspection_present = True
+            continue
+        note = str(item.inspection_note or "").strip()
+        extra_line = f"Дополнительный осмотр: {formatted}"
+        if extra_line not in note:
+            item.inspection_note = f"{note}\n{extra_line}".strip()
+        item.first_inspection_present = True
+
+
+def _create_manual_remark_task(
+    *,
+    project: Project,
+    apartment: Apartment,
+    point_number: str | None,
+    text: str,
+    source_sheet_name: str = "manual",
+    action: str = "manual_created",
+) -> Task:
+    work_point = _get_or_create_manual_work_point(point_number)
+    source_uid = build_task_uid(
+        project.name,
+        apartment.construction_number or "",
+        apartment.apartment_number or "",
+        work_point.point_number,
+        work_point.display_name,
+        text,
+    )
+    if Task.query.filter_by(source_uid=source_uid).first():
+        source_uid = stable_hash([source_uid, source_sheet_name, datetime.utcnow().isoformat()])
+    task = Task(
+        source_uid=source_uid,
+        project_id=project.id,
+        apartment_id=apartment.id,
+        work_point_id=work_point.id,
+        title=work_point.display_name,
+        description=text,
+        source_cell_value=text,
+        source_sheet_name=source_sheet_name,
+        status=STATUS_NOT_STARTED,
+        is_done=False,
+        completed_date=None,
+        manually_edited=True,
+        last_seen_at=datetime.utcnow(),
+        source_hash=stable_hash([text]),
+    )
+    db.session.add(task)
+    db.session.flush()
+    log_change(task, action, None, None, text, user_id=current_user.id)
+    return task
+
+
+def _pdf_preview_to_dict(preview, project: Project) -> dict:
+    apartment = None
+    if preview.apartment_number:
+        apartment = (
+            Apartment.query.filter(
+                Apartment.project_id == project.id,
+                Apartment.apartment_number == str(preview.apartment_number).strip(),
+            )
+            .order_by(Apartment.id.asc())
+            .first()
+        )
+    warnings = list(preview.warnings or [])
+    if preview.apartment_number and apartment is None:
+        warnings.append(f"Квартира {preview.apartment_number} не найдена в выбранном объекте.")
+    return {
+        "filename": preview.filename,
+        "template_ok": bool(getattr(preview, "template_ok", False)),
+        "project_ok": preview.project_ok,
+        "project_name": (getattr(preview, "project_name", "") or "").strip(),
+        "project_prefix": preview.project_prefix,
+        "used_ocr": bool(getattr(preview, "used_ocr", False)),
+        "apartment_number": preview.apartment_number or "",
+        "apartment_id": apartment.id if apartment else None,
+        "inspection_date": preview.inspection_date.isoformat() if preview.inspection_date else "",
+        "remarks": [
+            {"point_number": remark.point_number, "description": remark.description, "active": remark.active}
+            for remark in preview.remarks
+        ],
+        "warnings": warnings,
+    }
+
+
+def _pdf_previews_from_form(form) -> list[dict]:
+    previews: list[dict] = []
+    act_count = form.get("act_count", type=int) or 0
+    for act_idx in range(act_count):
+        row_count = form.get(f"act_{act_idx}_row_count", type=int) or 0
+        preview = {
+            "filename": (form.get(f"act_{act_idx}_filename") or f"Акт {act_idx + 1}").strip(),
+            "template_ok": form.get(f"act_{act_idx}_template_ok") == "1",
+            "project_ok": form.get(f"act_{act_idx}_project_ok") == "1",
+            "project_name": (form.get(f"act_{act_idx}_project_name") or "").strip(),
+            "project_prefix": (form.get(f"act_{act_idx}_project_prefix") or "").strip(),
+            "used_ocr": form.get(f"act_{act_idx}_used_ocr") == "1",
+            "apartment_number": (form.get(f"act_{act_idx}_apartment_number") or "").strip(),
+            "apartment_id": form.get(f"act_{act_idx}_apartment_id", type=int),
+            "inspection_date": (form.get(f"act_{act_idx}_inspection_date") or "").strip(),
+            "remarks": [],
+            "warnings": [],
+        }
+        warning_text = (form.get(f"act_{act_idx}_warnings") or "").strip()
+        if warning_text:
+            preview["warnings"] = [item.strip() for item in warning_text.split("\n") if item.strip()]
+        for row_idx in range(row_count):
+            preview["remarks"].append(
+                {
+                    "point_number": (form.get(f"act_{act_idx}_row_{row_idx}_point") or "22").strip() or "22",
+                    "description": (form.get(f"act_{act_idx}_row_{row_idx}_description") or "").strip(),
+                    "active": form.get(f"act_{act_idx}_row_{row_idx}_active") == "1",
+                }
+            )
+        previews.append(preview)
+    return previews
+
+
 @bp.route("/tasks/new", methods=["GET", "POST"])
 @login_required
 def task_new():
@@ -4416,56 +4650,168 @@ def task_new():
         abort(403)
 
     apartments = _project_apartment_options(project.id)
-    default_point = WorkPoint.query.filter_by(point_number="22").order_by(WorkPoint.id.asc()).first()
-    if default_point is None:
-        default_point = WorkPoint(point_number="22", short_name="Прочее", original_column_name="Прочее", source_sheet_name="manual", is_active=True)
-        db.session.add(default_point)
-        db.session.flush()
-    points = [default_point]
+    points = _remark_point_options()
+    add_mode = (request.form.get("add_mode") or request.args.get("mode") or "").strip()
+    manual_kind = (request.form.get("manual_kind") or request.args.get("kind") or "").strip()
 
     if request.method == "POST":
-        apartment_id = request.form.get("apartment_id", type=int)
-        text = (request.form.get("description") or "").strip()
-        apartment = db.session.get(Apartment, apartment_id) if apartment_id else None
-        work_point = default_point
+        if add_mode != "manual":
+            return redirect(url_for("main.task_recognition"))
 
+        apartment_id = request.form.get("apartment_id", type=int)
+        apartment = db.session.get(Apartment, apartment_id) if apartment_id else None
         if not apartment or apartment.project_id != project.id:
             flash("Выберите квартиру / коммерцию", "warning")
-        elif not text:
-            flash("Введите описание работы", "warning")
+        elif manual_kind == "act":
+            inspection_date = parse_date(request.form.get("inspection_date"))
+            created_count = 0
+            target_group = _apartment_group_for_project(apartment, project.id)
+            _apply_inspection_date_to_group(target_group, inspection_date)
+            for point in points:
+                point_number = point["number"]
+                text = (request.form.get(f"description_{point_number}") or "").strip()
+                if not text or is_no_remark_text(text):
+                    continue
+                _create_manual_remark_task(
+                    project=project,
+                    apartment=apartment,
+                    point_number=point_number,
+                    text=text,
+                    source_sheet_name="manual_act",
+                    action="manual_act_created",
+                )
+                created_count += 1
+            if created_count:
+                db.session.commit()
+                flash(f"Добавлено замечаний из акта: {created_count}", "success")
+                return redirect(url_for("main.task_list", status=STATUS_NOT_STARTED))
+            db.session.rollback()
+            flash("Заполните хотя бы одно замечание по пункту", "warning")
         else:
-            source_uid = build_task_uid(
-                project.name,
-                apartment.construction_number or "",
-                apartment.apartment_number or "",
-                work_point.point_number,
-                work_point.display_name,
-                text,
-            )
-            if Task.query.filter_by(source_uid=source_uid).first():
-                source_uid = stable_hash([source_uid, "manual", datetime.utcnow().isoformat()])
-            task = Task(
-                source_uid=source_uid,
-                project_id=project.id,
-                apartment_id=apartment.id,
-                work_point_id=work_point.id,
-                title=work_point.display_name,
-                description=text,
-                source_cell_value=text,
-                source_sheet_name="manual",
-                status=STATUS_NOT_STARTED,
-                is_done=False,
-                completed_date=None,
-                manually_edited=True,
-                last_seen_at=datetime.utcnow(),
-                source_hash=stable_hash([text]),
-            )
-            db.session.add(task)
-            db.session.commit()
-            flash("Замечание добавлено со статусом не выполнено", "success")
-            return redirect(url_for("main.task_list", status=STATUS_NOT_STARTED))
+            manual_kind = "single"
+            text = (request.form.get("description") or "").strip()
+            if not text:
+                flash("Введите описание работы", "warning")
+            else:
+                _create_manual_remark_task(
+                    project=project,
+                    apartment=apartment,
+                    point_number="22",
+                    text=text,
+                    source_sheet_name="manual",
+                    action="manual_created",
+                )
+                db.session.commit()
+                flash("Замечание добавлено со статусом не выполнено", "success")
+                return redirect(url_for("main.task_list", status=STATUS_NOT_STARTED))
 
-    return render_template("task_form.html", project=project, apartments=apartments, points=points)
+    return render_template(
+        "task_form.html",
+        project=project,
+        apartments=apartments,
+        points=points,
+        add_mode=add_mode,
+        manual_kind=manual_kind,
+    )
+
+
+@bp.route("/tasks/recognition", methods=["GET", "POST"])
+@login_required
+def task_recognition():
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    if current_user.role == "viewer":
+        abort(403)
+
+    apartments = _project_apartment_options(project.id)
+    points = _remark_point_options()
+    previews: list[dict] = []
+
+    if request.method == "POST":
+        action = (request.form.get("action") or "").strip()
+        if action == "preview":
+            files = [file for file in request.files.getlist("pdf_files") if file and file.filename]
+            if not files:
+                flash("Загрузите PDF акт", "warning")
+            else:
+                if len(files) > 3:
+                    flash("Можно загрузить максимум 3 акта за раз. Взял первые 3 файла.", "warning")
+                for file in files[:3]:
+                    try:
+                        validate_upload(file, {"pdf"})
+                    except ValueError as exc:
+                        previews.append({
+                            "filename": file.filename or "PDF",
+                            "template_ok": False,
+                            "project_ok": False,
+                            "project_name": "",
+                            "project_prefix": "",
+                            "apartment_number": "",
+                            "apartment_id": None,
+                            "inspection_date": "",
+                            "remarks": [],
+                            "warnings": [str(exc)],
+                        })
+                        continue
+                    preview = recognize_pdf_act(file.stream, file.filename or "PDF", project.name)
+                    previews.append(_pdf_preview_to_dict(preview, project))
+        elif action == "save":
+            previews = _pdf_previews_from_form(request.form)
+            if request.form.get("confirm_import") != "1":
+                flash("Перед занесением нужно подтвердить сохранение распознанных замечаний", "warning")
+            else:
+                act_count = request.form.get("act_count", type=int) or 0
+                created_count = 0
+                blocked_count = 0
+                for act_idx in range(act_count):
+                    if request.form.get(f"act_{act_idx}_template_ok") != "1":
+                        blocked_count += 1
+                        continue
+                    if request.form.get(f"act_{act_idx}_project_ok") != "1":
+                        blocked_count += 1
+                        continue
+                    apartment_id = request.form.get(f"act_{act_idx}_apartment_id", type=int)
+                    apartment = db.session.get(Apartment, apartment_id) if apartment_id else None
+                    if not apartment or apartment.project_id != project.id:
+                        blocked_count += 1
+                        continue
+                    inspection_date = parse_date(request.form.get(f"act_{act_idx}_inspection_date"))
+                    _apply_inspection_date_to_group(_apartment_group_for_project(apartment, project.id), inspection_date)
+                    row_count = request.form.get(f"act_{act_idx}_row_count", type=int) or 0
+                    for row_idx in range(row_count):
+                        if request.form.get(f"act_{act_idx}_row_{row_idx}_active") != "1":
+                            continue
+                        text = (request.form.get(f"act_{act_idx}_row_{row_idx}_description") or "").strip()
+                        point_number = (request.form.get(f"act_{act_idx}_row_{row_idx}_point") or "22").strip()
+                        if not text or is_no_remark_text(text):
+                            continue
+                        _create_manual_remark_task(
+                            project=project,
+                            apartment=apartment,
+                            point_number=point_number,
+                            text=text,
+                            source_sheet_name="pdf_recognition",
+                            action="pdf_recognition_created",
+                        )
+                        created_count += 1
+                if created_count:
+                    db.session.commit()
+                    message = f"Сохранено замечаний: {created_count}"
+                    if blocked_count:
+                        message += f". Актов пропущено: {blocked_count}"
+                    flash(message, "success")
+                    return redirect(url_for("main.task_list", status=STATUS_NOT_STARTED))
+                db.session.rollback()
+                flash("Ничего не сохранено: проверьте ЖК, квартиру и выбранные строки", "warning")
+
+    return render_template(
+        "task_recognition.html",
+        project=project,
+        apartments=apartments,
+        points=points,
+        previews=previews,
+    )
 
 
 @bp.route("/materials/task/new", methods=["GET", "POST"])
@@ -5182,11 +5528,31 @@ def _apartment_overview_search_haystack(row: dict) -> str:
     return " ".join(values).lower().replace("ё", "е")
 
 
+def _inspection_sort_rank(row: dict, order: str) -> int:
+    status = str(row.get("inspection_status") or "").strip()
+    was_statuses = {"Был"}
+    not_was_statuses = {"Не был", "Будет"}
+    if order == "was_first":
+        if status in was_statuses:
+            return 0
+        if status in not_was_statuses:
+            return 1
+        return 2
+    if order == "not_was_first":
+        if status in not_was_statuses:
+            return 0
+        if status in was_statuses:
+            return 1
+        return 2
+    return 0
+
+
 def _filtered_apartment_overview_rows(project_id: int, args) -> tuple[list[dict], list[dict], bool]:
     q = (args.get("q") or "").strip()
     premise_selectors, _tail_query = parse_multi_premise_search(q)
     po_only = args.get("po") == "1"
     inspection_filter = (args.get("inspection_status") or "").strip()
+    inspection_order = (args.get("inspection_order") or "").strip()
     app_status_filter = (args.get("app_status") or "").strip()
     avr_status_filter = (args.get("avr_status") or "").strip()
     po_status_filter = (args.get("po_status") or "").strip()
@@ -5243,11 +5609,17 @@ def _filtered_apartment_overview_rows(project_id: int, args) -> tuple[list[dict]
                     ),
                     len(premise_selectors),
                 ),
+                _inspection_sort_rank(row, inspection_order),
                 _apartment_number_sort_value(row["apartment"].apartment_number or row["apartment"].construction_number),
             )
         )
     else:
-        rows.sort(key=lambda row: _apartment_number_sort_value(row["apartment"].apartment_number or row["apartment"].construction_number))
+        rows.sort(
+            key=lambda row: (
+                _inspection_sort_rank(row, inspection_order),
+                _apartment_number_sort_value(row["apartment"].apartment_number or row["apartment"].construction_number),
+            )
+        )
     return rows, premise_selectors, po_only
 
 
@@ -5560,7 +5932,7 @@ def update_apartment_inspection_status(apartment_id: int):
         if _is_visible_apartment_row(item) and _apartment_group_key(item) == group_key
     ]
     target_group = group or [apartment]
-    if _is_app_inspection_locked(target_group):
+    if _is_app_inspection_locked(target_group) and status != "not_was":
         message = "В режиме АПП осмотр с датой изменить нельзя"
         if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
             return jsonify({"ok": False, "message": message}), 400
@@ -5577,8 +5949,31 @@ def update_apartment_inspection_status(apartment_id: int):
     was_present = status == "was"
     for item in target_group:
         item.first_inspection_present = was_present
-        item.first_inspection_date = (item.first_inspection_date or date.today()) if was_present else None
+        if was_present:
+            restored_date = item.inspection_date or item.first_inspection_date or item.inspection_date_backup
+            item.first_inspection_date = restored_date or date.today()
+            item.inspection_date = restored_date or item.first_inspection_date
+            item.inspection_date_backup = item.inspection_date
+        else:
+            previous_date = item.inspection_date or item.first_inspection_date
+            if previous_date:
+                item.inspection_date_backup = previous_date
+            item.inspection_date = None
+            item.first_inspection_date = None
+            item.first_inspection_present = False
+            if _parse_inspection_schedule_marker(item.inspection_note):
+                item.inspection_note = None
     db.session.commit()
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+        overview = _build_apartment_overview(target_group)
+        return jsonify({
+            "ok": True,
+            "message": "Статус осмотра обновлён",
+            "inspection_date": overview.get("inspection_date").isoformat() if overview.get("inspection_date") else "",
+            "inspection_date_label": overview.get("inspection_display") or "—",
+            "inspection_status": overview.get("inspection_status") or "",
+            "inspection_status_class": overview.get("inspection_status_class") or "status-pill-muted",
+        })
     flash("Статус осмотра обновлён", "success")
     return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
 
@@ -5613,6 +6008,8 @@ def update_apartment_inspection_date(apartment_id: int):
         item.inspection_date = inspection_date
         item.first_inspection_date = inspection_date
         item.first_inspection_present = inspection_date is not None
+        if inspection_date is not None:
+            item.inspection_date_backup = inspection_date
     db.session.commit()
 
     message = "Дата осмотра обновлена" if inspection_date else "Дата осмотра очищена"
@@ -5938,7 +6335,7 @@ def archive_apartment_avr(apartment_id: int):
 
 def _is_crm_created_task(task: Task) -> bool:
     """Удалять разрешаем только замечания, созданные вручную внутри CRM."""
-    return (task.source_sheet_name or "").strip().lower() in {"manual", "assignment_manual", "manual_glass"}
+    return (task.source_sheet_name or "").strip().lower() in {"manual", "assignment_manual", "manual_glass", "manual_split"}
 
 
 @bp.route("/tasks/<int:task_id>")
@@ -6185,6 +6582,36 @@ def quick_status(task_id: int, status: str):
     return redirect(request.referrer or url_for("main.task_list"))
 
 
+def _validate_uploaded_excel_kind(path: Path, expected_kind: str) -> None:
+    remarks_info = inspect_remarks_workbook(path)
+    transfer_info = inspect_transfer_workbook(path)
+    if expected_kind == "remarks":
+        if remarks_info.get("ok"):
+            return
+        if transfer_info.get("ok"):
+            raise ValueError(
+                "Похоже, вы загрузили таблицу статистики передач в блок замечаний. "
+                "Загрузите этот файл в блок «Excel-файл передач»."
+            )
+        raise ValueError(
+            "Не удалось распознать таблицу замечаний. "
+            "Загрузите исходный Excel замечаний или файл, который подходит для этого раздела."
+        )
+    if expected_kind == "transfers":
+        if transfer_info.get("ok"):
+            return
+        if remarks_info.get("ok"):
+            raise ValueError(
+                "Похоже, вы загрузили таблицу замечаний в блок статистики передач. "
+                "Загрузите этот файл в блок «Excel-файл замечаний»."
+            )
+        raise ValueError(
+            "Не удалось распознать таблицу статистики передач. "
+            "Загрузите именно Excel-файл статистики передач, а не другую вкладку или таблицу."
+        )
+    raise ValueError("Неизвестный тип Excel-импорта.")
+
+
 @bp.route("/upload-excel", methods=["GET", "POST"])
 @login_required
 def upload_excel():
@@ -6201,6 +6628,7 @@ def upload_excel():
         try:
             validate_upload(form.file.data, ["xlsx"], max_size=current_app.config.get("MAX_UPLOAD_FILE_BYTES"))
             path = save_upload(form.file.data)
+            _validate_uploaded_excel_kind(path, "remarks")
             result = sync_excel_file(path, project_name=project.name)
             set_setting(f"latest_excel_path_project_{project.id}", str(path))
             pending_conflicts = (
@@ -6229,6 +6657,7 @@ def upload_excel():
         try:
             validate_upload(transfer_form.file.data, ["xlsx"], max_size=current_app.config.get("MAX_UPLOAD_FILE_BYTES"))
             path = save_upload(transfer_form.file.data)
+            _validate_uploaded_excel_kind(path, "transfers")
             result = sync_transfer_statistics(path, project_name=project.name)
             flash(
                 "Статистика передач обновлена: "
@@ -6239,7 +6668,7 @@ def upload_excel():
             )
         except Exception as exc:
             current_app.logger.exception("Transfer statistics import failed")
-            flash(f"Ошибка загрузки статистики передач: {exc}", "danger")
+            flash(f"Не удалось загрузить статистику передач: {exc}", "danger")
     return render_template("upload_excel.html", form=form, transfer_form=transfer_form, preview=preview)
 
 
@@ -6329,11 +6758,15 @@ def mapping_settings():
         .all()
     )
     if request.method == "POST":
+        wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
         allowed_point_ids = {point.id for point in points}
         for category in categories_to_show:
             selected = request.form.getlist(f"category_{category.id}")
             point_ids = [int(x) for x in selected if x.isdigit() and int(x) in allowed_point_ids]
-            update_category_points(category.id, point_ids)
+            update_category_points(category.id, point_ids, commit=False)
+        db.session.commit()
+        if wants_json:
+            return jsonify({"ok": True, "message": f"Распределение сохранено для объекта: {project.name}"})
         flash(f"Распределение сохранено для объекта: {project.name}", "success")
         return redirect(url_for("main.mapping_settings"))
     return render_template(
@@ -6739,3 +7172,59 @@ def inline_update_text(task_id: int):
     history_change = next((change for change in reversed(task.changes) if change.action == "field_update" and change.field_name == "description"), None)
     history_entry = _build_change_history_entry(history_change, task=task, users_cache={}) if history_change else None
     return jsonify({"ok": True, "text": task.description or "", "history_entry": history_entry})
+
+
+@bp.route("/tasks/<int:task_id>/split", methods=["POST"])
+@login_required
+def split_task_remark(task_id: int):
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    task = db.session.get(Task, task_id) or abort(404)
+    if task.project_id != project.id:
+        abort(404)
+    if not can_change_task(current_user, task):
+        abort(403)
+    payload = request.get_json(silent=True) or {}
+    current_text = " ".join(str(payload.get("current_text") or "").split()).strip()
+    new_text = " ".join(str(payload.get("new_text") or "").split()).strip()
+    current_status = str(payload.get("current_status") or task.status or STATUS_NOT_STARTED).strip()
+    new_status = str(payload.get("new_status") or STATUS_NOT_STARTED).strip()
+
+    if not current_text or not new_text:
+        return jsonify({"ok": False, "message": "Заполните обе части замечания"}), 400
+    if current_text == new_text:
+        return jsonify({"ok": False, "message": "Тексты частей должны отличаться"}), 400
+    if current_status not in TASK_STATUSES or new_status not in TASK_STATUSES:
+        return jsonify({"ok": False, "message": "Выбран некорректный статус"}), 400
+    if current_status == "problem" or new_status == "problem":
+        return jsonify({"ok": False, "message": "Статус «Проблема» задайте после разделения через обычную кнопку проблемы"}), 400
+
+    previous_text = task.description or task.source_cell_value or ""
+    task.description = current_text
+    task.manually_edited = True
+    if previous_text != current_text:
+        log_change(task, "field_update", "description", previous_text, current_text, user_id=current_user.id)
+    change_task_status(task, current_status, user_id=current_user.id, commit=False)
+
+    point_number = task.work_point.point_number if task.work_point and task.work_point.point_number else "22"
+    new_task = _create_manual_remark_task(
+        project=project,
+        apartment=task.apartment,
+        point_number=point_number,
+        text=new_text,
+        source_sheet_name="manual_split",
+        action="manual_split_created",
+    )
+    change_task_status(new_task, new_status, user_id=current_user.id, commit=False)
+    db.session.commit()
+    return jsonify(
+        {
+            "ok": True,
+            "message": "Замечание разделено на две части",
+            "current_task_id": task.id,
+            "new_task_id": new_task.id,
+            "current_text": task.description or "",
+            "new_text": new_task.description or new_task.source_cell_value or "",
+        }
+    )

@@ -2,8 +2,8 @@
 {% block title %}{{ apartment.detail_label() }}{% endblock %}
 {% block content %}
 <div class="apartment-detail-page">
-{% set status_labels = {'not_started': 'не выполнено', 'done': 'выполнено', 'finishers': 'чистовики', 'contractor': 'подрядчик', 'problem': 'проблема'} %}
-{% set status_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'problem': 'status-pill-danger'} %}
+{% set status_labels = {'not_started': 'не выполнено', 'done': 'выполнено', 'finishers': 'чистовики', 'contractor': 'подрядчик', 'guarantee': 'гарантия', 'problem': 'проблема'} %}
+{% set status_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'guarantee': 'status-pill-primary', 'problem': 'status-pill-danger'} %}
 {% set field_labels = {'status': 'Статус', 'comment': 'Комментарий', 'description': 'Текст замечания', 'responsible_id': 'Исполнитель', 'planned_date': 'Плановая дата', 'is_missing_in_latest_sync': 'Отсутствует в последней синхронизации'} %}
 
 <div class="page-head">
@@ -52,8 +52,10 @@
             <b data-apartment-inspection-display><span class="status-pill {{ row.inspection_status_class }}">{{ row.inspection_status }}</span></b>
           </div>
           {% endif %}
-          {% set can_edit_inspection = current_user.role != 'viewer' and row.mode != 'не продана' and not (row.mode == 'АПП' and row.inspection_date) %}
-          {% if can_edit_inspection and row.inspection_date %}
+          {% set can_manage_inspection = current_user.role != 'viewer' and row.mode not in ['не продана', 'АПП'] %}
+          {% set can_edit_inspection_date = can_manage_inspection %}
+          {% set can_reset_inspection = can_manage_inspection and row.inspection_status == 'Был' %}
+          {% if can_edit_inspection_date and row.inspection_date %}
           <form method="post" action="{{ url_for('main.update_apartment_inspection_date', apartment_id=apartment.id) }}" class="apartment-inspection-date-form apartment-inspection-status-form-detail mb-3" data-apartment-async="1">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label class="apartment-inspection-status-label" for="inspection-date-{{ apartment.id }}">Изменить осмотр</label>
@@ -62,7 +64,18 @@
               <button class="btn btn-primary btn-sm" type="submit">Сохранить</button>
             </div>
           </form>
-          {% elif can_edit_inspection %}
+          {% if can_reset_inspection %}
+          <form method="post" action="{{ url_for('main.update_apartment_inspection_status', apartment_id=apartment.id) }}" class="apartment-inspection-status-form apartment-inspection-status-form-detail mb-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="inspection_status" value="not_was">
+            <span class="apartment-inspection-status-label">Сбросить осмотр</span>
+            <div class="apartment-inspection-date-actions">
+              <div class="text-muted small">Если осмотр был проставлен по ошибке, можно вернуть статус обратно в «Не был».</div>
+              <button class="btn btn-outline-success btn-sm" type="submit">Поставить «Не был»</button>
+            </div>
+          </form>
+          {% endif %}
+          {% elif can_edit_inspection_date %}
           <form method="post" action="{{ url_for('main.update_apartment_inspection_status', apartment_id=apartment.id) }}" class="apartment-inspection-status-form apartment-inspection-status-form-detail mb-3">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <span class="apartment-inspection-status-label">Изменить осмотр</span>

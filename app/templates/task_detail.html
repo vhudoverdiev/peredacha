@@ -2,8 +2,8 @@
 {% block title %}Карточка задачи{% endblock %}
 {% block content %}
 {% set point_name = task.work_point.display_name | replace(task.work_point.point_number ~ '. ', '') | replace(task.work_point.point_number ~ '.', '') %}
-{% set status_labels = {'not_started': 'не выполнено', 'done': 'выполнено', 'finishers': 'чистовики', 'contractor': 'подрядчик', 'problem': 'проблема'} %}
-{% set status_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'problem': 'status-pill-danger'} %}
+{% set status_labels = {'not_started': 'не выполнено', 'done': 'выполнено', 'finishers': 'чистовики', 'contractor': 'подрядчик', 'guarantee': 'гарантия', 'problem': 'проблема'} %}
+{% set status_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'guarantee': 'status-pill-primary', 'problem': 'status-pill-danger'} %}
 <div class="page-head task-detail-head">
   <div><h1 class="page-title">{{ point_name }}</h1></div>
   <a class="btn btn-outline-secondary task-detail-back-btn" href="{{ back_url }}">Назад</a>
@@ -37,6 +37,7 @@
             {% if task.glass_measurement and task.glass_measurement.status == 'replaced' %}<span class="glass-ordered-badge glass-replaced-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% elif task.glass_measurement and task.glass_measurement.status == 'ordered' %}<span class="glass-ordered-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% endif %}
             {% if current_user.role != 'viewer' %}
             <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
+            <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
             {% endif %}
           </dd>
         </dl>
@@ -89,6 +90,7 @@
           {% if task.status != 'done' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-success">Выполнено</button></form>{% endif %}
           {% if task.status != 'finishers' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info">Чистовики</button></form>{% endif %}
           {% if task.status != 'contractor' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning">Подрядчик</button></form>{% endif %}
+          {% if task.status != 'guarantee' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-primary">Гарантия</button></form>{% endif %}
           {% if task.status != 'problem' %}
           <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="d-flex gap-1 align-items-center problem-action-form" data-task-detail-status="1">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

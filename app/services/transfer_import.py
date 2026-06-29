@@ -61,6 +61,22 @@ def _find_header_map(rows: list[list[Any]]) -> tuple[int, dict[str, int]]:
     raise ValueError("Не найдены заголовки таблицы статистики передач.")
 
 
+def _is_transfer_header_map(mapping: dict[str, int]) -> bool:
+    if "number" not in mapping or "inspection_note" not in mapping:
+        return False
+    extra_fields = {
+        "owner_name",
+        "phone",
+        "finishing_type",
+        "first_inspection_date",
+        "reinspection_date",
+        "remark_deadline_date",
+        "app_signed_date",
+    }
+    extra_hits = sum(1 for field in extra_fields if field in mapping)
+    return extra_hits >= 2
+
+
 def _value_at(row: list[Any], index: int | None) -> Any:
     if index is None or index < 0 or index >= len(row):
         return None
@@ -183,6 +199,26 @@ def _is_unsold(owner_name: str | None) -> bool:
     return is_unsold_owner_name(owner_name)
 
 
+def inspect_transfer_workbook(path: Path) -> dict[str, Any]:
+    wb = load_workbook(path, data_only=True)
+    matched_sheets: list[str] = []
+    for ws in wb.worksheets:
+        rows = [[cell.value for cell in row] for row in ws.iter_rows()]
+        if not rows or not any(any(str(value or "").strip() for value in row) for row in rows):
+            continue
+        try:
+            _header_index, mapping = _find_header_map(rows)
+        except ValueError:
+            continue
+        if _is_transfer_header_map(mapping):
+            matched_sheets.append(ws.title)
+    return {
+        "ok": bool(matched_sheets),
+        "matched_sheets": matched_sheets,
+        "sheet_count": len(wb.worksheets),
+    }
+
+
 def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
     project = get_or_create_project(project_name)
     sync_log = SyncLog(source_type="transfer_excel", source_name=str(path), started_at=datetime.utcnow(), status="running", project_id=project.id)
@@ -206,6 +242,8 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
             if not rows:
                 continue
             header_index, mapping = _find_header_map(rows)
+            if not _is_transfer_header_map(mapping):
+                continue
             for row_idx, row in enumerate(rows[header_index + 1 :], start=header_index + 2):
                 cell_row = cell_rows[row_idx - 1] if row_idx - 1 < len(cell_rows) else []
                 number_cell = _cell_at(cell_row, mapping.get("number"))
@@ -313,6 +351,9 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
                     result["accepted_count"] += 1
                 else:
                     result["waiting_count"] += 1
+
+        if not any(result[key] for key in ("created_count", "updated_count", "accepted_count", "waiting_count", "unsold_count")):
+            raise ValueError("Не удалось распознать таблицу статистики передач: в файле не найдены ожидаемые колонки.")
 
         sync_log.created_count = result["created_count"]
         sync_log.updated_count = result["updated_count"]

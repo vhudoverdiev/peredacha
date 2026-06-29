@@ -27,7 +27,7 @@
   </script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v212-apartments-delete-logs-scroll">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v213-mobile-ios-fixes">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and mobile_version_under_development %} mobile-dev-flag{% endif %}{% if current_user.is_authenticated and current_project and current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and request.endpoint not in ['main.objects', 'main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm'] %} has-mobile-project-topbar{% endif %}">
 {% set mobile_dev_loader = current_user.is_authenticated and mobile_version_under_development %}
@@ -202,7 +202,7 @@
 {% elif request.endpoint == 'main.dashboard' %}
   {% set mobile_title = 'Дашборд' %}
   {% set mobile_active = 'dashboard' %}
-{% elif request.endpoint in ['main.task_list', 'main.task_detail', 'main.task_new', 'main.remarks_excel_selection'] %}
+{% elif request.endpoint in ['main.task_list', 'main.task_detail', 'main.task_new', 'main.task_recognition', 'main.remarks_excel_selection'] %}
   {% set mobile_title = 'Замечания' %}
   {% set mobile_active = 'remarks' %}
 {% elif request.endpoint in ['main.contractors_list', 'main.contractors_export', 'main.contractors_excel_selection'] %}
@@ -343,7 +343,7 @@
       <a class="sidebar-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">
         <i class="bi bi-grid-1x2"></i><span>Дашборд</span>
       </a>
-      {% set remarks_active = request.endpoint in ['main.task_list', 'main.task_detail', 'main.task_new', 'main.remarks_excel_selection'] %}
+      {% set remarks_active = request.endpoint in ['main.task_list', 'main.task_detail', 'main.task_new', 'main.task_recognition', 'main.remarks_excel_selection'] %}
       <a class="sidebar-link {% if remarks_active %}active{% endif %}" href="{{ url_for('main.task_list') }}">
         <i class="bi bi-card-checklist"></i><span>Замечания</span>
       </a>
@@ -519,6 +519,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{{ url_for('static', filename='script.js') }}?v=v212-apartments-delete-logs-scroll"></script>
+<script src="{{ url_for('static', filename='script.js') }}?v=v213-mobile-ios-fixes"></script>
 </body>
 </html>

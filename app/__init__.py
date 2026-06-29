@@ -189,6 +189,9 @@ def create_app(config_class=Config):
                     db.session.execute(text("UPDATE apartments SET is_unsold = 1 WHERE owner_name IS NULL OR TRIM(owner_name) = '' OR owner_name LIKE '%не прод%' OR owner_name LIKE '%НЕ ПРОД%'"))
                 if "first_inspection_date" not in apartment_columns:
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN first_inspection_date DATE"))
+                if "inspection_date_backup" not in apartment_columns:
+                    db.session.execute(text("ALTER TABLE apartments ADD COLUMN inspection_date_backup DATE"))
+                    db.session.execute(text("UPDATE apartments SET inspection_date_backup = inspection_date WHERE inspection_date IS NOT NULL"))
                 if "first_inspection_present" not in apartment_columns:
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN first_inspection_present BOOLEAN NOT NULL DEFAULT 0"))
                     db.session.execute(text("UPDATE apartments SET first_inspection_present = 1 WHERE first_inspection_date IS NOT NULL"))

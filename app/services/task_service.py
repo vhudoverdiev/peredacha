@@ -136,6 +136,27 @@ PREMISE_PAIR_QUERY_RE = re.compile(
 )
 PREMISE_QUERY_RE = re.compile(r"\b(кв|квартира|к|комм|коммерция|помещение|пом)\D{0,12}(\d+)\b", re.IGNORECASE)
 PREMISE_SUFFIX_QUERY_RE = re.compile(r"\b(\d+)\s*(?:к|кв|комм)\b", re.IGNORECASE)
+PREMISE_SEARCH_MODES = {
+    "construction_number",
+    "commercial_pair",
+    "premise_number",
+    "premise_number_or_building",
+}
+LEADING_MULTI_PREMISE_RE = re.compile(
+    r"""
+    ^\s*
+    (
+        \d+-\d+-\d+
+        |
+        (?:кв|квартира|к|комм|коммерция|помещение|пом)\D{0,12}\d+\s*/\s*(?:к|корпус)?\s*\d+
+        |
+        (?:кв|квартира|к|комм|коммерция|помещение|пом)\D{0,12}\d+
+        |
+        \d+
+    )
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 
 
 def detect_search_mode(query: str | None) -> tuple[str, str]:
@@ -167,24 +188,49 @@ def parse_multi_premise_search(query: str | None) -> tuple[list[tuple[str, str]]
     text = str(query or "").strip()
     if not text:
         return [], ""
-    parts = text.split()
     selectors: list[tuple[str, str]] = []
     seen: set[tuple[str, str]] = set()
-    text_start = len(parts)
-    for index, part in enumerate(parts):
-        mode, value = detect_search_mode(part)
-        if mode == "text" or not str(value or "").strip():
-            text_start = index
-            break
-        selector = (mode, str(value).strip())
-        if selector in seen:
+    tail_parts: list[str] = []
+    parsing_selectors = True
+    for raw_part in re.split(r"[;,]+", text):
+        part = raw_part.strip()
+        if not part:
             continue
-        seen.add(selector)
-        selectors.append(selector)
+        if parsing_selectors:
+            mode, value = detect_search_mode(part)
+            if mode in PREMISE_SEARCH_MODES and str(value or "").strip():
+                selector = (mode, str(value).strip())
+                if selector not in seen:
+                    seen.add(selector)
+                    selectors.append(selector)
+                continue
+            parsing_selectors = False
+        tail_parts.append(part)
     if not selectors:
         return [], text
-    tail = " ".join(parts[text_start:]).strip() if text_start < len(parts) else ""
-    return selectors, tail
+    return selectors, ", ".join(tail_parts)
+
+
+def get_multi_param_values(params, key: str) -> list[str]:
+    values: list[object] = []
+    if hasattr(params, "getlist"):
+        try:
+            values = list(params.getlist(key))
+        except TypeError:
+            values = []
+    if not values:
+        raw = params.get(key) if hasattr(params, "get") else None
+        if isinstance(raw, (list, tuple, set)):
+            values = list(raw)
+        elif raw not in {None, ""}:
+            values = [raw]
+    result: list[str] = []
+    for value in values:
+        cleaned = str(value or "").strip()
+        if not cleaned:
+            continue
+        result.extend([part.strip() for part in cleaned.split(",") if part.strip()])
+    return result
 
 
 def premise_matches_selector(apartment: Apartment | None, selector: tuple[str, str]) -> bool:
@@ -428,6 +474,66 @@ def map_work_point_columns(headers: list[str], base_mapping: dict[str, int]) -> 
             if is_visible_work_point_number(point_number):
                 points[idx] = header
     return points
+
+
+def _point_column_groups(point_columns: dict[int, str]) -> list[dict[int, str]]:
+    if not point_columns:
+        return []
+    groups: list[dict[int, str]] = []
+    current: dict[int, str] = {}
+    previous_idx: int | None = None
+    previous_point_number: int | None = None
+    for idx in sorted(point_columns):
+        raw_point_number = extract_point_number(point_columns[idx], idx + 1)
+        point_number = int(raw_point_number) if str(raw_point_number).isdigit() else None
+        should_split = False
+        if previous_idx is not None and idx - previous_idx > 2:
+            should_split = True
+        elif previous_point_number is not None and point_number is not None and point_number <= previous_point_number:
+            # When two remark tables stand close to each other, the visible point
+            # numbering usually starts over from 10 in the second table. Treat
+            # that reset as a boundary even if there is no wide empty gap.
+            should_split = True
+        if should_split:
+            if current:
+                groups.append(current)
+            current = {}
+        current[idx] = point_columns[idx]
+        previous_idx = idx
+        previous_point_number = point_number
+    if current:
+        groups.append(current)
+    return groups
+
+
+def _point_group_score(headers: list[str], group: dict[int, str]) -> tuple[int, int, int, int]:
+    if not group:
+        return (-10_000, 0, 0, 0)
+    first_col = min(group)
+    anchored_mapping = map_base_columns(headers, anchor_before_col=first_col)
+    identity_hits = int(anchored_mapping.get("apartment_number") is not None) + int(anchored_mapping.get("construction_number") is not None)
+    base_hits = sum(1 for value in anchored_mapping.values() if value is not None)
+    point_numbers = {
+        extract_point_number(header, idx + 1)
+        for idx, header in group.items()
+        if is_visible_work_point_number(extract_point_number(header, idx + 1))
+    }
+    main_hits = len(point_numbers & MAIN_WORK_POINT_NUMBERS)
+    dop_hits = len(point_numbers & DOP_AGREEMENT_POINT_NUMBERS)
+    # The real remarks table has the apartment identity columns immediately before
+    # a long run of visible work points. A small auxiliary table on the left may
+    # have similar labels, so prefer the richest run with a valid identity anchor.
+    score = main_hits * 12 + dop_hits * 5 + len(group) * 2 + identity_hits * 30 + base_hits
+    if identity_hits == 0:
+        score -= 40
+    return (score, main_hits, identity_hits, -first_col)
+
+
+def select_primary_work_point_columns(headers: list[str], point_columns: dict[int, str]) -> dict[int, str]:
+    groups = _point_column_groups(point_columns)
+    if len(groups) <= 1:
+        return point_columns
+    return max(groups, key=lambda group: _point_group_score(headers, group))
 
 
 def parse_date(value) -> date | None:
@@ -1065,7 +1171,7 @@ def mark_task_done(task: Task, user_id: int | None = None):
     return task
 
 
-def change_task_status(task: Task, new_status: str, user_id: int | None = None):
+def change_task_status(task: Task, new_status: str, user_id: int | None = None, *, commit: bool = True):
     old_status = task.status
     if old_status == new_status:
         return task
@@ -1077,7 +1183,8 @@ def change_task_status(task: Task, new_status: str, user_id: int | None = None):
         task.completed_date = None
     task.manually_edited = True
     log_change(task, "status_change", "status", old_status, new_status, user_id=user_id)
-    db.session.commit()
+    if commit:
+        db.session.commit()
     return task
 
 
@@ -1274,13 +1381,14 @@ def sync_rows(
             point_columns = indexed_points
         data_start += 1
 
+    point_columns = select_primary_work_point_columns(headers, point_columns)
     if point_columns:
         anchored_mapping = map_base_columns(headers, anchor_before_col=min(point_columns))
         if anchored_mapping.get("apartment_number") is not None or anchored_mapping.get("construction_number") is not None:
             base_mapping = anchored_mapping
             base_indexes = set(base_mapping.values())
             point_columns = {idx: header for idx, header in point_columns.items() if idx not in base_indexes}
-    if not point_columns:
+    if not point_columns or (base_mapping.get("apartment_number") is None and base_mapping.get("construction_number") is None):
         return result.as_dict() | {"seen_uids": set()}
 
     for row_zero_idx, row in enumerate(rows[data_start:], start=data_start + 1):
@@ -1578,16 +1686,20 @@ def build_task_query(params, category_id: int | None = None, project_id: int | N
     finishing_type = params.get("finishing_type")
     if finishing_type:
         query = query.filter(Apartment.finishing_type == finishing_type)
-    finishing_group = params.get("finishing_group")
-    if finishing_group == "white":
-        query = query.filter(or_(Apartment.finishing_type.like("%Бел%"), Apartment.finishing_type.like("%бел%")))
-    elif finishing_group == "clean":
-        query = query.filter(
-            or_(
-                Apartment.finishing_type.is_(None),
-                ~or_(Apartment.finishing_type.like("%Бел%"), Apartment.finishing_type.like("%бел%")),
-            )
-        )
+    finishing_groups = set(get_multi_param_values(params, "finishing_group"))
+    if finishing_groups:
+        white_clause = or_(Apartment.finishing_type.like("%Бел%"), Apartment.finishing_type.like("%бел%"))
+        none_clause = or_(Apartment.finishing_type.is_(None), func.trim(func.coalesce(Apartment.finishing_type, "")) == "")
+        clean_clause = and_(~white_clause, ~none_clause)
+        finishing_clauses = []
+        if "white" in finishing_groups:
+            finishing_clauses.append(white_clause)
+        if "clean" in finishing_groups:
+            finishing_clauses.append(clean_clause)
+        if "none" in finishing_groups:
+            finishing_clauses.append(none_clause)
+        if finishing_clauses:
+            query = query.filter(or_(*finishing_clauses))
 
     sort = params.get("sort") or "apartment"
     if status in {"deadline_expired", "deadline_expiring"} and sort == "apartment":

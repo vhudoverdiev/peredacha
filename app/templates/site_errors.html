@@ -72,7 +72,7 @@
   </div>
 </div>
 
-<div class="site-errors-list">
+<div class="site-errors-list" data-site-errors-status-filter="{{ status }}">
   {% for report in reports %}
   <article class="card content-card site-error-card {% if report.status == 'closed' %}closed{% else %}site-error-card-open{% endif %} {% if report.kind == 'registration' and report.status == 'closed' %}site-error-card-accepted{% endif %}" data-site-error-card="{{ report.id }}" data-site-error-kind="{{ report.kind }}" data-site-error-status="{{ report.status }}">
     <div class="card-body">
@@ -108,7 +108,7 @@
       <div class="site-error-actions mt-3">
         <form method="post" action="{{ url_for('main.site_error_close', report_id=report.id) }}" data-site-error-close-form="1" data-report-id="{{ report.id }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn btn-sm site-error-action-btn {% if report.status == 'closed' or report.kind == 'registration' %}site-error-action-btn-success{% else %}site-error-action-btn-close{% endif %}" type="submit">
+          <button class="btn btn-sm site-error-action-btn {% if report.status == 'closed' or report.kind == 'registration' %}site-error-action-btn-success{% else %}site-error-action-btn-close{% endif %}" type="submit" data-site-error-close-btn="1">
             {{ 'Вернуть в новые' if report.status == 'closed' else ('Принять' if report.kind == 'registration' else 'Закрыть ошибку') }}
           </button>
         </form>
@@ -305,6 +305,8 @@ document.addEventListener('DOMContentLoaded', function () {
       event.preventDefault();
       const button = form.querySelector('[data-site-error-close-btn="1"]');
       const card = document.querySelector('[data-site-error-card="' + form.dataset.reportId + '"]');
+      const list = document.querySelector('.site-errors-list');
+      const statusFilter = list ? (list.getAttribute('data-site-errors-status-filter') || '') : '';
       const badge = document.querySelector('.site-errors-nav-badge');
       const sidebar = document.querySelector('.developer-sidebar-link');
       const previousText = button ? button.textContent : '';
@@ -337,6 +339,9 @@ document.addEventListener('DOMContentLoaded', function () {
             stateBadge.classList.toggle('site-error-state-accepted', Boolean(isRegistration && isClosed));
             stateBadge.classList.toggle('site-error-state-closed', Boolean(!isRegistration && isClosed));
             stateBadge.classList.toggle('site-error-state-new', !isClosed);
+          }
+          if ((statusFilter === 'new' && isClosed) || (statusFilter === 'closed' && !isClosed)) {
+            card.remove();
           }
         }
         if (button) {

@@ -13,7 +13,7 @@
 <div class="card content-card mb-3">
   <div class="card-body">
     <form method="get" class="row g-2 align-items-end apartments-filter-form">
-      <div class="col-12 col-lg-3">
+      <div class="col-12 col-lg-2">
         <label class="form-label">Поиск</label>
         <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите цифры или текст">
       </div>
@@ -22,7 +22,15 @@
         <select class="form-select" name="inspection_status">
           <option value="">Все</option>
           <option value="was" {% if args.get('inspection_status') == 'was' %}selected{% endif %}>Был</option>
-          <option value="not_was" {% if args.get('inspection_status') == 'not_was' %}selected{% endif %}>Будет / не был</option>
+          <option value="not_was" {% if args.get('inspection_status') == 'not_was' %}selected{% endif %}>Не был</option>
+        </select>
+      </div>
+      <div class="col-12 col-sm-6 col-lg-2">
+        <label class="form-label">Сортировка осмотра</label>
+        <select class="form-select" name="inspection_order">
+          <option value="">По номеру</option>
+          <option value="was_first" {% if args.get('inspection_order') == 'was_first' %}selected{% endif %}>Сначала был</option>
+          <option value="not_was_first" {% if args.get('inspection_order') == 'not_was_first' %}selected{% endif %}>Сначала не был</option>
         </select>
       </div>
       <div class="col-12 col-sm-6 col-lg-2">
@@ -33,7 +41,7 @@
           <option value="not_accepted" {% if args.get('app_status') == 'not_accepted' %}selected{% endif %}>Не принята</option>
         </select>
       </div>
-      <div class="col-12 col-sm-6 col-lg-2">
+      <div class="col-12 col-sm-6 col-lg-1">
         <label class="form-label">АВР</label>
         <select class="form-select" name="avr_status">
           <option value="">Все</option>
@@ -41,7 +49,7 @@
           <option value="{{ avr_status_signed }}" {% if args.get('avr_status') == avr_status_signed %}selected{% endif %}>Подписан</option>
         </select>
       </div>
-      <div class="col-12 col-sm-6 col-lg-2">
+      <div class="col-12 col-sm-6 col-lg-1">
         <label class="form-label">Внутренний статус</label>
         <select class="form-select" name="po_status">
           <option value="">Все</option>

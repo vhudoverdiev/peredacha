@@ -14,7 +14,7 @@
           <label class="captcha-question" for="{{ form.captcha_answer.id }}">{{ captcha_question }} = ?</label>
           <div class="login-input-wrap captcha-answer-wrap">
             <i class="bi bi-calculator"></i>
-            {{ form.captcha_answer(class="form-control", inputmode="numeric", autocomplete="off", placeholder="Введите ответ", autofocus=true) }}
+            {{ form.captcha_answer(class="form-control", inputmode="numeric", autocomplete="off", placeholder="Введите ответ", data_desktop_autofocus="1") }}
           </div>
         </div>
         <div class="login-form-row login-captcha-actions">

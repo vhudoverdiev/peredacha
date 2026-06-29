@@ -10,7 +10,19 @@ from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 from app import db
 from app.models import Project, SyncLog, Task, WorkPoint
-from app.services.task_service import VISIBLE_WORK_POINT_NUMBERS, set_setting, sync_rows
+from app.services.task_service import (
+    VISIBLE_WORK_POINT_NUMBERS,
+    find_header_row,
+    is_index_number_row,
+    map_base_columns,
+    map_work_point_columns,
+    merge_header_rows,
+    normalize_header_row,
+    select_primary_work_point_columns,
+    set_setting,
+    sync_rows,
+    value_at,
+)
 from app.services.changelog_service import log_change
 from app.services.sync_rollback import build_project_rollback_data
 
@@ -93,12 +105,7 @@ def workbook_sheets_to_rows_with_strikes(path: Path) -> list[tuple[str, list[lis
     """Читает все листы Excel, чтобы квартиры и коммерция попадали в CRM одним импортом."""
     wb = load_workbook(path, data_only=True)
     result: list[tuple[str, list[list[Any]], set[tuple[int, int]], set[tuple[int, int]]]] = []
-    active_title = wb.active.title
     for ws in wb.worksheets:
-        # Основной лист замечаний + отдельный лист коммерции.
-        # Служебные листы по категориям не импортируем, чтобы не плодить дубли задач.
-        if ws.title != active_title and "коммер" not in (ws.title or "").strip().lower():
-            continue
         rows: list[list[Any]] = []
         struck: set[tuple[int, int]] = set()
         orange: set[tuple[int, int]] = set()
@@ -111,9 +118,83 @@ def workbook_sheets_to_rows_with_strikes(path: Path) -> list[tuple[str, list[lis
                 if _is_orange_unsold_fill(cell):
                     orange.add((r_idx, c_idx))
             rows.append(out_row)
+        if any(any(str(value or "").strip() for value in row) for row in rows) and _rows_look_like_remark_sheet(rows):
+            result.append((ws.title, rows, struck, orange))
+    if result:
+        return result
+
+    active_title = wb.active.title
+    for ws in wb.worksheets:
+        # Fallback for legacy files: if structure detection found nothing,
+        # keep the previous rule of importing the active sheet plus commercial.
+        if ws.title != active_title and "коммер" not in (ws.title or "").strip().lower():
+            continue
+        rows = []
+        struck = set()
+        orange = set()
+        for r_idx, row in enumerate(ws.iter_rows(), start=1):
+            out_row = []
+            for c_idx, cell in enumerate(row, start=1):
+                out_row.append(cell.value)
+                if getattr(getattr(cell, "font", None), "strike", False):
+                    struck.add((r_idx, c_idx))
+                if _is_orange_unsold_fill(cell):
+                    orange.add((r_idx, c_idx))
+            rows.append(out_row)
         if any(any(str(value or "").strip() for value in row) for row in rows):
             result.append((ws.title, rows, struck, orange))
     return result
+
+
+def _rows_look_like_remark_sheet(rows: list[list[Any]]) -> bool:
+    if not rows:
+        return False
+    try:
+        header_index = find_header_row(rows)
+    except Exception:
+        return False
+    if header_index >= len(rows):
+        return False
+    if header_index > 0 and is_index_number_row(rows[header_index]):
+        header_index -= 1
+    headers = normalize_header_row(rows[header_index])
+    if header_index > 0:
+        headers = merge_header_rows(rows[header_index - 1], rows[header_index])
+    base_mapping = map_base_columns(headers)
+    point_columns = map_work_point_columns(headers, base_mapping)
+    if not point_columns:
+        return False
+    point_columns = select_primary_work_point_columns(headers, point_columns)
+    anchored_mapping = map_base_columns(headers, anchor_before_col=min(point_columns))
+    if anchored_mapping.get("apartment_number") is None and anchored_mapping.get("construction_number") is None:
+        return False
+    data_start = header_index + 1
+    if data_start < len(rows) and is_index_number_row(rows[data_start]):
+        data_start += 1
+    for row in rows[data_start:]:
+        if not any(str(value or "").strip() for value in row):
+            continue
+        if is_index_number_row(row):
+            continue
+        if any(str(value_at(row, col_idx) or "").strip() for col_idx in point_columns):
+            return True
+    return False
+
+
+def inspect_remarks_workbook(path: Path) -> dict[str, Any]:
+    wb = load_workbook(path, data_only=True)
+    matched_sheets: list[str] = []
+    for ws in wb.worksheets:
+        rows = [[cell.value for cell in row] for row in ws.iter_rows()]
+        if not any(any(str(value or "").strip() for value in row) for row in rows):
+            continue
+        if _rows_look_like_remark_sheet(rows):
+            matched_sheets.append(ws.title)
+    return {
+        "ok": bool(matched_sheets),
+        "matched_sheets": matched_sheets,
+        "sheet_count": len(wb.worksheets),
+    }
 
 
 def mark_missing_tasks(project_id: int, seen_uids: set[str]) -> int:

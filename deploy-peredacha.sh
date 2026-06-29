@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-PROJECT_DIR="/opt/peredacha"
-SERVICE_NAME="peredacha"
+PROJECT_DIR="${PROJECT_DIR:-/var/www/crm_flask}"
+SERVICE_NAME="${SERVICE_NAME:-gunicorn}"
 BRANCH="${1:-main}"
-BACKUP_DIR="/root/backups/peredacha"
+BACKUP_DIR="${BACKUP_DIR:-/root/backups/peredacha}"
 DATE_TAG="$(date +%F_%H-%M-%S)"
 
 echo "=== Peredacha deploy started: ${DATE_TAG} ==="

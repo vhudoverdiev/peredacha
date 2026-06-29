@@ -196,7 +196,14 @@
                 <tr class="task-row-link material-select-row" data-href="{{ url_for('main.task_detail', task_id=task.id) }}" data-task-id="{{ task.id }}">
                   <td><input class="form-check-input material-task-check" type="checkbox" name="task_ids" value="{{ task.id }}" data-task-id="{{ task.id }}"></td>
                   <td>{{ task.apartment.label() if task.apartment else '—' }}</td>
-                  <td class="task-text"><span class="js-highlight-text">{{ remark_text(task.description or task.source_cell_value) }}</span></td>
+                  <td class="task-text">
+                    <div class="d-flex align-items-start gap-2">
+                      <span class="inline-text js-highlight-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
+                      {% if current_user.role != 'viewer' %}
+                      <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
+                      {% endif %}
+                    </div>
+                  </td>
                   <td><span class="badge bg-{{ task.status_class() }}">{{ task.status_label() }}</span></td>
                 </tr>
               {% else %}

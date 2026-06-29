@@ -40,6 +40,7 @@ STATUS_IN_PROGRESS = "in_progress"
 STATUS_DONE = "done"
 STATUS_FINISHERS = "finishers"
 STATUS_CONTRACTOR = "contractor"
+STATUS_GUARANTEE = "guarantee"
 STATUS_PROBLEM = "problem"
 STATUS_REVIEW = "review"
 STATUS_POSTPONED = "postponed"
@@ -48,10 +49,11 @@ TASK_STATUSES = {
     STATUS_DONE: {"label": "Выполнено", "class": "success"},
     STATUS_FINISHERS: {"label": "Чистовики", "class": "info"},
     STATUS_CONTRACTOR: {"label": "Подрядчик", "class": "warning"},
+    STATUS_GUARANTEE: {"label": "Гарантия", "class": "primary"},
     STATUS_PROBLEM: {"label": "Проблема", "class": "danger"},
     STATUS_NOT_STARTED: {"label": "Не выполнено", "class": "secondary"},
 }
-DONE_STATUSES = {STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR}
+DONE_STATUSES = {STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR, STATUS_GUARANTEE}
 
 PRIORITIES = ["low", "normal", "high", "critical"]
 
@@ -97,6 +99,14 @@ class User(UserMixin, TimestampMixin, db.Model):
     assigned_tasks = db.relationship("Task", back_populates="responsible", foreign_keys="Task.responsible_id")
     project = db.relationship("Project")
     site_error_reports = db.relationship("SiteErrorReport", back_populates="user")
+
+    @property
+    def projects(self):
+        if self.project_id:
+            return [self.project] if self.project else []
+        if self.role == ROLE_ADMIN:
+            return Project.query.order_by(Project.created_at.desc()).all()
+        return []
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -158,6 +168,7 @@ class Apartment(TimestampMixin, db.Model):
     entrance = db.Column(db.String(50), nullable=True)
     floor = db.Column(db.String(50), nullable=True)
     inspection_date = db.Column(db.Date, nullable=True)
+    inspection_date_backup = db.Column(db.Date, nullable=True)
     first_inspection_date = db.Column(db.Date, nullable=True)
     first_inspection_present = db.Column(db.Boolean, default=False, nullable=False, index=True)
     reinspection_date = db.Column(db.Date, nullable=True)

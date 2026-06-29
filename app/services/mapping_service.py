@@ -1,5 +1,5 @@
 from app import db
-from app.models import WorkCategory, WorkPoint
+from app.models import AppSetting, WorkCategory, WorkPoint
 
 DEFAULT_CATEGORIES = [
     ("Все", "#212529", 0),
@@ -25,6 +25,26 @@ HIDDEN_POINT_NUMBERS = {str(number) for number in range(1, 101)} - VISIBLE_POINT
 REMOVED_CATEGORIES = {
     "Электрики", "Сантехники", "Двери", "Окна ПВХ", "Другое",
 }
+
+
+def _mapping_custom_key(category_id: int) -> str:
+    return f"category_mapping_customized:{int(category_id)}"
+
+
+def _mapping_is_customized(category_id: int) -> bool:
+    setting = AppSetting.query.filter_by(key=_mapping_custom_key(category_id)).first()
+    return str(setting.value or "").strip() == "1" if setting else False
+
+
+def _mark_mapping_customized(category_id: int, customized: bool = True) -> None:
+    key = _mapping_custom_key(category_id)
+    setting = AppSetting.query.filter_by(key=key).first()
+    value = "1" if customized else "0"
+    if setting is None:
+        setting = AppSetting(key=key, value=value)
+        db.session.add(setting)
+    else:
+        setting.value = value
 
 
 def ensure_default_categories():
@@ -56,6 +76,8 @@ def apply_default_point_mapping(commit: bool = True):
         category = WorkCategory.query.filter_by(name=category_name).first()
         if not category:
             continue
+        if _mapping_is_customized(category.id):
+            continue
         visible_numbers = [point_number for point_number in point_numbers if point_number not in HIDDEN_POINT_NUMBERS]
         points = WorkPoint.query.filter(WorkPoint.point_number.in_(visible_numbers)).all()
         for point in points:
@@ -65,11 +87,13 @@ def apply_default_point_mapping(commit: bool = True):
         db.session.commit()
 
 
-def update_category_points(category_id: int, point_ids: list[int]):
+def update_category_points(category_id: int, point_ids: list[int], *, commit: bool = True):
     category = db.session.get(WorkCategory, category_id)
     if not category:
         raise ValueError("Category not found")
     points = WorkPoint.query.filter(WorkPoint.id.in_(point_ids)).all() if point_ids else []
     category.work_points = points
-    db.session.commit()
+    _mark_mapping_customized(category.id, True)
+    if commit:
+        db.session.commit()
     return category

@@ -3,13 +3,53 @@
 {% block content %}
 <div class="page-head remarks-page-head">
   <div>
-    <h1 class="page-title">Добавить работу</h1>
+    <h1 class="page-title">Добавить замечание</h1>
+    <p class="page-subtitle">Выберите способ добавления, а затем заполните данные по квартире и замечаниям.</p>
   </div>
   <a class="btn btn-outline-secondary" href="{{ url_for('main.task_list') }}">Назад</a>
 </div>
 
+{% set current_mode = add_mode or request.args.get('mode', '') %}
+{% set current_kind = manual_kind or request.args.get('kind', '') %}
+
+<div class="card content-card mb-3">
+  <div class="card-body">
+    <h2 class="section-title mb-3">Способ добавления</h2>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn task-add-mode-btn {{ 'is-active' if current_mode == 'manual' else '' }}" href="{{ url_for('main.task_new', mode='manual') }}">
+        <i class="bi bi-pencil-square me-2"></i>Ручное
+      </a>
+      <a class="btn task-add-mode-btn {{ 'is-active' if current_mode == 'auto' else '' }}" href="{{ url_for('main.task_recognition') }}">
+        <i class="bi bi-file-earmark-pdf me-2"></i>Автоматическое
+      </a>
+    </div>
+  </div>
+</div>
+
+{% if current_mode == 'manual' %}
+<div class="card content-card mb-3">
+  <div class="card-body">
+    <h2 class="section-title mb-3">2. Формат ручного добавления</h2>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn {{ 'btn-success' if current_kind == 'single' else 'btn-outline-success' }}" href="{{ url_for('main.task_new', mode='manual', kind='single') }}">
+        <i class="bi bi-plus-circle me-2"></i>Одно замечание
+      </a>
+      <a class="btn {{ 'btn-success' if current_kind == 'act' else 'btn-outline-success' }}" href="{{ url_for('main.task_new', mode='manual', kind='act') }}">
+        <i class="bi bi-list-check me-2"></i>С акта
+      </a>
+    </div>
+    {% if not current_kind %}
+    <div class="text-muted mt-3">Выберите, нужно добавить одно замечание вручную или сразу пройтись по пунктам акта.</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if current_mode == 'manual' and current_kind == 'single' %}
 <form method="post" class="card content-card task-manual-form compact-task-form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="add_mode" value="manual">
+  <input type="hidden" name="manual_kind" value="single">
   <div class="card-body">
     <div class="row g-3">
       <div class="col-12">
@@ -17,13 +57,15 @@
         <select class="form-select" name="apartment_id" required>
           <option value="">Выберите квартиру / коммерцию</option>
           {% for apartment in apartments %}
-            <option value="{{ apartment.id }}">{{ apartment.full_label() if apartment.premise_type == 'commercial' else apartment.label() }}</option>
+          <option value="{{ apartment.id }}" {% if request.form.get('apartment_id', '')|int == apartment.id %}selected{% endif %}>
+            {{ apartment.full_label() if apartment.premise_type == 'commercial' else apartment.label() }}
+          </option>
           {% endfor %}
         </select>
       </div>
       <div class="col-12">
-        <label class="form-label">Описание работы</label>
-        <textarea class="form-control" name="description" rows="4" required placeholder="Например: Исправлена регулировка входной двери"></textarea>
+        <label class="form-label">Описание замечания</label>
+        <textarea class="form-control" name="description" rows="4" required placeholder="Например: отрегулировать входную дверь">{{ request.form.get('description', '') }}</textarea>
       </div>
     </div>
     <div class="material-form-footer mt-4">
@@ -32,4 +74,109 @@
     </div>
   </div>
 </form>
+{% elif current_mode == 'manual' and current_kind == 'act' %}
+<form method="post" class="card content-card task-manual-form compact-task-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="add_mode" value="manual">
+  <input type="hidden" name="manual_kind" value="act">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-12 col-lg-8">
+        <label class="form-label">Квартира / коммерция</label>
+        <select class="form-select" name="apartment_id" required>
+          <option value="">Выберите квартиру / коммерцию</option>
+          {% for apartment in apartments %}
+          <option value="{{ apartment.id }}" {% if request.form.get('apartment_id', '')|int == apartment.id %}selected{% endif %}>
+            {{ apartment.full_label() if apartment.premise_type == 'commercial' else apartment.label() }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-lg-4">
+        <label class="form-label">Дата осмотра</label>
+        <input class="form-control" type="date" name="inspection_date" value="{{ request.form.get('inspection_date', '') }}">
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <h3 class="h5 mb-3">Замечания по пунктам</h3>
+      <div class="row g-3">
+        {% for point in points %}
+        <div class="col-12">
+          <label class="form-label">{{ point.number }}. {{ point.label }}</label>
+          <textarea class="form-control" name="description_{{ point.number }}" rows="2" placeholder="Оставьте пустым, если по этому пункту замечаний нет">{{ request.form.get('description_' ~ point.number, '') }}</textarea>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="material-form-footer mt-4">
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Добавить из акта</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.task_list') }}">Отмена</a>
+    </div>
+  </div>
+</form>
+{% elif current_mode == 'auto' %}
+<div class="card content-card">
+  <div class="card-body">
+    <h2 class="section-title mb-3">Автоматическое распознавание PDF</h2>
+    <p class="mb-3">Для автоматического добавления замечаний откройте вкладку распознавания: там можно загрузить до 3 актов, проверить каждую строку перед сохранением и только потом занести данные в базу.</p>
+    <a class="btn btn-primary" href="{{ url_for('main.task_recognition') }}">
+      <i class="bi bi-file-earmark-pdf me-2"></i>Открыть распознавание
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<style>
+.task-add-mode-btn,
+.task-add-mode-btn:visited {
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  background: #f8fafc !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  box-shadow: none !important;
+}
+
+.task-add-mode-btn *,
+.task-add-mode-btn i,
+.task-add-mode-btn .bi,
+.task-add-mode-btn .bi::before,
+.task-add-mode-btn:visited * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+.task-add-mode-btn:hover,
+.task-add-mode-btn:focus,
+.task-add-mode-btn:focus-visible,
+.task-add-mode-btn.is-active {
+  background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
+  outline: none !important;
+}
+
+.task-add-mode-btn:hover *,
+.task-add-mode-btn:focus *,
+.task-add-mode-btn:focus-visible *,
+.task-add-mode-btn.is-active *,
+.task-add-mode-btn:hover i,
+.task-add-mode-btn:focus i,
+.task-add-mode-btn:focus-visible i,
+.task-add-mode-btn.is-active i,
+.task-add-mode-btn:hover .bi,
+.task-add-mode-btn:focus .bi,
+.task-add-mode-btn:focus-visible .bi,
+.task-add-mode-btn.is-active .bi,
+.task-add-mode-btn:hover .bi::before,
+.task-add-mode-btn:focus .bi::before,
+.task-add-mode-btn:focus-visible .bi::before,
+.task-add-mode-btn.is-active .bi::before {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+</style>
 {% endblock %}
