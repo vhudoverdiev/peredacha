@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-PROJECT_DIR="${PROJECT_DIR:-/var/www/crm_flask}"
+PROJECT_DIR="${PROJECT_DIR:-/opt/peredacha}"
 SERVICE_NAME="${SERVICE_NAME:-gunicorn}"
 BRANCH="${1:-main}"
 BACKUP_DIR="${BACKUP_DIR:-/root/backups/peredacha}"

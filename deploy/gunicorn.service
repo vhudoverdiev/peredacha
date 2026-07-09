@@ -6,10 +6,10 @@ After=network.target
 [Service]
 User=www-data
 Group=www-data
-WorkingDirectory=/var/www/crm_flask
-Environment="PATH=/var/www/crm_flask/venv/bin"
-EnvironmentFile=/var/www/crm_flask/.env
-ExecStart=/var/www/crm_flask/venv/bin/gunicorn --workers 3 --bind unix:/run/gunicorn-crm_flask.sock wsgi:app
+WorkingDirectory=/opt/peredacha
+Environment="PATH=/opt/peredacha/venv/bin"
+EnvironmentFile=/opt/peredacha/.env
+ExecStart=/opt/peredacha/venv/bin/gunicorn --workers 3 --bind unix:/run/gunicorn-crm_flask.sock wsgi:app
 Restart=always
 RestartSec=5
 
