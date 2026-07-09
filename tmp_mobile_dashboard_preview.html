@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <title>Дашборд</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="file:///C:/Users/Владимир/Desktop/Сайты/Peredacha/app/static/favicon-32x32.png?v=v202-ios-install-button-polish">
+  <link rel="icon" type="image/png" sizes="16x16" href="file:///C:/Users/Владимир/Desktop/Сайты/Peredacha/app/static/favicon-16x16.png?v=v202-ios-install-button-polish">
+  <link rel="shortcut icon" href="file:///C:/Users/Владимир/Desktop/Сайты/Peredacha/app/static/favicon.ico?v=v202-ios-install-button-polish">
+  <link rel="apple-touch-icon" sizes="180x180" href="file:///C:/Users/Владимир/Desktop/Сайты/Peredacha/app/static/apple-touch-icon.png?v=v202-ios-install-button-polish">
+  <link rel="apple-touch-icon-precomposed" sizes="180x180" href="file:///C:/Users/Владимир/Desktop/Сайты/Peredacha/app/static/apple-touch-icon.png?v=v202-ios-install-button-polish">
+  <link rel="apple-touch-startup-image" href="file:///C:/Users/Владимир/Desktop/Сайты/Peredacha/app/static/apple-splash.png?v=v202-ios-install-button-polish">
+  <link rel="manifest" href="file:///C:/Users/Владимир/Desktop/Сайты/Peredacha/app/static/site.webmanifest?v=v202-ios-install-button-polish">
+  <meta name="application-name" content="Передача">
+  <meta name="apple-mobile-web-app-title" content="Передача">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1f2730">
+  <meta name="msapplication-TileColor" content="#1f2730">
+  <meta name="msapplication-tap-highlight" content="no">
+  <script>
+    (() => {
+      const DESKTOP_REFERENCE_WIDTH = 1920;
+      const DESKTOP_REFERENCE_HEIGHT = 1080;
+      const DESKTOP_TO_MOBILE_VIEWPORT_WIDTH = 560;
+      const getViewportWidth = () => Math.max(
+        320,
+        Math.round(window.visualViewport?.width || window.innerWidth || document.documentElement.clientWidth || DESKTOP_REFERENCE_WIDTH),
+      );
+      const getViewportHeight = () => Math.max(
+        480,
+        Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || DESKTOP_REFERENCE_HEIGHT),
+      );
+      const nav = window.navigator || {};
+      const userAgent = nav.userAgent || '';
+      const isRealPhoneDevice = nav.userAgentData?.mobile === true
+        || /iPhone|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile/i.test(userAgent)
+        || (/Android/i.test(userAgent) && /Mobile/i.test(userAgent));
+      const getDesktopStageScale = () => Math.min(1, getViewportWidth() / DESKTOP_REFERENCE_WIDTH);
+      const useAdaptiveMobileViewport = !isRealPhoneDevice && getViewportWidth() <= DESKTOP_TO_MOBILE_VIEWPORT_WIDTH;
+      document.documentElement.classList.add('crm-js');
+      document.documentElement.classList.toggle('desktop-like-pointer', !isRealPhoneDevice && !useAdaptiveMobileViewport);
+      document.documentElement.classList.toggle('adaptive-mobile-viewport', useAdaptiveMobileViewport);
+      document.documentElement.classList.toggle('mobile-viewport', isRealPhoneDevice || useAdaptiveMobileViewport);
+      document.documentElement.classList.toggle('real-phone-device', isRealPhoneDevice);
+      if (!isRealPhoneDevice && !useAdaptiveMobileViewport) {
+        const desktopStageScale = getDesktopStageScale();
+        document.documentElement.style.setProperty('--desktop-reference-width', `${DESKTOP_REFERENCE_WIDTH}px`);
+        document.documentElement.style.setProperty('--desktop-reference-height', `${DESKTOP_REFERENCE_HEIGHT}px`);
+        document.documentElement.style.setProperty('--desktop-lock-width', `${DESKTOP_REFERENCE_WIDTH}px`);
+        document.documentElement.style.setProperty('--desktop-stage-scale', desktopStageScale.toFixed(4));
+      }
+      document.documentElement.classList.add('crm-custom-select-pending');
+      window.setTimeout(() => document.documentElement.classList.remove('crm-custom-select-pending'), 2200);
+      if (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
+        document.documentElement.classList.add('standalone-app');
+      }
+    })();
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="file:///C:/Users/Владимир/Desktop/Сайты/Peredacha/app/static/style.css?v=v279-mobile-reference-rebuild">
+</head>
+<body class="app-body mobile-dev-flag has-mobile-project-topbar" data-tab-visit-url="">
+
+
+
+
+
+<section class="site-page-loader mobile-dev-screen" aria-live="polite" role="status" aria-label="Загрузка">
+  <div class="site-page-loader-card">
+    <div class="mobile-loading-orbit" aria-hidden="true">
+      <span></span>
+      <span></span>
+      <span></span>
+      <div class="mobile-loading-mark"><img class="mobile-loading-logo" src="file:///C:/Users/Владимир/Desktop/Сайты/Peredacha/app/static/brand-logo.png" alt=""></div>
+    </div>
+  </div>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="app-layout ">
+  
+  
+  <div class="mobile-project-topbar mobile-shell-topbar" aria-label="Выбранный объект">
+    
+    <button class="mobile-shell-toggle mobile-menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="appSidebar">
+      <i class="bi bi-list"></i>
+    </button>
+    
+    <a class="mobile-shell-project-link" href="#" aria-label="Сменить объект">
+      <span class="mobile-shell-project-badge">К</span>
+      <span class="mobile-shell-project-name">Объект: Квартал 100-7</span>
+      <i class="bi bi-chevron-down mobile-shell-project-caret" aria-hidden="true"></i>
+    </a>
+    <a class="mobile-shell-account " href="#" aria-label="Аккаунт">
+      <i class="bi bi-person-fill"></i>
+    </a>
+  </div>
+  
+  <button class="mobile-menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="appSidebar">
+    <i class="bi bi-list"></i><span>Меню</span>
+  </button>
+  <div class="mobile-sidebar-backdrop" aria-hidden="true"></div>
+  <aside class="app-sidebar" id="appSidebar">
+    <div class="sidebar-brand">
+      <a class="sidebar-brand-link" href="#">
+        <img class="brand-logo" src="file:///C:/Users/Владимир/Desktop/Сайты/Peredacha/app/static/brand-logo.png" alt="">
+        <span class="brand-text">Передача</span>
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      
+      <a class="sidebar-link " href="#">
+        <i class="bi bi-grid-1x2"></i><span>Дашборд</span>
+      </a>
+      
+      <a class="sidebar-link " href="#">
+        <i class="bi bi-card-checklist"></i><span>Замечания</span>
+      </a>
+      <a class="sidebar-link " href="#">
+        <i class="bi bi-person-gear"></i><span>Подрядчики</span>
+      </a>
+      <a class="sidebar-link " href="#">
+        <i class="bi bi-buildings"></i><span>Квартиры</span>
+      </a>
+      <a class="sidebar-link " href="#">
+        <i class="bi bi-file-earmark-check"></i><span>АВР</span>
+      </a>
+      <a class="sidebar-link " href="#">
+        <i class="bi bi-box-seam"></i><span>Расход материалов</span>
+      </a>
+      <a class="sidebar-link " href="#">
+        <i class="bi bi-window"></i><span>Замеры</span>
+      </a>
+      
+      <a class="sidebar-link " href="#">
+        <i class="bi bi-person-check"></i><span>Выдача задач</span>
+      </a>
+      
+      <a class="sidebar-link " href="#">
+        <i class="bi bi-file-earmark-bar-graph"></i><span>Отчет</span>
+      </a>
+      
+      
+      <a class="sidebar-link developer-sidebar-link  has-nav-count" href="#" >
+        <i class="bi bi-bug"></i><span>Для разработчика</span>
+        <span class="nav-count-badge site-errors-nav-badge" aria-label="Новые уведомления: 8">8</span>
+      </a>
+      
+      
+    </nav>
+  </aside>
+
+  <div class="app-main">
+    <header class="app-topbar">
+      
+      <div class="topbar-project">
+        <span>Объект: Квартал 100-7</span>
+        <a class="btn btn-outline-light btn-sm" href="#">Сменить объект</a>
+      </div>
+      
+
+      <div class="topbar-actions">
+        
+        <div class="dropdown">
+          <a class="topbar-icon dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Разделы">
+            <i class="bi bi-gear"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#"><i class="bi bi-cloud-arrow-up me-2"></i>Импорт Excel</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-arrow-repeat me-2"></i>Синхронизация</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-clock-history me-2"></i>Журнал</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-diagram-3 me-2"></i>Распределение</a></li>
+          </ul>
+        </div>
+        
+        <div class="dropdown">
+          <a class="topbar-user dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="topbar-avatar"><i class="bi bi-person-fill"></i></span>
+            <span>Codex Mobile</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            
+            <li><a class="dropdown-item" href="#">Пользователи</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-arrow-down me-2"></i>Скачать Excel</a></li>
+            <li><hr class="dropdown-divider"></li>
+            
+            <li><a class="dropdown-item" href="#"><i class="bi bi-person-circle me-2"></i>Аккаунт</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <form class="px-3 py-1 js-auth-safe-submit" method="post" action="#" data-loading-text="Выходим...">
+                <input type="hidden" name="csrf_token" value="ImYwNTZhMmNkYTZjODgxYTM0YTgwNWUxZDEzODM3NmRmZTVmNWZiZDAi.ak4kaA.BDuff_7uGK2orfDvpBJBZflBaKE">
+                <button class="btn btn-outline-secondary w-100 js-auth-submit-button" type="submit">Выйти</button>
+              </form>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-content">
+      
+        
+      
+      
+<section class="dashboard-page dashboard-redesign">
+  <div class="dashboard-redesign-hero">
+    <div class="dashboard-redesign-copy">
+      <p class="dashboard-eyebrow">Сводка объекта</p>
+      <h1 class="dashboard-title">Квартал 100-7</h1>
+      <p class="dashboard-subtitle">Все самая необходимая информация в одном месте</p>
+    </div>
+    <div class="dashboard-progress-panel">
+      <div class="dashboard-progress-ring" style="--value: 26.6;">
+        <span>26.6%</span>
+      </div>
+      <div>
+        <div class="metric-label">Процент выполнения</div>
+        <div class="dashboard-progress-meta">277 из 1040 задач</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-overview-grid">
+    <article class="dashboard-focus-card dashboard-focus-primary">
+      <div class="dashboard-card-head">
+        <div>
+          <div class="metric-label">Задачи</div>
+          <h2>Работы по замечаниям</h2>
+        </div>
+        <i class="bi bi-card-checklist"></i>
+      </div>
+      <div class="dashboard-big-number">1040</div>
+      <div class="dashboard-mini-stats">
+        <div><span>Выполнено</span><b>277</b></div>
+        <div><span>Не выполнено</span><b>763</b></div>
+        <div><span>Проблемных</span><b>0</b></div>
+      </div>
+    </article>
+
+    <article class="dashboard-focus-card">
+      <div class="dashboard-card-head">
+        <div>
+          <div class="metric-label">Помещения</div>
+          <h2>Всего:</h2>
+        </div>
+        <i class="bi bi-buildings"></i>
+      </div>
+      <div class="dashboard-big-number">282</div>
+      <div class="dashboard-mini-stats dashboard-mini-stats-two">
+        <div><span>Квартиры</span><b>265</b></div>
+        <div><span>Коммерции</span><b>17</b></div>
+        <div><span>Чистовые</span><b>52</b></div>
+        <div><span>Белые</span><b>205</b></div>
+      </div>
+    </article>
+  </div>
+
+  <div class="dashboard-info-columns">
+    <article class="dashboard-info-card">
+      <div class="dashboard-info-title"><i class="bi bi-clipboard-check"></i> Приемка</div>
+      <div class="dashboard-line-list">
+        <div><span>Принятых</span><b>127</b></div>
+        <div><span>Не проданных всего</span><b>10</b></div>
+        <div><span>Квартир не продано</span><b>8</b></div>
+        <div><span>Коммерции не продано</span><b>2</b></div>
+        <div><span>Не принятых</span><b>145</b></div>
+      </div>
+    </article>
+
+    <article class="dashboard-info-card">
+      <div class="dashboard-info-title"><i class="bi bi-eye"></i> Осмотры</div>
+      <div class="dashboard-line-list">
+        <div><span>Были на осмотре</span><b>202</b></div>
+        <div><span>Не были на осмотре</span><b>80</b></div>
+      </div>
+    </article>
+
+    <article class="dashboard-info-card dashboard-roadmap-mini-card" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#dashboardRoadmapModal" aria-label="Открыть планы развития CRM">
+      <div class="dashboard-roadmap-mini-glow" aria-hidden="true"></div>
+      <div class="dashboard-info-title dashboard-roadmap-mini-title"><i class="bi bi-stars"></i> Что скоро станет доступно?</div>
+      <p class="dashboard-roadmap-mini-text">Каждый день я развиваю CRM для удобного пользования</p>
+      <div class="dashboard-roadmap-mini-list">
+        <span><i class="bi bi-check2-square"></i>Выдача задач сотрудникам</span>
+        <span><i class="bi bi-box-seam"></i>Удобный отчёт по материалам</span>
+        <span><i class="bi bi-file-earmark-text"></i>Документы АПП</span>
+        <span><i class="bi bi-phone"></i>Мобильная версия</span>
+        <span><i class="bi bi-house-add"></i>Работа с кладовками</span>
+      </div>
+      <div class="dashboard-roadmap-mini-more">Прочитать полностью <i class="bi bi-arrow-right"></i></div>
+    </article>
+  </div>
+  <div class="dashboard-section dashboard-section-redesign">Статистика по специалистам</div>
+  <div class="dashboard-specialists-grid">
+    
+    
+    <article class="dashboard-specialist-card" style="--category-color: #79bf25; --delay: 0ms;">
+      <div class="dashboard-specialist-top">
+        <div>
+          <h3>Маляры</h3>
+          <p>Всего: 78 · выполнено: 18 · осталось: 60</p>
+        </div>
+        <span>23.1%</span>
+      </div>
+      <div class="category-progress" role="progressbar" aria-valuenow="23.1" aria-valuemin="0" aria-valuemax="100">
+        <div class="category-progress-bar" style="width: 23.076923076923077%; background: linear-gradient(90deg, #79bf25, #79bf25cc);"></div>
+      </div>
+      <a class="stretched-link" href="#"></a>
+    </article>
+    
+    
+    <article class="dashboard-specialist-card" style="--category-color: #79bf25; --delay: 60ms;">
+      <div class="dashboard-specialist-top">
+        <div>
+          <h3>Разнорабочие</h3>
+          <p>Всего: 274 · выполнено: 89 · осталось: 185</p>
+        </div>
+        <span>32.5%</span>
+      </div>
+      <div class="category-progress" role="progressbar" aria-valuenow="32.5" aria-valuemin="0" aria-valuemax="100">
+        <div class="category-progress-bar" style="width: 32.481751824817515%; background: linear-gradient(90deg, #79bf25, #79bf25cc);"></div>
+      </div>
+      <a class="stretched-link" href="#"></a>
+    </article>
+    
+    
+    <article class="dashboard-specialist-card" style="--category-color: #79bf25; --delay: 120ms;">
+      <div class="dashboard-specialist-top">
+        <div>
+          <h3>Витражники</h3>
+          <p>Всего: 94 · выполнено: 14 · осталось: 80</p>
+        </div>
+        <span>14.9%</span>
+      </div>
+      <div class="category-progress" role="progressbar" aria-valuenow="14.9" aria-valuemin="0" aria-valuemax="100">
+        <div class="category-progress-bar" style="width: 14.893617021276595%; background: linear-gradient(90deg, #79bf25, #79bf25cc);"></div>
+      </div>
+      <a class="stretched-link" href="#"></a>
+    </article>
+    
+  </div>
+</section>
+
+<div class="modal fade dashboard-roadmap-modal" id="dashboardRoadmapModal" tabindex="-1" aria-labelledby="dashboardRoadmapModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content dashboard-roadmap-modal-content">
+      <div class="modal-header dashboard-roadmap-modal-head">
+        <div>
+          <h2 class="modal-title" id="dashboardRoadmapModalLabel">Что скоро станет доступно?</h2>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="dashboard-roadmap-subtitle mb-3">Мы развиваем CRM дальше, чтобы она стала ещё удобнее для руководителя, сотрудников и работы с объектами. Ниже — ключевые функции, которые планируются к запуску в следующих обновлениях.</p>
+        <div class="dashboard-roadmap-grid dashboard-roadmap-modal-grid">
+          <div class="dashboard-roadmap-item"><i class="bi bi-person-check"></i><div><h3>Выдача и получение задач сотрудниками</h3><p>Полноценная система взаимодействия, где задачи можно будет быстро назначать, принимать в работу и контролировать по каждому исполнителю.</p></div></div>
+          <div class="dashboard-roadmap-item"><i class="bi bi-box-seam"></i><div><h3>Учёт затраченного материала</h3><p>Сотрудники смогут фиксировать, какие материалы и в каком объёме были использованы по конкретной задаче — для удобной отчётности и прозрачного контроля.</p></div></div>
+          <div class="dashboard-roadmap-item"><i class="bi bi-file-earmark-text"></i><div><h3>Быстрое редактирование и генерация документов</h3><p>Появится возможность оперативно подготавливать документы для подписания: АПП, дополнительные соглашения и другие рабочие формы.</p></div></div>
+          <div class="dashboard-roadmap-item"><i class="bi bi-phone"></i><div><h3>Современно адаптированная мобильная версия</h3><p>Интерфейс станет ещё удобнее на телефоне: важные разделы, действия и уведомления будут полностью адаптированы под мобильный формат.</p></div></div>
+          <div class="dashboard-roadmap-item"><i class="bi bi-phone-vibrate"></i><div><h3>Мобильное приложение</h3><p>В перспективе сайт вырастет в отдельное мобильное приложение, чтобы пользоваться системой было ещё быстрее и удобнее прямо со смартфона.</p></div></div>
+          <div class="dashboard-roadmap-item"><i class="bi bi-house-add"></i><div><h3>Добавление объектов с кладовками</h3><p>Система будет поддерживать расширенную структуру объектов, включая кладовые помещения, чтобы учёт стал полнее и точнее.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    </main>
+  </div>
+  
+  
+  
+  
+  <nav class="mobile-bottom-nav" aria-label="Основная навигация" style="--mobile-nav-count: 5">
+    
+    <a class="mobile-nav-item active" href="#">
+      <i class="bi bi-grid-1x2"></i><span>Дашборд</span>
+    </a>
+    <a class="mobile-nav-item " href="#">
+      <i class="bi bi-card-checklist"></i><span>Замечания</span>
+    </a>
+    <a class="mobile-nav-item " href="#">
+      <i class="bi bi-people"></i><span>Подрядчики</span>
+    </a>
+    <a class="mobile-nav-item " href="#">
+      <i class="bi bi-buildings"></i><span>Квартиры</span>
+    </a>
+    <button class="mobile-nav-item mobile-nav-more mobile-menu-toggle " type="button" aria-label="Открыть разделы" aria-expanded="false" aria-controls="appSidebar">
+      <i class="bi bi-three-dots"></i><span>Ещё</span>
+    </button>
+    
+  </nav>
+  
+</div>
+
+
+<div class="floating-error-corner">
+  <button type="button" class="btn btn-sm report-error-btn report-error-floating" data-bs-toggle="modal" data-bs-target="#reportErrorModal" title="Сообщить об ошибке" aria-label="Сообщить об ошибке">
+  <span class="report-error-icon" aria-hidden="true">?</span>
+</button>
+</div>
+<div class="modal fade" id="reportErrorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content error-report-modal" method="post" action="#">
+      <input type="hidden" name="csrf_token" value="ImYwNTZhMmNkYTZjODgxYTM0YTgwNWUxZDEzODM3NmRmZTVmNWZiZDAi.ak4kaA.BDuff_7uGK2orfDvpBJBZflBaKE">
+      <input type="hidden" name="page_url" value="http://localhost/dashboard">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Сообщить об ошибке</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Описание ошибки</label>
+        <textarea class="form-control" name="message" rows="5" placeholder="Например: Не работает раздел" required></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-send me-2"></i>Отправить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<div class="modal fade task-problem-modal" id="taskProblemModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content task-problem-modal-content" id="taskProblemModalForm" novalidate>
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Проблема</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label" for="taskProblemModalComment">Описание проблемы</label>
+        <textarea class="form-control" id="taskProblemModalComment" name="problem_comment" rows="5" required></textarea>
+        <div class="invalid-feedback">Заполните описание проблемы.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary task-problem-modal-cancel" data-bs-dismiss="modal">Отмена</button>
+        <button class="btn btn-success" type="submit"><i class="bi bi-check2 me-2"></i>Добавить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  
+</body>
+</html>

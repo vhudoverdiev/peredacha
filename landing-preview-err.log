@@ -1,0 +1,8 @@
+::ffff:127.0.0.1 - - [09/Jul/2026 13:16:35] "GET / HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [09/Jul/2026 13:16:35] "GET /styles.css HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [09/Jul/2026 13:16:35] "GET /assets/brand-logo.png HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [09/Jul/2026 13:16:35] "GET /assets/favicon.ico HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [09/Jul/2026 13:18:49] "GET / HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [09/Jul/2026 13:18:49] "GET /styles.css HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [09/Jul/2026 13:21:43] "GET / HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [09/Jul/2026 13:21:43] "GET /styles.css HTTP/1.1" 200 -

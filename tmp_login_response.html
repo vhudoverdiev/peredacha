@@ -1,0 +1,436 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <title>Вход в систему</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png?v=v202-ios-install-button-polish">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png?v=v202-ios-install-button-polish">
+  <link rel="shortcut icon" href="/static/favicon.ico?v=v202-ios-install-button-polish">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png?v=v202-ios-install-button-polish">
+  <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/static/apple-touch-icon.png?v=v202-ios-install-button-polish">
+  <link rel="apple-touch-startup-image" href="/static/apple-splash.png?v=v202-ios-install-button-polish">
+  <link rel="manifest" href="/static/site.webmanifest?v=v202-ios-install-button-polish">
+  <meta name="application-name" content="Передача">
+  <meta name="apple-mobile-web-app-title" content="Передача">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1f2730">
+  <meta name="msapplication-TileColor" content="#1f2730">
+  <meta name="msapplication-tap-highlight" content="no">
+  <script>
+    (() => {
+      const DESKTOP_REFERENCE_WIDTH = 1920;
+      const DESKTOP_REFERENCE_HEIGHT = 1080;
+      const DESKTOP_TO_MOBILE_VIEWPORT_WIDTH = 560;
+      const getViewportWidth = () => Math.max(
+        320,
+        Math.round(window.visualViewport?.width || window.innerWidth || document.documentElement.clientWidth || DESKTOP_REFERENCE_WIDTH),
+      );
+      const getViewportHeight = () => Math.max(
+        480,
+        Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || DESKTOP_REFERENCE_HEIGHT),
+      );
+      const nav = window.navigator || {};
+      const userAgent = nav.userAgent || '';
+      const isRealPhoneDevice = nav.userAgentData?.mobile === true
+        || /iPhone|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile/i.test(userAgent)
+        || (/Android/i.test(userAgent) && /Mobile/i.test(userAgent));
+      const getDesktopStageScale = () => Math.min(1, getViewportWidth() / DESKTOP_REFERENCE_WIDTH);
+      const useAdaptiveMobileViewport = !isRealPhoneDevice && getViewportWidth() <= DESKTOP_TO_MOBILE_VIEWPORT_WIDTH;
+      document.documentElement.classList.add('crm-js');
+      document.documentElement.classList.toggle('desktop-like-pointer', !isRealPhoneDevice && !useAdaptiveMobileViewport);
+      document.documentElement.classList.toggle('adaptive-mobile-viewport', useAdaptiveMobileViewport);
+      document.documentElement.classList.toggle('mobile-viewport', isRealPhoneDevice || useAdaptiveMobileViewport);
+      document.documentElement.classList.toggle('real-phone-device', isRealPhoneDevice);
+      if (!isRealPhoneDevice && !useAdaptiveMobileViewport) {
+        const desktopStageScale = getDesktopStageScale();
+        document.documentElement.style.setProperty('--desktop-reference-width', `${DESKTOP_REFERENCE_WIDTH}px`);
+        document.documentElement.style.setProperty('--desktop-reference-height', `${DESKTOP_REFERENCE_HEIGHT}px`);
+        document.documentElement.style.setProperty('--desktop-lock-width', `${DESKTOP_REFERENCE_WIDTH}px`);
+        document.documentElement.style.setProperty('--desktop-stage-scale', desktopStageScale.toFixed(4));
+      }
+      try {
+        if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+      } catch (error) {}
+      try {
+        const navEntry = window.performance?.getEntriesByType?.('navigation')?.[0];
+        const navigationType = navEntry?.type || (window.performance?.navigation?.type === 1 ? 'reload' : 'navigate');
+        if (navigationType === 'reload') {
+          let reloadTopAttempts = 0;
+          const resetReloadScroll = () => {
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            if (document.body) document.body.scrollTop = 0;
+          };
+          const keepReloadTop = () => {
+            resetReloadScroll();
+            reloadTopAttempts += 1;
+            if (reloadTopAttempts >= 14) return;
+            window.setTimeout(keepReloadTop, reloadTopAttempts < 4 ? 80 : 180);
+          };
+          resetReloadScroll();
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(keepReloadTop), { once: true });
+          } else {
+            requestAnimationFrame(keepReloadTop);
+          }
+          window.addEventListener('load', keepReloadTop, { once: true });
+        }
+      } catch (error) {}
+      document.documentElement.classList.add('crm-custom-select-pending');
+      window.setTimeout(() => document.documentElement.classList.remove('crm-custom-select-pending'), 2200);
+      if (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
+        document.documentElement.classList.add('standalone-app');
+      }
+    })();
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=v319-ios-install-screen-polish">
+</head>
+<body class="auth-body" data-tab-visit-url="/analytics/tab-open">
+
+
+
+
+<section class="site-page-loader js-success-loader" role="status" aria-label="Загрузка сайта">
+  <div class="site-page-loader-card">
+    <div class="mobile-loading-orbit" aria-hidden="true">
+      <span></span>
+      <span></span>
+      <span></span>
+      <div class="mobile-loading-mark"><img class="mobile-loading-logo" src="/static/brand-logo.png" alt=""></div>
+    </div>
+  </div>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<main class="auth-shell">
+  <div class="auth-brand">
+    <div class="auth-brand-main">
+      <div class="brand-mark"><img class="brand-mark-image" src="/static/brand-logo.png" alt=""></div>
+      <div class="auth-brand-title">Передача</div>
+    </div>
+  </div>
+  
+    
+  
+  
+<div class="login-wrap">
+  <div class="card login-card shadow-sm">
+    <div class="login-card-glow" aria-hidden="true"></div>
+    <div class="card-body p-4">
+      <form method="post" class="login-form">
+        <input id="csrf_token" name="csrf_token" type="hidden" value="IjQwYWE3YzNhNTU4OTA1ZWI1M2ZkODBhYzIyODQwZGEzNGY0MzVkNTEi.ak-1Ag.Z6jKCD2rvxSy5KHYoEKu6Vfg7rs">
+        
+        <div class="mb-3 login-field">
+          <label class="form-label" for="username">Логин</label>
+          <div class="login-input-wrap">
+            <i class="bi bi-person"></i>
+            <input autocomplete="username" class="form-control" id="username" maxlength="80" name="username" placeholder="Введите логин" required type="text" value="">
+          </div>
+        </div>
+        <div class="mb-3 login-field">
+          <label class="form-label" for="password">Пароль</label>
+          <div class="login-input-wrap password-field">
+            <i class="bi bi-key"></i>
+            <input autocomplete="current-password" class="form-control" data-toggle-password="1" id="password" name="password" placeholder="Введите пароль" required type="password" value="">
+            <button class="password-toggle" type="button" aria-label="Показать пароль"><i class="bi bi-eye"></i></button>
+          </div>
+        </div>
+        <div class="login-form-row">
+          <div class="form-check"><input class="form-check-input" id="remember" name="remember" type="checkbox" value="y"> <label class="form-check-label" for="remember">Запомнить меня</label></div>
+        </div>
+        <input class="btn btn-primary w-100 login-submit" id="submit" name="submit" type="submit" value="Войти">
+        <button class="btn btn-outline-primary w-100 login-register-button" type="button" data-bs-toggle="modal" data-bs-target="#registrationRequestModal">
+          <i class="bi bi-person-plus me-2"></i>
+        </button>
+        
+        <button class="ios-install-button js-ios-install-button" type="button" data-bs-toggle="modal" data-bs-target="#iosInstallModal" hidden>
+          <span class="ios-install-button-badge" aria-hidden="true">
+            <img src="/static/brand-logo.png" alt="">
+          </span>
+          <span class="ios-install-button-text">
+            <strong>Скачать на iPhone</strong>
+            <small>Добавить на экран «Домой»</small>
+          </span>
+          <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="iosInstallModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content ios-install-modal ios-install-screen-modal">
+      <div class="ios-install-screen">
+        <button class="ios-install-screen-close" type="button" data-bs-dismiss="modal" aria-label="Закрыть">
+          <i class="bi bi-x-lg"></i>
+        </button>
+        <div class="ios-install-screen-hero">
+          <div class="ios-install-screen-copy">
+            <span class="ios-install-screen-eyebrow"><i class="bi bi-phone"></i> Установка на iPhone</span>
+            <h2>Как добавить «Передачу» на экран «Домой»</h2>
+            <p>Получайте уведомления и открывайте систему в одно касание.</p>
+          </div>
+          <div class="ios-install-screen-badge" aria-hidden="true">
+            <img class="ios-install-screen-badge-image" src="/static/brand-logo.png" alt="">
+          </div>
+        </div>
+        <div class="ios-install-screen-steps">
+          <article class="ios-install-step-card">
+            <div class="ios-install-step-copy">
+              <span class="ios-install-step-index">1</span>
+              <h3>Откройте в Safari</h3>
+              <div class="ios-install-domain-pill">
+                <i class="bi bi-lock-fill" aria-hidden="true"></i>
+                <span>lk.akvilon-peredacha.ru</span>
+              </div>
+              <p>Нажмите на кнопку «Поделиться» внизу экрана.</p>
+            </div>
+            <div class="ios-install-phone ios-install-phone-browser" aria-hidden="true">
+              <div class="ios-install-phone-shell">
+                <div class="ios-install-phone-status">
+                  <span>9:41</span>
+                  <div class="ios-install-phone-status-icons">
+                    <i class="bi bi-reception-4"></i>
+                    <i class="bi bi-wifi"></i>
+                    <i class="bi bi-battery-half"></i>
+                  </div>
+                </div>
+                <div class="ios-install-browser-bar">
+                  <span class="ios-install-browser-aa">AA</span>
+                  <i class="bi bi-lock-fill"></i>
+                  <span class="ios-install-browser-domain">lk.akvilon-peredacha.ru</span>
+                  <i class="bi bi-arrow-clockwise"></i>
+                </div>
+                <div class="ios-install-phone-browser-space"></div>
+                <div class="ios-install-browser-toolbar">
+                  <i class="bi bi-chevron-left"></i>
+                  <i class="bi bi-chevron-right is-muted"></i>
+                  <span class="ios-install-browser-share">
+                    <i class="bi bi-box-arrow-up"></i>
+                  </span>
+                  <i class="bi bi-book"></i>
+                  <i class="bi bi-square-on-square"></i>
+                </div>
+                <span class="ios-install-highlight-arrow ios-install-highlight-arrow-share"></span>
+                <div class="ios-install-home-indicator"></div>
+              </div>
+            </div>
+          </article>
+          <article class="ios-install-step-card">
+            <div class="ios-install-step-copy">
+              <span class="ios-install-step-index">2</span>
+              <h3>Выберите «Добавить на экран Домой»</h3>
+              <p>Прокрутите меню и нажмите на нужный пункт в списке.</p>
+            </div>
+            <div class="ios-install-phone ios-install-phone-sheet" aria-hidden="true">
+              <div class="ios-install-phone-shell">
+                <div class="ios-install-phone-status">
+                  <span>9:41</span>
+                  <div class="ios-install-phone-status-icons">
+                    <i class="bi bi-reception-4"></i>
+                    <i class="bi bi-wifi"></i>
+                    <i class="bi bi-battery-half"></i>
+                  </div>
+                </div>
+                <div class="ios-install-share-sheet">
+                  <div class="ios-install-share-row">
+                    <span>Добавить в избранное</span>
+                    <i class="bi bi-star"></i>
+                  </div>
+                  <div class="ios-install-share-row">
+                    <span>Добавить в закладки</span>
+                    <i class="bi bi-book"></i>
+                  </div>
+                  <div class="ios-install-share-row">
+                    <span>Добавить в заметки</span>
+                    <i class="bi bi-journal-text"></i>
+                  </div>
+                  <div class="ios-install-share-row is-highlighted">
+                    <span>Добавить на экран «Домой»</span>
+                    <i class="bi bi-plus-square"></i>
+                  </div>
+                  <div class="ios-install-share-row">
+                    <span>В список для чтения</span>
+                    <i class="bi bi-eyeglasses"></i>
+                  </div>
+                </div>
+                <span class="ios-install-highlight-arrow ios-install-highlight-arrow-menu"></span>
+                <div class="ios-install-home-indicator"></div>
+              </div>
+            </div>
+          </article>
+          <article class="ios-install-step-card">
+            <div class="ios-install-step-copy">
+              <span class="ios-install-step-index">3</span>
+              <h3>Иконка появится на главном экране</h3>
+              <p>Теперь «Передача» всегда будет под рукой, как обычное приложение.</p>
+            </div>
+            <div class="ios-install-phone ios-install-phone-home" aria-hidden="true">
+              <div class="ios-install-phone-shell">
+                <div class="ios-install-phone-status ios-install-phone-status-light">
+                  <span>9:41</span>
+                  <div class="ios-install-phone-status-icons">
+                    <i class="bi bi-reception-4"></i>
+                    <i class="bi bi-wifi"></i>
+                    <i class="bi bi-battery-half"></i>
+                  </div>
+                </div>
+                <div class="ios-install-home-screen">
+                  <div class="ios-install-home-app">
+                    <span class="ios-install-home-app-icon">
+                      <img src="/static/brand-logo.png" alt="">
+                    </span>
+                    <span class="ios-install-home-app-name">Передача</span>
+                  </div>
+                </div>
+                <div class="ios-install-home-indicator"></div>
+              </div>
+            </div>
+          </article>
+        </div>
+        <button class="ios-install-web-link" type="button" data-bs-dismiss="modal">
+          <span class="ios-install-web-link-icon"><i class="bi bi-globe2"></i></span>
+          <span class="ios-install-web-link-text">Использовать веб-версию</span>
+          <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="registrationRequestModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content registration-request-modal js-auth-safe-submit" method="post" action="/registration-request" data-loading-text="Отправляем...">
+      <input type="hidden" name="csrf_token" value="IjQwYWE3YzNhNTU4OTA1ZWI1M2ZkODBhYzIyODQwZGEzNGY0MzVkNTEi.ak-1Ag.Z6jKCD2rvxSy5KHYoEKu6Vfg7rs">
+      <div class="modal-body">
+        <div class="registration-step is-active" data-registration-step="details">
+          <div class="mb-3 login-field">
+            <label class="form-label" for="registrationName">Ваше имя</label>
+            <div class="login-input-wrap">
+              <i class="bi bi-person"></i>
+              <input class="form-control" id="registrationName" name="name" type="text" maxlength="160" placeholder="Например: Иван" autocomplete="name" required data-registration-detail>
+            </div>
+          </div>
+          <div class="mb-3 login-field">
+            <label class="form-label" for="registrationEmail">Логин / Email</label>
+            <div class="login-input-wrap">
+              <i class="bi bi-envelope"></i>
+              <input class="form-control" id="registrationEmail" name="email" type="email" maxlength="180" placeholder="example@mail.com" autocomplete="email" required data-registration-detail>
+            </div>
+          </div>
+          <div class="registration-modal-actions">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+            <button type="button" class="btn btn-primary js-registration-next"><i class="bi bi-arrow-right me-2"></i>Далее</button>
+          </div>
+        </div>
+
+        <div class="registration-step" data-registration-step="captcha">
+          <div class="mb-3 login-captcha-box login-captcha-box-standalone registration-captcha-field">
+            <div class="captcha-title">
+              <span><i class="bi bi-robot"></i> Антибот-проверка</span>
+            </div>
+            <label class="captcha-question" for="registrationCaptcha">2 + 4 = ?</label>
+            <div class="login-input-wrap captcha-answer-wrap">
+              <i class="bi bi-calculator"></i>
+              <input class="form-control" id="registrationCaptcha" name="captcha_answer" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="Введите ответ" required>
+            </div>
+          </div>
+
+          <div class="login-form-row login-captcha-actions registration-modal-actions">
+            <button type="button" class="btn btn-outline-secondary js-registration-back"><i class="bi bi-arrow-left me-2"></i>Назад</button>
+            <button type="submit" class="btn btn-primary js-auth-submit-button"><i class="bi bi-send me-2"></i>Зарегистрироваться</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+  <footer class="crm-footer auth-footer">
+    <span class="auth-footer-line-main">CRM от Худовердиева В.С.</span>
+  </footer>
+</main>
+
+
+
+<div class="floating-error-corner">
+  <button type="button" class="btn btn-sm report-error-btn report-error-floating" data-bs-toggle="modal" data-bs-target="#reportErrorModal" title="Сообщить об ошибке" aria-label="Сообщить об ошибке">
+  <span class="report-error-icon" aria-hidden="true">?</span>
+</button>
+</div>
+<div class="modal fade" id="reportErrorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content error-report-modal" method="post" action="/report-error">
+      <input type="hidden" name="csrf_token" value="IjQwYWE3YzNhNTU4OTA1ZWI1M2ZkODBhYzIyODQwZGEzNGY0MzVkNTEi.ak-1Ag.Z6jKCD2rvxSy5KHYoEKu6Vfg7rs">
+      <input type="hidden" name="page_url" value="http://127.0.0.1:5000/login">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Сообщить об ошибке</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Описание ошибки</label>
+        <textarea class="form-control" name="message" rows="5" placeholder="Например: Не работает раздел" required></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-send me-2"></i>Отправить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<div class="modal fade task-problem-modal" id="taskProblemModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content task-problem-modal-content" id="taskProblemModalForm" novalidate>
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Проблема</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label" for="taskProblemModalComment">Описание проблемы</label>
+        <textarea class="form-control" id="taskProblemModalComment" name="problem_comment" rows="5" required></textarea>
+        <div class="invalid-feedback">Заполните описание проблемы.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary task-problem-modal-cancel" data-bs-dismiss="modal">Отмена</button>
+        <button class="btn btn-success" type="submit"><i class="bi bi-check2 me-2"></i>Добавить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/script.js?v=v319-ios-install-screen-polish"></script>
+</body>
+</html>

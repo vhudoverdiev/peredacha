@@ -1,4 +1,6 @@
-from flask import Flask, abort, request, session
+import time
+
+from flask import Flask, abort, g, request, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user, logout_user
@@ -64,6 +66,7 @@ def create_app(config_class=Config):
 
     @app.before_request
     def enforce_global_security():
+        g.request_started_at = time.perf_counter()
         if request.content_length and request.content_length > int(app.config.get("MAX_CONTENT_LENGTH") or 0):
             abort(413)
         if current_user.is_authenticated:
@@ -80,6 +83,8 @@ def create_app(config_class=Config):
 
     @app.after_request
     def add_security_headers(response):
+        from app.security import record_site_visit
+
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "same-origin")
@@ -100,6 +105,7 @@ def create_app(config_class=Config):
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         if current_user.is_authenticated:
             response.headers.setdefault("Cache-Control", "private, no-store")
+        record_site_visit(response)
         return response
 
     @app.template_filter("msk_datetime")
@@ -130,6 +136,8 @@ def create_app(config_class=Config):
             return None
 
     # Bootstrap DB for fresh installs / new tables (no Alembic migrations yet).
+    from app import models  # noqa: F401
+
     with app.app_context():
         uri = (app.config.get("SQLALCHEMY_DATABASE_URI") or "").lower()
         if uri.startswith("sqlite:"):
@@ -248,6 +256,17 @@ def create_app(config_class=Config):
                     db.session.execute(text("ALTER TABLE glass_measurements ADD COLUMN material_request_item_id INTEGER"))
                 db.session.execute(text("UPDATE glass_measurements SET status = 'measure_needed' WHERE status = 'not_ordered'"))
                 db.session.execute(text("UPDATE glass_measurements SET apartment_id = (SELECT apartment_id FROM tasks WHERE tasks.id = glass_measurements.task_id) WHERE apartment_id IS NULL"))
+                db.session.commit()
+
+            if "site_visits" in inspector.get_table_names():
+                site_visit_columns = {column["name"] for column in inspector.get_columns("site_visits")}
+                if "visit_kind" not in site_visit_columns:
+                    db.session.execute(text("ALTER TABLE site_visits ADD COLUMN visit_kind VARCHAR(20) NOT NULL DEFAULT 'request'"))
+                if "tab_id" not in site_visit_columns:
+                    db.session.execute(text("ALTER TABLE site_visits ADD COLUMN tab_id VARCHAR(80)"))
+                db.session.execute(text("UPDATE site_visits SET visit_kind = 'request' WHERE visit_kind IS NULL OR TRIM(visit_kind) = ''"))
+                db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_site_visits_visit_kind ON site_visits (visit_kind)"))
+                db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_site_visits_tab_id ON site_visits (tab_id)"))
                 db.session.commit()
 
 

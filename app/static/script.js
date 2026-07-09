@@ -1,6 +1,79 @@
+﻿const desktopPointerQueries = ['(hover: hover)', '(any-hover: hover)', '(pointer: fine)', '(any-pointer: fine)'];
+const getNavigatorInfo = () => window.navigator || {};
+const DESKTOP_REFERENCE_WIDTH = 1920;
+const DESKTOP_REFERENCE_HEIGHT = 1080;
+const DESKTOP_TO_MOBILE_VIEWPORT_WIDTH = 560;
+const isIpadOsLike = () => {
+  const nav = getNavigatorInfo();
+  return nav.platform === 'MacIntel' && (nav.maxTouchPoints || 0) > 1;
+};
+const isRealPhoneDevice = () => {
+  const nav = getNavigatorInfo();
+  const userAgent = nav.userAgent || '';
+  return nav.userAgentData?.mobile === true
+    || /iPhone|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile/i.test(userAgent)
+    || (/Android/i.test(userAgent) && /Mobile/i.test(userAgent));
+};
+const getViewportWidth = () => Math.max(
+  320,
+  Math.round(window.visualViewport?.width || window.innerWidth || document.documentElement.clientWidth || DESKTOP_REFERENCE_WIDTH),
+);
+const getViewportHeight = () => Math.max(
+  480,
+  Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || DESKTOP_REFERENCE_HEIGHT),
+);
+const getDesktopReferenceWidth = () => DESKTOP_REFERENCE_WIDTH;
+const getDesktopStageScale = () => Math.min(1, getViewportWidth() / DESKTOP_REFERENCE_WIDTH);
+const shouldAllowAdaptiveMobileViewport = () => !document.body?.classList.contains('app-body');
+const isAdaptiveMobileViewport = () => shouldAllowAdaptiveMobileViewport() && !isRealPhoneDevice() && getViewportWidth() <= DESKTOP_TO_MOBILE_VIEWPORT_WIDTH;
+const isTouchMobileViewport = () => window.matchMedia('(max-width: 767.98px)').matches && isRealPhoneDevice();
+const isMobileViewport = () => isTouchMobileViewport() || isAdaptiveMobileViewport();
+const isDesktopLikePointer = () => !isRealPhoneDevice() && !isAdaptiveMobileViewport();
+const shouldUseDesktopViewportLock = () => isDesktopLikePointer();
+let desktopViewportSyncUnlocked = document.readyState === 'complete';
+
+try {
+  if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+} catch (error) {}
+
+const syncDesktopViewportLock = (options = {}) => {
+  const force = options === true || (typeof options === 'object' && options?.force === true);
+  if (!force && !desktopViewportSyncUnlocked) return;
+  const desktopLike = shouldUseDesktopViewportLock();
+  const adaptiveMobileViewport = isAdaptiveMobileViewport();
+  document.documentElement.classList.toggle('desktop-like-pointer', desktopLike);
+  document.body?.classList.toggle('desktop-like-pointer', desktopLike);
+  document.documentElement.classList.toggle('adaptive-mobile-viewport', adaptiveMobileViewport);
+  document.body?.classList.toggle('adaptive-mobile-viewport', adaptiveMobileViewport);
+  if (!desktopLike) {
+    document.documentElement.style.removeProperty('--desktop-lock-width');
+    document.documentElement.style.removeProperty('--desktop-reference-width');
+    document.documentElement.style.removeProperty('--desktop-reference-height');
+    document.documentElement.style.removeProperty('--desktop-stage-scale');
+    return;
+  }
+  const desktopReferenceWidth = getDesktopReferenceWidth();
+  const desktopStageScale = getDesktopStageScale();
+  document.documentElement.style.setProperty('--desktop-reference-width', `${desktopReferenceWidth}px`);
+  document.documentElement.style.setProperty('--desktop-reference-height', `${DESKTOP_REFERENCE_HEIGHT}px`);
+  document.documentElement.style.setProperty('--desktop-lock-width', `${desktopReferenceWidth}px`);
+  document.documentElement.style.setProperty('--desktop-stage-scale', desktopStageScale.toFixed(4));
+};
+
 (() => {
-  const isDesktopViewport = window.matchMedia && window.matchMedia('(min-width: 1200px)').matches;
-  if (isDesktopViewport) {
+  syncDesktopViewportLock({ force: true });
+  const suppressCrmLoaders = (forceDisplayNone = false) => {
+    document.documentElement.classList.add('crm-loader-suppressed');
+    document.querySelectorAll('.js-success-loader, .js-app-launch-loader, .viewport-transition-loader, .mobile-dev-screen.site-page-loader').forEach(loader => {
+      loader.classList.add('is-hidden');
+      loader.style.pointerEvents = 'none';
+      if (forceDisplayNone) loader.style.display = 'none';
+    });
+  };
+  if (document.documentElement.classList.contains('crm-loader-suppressed')) {
+    suppressCrmLoaders(true);
+  }
+  if (!isRealPhoneDevice()) {
     document.querySelectorAll('.viewport-transition-loader, .mobile-dev-screen.site-page-loader').forEach(loader => {
       loader.classList.add('is-hidden');
       loader.style.display = 'none';
@@ -10,7 +83,7 @@
   const loaders = document.querySelectorAll('.js-success-loader, .js-app-launch-loader');
   if (!loaders.length) return;
   const startedAt = Date.now();
-  const minVisibleMs = 1550;
+  const minVisibleMs = 2300;
   const hide = () => {
     const delay = Math.max(0, minVisibleMs - (Date.now() - startedAt));
     window.setTimeout(() => loaders.forEach(loader => loader.classList.add('is-hidden')), delay);
@@ -20,64 +93,55 @@
   } else {
     window.addEventListener('load', hide, { once: true });
   }
+  window.addEventListener('beforeunload', () => suppressCrmLoaders(true));
+  window.addEventListener('pagehide', () => suppressCrmLoaders(true));
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') suppressCrmLoaders(true);
+  });
 })();
+
+window.addEventListener('load', () => {
+  desktopViewportSyncUnlocked = true;
+  syncDesktopViewportLock({ force: true });
+}, { once: true });
 
 document.addEventListener('DOMContentLoaded', () => {
   let activeInlineEditor = null;
 
-  const isIpadOs = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
-  const isIosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || isIpadOs;
+  const isIosDevice = /iPad|iPhone|iPod/.test(window.navigator.userAgent || '') || isIpadOsLike();
   const isStandaloneApp = window.navigator.standalone === true
     || window.matchMedia('(display-mode: standalone)').matches;
   const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
   const mobileViewportMedia = window.matchMedia('(max-width: 767.98px)');
-  const isMobileViewport = mobileViewportMedia.matches;
 
   const syncAppViewportHeight = () => {
-    if (!isIosDevice && !mobileViewportMedia.matches) return;
+    if (!isIosDevice && !isMobileViewport()) return;
     const height = Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight);
     if (height > 0) document.documentElement.style.setProperty('--app-height', `${height}px`);
   };
 
   const syncMobileViewportClass = () => {
-    document.documentElement.classList.toggle('mobile-viewport', mobileViewportMedia.matches);
+    const mobileViewport = isMobileViewport();
+    document.documentElement.classList.toggle('mobile-viewport', mobileViewport);
+    document.body.classList.toggle('mobile-viewport', mobileViewport);
   };
 
   const syncMobileOrientationLockState = () => {
-    const landscapeLocked = mobileViewportMedia.matches && window.matchMedia('(orientation: landscape)').matches;
+    const landscapeLocked = isTouchMobileViewport() && window.matchMedia('(orientation: landscape)').matches;
     document.documentElement.classList.toggle('mobile-landscape-locked', landscapeLocked);
     document.body.classList.toggle('mobile-landscape-locked', landscapeLocked);
   };
 
   const tryLockPortraitOrientation = () => {
-    if (!mobileViewportMedia.matches) return;
+    if (!isTouchMobileViewport()) return;
     if (!screen.orientation || typeof screen.orientation.lock !== 'function') return;
     screen.orientation.lock('portrait').catch(() => {});
   };
 
-  const viewportTransitionLoader = document.querySelector('.viewport-transition-loader');
-  let wasMobileViewport = mobileViewportMedia.matches;
-  let viewportResizeLoaderTimer = null;
-
-  const showViewportResizeLoader = () => {
-    if (!document.body.classList.contains('app-body') || !viewportTransitionLoader) return;
-    viewportTransitionLoader.style.display = '';
-    viewportTransitionLoader.style.pointerEvents = '';
-    viewportTransitionLoader.classList.remove('is-hidden');
-    document.body.classList.add('viewport-resize-loading');
-    window.clearTimeout(viewportResizeLoaderTimer);
-    viewportResizeLoaderTimer = window.setTimeout(() => {
-      document.body.classList.remove('viewport-resize-loading');
-      viewportTransitionLoader.classList.add('is-hidden');
-    }, 1200);
-  };
-
   const handleMobileViewportChange = () => {
-    const isNowMobileViewport = mobileViewportMedia.matches;
+    syncDesktopViewportLock();
     syncMobileViewportClass();
     syncMobileOrientationLockState();
-    if (isNowMobileViewport && !wasMobileViewport) showViewportResizeLoader();
-    wasMobileViewport = isNowMobileViewport;
     syncAppViewportHeight();
     tryLockPortraitOrientation();
   };
@@ -86,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isCoarsePointer) document.body.classList.add('touch-device');
   if (isStandaloneApp) document.body.classList.add('standalone-app');
   if (isStandaloneApp) document.documentElement.classList.add('standalone-app');
+  syncDesktopViewportLock({ force: true });
   syncMobileViewportClass();
   syncMobileOrientationLockState();
   if (document.querySelector('.mobile-project-topbar')) document.body.classList.add('has-mobile-project-topbar');
@@ -97,8 +162,10 @@ document.addEventListener('DOMContentLoaded', () => {
   } else if (mobileViewportMedia.addListener) {
     mobileViewportMedia.addListener(handleMobileViewportChange);
   }
+  window.addEventListener('resize', syncDesktopViewportLock, { passive: true });
   window.addEventListener('resize', syncAppViewportHeight, { passive: true });
   window.addEventListener('resize', handleMobileViewportChange, { passive: true });
+  window.visualViewport?.addEventListener('resize', syncDesktopViewportLock, { passive: true });
   window.visualViewport?.addEventListener('resize', syncAppViewportHeight, { passive: true });
   window.visualViewport?.addEventListener('resize', syncMobileOrientationLockState, { passive: true });
   window.visualViewport?.addEventListener('scroll', syncAppViewportHeight, { passive: true });
@@ -157,12 +224,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (document.body.classList.contains('auth-body')) {
-    if (!mobileViewportMedia.matches && !isCoarsePointer) {
+    if (!isMobileViewport() && !isCoarsePointer) {
       const desktopAutofocusField = document.querySelector('[data-desktop-autofocus="1"]');
       window.setTimeout(() => desktopAutofocusField?.focus(), 120);
     }
 
-    if (isIosDevice || mobileViewportMedia.matches) {
+    if (isIosDevice || isMobileViewport()) {
       const authFieldSelector = '.auth-body input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), .auth-body textarea, .auth-body select';
       let authViewportBaseHeight = Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight);
 
@@ -204,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   const accountPage = document.querySelector('.account-page');
-  if (accountPage && (isIosDevice || isMobileViewport)) {
+  if (accountPage && (isIosDevice || isMobileViewport())) {
     const releaseReadonly = input => {
       if (!input) return;
       input.readOnly = false;
@@ -297,10 +364,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  const tooltips = document.querySelectorAll('[title]');
-  tooltips.forEach(el => {
-    if (window.bootstrap && bootstrap.Tooltip) new bootstrap.Tooltip(el);
-  });
+  const customSelectBootRoot = document.documentElement;
+  const finishCustomSelectBoot = () => {
+    customSelectBootRoot.classList.remove('crm-custom-select-pending');
+    customSelectBootRoot.classList.add('crm-custom-select-ready');
+  };
 
   const prepareNativeSelectsForCustomUi = (scope = document) => {
     const excludedSelector = [
@@ -311,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
       'select[data-no-custom-select]',
       '.flatpickr-monthDropdown-months'
     ].join(',');
-    const useNativeMobileSelect = window.matchMedia('(max-width: 767.98px), (pointer: coarse)').matches;
+    const useNativeMobileSelect = isMobileViewport();
 
     scope.querySelectorAll('select').forEach(select => {
       if (select.matches(excludedSelector)) return;
@@ -505,6 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   initDeveloperCustomSelects();
+  finishCustomSelectBoot();
 
   document.addEventListener('click', event => {
     if (event.target.closest('.js-developer-custom-select') || event.target.closest('.developer-select-menu-portal')) return;
@@ -530,6 +599,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
   customSelectObserver.observe(document.body, { childList: true, subtree: true });
+
+  const initTooltips = () => {
+    if (!(window.bootstrap && bootstrap.Tooltip)) return;
+    document.querySelectorAll('[title]').forEach(el => {
+      if (!bootstrap.Tooltip.getInstance(el)) new bootstrap.Tooltip(el);
+    });
+  };
+
+  if (window.requestAnimationFrame) {
+    window.requestAnimationFrame(() => window.setTimeout(initTooltips, 0));
+  } else {
+    window.setTimeout(initTooltips, 0);
+  }
 
   const restoreSafeSubmitButton = button => {
     if (!button || !button.dataset.originalHtml) return;
@@ -661,20 +743,195 @@ document.addEventListener('DOMContentLoaded', () => {
     return el ? el.value : '';
   };
 
+  const trackOpenedTabVisit = () => {
+    const analyticsUrl = document.body?.dataset?.tabVisitUrl;
+    if (!analyticsUrl || !window.sessionStorage) return;
+    try {
+      let tabId = sessionStorage.getItem('crm-tab-visit-id');
+      if (!tabId) {
+        const randomPart = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        tabId = `tab-${randomPart}`;
+        sessionStorage.setItem('crm-tab-visit-id', tabId);
+      }
+      const sentKey = `crm-tab-visit-sent:${tabId}`;
+      if (sessionStorage.getItem(sentKey) === '1') return;
+      sessionStorage.setItem(sentKey, '1');
+
+      const payload = JSON.stringify({
+        tab_id: tabId,
+        path: `${window.location.pathname}${window.location.search}`,
+        referrer: document.referrer || '',
+      });
+      const beaconBody = new Blob([payload], { type: 'application/json' });
+      const queued = typeof navigator.sendBeacon === 'function' && navigator.sendBeacon(analyticsUrl, beaconBody);
+      if (!queued) {
+        fetch(analyticsUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+          credentials: 'same-origin',
+          keepalive: true,
+          body: payload,
+        }).catch(() => {
+          sessionStorage.removeItem(sentKey);
+        });
+      }
+    } catch (error) {}
+  };
+
+  trackOpenedTabVisit();
+
   try {
     if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
   } catch (error) {}
 
   const scrollStateKey = `crm-scroll:${window.location.pathname}${window.location.search}`;
   const scrollLastStateKey = 'crm-scroll:last';
-  const rememberScrollPosition = () => {
+  const statisticsOverviewTopKey = 'crm-statistics:force-overview-top';
+  const pageScrollRootSelectors = [
+    '.app-content',
+    '.objects-content',
+    '.documents-content',
+    '.documents-standalone-content',
+  ];
+  const reloadFocusResetSelectors = [
+    '.crm-filter-form',
+    '.assignment-search-form',
+    '.assignment-smart-form',
+    '.assignment-report-filter-form',
+    '.glass-filter-form',
+    '.materials-filter-form',
+    '.apartments-filter-form',
+    '.remarks-filter-form',
+  ];
+  const getNavigationType = () => {
     try {
+      const navEntry = window.performance?.getEntriesByType?.('navigation')?.[0];
+      if (navEntry && typeof navEntry.type === 'string' && navEntry.type) return navEntry.type;
+      const legacyType = window.performance?.navigation?.type;
+      if (legacyType === 1) return 'reload';
+      if (legacyType === 2) return 'back_forward';
+    } catch (error) {}
+    return 'navigate';
+  };
+  const navigationType = getNavigationType();
+  let scrollRestoreInProgress = false;
+  let scrollRestoreTimer = null;
+  let reloadTopResetTimer = null;
+  let lastScrollRestoreSignature = '';
+  const getPageScrollContainers = () => {
+    const containers = [];
+    const append = container => {
+      if (!container || containers.includes(container)) return;
+      containers.push(container);
+    };
+    append(document.scrollingElement);
+    append(document.documentElement);
+    append(document.body);
+    pageScrollRootSelectors.forEach(selector => append(document.querySelector(selector)));
+    return containers;
+  };
+  const readPageScrollPosition = () => {
+    let bestX = window.scrollX || window.pageXOffset || 0;
+    let bestY = window.scrollY || window.pageYOffset || 0;
+    getPageScrollContainers().forEach(container => {
+      const x = Number(container.scrollLeft || 0);
+      const y = Number(container.scrollTop || 0);
+      if (Math.abs(y) > Math.abs(bestY) || (Math.abs(y) === Math.abs(bestY) && Math.abs(x) > Math.abs(bestX))) {
+        bestX = x;
+        bestY = y;
+      }
+    });
+    return { x: bestX, y: bestY };
+  };
+  const writePageScrollPosition = (x = 0, y = 0) => {
+    try {
+      window.scrollTo(x, y);
+    } catch (error) {}
+    getPageScrollContainers().forEach(container => {
+      if (Math.abs(Number(container.scrollLeft || 0) - x) >= 1) container.scrollLeft = x;
+      if (Math.abs(Number(container.scrollTop || 0) - y) >= 1) container.scrollTop = y;
+    });
+  };
+  const clearRememberedScrollPosition = () => {
+    try {
+      sessionStorage.removeItem(scrollStateKey);
+      sessionStorage.removeItem(scrollLastStateKey);
+    } catch (error) {}
+  };
+  const finishScrollRestore = () => {
+    scrollRestoreInProgress = false;
+    if (scrollRestoreTimer) {
+      window.clearTimeout(scrollRestoreTimer);
+      scrollRestoreTimer = null;
+    }
+  };
+  const forceTopAfterReload = () => {
+    if (navigationType !== 'reload') return;
+    if (reloadTopResetTimer) {
+      window.clearTimeout(reloadTopResetTimer);
+      reloadTopResetTimer = null;
+    }
+    let attempts = 0;
+    const blurReloadFocusedField = () => {
+      const activeElement = document.activeElement;
+      if (!(activeElement instanceof HTMLElement)) return;
+      if (!activeElement.matches('input, select, textarea, [contenteditable="true"]')) return;
+      if (!activeElement.closest(reloadFocusResetSelectors.join(','))) return;
+      activeElement.blur();
+    };
+    const applyTop = () => {
+      blurReloadFocusedField();
+      writePageScrollPosition(0, 0);
+      attempts += 1;
+      const currentPosition = readPageScrollPosition();
+      if (Math.abs(currentPosition.y) < 2 && attempts >= 2) return;
+      if (attempts >= 14) return;
+      reloadTopResetTimer = window.setTimeout(applyTop, attempts < 4 ? 80 : 180);
+    };
+    requestAnimationFrame(applyTop);
+  };
+  const requestStatisticsOverviewTop = () => {
+    try {
+      sessionStorage.setItem(statisticsOverviewTopKey, '1');
+    } catch (error) {}
+  };
+  const consumeStatisticsOverviewTopRequest = () => {
+    try {
+      if (sessionStorage.getItem(statisticsOverviewTopKey) !== '1') return false;
+      sessionStorage.removeItem(statisticsOverviewTopKey);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+  const rememberScrollPosition = (reason = 'manual') => {
+    try {
+      const now = Date.now();
+      let effectiveReason = reason || 'manual';
+      if (effectiveReason === 'unload') {
+        const existingRaw = sessionStorage.getItem(scrollStateKey) || sessionStorage.getItem(scrollLastStateKey);
+        if (existingRaw) {
+          const existingState = JSON.parse(existingRaw);
+          const shouldPreserveRecentReason = existingState
+            && existingState.path === window.location.pathname
+            && existingState.search === window.location.search
+            && typeof existingState.reason === 'string'
+            && existingState.reason
+            && existingState.reason !== 'unload'
+            && (now - Number(existingState.ts || 0)) < 1600;
+          if (shouldPreserveRecentReason) effectiveReason = existingState.reason;
+        }
+      }
       const state = {
         path: window.location.pathname,
         search: window.location.search,
-        x: window.scrollX || 0,
-        y: window.scrollY || 0,
-        ts: Date.now(),
+        ...readPageScrollPosition(),
+        ts: now,
+        reason: effectiveReason,
       };
       const encoded = JSON.stringify(state);
       sessionStorage.setItem(scrollStateKey, encoded);
@@ -683,6 +940,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const restoreScrollPosition = () => {
+    if (scrollRestoreInProgress) return;
     try {
       const raw = sessionStorage.getItem(scrollStateKey) || sessionStorage.getItem(scrollLastStateKey);
       if (!raw) return;
@@ -697,42 +955,94 @@ document.addEventListener('DOMContentLoaded', () => {
         sessionStorage.removeItem(scrollLastStateKey);
         return;
       }
+      const restoreReason = typeof state.reason === 'string' ? state.reason : '';
+      const restoreSignature = `${state.path || ''}|${state.search || ''}|${state.ts || ''}|${restoreReason}`;
+      // A plain refresh should reopen the page steadily instead of snapping back
+      // to a saved scroll position near the search/filter form.
+      if (navigationType === 'reload') {
+        clearRememberedScrollPosition();
+        return;
+      }
+      if (restoreSignature === lastScrollRestoreSignature) return;
       const targetX = state.x || 0;
       const targetY = state.y || 0;
+      const currentPosition = readPageScrollPosition();
+      if (Math.abs(currentPosition.x - targetX) < 4 && Math.abs(currentPosition.y - targetY) < 4) {
+        clearRememberedScrollPosition();
+        return;
+      }
+      lastScrollRestoreSignature = restoreSignature;
+      scrollRestoreInProgress = true;
       let attempts = 0;
       const applyScroll = () => {
-        window.scrollTo(targetX, targetY);
+        writePageScrollPosition(targetX, targetY);
         attempts += 1;
-        const reachedTarget = Math.abs((window.scrollY || 0) - targetY) < 4;
+        const restoredPosition = readPageScrollPosition();
+        const reachedTarget = Math.abs(restoredPosition.x - targetX) < 4 && Math.abs(restoredPosition.y - targetY) < 4;
         if (reachedTarget || attempts >= 30) {
-          sessionStorage.removeItem(scrollStateKey);
-          sessionStorage.removeItem(scrollLastStateKey);
+          clearRememberedScrollPosition();
+          finishScrollRestore();
           return;
         }
-        window.setTimeout(applyScroll, 150);
+        scrollRestoreTimer = window.setTimeout(applyScroll, 150);
       };
       requestAnimationFrame(applyScroll);
-    } catch (error) {}
+    } catch (error) {
+      finishScrollRestore();
+    }
   };
 
-  restoreScrollPosition();
-  window.addEventListener('load', restoreScrollPosition);
-  window.addEventListener('pageshow', restoreScrollPosition);
-  window.addEventListener('beforeunload', rememberScrollPosition);
-  window.addEventListener('pagehide', rememberScrollPosition);
+  // Restore saved scroll only for real history traversal. For ordinary loads,
+  // refreshes, and in-app navigations it causes visible jumps around filters.
+  if (navigationType !== 'back_forward') {
+    clearRememberedScrollPosition();
+  }
+  forceTopAfterReload();
+  const normalizeStatisticsOverviewPosition = () => {
+    if (!document.querySelector('.developer-statistics-page-overview')) return;
+    const shouldForceTop = consumeStatisticsOverviewTopRequest() || window.location.hash === '#overview-chart';
+    if (!shouldForceTop) return;
+    clearRememberedScrollPosition();
+    if (window.location.hash) {
+      history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    }
+    const applyTop = () => {
+      writePageScrollPosition(0, 0);
+    };
+    requestAnimationFrame(applyTop);
+    window.setTimeout(applyTop, 90);
+    window.setTimeout(applyTop, 260);
+  };
+  normalizeStatisticsOverviewPosition();
+  window.addEventListener('pageshow', event => {
+    if (!event.persisted && getNavigationType() !== 'back_forward') return;
+    finishScrollRestore();
+    lastScrollRestoreSignature = '';
+    restoreScrollPosition();
+  });
+  window.addEventListener('load', normalizeStatisticsOverviewPosition);
+  window.addEventListener('pageshow', normalizeStatisticsOverviewPosition);
+  window.addEventListener('load', forceTopAfterReload);
+  window.addEventListener('pageshow', forceTopAfterReload);
+  window.addEventListener('beforeunload', () => rememberScrollPosition('unload'));
+  window.addEventListener('pagehide', () => rememberScrollPosition('unload'));
   document.addEventListener('submit', event => {
-    if (event.target instanceof HTMLFormElement) rememberScrollPosition();
+    if (event.target instanceof HTMLFormElement) rememberScrollPosition('submit');
   }, true);
   document.addEventListener('click', event => {
     const submitButton = event.target.closest('button[type="submit"], input[type="submit"]');
-    if (submitButton) rememberScrollPosition();
+    if (submitButton) rememberScrollPosition('submit');
     const link = event.target.closest('a[href]');
     if (!link) return;
+    if (link.dataset.noScrollRestore === '1') {
+      clearRememberedScrollPosition();
+      return;
+    }
     const href = link.getAttribute('href') || '';
     if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
     try {
       const targetUrl = new URL(href, window.location.href);
-      if (targetUrl.origin === window.location.origin) rememberScrollPosition();
+      if (targetUrl.origin === window.location.origin) rememberScrollPosition('link');
     } catch (error) {}
   }, true);
   document.addEventListener('click', event => {
@@ -759,7 +1069,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="crm-toast-icon"><i class="bi ${icons[safeCategory]}"></i></div>
       <div class="crm-toast-body">
         <div class="crm-toast-title">${titles[safeCategory]}</div>
-        <div class="crm-toast-text">${escapeHtml(String(message || ''))}</div>
+        <div class="crm-toast-text">${escapeHtml(String(message || '')).replace(/\r?\n/g, '<br>')}</div>
       </div>
       <button type="button" class="crm-toast-close" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
     `;
@@ -777,12 +1087,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const escapeHtml = value => value
+  const escapeHtml = value => String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+
+  const showSiteEntryNoticeOnce = () => {
+    const storageKey = 'crm-site-entry-notice-v2';
+    const isAppPage = document.body.classList.contains('app-body');
+    if (!isAppPage) {
+      try {
+        window.sessionStorage.removeItem(storageKey);
+      } catch (error) {
+        delete document.body.dataset.siteEntryNoticeShown;
+      }
+      return;
+    }
+    try {
+      if (window.sessionStorage.getItem(storageKey) === '1') return;
+      window.sessionStorage.setItem(storageKey, '1');
+    } catch (error) {
+      if (document.body.dataset.siteEntryNoticeShown === '1') return;
+      document.body.dataset.siteEntryNoticeShown = '1';
+    }
+    showCrmNotice('Добро пожаловать!\nCRM от Худовердиева В.С.', 'success');
+  };
+
+  showSiteEntryNoticeOnce();
 
   const applyHighlightToEscaped = (html, regex) => {
     if (!regex) return html;
@@ -945,7 +1278,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const textarea = editor.querySelector('textarea');
       const saveBtn = editor.querySelector('.btn-primary');
       const cancelBtn = editor.querySelector('.btn-outline-secondary');
-      const host = span.closest('.task-text') || span.parentElement;
+      const host = span.closest('.inline-editor-anchor') || span.closest('.task-text') || span.parentElement;
       const row = span.closest('tr, .glass-order-card, .apartment-task-item, .related-task-item');
       if (!host) return;
 
@@ -954,7 +1287,12 @@ document.addEventListener('DOMContentLoaded', () => {
       row?.classList.add('inline-editor-open-row');
       host.appendChild(editor);
       textarea.focus();
-      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      textarea.setSelectionRange(0, 0);
+      textarea.scrollTop = 0;
+      window.requestAnimationFrame?.(() => {
+        textarea.scrollTop = 0;
+        textarea.setSelectionRange(0, 0);
+      });
 
       const closeEditor = () => {
         editor.remove();
@@ -1147,8 +1485,15 @@ document.addEventListener('DOMContentLoaded', () => {
       currentStatus.value = suggestion.currentStatus || button.dataset.taskStatus || 'not_started';
       newStatus.value = suggestion.newStatus || 'not_started';
       modal.classList.remove('d-none');
+      currentText.scrollTop = 0;
+      newText.scrollTop = 0;
       currentText.focus();
-      currentText.setSelectionRange(currentText.value.length, currentText.value.length);
+      currentText.setSelectionRange(0, 0);
+      window.requestAnimationFrame?.(() => {
+        currentText.scrollTop = 0;
+        newText.scrollTop = 0;
+        currentText.setSelectionRange(0, 0);
+      });
 
       const close = () => {
         modal.classList.add('d-none');
@@ -1270,6 +1615,9 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   document.querySelectorAll('form[action*="/status/"]').forEach(form => {
+    form.addEventListener('click', event => {
+      event.stopPropagation();
+    });
     form.addEventListener('submit', async event => {
       const row = form.closest('.task-row-link, [data-task-detail-shell]');
       const isTaskDetail = form.dataset.taskDetailStatus === '1';
@@ -1310,20 +1658,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const badge = row?.querySelector('[data-status-pill]') || row?.querySelector('.task-status-cell .badge') || row?.querySelector('td .badge');
         if (badge) {
+          const isBinaryDoneStatus = badge.dataset.binaryDoneStatus === '1';
           if (badge.classList.contains('status-pill')) {
-            const pillClassMap = {
-              success: 'status-pill-success',
-              info: 'status-pill-info',
-              warning: 'status-pill-warning',
-              primary: 'status-pill-primary',
-              danger: 'status-pill-danger',
-              secondary: 'status-pill-muted'
-            };
-            badge.className = `status-pill ${pillClassMap[data.status_class] || 'status-pill-muted'}${badge.classList.contains('apartment-task-status-btn') ? ' apartment-task-status-btn' : ''}`;
+            const apartmentToggleClass = badge.classList.contains('apartment-task-status-btn') ? ' apartment-task-status-btn' : '';
+            const contractorToggleClass = badge.classList.contains('contractor-task-status-btn') ? ' contractor-task-status-btn' : '';
+            if (isBinaryDoneStatus) {
+              badge.className = `status-pill ${data.is_done ? 'status-pill-success' : 'status-pill-muted'}${apartmentToggleClass}${contractorToggleClass}`;
+            } else {
+              const pillClassMap = {
+                success: 'status-pill-success',
+                info: 'status-pill-info',
+                warning: 'status-pill-warning',
+                primary: 'status-pill-primary',
+                danger: 'status-pill-danger',
+                secondary: 'status-pill-muted'
+              };
+              badge.className = `status-pill ${pillClassMap[data.status_class] || 'status-pill-muted'}${apartmentToggleClass}${contractorToggleClass}`;
+            }
           } else {
             badge.className = `badge bg-${data.status_class || 'secondary'}`;
           }
-          badge.textContent = data.status_label || data.status || '';
+          if (isBinaryDoneStatus) {
+            badge.textContent = data.is_done ? (badge.dataset.doneLabel || 'Выполнено') : (badge.dataset.notDoneLabel || 'Не выполнено');
+          } else {
+            badge.textContent = data.status_label || data.status || '';
+          }
         }
         row?.classList.toggle('table-success', Boolean(data.is_done));
         row?.classList.toggle('done-task', Boolean(data.is_done));
@@ -1789,8 +2148,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
   const syncBulkPersistedInputs = (scope) => {
-    if (!(scope instanceof HTMLFormElement) || !(scope.__bulkSelectedIds instanceof Set)) return;
-    scope.querySelectorAll('input.js-bulk-persisted-input[name="task_ids"]').forEach(input => input.remove());
+    if (!(scope?.__bulkSelectedIds instanceof Set)) return;
+    const form = scope instanceof HTMLFormElement
+      ? scope
+      : (scope.dataset.bulkPersistForm ? document.querySelector(scope.dataset.bulkPersistForm) : null);
+    if (!(form instanceof HTMLFormElement)) return;
+    form.querySelectorAll('input.js-bulk-persisted-input[name="task_ids"]').forEach(input => input.remove());
     const visibleCheckIds = new Set(
       Array.from(scope.querySelectorAll('.js-bulk-check')).map(check => String(check.value || '')).filter(Boolean)
     );
@@ -1801,7 +2164,7 @@ document.addEventListener('DOMContentLoaded', () => {
       input.name = 'task_ids';
       input.value = taskId;
       input.className = 'js-bulk-persisted-input';
-      scope.appendChild(input);
+      form.appendChild(input);
     });
   };
   const isBulkCheckAvailable = (check) => !check.disabled && !check.closest('.js-bulk-row[hidden]');
@@ -2779,26 +3142,34 @@ document.addEventListener('DOMContentLoaded', () => {
     if (event.key === 'Escape') closeMobileMenu();
   });
 
-  // Convert wide tables to mobile cards by copying desktop table headers into data-label attributes.
-  document.querySelectorAll('.table').forEach(table => {
-    if (table.classList.contains('material-edit-table')) return;
-    if (table.closest('.desktop-only-table')) return;
+  // Convert wide tables to mobile cards only on true mobile viewports.
+  const syncResponsiveTableCards = (scope = document) => {
+    const useMobileCards = isMobileViewport();
 
-    const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
-    if (!headers.length) return;
+    scope.querySelectorAll('.table').forEach(table => {
+      if (table.classList.contains('material-edit-table')) return;
+      if (table.closest('.desktop-only-table')) return;
 
-    table.classList.add('mobile-card-table');
-    table.querySelectorAll('tbody tr').forEach(row => {
-      Array.from(row.children).forEach((cell, index) => {
-        if (!cell.dataset.label && headers[index]) {
-          cell.dataset.label = headers[index];
-        }
-        if (cell.dataset.label) {
-          cell.setAttribute('aria-label', `${cell.dataset.label}: ${cell.textContent.trim()}`.trim());
-        }
+      const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+      if (!headers.length) return;
+
+      table.classList.toggle('mobile-card-table', useMobileCards);
+      table.querySelectorAll('tbody tr').forEach(row => {
+        Array.from(row.children).forEach((cell, index) => {
+          if (!cell.dataset.label && headers[index]) {
+            cell.dataset.label = headers[index];
+          }
+          if (cell.dataset.label) {
+            cell.setAttribute('aria-label', `${cell.dataset.label}: ${cell.textContent.trim()}`.trim());
+          }
+        });
       });
     });
-  });
+  };
+
+  syncResponsiveTableCards();
+  window.addEventListener('resize', () => syncResponsiveTableCards(), { passive: true });
+  window.visualViewport?.addEventListener('resize', () => syncResponsiveTableCards(), { passive: true });
 
   // Карточка замечания/подрядчика открывается двойным нажатием по строке.
 });
@@ -3003,10 +3374,296 @@ document.addEventListener('DOMContentLoaded', () => {
     syncWriteoffQuantity();
   });
 
+  const excelNoticeText = 'Ожидайте генерации таблицы Excel. Как только файл будет подготовлен, автоматически начнется скачивание.';
+  const excelReadyNoticeText = 'Таблица Excel готова. Скачивание уже началось.';
+
+  const buildLoadingDotsMarkup = trigger => {
+    const loadingText = trigger?.dataset?.loadingText || 'Готовим Excel';
+    return `
+      <span class="crm-loading-inline" aria-hidden="true">
+        <span class="crm-loading-inline-text">${escapeHtml(loadingText)}</span>
+        <span class="crm-loading-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </span>
+    `;
+  };
+
+  const showExcelGenerationNotice = trigger => {
+    if (!trigger || trigger.dataset.excelNoticeShown === '1') return;
+    trigger.dataset.excelNoticeShown = '1';
+    showCrmNotice(excelNoticeText, 'info');
+  };
+
+  const clearExcelGenerationNotice = trigger => {
+    if (!trigger) return;
+    delete trigger.dataset.excelNoticeShown;
+  };
+
+  const showExcelReadyNotice = trigger => {
+    if (!trigger || trigger.dataset.excelReadyNoticeShown === '1') return;
+    trigger.dataset.excelReadyNoticeShown = '1';
+    showCrmNotice(excelReadyNoticeText, 'success');
+    window.setTimeout(() => {
+      if (trigger) delete trigger.dataset.excelReadyNoticeShown;
+    }, 2200);
+  };
+
+  const bindStatisticsTopCard = ({ selector, currentPageSelector, datasetKey, requestTop = null }) => {
+    document.querySelectorAll(selector).forEach(card => {
+      const rawHref = card.getAttribute('href') || '';
+      const targetUrl = rawHref ? rawHref.replace(/#.*$/, '') : '';
+      if (targetUrl) {
+        card.dataset[datasetKey] = targetUrl;
+        if (card.tagName === 'A') card.setAttribute('href', targetUrl);
+      }
+      card.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof requestTop === 'function') requestTop();
+        clearRememberedScrollPosition();
+
+        if (document.body.classList.contains('app-body') && document.querySelector(currentPageSelector)) {
+        if (window.location.hash) {
+          history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+        }
+        writePageScrollPosition(0, 0);
+        return;
+      }
+
+        const nextUrl = card.dataset[datasetKey] || targetUrl;
+        if (nextUrl) {
+          window.location.assign(nextUrl);
+        }
+      }, true);
+      card.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        card.click();
+      });
+    });
+  };
+
+  bindStatisticsTopCard({
+    selector: '.developer-stat-summary-card-duration',
+    currentPageSelector: '.developer-statistics-page-overview',
+    datasetKey: 'overviewUrl',
+    requestTop: requestStatisticsOverviewTop,
+  });
+
+  const startNativeExcelDownload = link => {
+    if (!link?.href) return;
+    const iframe = document.createElement('iframe');
+    iframe.hidden = true;
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.className = 'js-excel-download-frame';
+    iframe.src = `${link.href}${link.href.includes('?') ? '&' : '?'}download_ts=${Date.now()}`;
+    document.body.appendChild(iframe);
+    window.setTimeout(() => iframe.remove(), 45000);
+  };
+
+  const closeExcelDropdown = trigger => {
+    const menu = trigger?.closest('.dropdown-menu');
+    if (!menu) return;
+    const dropdown = menu.closest('.dropdown');
+    const toggle = dropdown?.querySelector('[data-bs-toggle="dropdown"]');
+    if (toggle && window.bootstrap?.Dropdown) {
+      const dropdownInstance = window.bootstrap.Dropdown.getInstance(toggle) || new window.bootstrap.Dropdown(toggle);
+      dropdownInstance.hide();
+      return;
+    }
+    menu.classList.remove('show');
+    dropdown?.classList.remove('show');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+  };
+
+  const trySetBusyState = trigger => {
+    if (!trigger) return false;
+    try {
+      setBusyState(trigger);
+      return true;
+    } catch (error) {
+      try {
+        const originalHtml = trigger.dataset.originalHtml || trigger.innerHTML;
+        trigger.dataset.originalHtml = originalHtml;
+        trigger.classList.add('disabled');
+        trigger.classList.add('is-loading');
+        if ('disabled' in trigger) trigger.disabled = true;
+      } catch (noopError) {
+        return false;
+      }
+      return false;
+    }
+  };
+
+  const startNativeExcelDownloadFlow = link => {
+    if (!link) return;
+    let temporaryBusyApplied = false;
+    try {
+      setTemporaryBusyState(link, 2600);
+      temporaryBusyApplied = true;
+    } catch (error) {
+      trySetBusyState(link);
+      window.setTimeout(() => {
+        showExcelReadyNotice(link);
+        restoreBusyState(link);
+      }, 2200);
+    }
+    startNativeExcelDownload(link);
+    if (!temporaryBusyApplied) {
+      window.setTimeout(() => restoreBusyState(link), 2800);
+    }
+  };
+
+  const setTemporaryBusyState = (trigger, delay = 2200) => {
+    if (!trigger) return;
+    const originalHtml = trigger.dataset.originalHtml || trigger.innerHTML;
+    trigger.dataset.originalHtml = originalHtml;
+    showExcelGenerationNotice(trigger);
+    trigger.classList.add('disabled');
+    trigger.classList.add('is-loading');
+    if ('disabled' in trigger) trigger.disabled = true;
+    trigger.innerHTML = buildLoadingDotsMarkup(trigger);
+    window.setTimeout(() => {
+      showExcelReadyNotice(trigger);
+    }, Math.min(delay, 900));
+    window.setTimeout(() => {
+      trigger.innerHTML = originalHtml;
+      trigger.classList.remove('disabled');
+      trigger.classList.remove('is-loading');
+      if ('disabled' in trigger) trigger.disabled = false;
+      clearExcelGenerationNotice(trigger);
+    }, delay);
+  };
+
+  const restoreBusyState = trigger => {
+    if (!trigger || !trigger.dataset.originalHtml) return;
+    trigger.innerHTML = trigger.dataset.originalHtml;
+    trigger.classList.remove('disabled');
+    trigger.classList.remove('is-loading');
+    if ('disabled' in trigger) trigger.disabled = false;
+    clearExcelGenerationNotice(trigger);
+  };
+
+  const setBusyState = trigger => {
+    if (!trigger) return;
+    const originalHtml = trigger.dataset.originalHtml || trigger.innerHTML;
+    trigger.dataset.originalHtml = originalHtml;
+    showExcelGenerationNotice(trigger);
+    trigger.classList.add('disabled');
+    trigger.classList.add('is-loading');
+    if ('disabled' in trigger) trigger.disabled = true;
+    trigger.innerHTML = buildLoadingDotsMarkup(trigger);
+  };
+
+  const triggerBlobDownload = (blob, filename) => {
+    const objectUrl = window.URL.createObjectURL(blob);
+    const tempLink = document.createElement('a');
+    tempLink.href = objectUrl;
+    tempLink.download = filename || 'export.xlsx';
+    tempLink.style.display = 'none';
+    document.body.appendChild(tempLink);
+    tempLink.click();
+    tempLink.remove();
+    window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+  };
+
+  const getDownloadFilename = response => {
+    const header = response.headers.get('Content-Disposition') || '';
+    const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match && utf8Match[1]) return decodeURIComponent(utf8Match[1]);
+    const basicMatch = header.match(/filename=\"?([^\";]+)\"?/i);
+    if (basicMatch && basicMatch[1]) return basicMatch[1];
+    try {
+      const url = new URL(response.url, window.location.origin);
+      const candidate = url.pathname.split('/').pop();
+      return candidate || 'export.xlsx';
+    } catch (error) {
+      return 'export.xlsx';
+    }
+  };
+
   document.querySelectorAll('.download-excel-btn').forEach(link => {
-    const originalHtml = link.innerHTML;
-    link.addEventListener('click', () => {
-      setTimeout(() => { link.innerHTML = originalHtml; link.classList.remove('disabled'); }, 600);
+    link.addEventListener('click', async event => {
+      if (event.defaultPrevented) return;
+      if (event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (link.classList.contains('is-loading')) return;
+      event.preventDefault();
+      const isDropdownDownload = !!link.closest('.dropdown-menu');
+      const useFetchDownload = !isDropdownDownload || link.dataset.downloadMode === 'fetch';
+      if (!useFetchDownload || typeof window.fetch !== 'function') {
+        startNativeExcelDownloadFlow(link);
+        return;
+      }
+      if (isDropdownDownload) event.stopPropagation();
+      trySetBusyState(link);
+      try {
+        const response = await window.fetch(link.href, {
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, application/octet-stream, application/json;q=0.9, */*;q=0.8'
+          }
+        });
+        const contentType = (response.headers.get('Content-Type') || '').toLowerCase();
+        const contentDisposition = response.headers.get('Content-Disposition') || '';
+        if (contentType.includes('application/json')) {
+          const payload = await response.json().catch(() => null);
+          if (!response.ok || payload?.ok === false) {
+            throw new Error(payload?.message || 'Не удалось подготовить Excel.');
+          }
+        } else if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const looksLikeDownload = /attachment/i.test(contentDisposition)
+          || contentType.includes('spreadsheet')
+          || contentType.includes('application/vnd.ms-excel')
+          || contentType.includes('application/octet-stream');
+        if (!looksLikeDownload) {
+          window.location.href = link.href;
+          return;
+        }
+        const blob = await response.blob();
+        triggerBlobDownload(blob, getDownloadFilename(response));
+        showExcelReadyNotice(link);
+        if (isDropdownDownload) {
+          window.setTimeout(() => closeExcelDropdown(link), 360);
+        }
+      } catch (error) {
+        const message = error instanceof Error && error.message && !/^HTTP \d+$/.test(error.message)
+          ? error.message
+          : 'Не удалось подготовить Excel. Попробуйте еще раз.';
+        showCrmNotice(message, 'warning');
+      } finally {
+        restoreBusyState(link);
+      }
+    });
+  });
+
+  document.querySelectorAll('.js-background-download-link').forEach(link => {
+    link.addEventListener('click', async event => {
+      if (event.defaultPrevented) return;
+      if (event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      setBusyState(link);
+      try {
+        const response = await window.fetch(link.href, {
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const blob = await response.blob();
+        triggerBlobDownload(blob, getDownloadFilename(response));
+        showExcelReadyNotice(link);
+      } catch (error) {
+        window.location.href = link.href;
+      } finally {
+        restoreBusyState(link);
+      }
     });
   });
 
@@ -3138,14 +3795,108 @@ document.addEventListener('DOMContentLoaded', () => {
     syncRemoveButtons();
   });
 
+  const buildGlassNeedMeasureMarkup = (taskId, csrfToken) => `
+    <form method="post" action="/glass/${taskId}/need-measure" class="js-glass-need-measure-form" data-task-id="${escapeHtml(taskId)}">
+      <input type="hidden" name="csrf_token" value="${escapeHtml(csrfToken || getCsrfToken())}">
+      <input type="hidden" name="return_tab" value="all">
+      <button class="btn btn-sm btn-success glass-measure-icon-btn" type="submit" title="Сделать замер" aria-label="Сделать замер"><i class="bi bi-rulers"></i></button>
+    </form>
+  `;
+
+  const buildGlassMeasureNeededMarkup = (measurementId, taskId, csrfToken) => {
+    return `
+      <div class="glass-all-row-actions">
+        <span class="glass-status-badge glass-status-ordered">В заказе</span>
+        <form method="post" action="/glass/${measurementId}/return-to-all" class="js-glass-return-form" data-task-id="${escapeHtml(taskId)}">
+          <input type="hidden" name="csrf_token" value="${escapeHtml(csrfToken || getCsrfToken())}">
+          <input type="hidden" name="return_tab" value="all">
+          <button class="btn btn-sm btn-outline-secondary glass-measure-reset-btn" type="submit" title="Вернуть" aria-label="Вернуть"><i class="bi bi-arrow-counterclockwise"></i></button>
+        </form>
+      </div>
+    `;
+  };
+
+  const bindGlassAllRowActions = actions => {
+    if (!actions || actions.dataset.glassAllRowActionsBound === '1') return;
+    actions.dataset.glassAllRowActionsBound = '1';
+    actions.addEventListener('click', event => {
+      event.stopPropagation();
+    });
+  };
+
+  const bindGlassActionCell = cell => {
+    if (!cell) return;
+    bindGlassAllRowActions(cell.querySelector('.glass-all-row-actions'));
+    bindGlassNeedMeasureForm(cell.querySelector('.js-glass-need-measure-form'));
+    bindGlassReturnForm(cell.querySelector('.js-glass-return-form'));
+  };
+
+  const refreshGlassActionCell = async (taskId, cell) => {
+    if (!taskId || !cell) return false;
+    const response = await fetch(window.location.href, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    });
+    if (!response.ok) return false;
+    const html = await response.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const nextRow = doc.querySelector(`.inline-text[data-task-id="${String(taskId)}"]`)?.closest('tr');
+    const nextCell = nextRow?.querySelector('td.text-end');
+    if (!nextCell) return false;
+    cell.innerHTML = nextCell.innerHTML;
+    bindGlassActionCell(cell);
+    return true;
+  };
+
+  const syncGlassOrderListState = list => {
+    if (!list) return;
+    const cards = Array.from(list.querySelectorAll('.glass-order-card'));
+    const emptyState = list.querySelector('.js-glass-order-empty-state');
+    if (cards.length > 0) {
+      emptyState?.remove();
+      return;
+    }
+    if (emptyState) return;
+    const nextEmptyState = document.createElement('div');
+    nextEmptyState.className = 'glass-empty-state text-center text-muted py-5 js-glass-order-empty-state';
+    nextEmptyState.textContent = 'Нет позиций для заказа. Нажмите иконку замера во вкладке «Все».';
+    list.appendChild(nextEmptyState);
+  };
+
+  const syncGlassOrderedTableState = tbody => {
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('.glass-order-row'));
+    const emptyRow = tbody.querySelector('.js-glass-ordered-empty-row');
+    if (rows.length > 0) {
+      emptyRow?.remove();
+      return;
+    }
+    if (emptyRow) return;
+    const nextEmptyRow = document.createElement('tr');
+    nextEmptyRow.className = 'js-glass-ordered-empty-row';
+    nextEmptyRow.innerHTML = '<td colspan="8" class="text-center text-muted py-5">Нет позиций для текущего фильтра</td>';
+    tbody.appendChild(nextEmptyRow);
+  };
+
   const bindGlassNeedMeasureForm = form => {
     if (!form || form.dataset.glassNeedMeasureBound === '1') return;
     form.dataset.glassNeedMeasureBound = '1';
+    form.addEventListener('click', event => {
+      event.stopPropagation();
+    });
     form.addEventListener('submit', async event => {
       event.preventDefault();
       const button = event.submitter || form.querySelector('button[type="submit"]');
       const previousHtml = button?.innerHTML || '';
+      const csrfToken = form.querySelector('input[name="csrf_token"]')?.value || getCsrfToken();
       if (button) button.disabled = true;
+      if (button) {
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>';
+        button.setAttribute('aria-busy', 'true');
+      }
       try {
         const response = await fetch(form.action, {
           method: 'POST',
@@ -3159,8 +3910,73 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
         const cell = form.closest('td');
-        if (cell) {
-          cell.innerHTML = '<span class="glass-status-badge glass-status-measured">В заказе</span>';
+        const nextTaskId = data.task_id || form.dataset.taskId;
+        let synced = false;
+        if (cell && nextTaskId) {
+          synced = await refreshGlassActionCell(nextTaskId, cell).catch(() => false);
+        }
+        if (!synced && cell && data.measurement_id && nextTaskId) {
+          cell.innerHTML = buildGlassMeasureNeededMarkup(data.measurement_id, nextTaskId, csrfToken);
+          bindGlassActionCell(cell);
+          synced = true;
+        }
+        if (!synced) {
+          window.setTimeout(() => window.location.reload(), 120);
+        }
+        showCrmNotice(data.message || 'Готово', 'success');
+      } catch (error) {
+        showCrmNotice(error.message || 'Не удалось обновить статус', 'danger');
+        if (button) button.disabled = false;
+      } finally {
+        if (button) {
+          button.innerHTML = previousHtml;
+          button.removeAttribute('aria-busy');
+        }
+      }
+    });
+  };
+  document.querySelectorAll('.js-glass-need-measure-form').forEach(bindGlassNeedMeasureForm);
+  document.querySelectorAll('.glass-all-row-actions').forEach(bindGlassAllRowActions);
+
+  const bindGlassReturnForm = form => {
+    if (!form || form.dataset.glassReturnBound === '1') return;
+    form.dataset.glassReturnBound = '1';
+    form.addEventListener('click', event => {
+      event.stopPropagation();
+    });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const button = event.submitter || form.querySelector('button[type="submit"]');
+      const previousHtml = button?.innerHTML || '';
+      const cell = form.closest('td');
+      const row = form.closest('tr');
+      const taskId = form.dataset.taskId || row?.querySelector('.inline-text')?.dataset?.taskId;
+      const csrfToken = form.querySelector('input[name="csrf_token"]')?.value || getCsrfToken();
+      if (button) button.disabled = true;
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
+        const nextTaskId = taskId || data.task_id;
+        let synced = false;
+        if (cell && nextTaskId) {
+          synced = await refreshGlassActionCell(nextTaskId, cell).catch(() => false);
+        }
+        if (!synced && cell && nextTaskId) {
+          cell.innerHTML = buildGlassNeedMeasureMarkup(nextTaskId, csrfToken);
+          bindGlassActionCell(cell);
+          synced = true;
+        }
+        if (!synced) {
+          window.setTimeout(() => window.location.reload(), 120);
         }
         showCrmNotice(data.message || 'Готово', 'success');
       } catch (error) {
@@ -3171,7 +3987,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   };
-  document.querySelectorAll('.js-glass-need-measure-form').forEach(bindGlassNeedMeasureForm);
+  document.querySelectorAll('.js-glass-return-form').forEach(bindGlassReturnForm);
 
   const bindGlassSaveForm = form => {
     if (!form || form.dataset.glassSaveBound === '1') return;
@@ -3196,23 +4012,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedRow = form.closest('.glass-order-card, .glass-order-row');
         savedRow?.classList.add('glass-row-saved');
         if (!form.classList.contains('js-glass-ordered-edit-form')) {
-          const checkbox = savedRow?.querySelector('.js-bulk-check');
-          if (checkbox) {
-            checkbox.checked = false;
-            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-            checkbox.disabled = true;
-          }
-          savedRow?.classList.remove('is-selected');
-          const actions = savedRow?.querySelector('.glass-order-row-actions');
-          if (actions) actions.hidden = true;
-          const note = savedRow?.querySelector('.glass-order-transferred-note');
-          if (note) {
-            note.hidden = false;
-            note.classList.add('is-visible');
-            const noteText = note.querySelector('span');
-            if (noteText) noteText.textContent = data.message || 'Размеры перенесены в заказ';
-          }
-          form.hidden = true;
+          const orderList = savedRow?.closest('.glass-order-list');
+          savedRow?.remove();
+          syncGlassOrderListState(orderList);
         } else {
           const view = savedRow?.querySelector('.js-glass-ordered-size-view');
           if (view && Array.isArray(data.items)) {
@@ -3292,6 +4094,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
+        const tableRow = form.closest('.glass-order-row');
+        const orderedFilterValue = document.querySelector('select[name="ordered_status"]')?.value || '';
+        if (orderedFilterValue && orderedFilterValue !== data.status && tableRow) {
+          const checkbox = tableRow.querySelector('.js-bulk-check');
+          if (checkbox && checkbox.checked) {
+            checkbox.checked = false;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          const bulkScope = tableRow.closest('.js-bulk-selectable');
+          const tbody = tableRow.parentElement;
+          tableRow.remove();
+          if (bulkScope) syncBulkScope(bulkScope);
+          syncGlassOrderedTableState(tbody);
+          showCrmNotice(data.message || 'Статус обновлён', 'success');
+          return;
+        }
         form.querySelectorAll('.glass-status-choice').forEach(item => {
           const isActive = item.value === data.status;
           item.classList.toggle('is-active', isActive);
@@ -3358,12 +4176,13 @@ document.addEventListener('DOMContentLoaded', () => {
         row.dataset.href = data.task_url || '';
         row.innerHTML = `
           <td><span class="js-highlight-text">${escapeHtml(data.apartment_label || '—')}</span></td>
-          <td class="task-text"><span class="js-highlight-text">${escapeHtml(data.description || '')}</span></td>
+          <td class="task-text"><span class="inline-text js-highlight-text" data-task-id="${escapeHtml(data.task_id || '')}">${escapeHtml(data.description || '')}</span></td>
           <td><span class="badge bg-${escapeHtml(data.status_class || 'secondary')}">${escapeHtml(data.status_label || '')}</span></td>
           <td class="text-end">
-            <form method="post" action="/glass/${data.task_id}/need-measure" class="js-glass-need-measure-form">
+            <form method="post" action="/glass/${data.task_id}/need-measure" class="js-glass-need-measure-form" data-task-id="${escapeHtml(data.task_id || '')}">
               <input type="hidden" name="csrf_token" value="${escapeHtml(getCsrfToken())}">
-              <button class="btn btn-sm btn-primary glass-measure-icon-btn" type="submit" title="Сделать замер" aria-label="Сделать замер"><i class="bi bi-rulers"></i></button>
+              <input type="hidden" name="return_tab" value="all">
+              <button class="btn btn-sm btn-success glass-measure-icon-btn" type="submit" title="Сделать замер" aria-label="Сделать замер"><i class="bi bi-rulers"></i></button>
             </form>
           </td>
         `;
@@ -4331,6 +5150,240 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+document.addEventListener('DOMContentLoaded', () => {
+  const pickers = document.querySelectorAll('.js-developer-stat-range-picker');
+  if (!pickers.length) return;
+
+  const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  const padDatePart = value => String(value).padStart(2, '0');
+  const todayDate = new Date();
+  const todayIso = `${todayDate.getFullYear()}-${padDatePart(todayDate.getMonth() + 1)}-${padDatePart(todayDate.getDate())}`;
+  const toIsoDate = date => `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
+
+  const parseIsoDate = value => {
+    if (!value) return null;
+    const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const prettyDate = value => {
+    const date = parseIsoDate(value);
+    if (!date) return '';
+    return `${padDatePart(date.getDate())}.${padDatePart(date.getMonth() + 1)}.${date.getFullYear()}`;
+  };
+
+  const normalizeRange = (start, end, maxIso) => {
+    let safeStart = start || end || maxIso || todayIso;
+    let safeEnd = end || start || safeStart;
+    if (maxIso && safeStart > maxIso) safeStart = maxIso;
+    if (maxIso && safeEnd > maxIso) safeEnd = maxIso;
+    if (safeStart > safeEnd) [safeStart, safeEnd] = [safeEnd, safeStart];
+    return { start: safeStart, end: safeEnd };
+  };
+
+  const formatRange = (start, end) => {
+    if (!start && !end) return 'Выберите период';
+    const finalEnd = end || start;
+    if (start === finalEnd) return prettyDate(start);
+    return `${prettyDate(start)} - ${prettyDate(finalEnd)}`;
+  };
+
+  const shiftIsoDate = (iso, offset) => {
+    const base = parseIsoDate(iso) || parseIsoDate(todayIso) || new Date();
+    base.setDate(base.getDate() + offset);
+    return toIsoDate(base);
+  };
+
+  let modal = document.querySelector('.js-developer-stat-range-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.className = 'assignment-date-modal-overlay js-developer-stat-range-modal d-none';
+    modal.innerHTML = `
+      <div class="assignment-date-modal developer-stat-range-modal" role="dialog" aria-modal="true" aria-labelledby="developer-stat-range-modal-title">
+        <div class="assignment-date-modal-head">
+          <div>
+            <h2 id="developer-stat-range-modal-title">Выбор периода</h2>
+          </div>
+          <button class="assignment-date-modal-close js-developer-stat-range-cancel" type="button" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="assignment-date-quick-row">
+          <button type="button" class="js-developer-stat-range-quick" data-days="7">7 дней</button>
+          <button type="button" class="js-developer-stat-range-quick" data-days="14">14 дней</button>
+          <button type="button" class="js-developer-stat-range-quick" data-days="30">30 дней</button>
+        </div>
+        <div class="assignment-date-calendar">
+          <div class="assignment-date-calendar-head">
+            <button type="button" class="assignment-date-nav js-developer-stat-range-prev" aria-label="Предыдущий месяц"><i class="bi bi-chevron-left"></i></button>
+            <div class="assignment-date-month js-developer-stat-range-month"></div>
+            <button type="button" class="assignment-date-nav js-developer-stat-range-next" aria-label="Следующий месяц"><i class="bi bi-chevron-right"></i></button>
+          </div>
+          <div class="assignment-date-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+          <div class="assignment-date-grid js-developer-stat-range-grid"></div>
+        </div>
+        <div class="assignment-date-modal-actions">
+          <button class="btn btn-outline-secondary js-developer-stat-range-cancel" type="button">Отмена</button>
+          <button class="btn btn-primary js-developer-stat-range-save" type="button"><i class="bi bi-check2"></i><span>Показать статистику</span></button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  const monthEl = modal.querySelector('.js-developer-stat-range-month');
+  const gridEl = modal.querySelector('.js-developer-stat-range-grid');
+  const saveBtn = modal.querySelector('.js-developer-stat-range-save');
+
+  let activePicker = null;
+  let viewDate = new Date();
+  let draftStart = '';
+  let draftEnd = '';
+
+  const onKeydown = event => {
+    if (event.key === 'Escape') close();
+  };
+
+  const close = () => {
+    document.removeEventListener('keydown', onKeydown);
+    modal.classList.add('d-none');
+    activePicker = null;
+  };
+
+  const renderSelectedState = () => {
+    if (!draftStart) {
+      saveBtn.disabled = true;
+      return;
+    }
+    saveBtn.disabled = false;
+  };
+
+  const renderCalendar = () => {
+    if (!activePicker) return;
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const maxIso = activePicker.maxIso || '';
+    const actualRange = draftStart && draftEnd ? normalizeRange(draftStart, draftEnd, maxIso) : null;
+
+    monthEl.textContent = `${monthNames[month]} ${year}`;
+    gridEl.innerHTML = '';
+
+    const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+    for (let index = 0; index < firstWeekday; index += 1) {
+      const spacer = document.createElement('span');
+      spacer.className = 'assignment-date-day-spacer';
+      gridEl.appendChild(spacer);
+    }
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = new Date(year, month, day);
+      const iso = toIsoDate(date);
+      const button = document.createElement('button');
+      const isDisabled = maxIso && iso > maxIso;
+      button.type = 'button';
+      button.className = 'assignment-date-day';
+      button.textContent = String(day);
+      button.dataset.iso = iso;
+      button.setAttribute('aria-label', prettyDate(iso) || iso);
+      button.disabled = isDisabled;
+      if (iso === todayIso) button.classList.add('is-today');
+      if (draftStart && iso === draftStart) button.classList.add('is-selected');
+      if (draftEnd && iso === draftEnd) button.classList.add('is-selected');
+      if (actualRange && iso > actualRange.start && iso < actualRange.end) button.classList.add('is-in-range');
+
+      button.addEventListener('click', () => {
+        if (!draftStart || draftEnd) {
+          draftStart = iso;
+          draftEnd = '';
+        } else {
+          const resolved = normalizeRange(draftStart, iso, maxIso);
+          draftStart = resolved.start;
+          draftEnd = resolved.end;
+        }
+        renderCalendar();
+      });
+
+      gridEl.appendChild(button);
+    }
+
+    renderSelectedState();
+  };
+
+  modal.querySelectorAll('.js-developer-stat-range-cancel').forEach(button => {
+    button.addEventListener('click', close);
+  });
+  modal.querySelector('.js-developer-stat-range-prev').addEventListener('click', () => {
+    viewDate.setMonth(viewDate.getMonth() - 1);
+    renderCalendar();
+  });
+  modal.querySelector('.js-developer-stat-range-next').addEventListener('click', () => {
+    viewDate.setMonth(viewDate.getMonth() + 1);
+    renderCalendar();
+  });
+  modal.querySelectorAll('.js-developer-stat-range-quick').forEach(button => {
+    button.addEventListener('click', () => {
+      const days = Number(button.dataset.days || 1);
+      const anchorIso = activePicker?.maxIso || todayIso;
+      draftEnd = anchorIso;
+      draftStart = shiftIsoDate(anchorIso, -(days - 1));
+      viewDate = parseIsoDate(draftStart) || new Date();
+      viewDate.setDate(1);
+      renderCalendar();
+    });
+  });
+  modal.addEventListener('click', event => {
+    if (event.target === modal) close();
+  });
+  saveBtn.addEventListener('click', () => {
+    if (!activePicker || !draftStart) return;
+    const resolved = normalizeRange(draftStart, draftEnd || draftStart, activePicker.maxIso || '');
+    activePicker.startInput.value = resolved.start;
+    activePicker.endInput.value = resolved.end;
+    activePicker.valueEl.textContent = formatRange(resolved.start, resolved.end);
+    const form = activePicker.form;
+    close();
+    if (!form) return;
+    if (typeof form.requestSubmit === 'function') {
+      form.requestSubmit();
+    } else {
+      form.submit();
+    }
+  });
+
+  const open = picker => {
+    const startInput = picker.querySelector('input[name="start_date"]');
+    const endInput = picker.querySelector('input[name="end_date"]');
+    const maxIso = picker.dataset.maxDate || '';
+    const resolved = normalizeRange(startInput?.value || picker.dataset.startDate, endInput?.value || picker.dataset.endDate, maxIso);
+
+    activePicker = {
+      form: picker.closest('form'),
+      startInput,
+      endInput,
+      maxIso,
+      valueEl: picker.querySelector('.js-developer-stat-range-value'),
+    };
+    draftStart = resolved.start;
+    draftEnd = resolved.end;
+    viewDate = parseIsoDate(resolved.start || resolved.end || maxIso) || new Date();
+    viewDate.setDate(1);
+
+    renderCalendar();
+    document.addEventListener('keydown', onKeydown);
+    modal.classList.remove('d-none');
+  };
+
+  pickers.forEach(picker => {
+    const openButton = picker.querySelector('.js-developer-stat-range-open');
+    if (!openButton) return;
+    openButton.addEventListener('click', event => {
+      event.preventDefault();
+      open(picker);
+    });
+  });
+});
+
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('form[data-task-comment-async="1"]').forEach(form => {
@@ -4377,4 +5430,59 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+});
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  const toggles = document.querySelectorAll('.js-developer-ip-toggle');
+  if (!toggles.length) return;
+
+  const updateHash = rowId => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('ip');
+    url.hash = rowId ? rowId : '';
+    window.history.replaceState({}, '', url.toString());
+  };
+
+  const setExpanded = (item, expanded) => {
+    if (!item) return;
+    const button = item.querySelector('.js-developer-ip-toggle');
+    const details = item.querySelector('.developer-ip-inline-details');
+    item.classList.toggle('is-expanded', expanded);
+    if (button) {
+      button.classList.toggle('is-active', expanded);
+      button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+    if (details) details.classList.toggle('d-none', !expanded);
+  };
+
+  const collapseSiblings = currentItem => {
+    const list = currentItem?.closest('.developer-ranked-list');
+    if (!list) return;
+    list.querySelectorAll('.developer-ip-item.is-expanded').forEach(item => {
+      if (item !== currentItem) setExpanded(item, false);
+    });
+  };
+
+  toggles.forEach(button => {
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      const rowId = button.dataset.ipRow || '';
+      const item = rowId ? document.getElementById(rowId) : button.closest('.developer-ip-item');
+      if (!item) return;
+      const shouldExpand = !item.classList.contains('is-expanded');
+      collapseSiblings(item);
+      setExpanded(item, shouldExpand);
+      updateHash(shouldExpand ? item.id : '');
+    });
+  });
+
+  const hashId = decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
+  if (hashId) {
+    const hashedItem = document.getElementById(hashId);
+    if (hashedItem?.classList.contains('developer-ip-item')) {
+      collapseSiblings(hashedItem);
+      setExpanded(hashedItem, true);
+    }
+  }
 });

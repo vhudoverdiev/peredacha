@@ -1,0 +1,96 @@
+{% extends "developer_statistics_base.html" %}
+{% block statistics_page_content %}
+  <section id="top-ips" class="developer-stat-list-grid developer-stat-list-grid-single developer-stat-anchor-section">
+    <article class="card content-card developer-list-card">
+      <div class="card-body">
+        <div class="developer-card-head">
+          <div>
+            <h2 class="section-title developer-stat-card-title">Источники</h2>
+            <div class="developer-stat-muted-line">Топ IP-адресов</div>
+          </div>
+        </div>
+        <div class="developer-ranked-list">
+          {% for item in top_ips %}
+          {% set summary = ip_summaries.get(item.ip_address) %}
+          {% set is_selected = focused_ip_summary and focused_ip_summary.ip == item.ip_address %}
+          <div class="developer-ip-item{% if is_selected %} is-expanded{% endif %}" id="developer-ip-{{ loop.index }}">
+            <button class="developer-ranked-item developer-ip-summary js-developer-ip-toggle{% if is_selected %} is-active{% endif %}" type="button" data-ip-row="developer-ip-{{ loop.index }}" aria-expanded="{{ 'true' if is_selected else 'false' }}" aria-controls="developer-ip-details-{{ loop.index }}">
+              <span class="developer-ranked-main">
+                <span class="developer-ip-link">{{ item.ip_address }}</span>
+                <span class="developer-ranked-subline">{{ item.users_count }} связанных пользователей</span>
+              </span>
+              <span class="developer-ranked-value">
+                <strong>{{ item.hits }}</strong>
+                <span>вкладок</span>
+              </span>
+              <span class="developer-ip-caret" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
+            </button>
+
+            {% if summary %}
+            <div class="developer-ip-inline-details{% if not is_selected %} d-none{% endif %}" id="developer-ip-details-{{ loop.index }}">
+              <div class="developer-ip-inline-head">
+                <strong>IP: {{ summary.ip }}</strong>
+              </div>
+              <div class="developer-ip-focus-grid">
+                <div class="developer-ip-focus-panel">
+                  <span class="developer-ip-focus-label">Первый визит</span>
+                  <strong>{{ summary.first_seen|ru_datetime if summary.first_seen else '—' }}</strong>
+                </div>
+                <div class="developer-ip-focus-panel">
+                  <span class="developer-ip-focus-label">Последний визит</span>
+                  <strong>{{ summary.last_seen|ru_datetime if summary.last_seen else '—' }}</strong>
+                </div>
+                <div class="developer-ip-focus-panel">
+                  <span class="developer-ip-focus-label">Пользователи</span>
+                  <div class="developer-ip-chip-wrap">
+                    {% if summary.users %}
+                      {% for user in summary.users %}
+                      <span class="developer-ip-chip">{{ user.full_name or user.username }}</span>
+                      {% endfor %}
+                    {% else %}
+                      <span class="developer-ip-chip">Только гость</span>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="developer-ip-focus-panel">
+                  <span class="developer-ip-focus-label">Браузеры</span>
+                  <div class="developer-ip-chip-wrap">
+                    {% for label, count in summary.browsers %}
+                    <span class="developer-ip-chip">{{ label }} · {{ count }}</span>
+                    {% else %}
+                    <span class="developer-ip-chip">Нет данных</span>
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="developer-ip-focus-panel">
+                  <span class="developer-ip-focus-label">Страницы</span>
+                  <div class="developer-ip-chip-wrap">
+                    {% for label, count in summary.top_paths %}
+                    <span class="developer-ip-chip">{{ label }} · {{ count }}</span>
+                    {% else %}
+                    <span class="developer-ip-chip">Нет данных</span>
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="developer-ip-focus-panel">
+                  <span class="developer-ip-focus-label">Объекты</span>
+                  <div class="developer-ip-chip-wrap">
+                    {% for label, count in summary.projects %}
+                    <span class="developer-ip-chip">{{ label }} · {{ count }}</span>
+                    {% else %}
+                    <span class="developer-ip-chip">Нет данных</span>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+          {% else %}
+          <div class="developer-empty-state">Нет данных по IP</div>
+          {% endfor %}
+        </div>
+      </div>
+    </article>
+  </section>
+{% endblock %}

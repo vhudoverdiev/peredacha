@@ -1,6 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Дашборд{% endblock %}
+{% block title %}Главная{% endblock %}
 {% block content %}
+{% set task_total = stats.tasks if stats.tasks else 1 %}
+{% set task_done_percent = (stats.done / task_total * 100) if stats.tasks else 0 %}
+{% set task_not_done_percent = (stats.not_done / task_total * 100) if stats.tasks else 0 %}
+{% set task_problem_percent = (stats.problem / task_total * 100) if stats.tasks else 0 %}
 <section class="dashboard-page dashboard-redesign">
   <div class="dashboard-redesign-hero">
     <div class="dashboard-redesign-copy">
@@ -33,6 +37,39 @@
         <div><span>Выполнено</span><b>{{ stats.done }}</b></div>
         <div><span>Не выполнено</span><b>{{ stats.not_done }}</b></div>
         <div><span>Проблемных</span><b>{{ stats.problem }}</b></div>
+      </div>
+      <div class="dashboard-task-visual" aria-label="Распределение задач по статусам">
+        <div class="dashboard-task-visual-head">
+          <span>Распределение задач</span>
+        </div>
+        <div class="dashboard-task-bar" role="progressbar" aria-valuenow="{{ stats.percent }}" aria-valuemin="0" aria-valuemax="100">
+          <span class="dashboard-task-bar-segment is-done" style="width: {{ task_done_percent }}%"></span>
+          <span class="dashboard-task-bar-segment is-open" style="width: {{ task_not_done_percent }}%"></span>
+          <span class="dashboard-task-bar-segment is-problem" style="width: {{ task_problem_percent }}%"></span>
+        </div>
+        <div class="dashboard-task-legend">
+          <div class="dashboard-task-legend-item is-done">
+            <span class="dashboard-task-legend-dot"></span>
+            <div>
+              <small>Выполнено</small>
+              <b>{{ task_done_percent|round(1) }}%</b>
+            </div>
+          </div>
+          <div class="dashboard-task-legend-item is-open">
+            <span class="dashboard-task-legend-dot"></span>
+            <div>
+              <small>В работе</small>
+              <b>{{ task_not_done_percent|round(1) }}%</b>
+            </div>
+          </div>
+          <div class="dashboard-task-legend-item is-problem">
+            <span class="dashboard-task-legend-dot"></span>
+            <div>
+              <small>Проблемные</small>
+              <b>{{ task_problem_percent|round(1) }}%</b>
+            </div>
+          </div>
+        </div>
       </div>
     </article>
 

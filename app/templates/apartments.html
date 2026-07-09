@@ -165,7 +165,9 @@
 </div>
 
 </div>
+{% endblock %}
 
+{% block floating_content %}
 <a class="po-notification-widget" href="{{ url_for('main.apartments', po='1') }}">
   <span>ПО</span>
   <b>{{ po_alert_count }}</b>

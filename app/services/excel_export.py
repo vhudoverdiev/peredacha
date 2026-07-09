@@ -8,10 +8,13 @@ from typing import Iterable
 
 from flask import current_app
 from openpyxl import Workbook, load_workbook
+from openpyxl.cell import WriteOnlyCell
 from openpyxl.cell.rich_text import CellRichText, TextBlock
 from openpyxl.cell.text import InlineFont
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
-from app.models import Apartment, Task, STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR
+from openpyxl.utils import get_column_letter
+from app.models import Apartment, SyncLog, Task, STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR
+from app.services.excel_import import inspect_remarks_workbook
 from app.services.task_service import get_setting
 
 
@@ -58,7 +61,7 @@ def enable_wrap_text(ws) -> None:
 
 def set_column_widths(ws, widths) -> None:
     for idx, width in enumerate(widths, start=1):
-        ws.column_dimensions[ws.cell(row=1, column=idx).column_letter].width = width
+        ws.column_dimensions[get_column_letter(idx)].width = width
 
 
 def auto_adjust_row_heights(ws) -> None:
@@ -92,6 +95,27 @@ def apply_worksheet_style(ws, widths=None, report_header: bool = False) -> None:
     auto_adjust_row_heights(ws)
 
 
+def build_export_path(filename_prefix: str, cache_key: str | None = None) -> Path:
+    folder = Path(current_app.config["EXPORT_FOLDER"])
+    folder.mkdir(parents=True, exist_ok=True)
+    stem = f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d')}"
+    if cache_key:
+        stem = f"{stem}_{_safe_filename_part(cache_key)}"
+    return folder / f"{stem}.xlsx"
+
+
+def _write_only_header_row(ws, headers: list[str], fill: PatternFill) -> None:
+    row = []
+    for value in headers:
+        cell = WriteOnlyCell(ws, value=value)
+        cell.font = Font(bold=True, color="111827")
+        cell.fill = fill
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = THIN_BORDER
+        row.append(cell)
+    ws.append(row)
+
+
 EXPORT_HEADERS = [
     "Помещение",
     "Строительный номер",
@@ -109,6 +133,7 @@ EXPORT_HEADERS = [
     "Примечание",
     "Нет в новой таблице",
 ]
+SOURCE_EXPORT_HEADERS = EXPORT_HEADERS[:9]
 
 EXPORT_STATUS_SUFFIXES = {
     STATUS_DONE: "(лб)",
@@ -118,10 +143,7 @@ EXPORT_STATUS_SUFFIXES = {
 
 
 def export_tasks_to_excel(tasks: Iterable[Task], filename_prefix: str = "tasks_export") -> Path:
-    folder = Path(current_app.config["EXPORT_FOLDER"])
-    folder.mkdir(parents=True, exist_ok=True)
-    filename = f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
-    path = folder / filename
+    path = build_export_path(filename_prefix)
 
     wb = Workbook()
     ws = wb.active
@@ -155,6 +177,40 @@ def export_tasks_to_excel(tasks: Iterable[Task], filename_prefix: str = "tasks_e
                 cell.font = new_font
 
     apply_worksheet_style(ws, [18, 18, 28, 18, 18, 10, 30, 100, 28, 20, 14, 18, 20, 42, 18])
+    wb.save(path)
+    return path
+
+
+def export_source_excel_reconstructed(tasks: Iterable[Task], filename_prefix: str) -> Path:
+    tasks = list(tasks)
+    path = build_export_path(filename_prefix)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Задачи CRM"
+    ws.append(SOURCE_EXPORT_HEADERS)
+
+    for task in tasks:
+        ws.append(
+            [
+                (_excel_premise_label(task.apartment) if task.apartment else ""),
+                task.apartment.construction_number if task.apartment else "",
+                task.apartment.owner_name if task.apartment else "",
+                task.apartment.phone if task.apartment else "",
+                task.apartment.finishing_type if task.apartment else "",
+                task.work_point.point_number if task.work_point else "",
+                task.work_point.display_name if task.work_point else "",
+                _task_export_value(task, task.source_cell_value or task.description or ""),
+                task.responsible.full_name if task.responsible else "",
+            ]
+        )
+        if task.is_done:
+            for cell in ws[ws.max_row]:
+                new_font = copy(cell.font)
+                new_font.strike = True
+                cell.font = new_font
+
+    apply_worksheet_style(ws, [18, 18, 28, 18, 18, 10, 30, 100, 28])
     wb.save(path)
     return path
 
@@ -271,9 +327,7 @@ def _combined_task_lines(tasks: list[Task], include_status: bool = True, include
 
 def export_simple_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title: str = "Задачи", *, report_header: bool = False, include_point_in_remarks: bool = False) -> Path:
     tasks = list(tasks)
-    folder = Path(current_app.config["EXPORT_FOLDER"])
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    path = build_export_path(filename_prefix)
 
     wb = Workbook()
     ws = wb.active
@@ -294,9 +348,7 @@ def export_simple_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title
 
 def export_remark_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title: str = "Замечания") -> Path:
     tasks = list(tasks)
-    folder = Path(current_app.config["EXPORT_FOLDER"])
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    path = build_export_path(filename_prefix)
 
     wb = Workbook()
     ws_open = wb.active
@@ -402,6 +454,25 @@ def export_report_tasks_excel(tasks: Iterable[Task], filename_prefix: str) -> Pa
     return path
 
 
+def export_report_tasks_excel(tasks: Iterable[Task], filename_prefix: str, cache_key: str | None = None) -> Path:
+    path = build_export_path(filename_prefix, cache_key=cache_key)
+
+    wb = Workbook(write_only=True)
+    ws = wb.create_sheet(title="Отчет")
+    set_column_widths(ws, [18, 110, 20])
+    _write_only_header_row(ws, ["Помещение", "Замечание", "Дата выполнения"], REPORT_HEADER_FILL)
+    for task in tasks:
+        ws.append(
+            [
+                (_excel_premise_label(task.apartment) if task.apartment else ""),
+                _clean_report_remark(task.description or task.source_cell_value),
+                task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
+            ]
+        )
+    wb.save(path)
+    return path
+
+
 def _append_status_suffix(value: object, suffix: str) -> str:
     text = "" if value is None else str(value).strip()
     if not text:
@@ -451,14 +522,77 @@ def _safe_filename_part(value: str | None) -> str:
     return text or "object"
 
 
-def export_source_excel_with_strikes(source_path: str | None = None, project_name: str | None = None) -> Path:
+def _remarks_source_quality(path: Path) -> tuple[int, int] | None:
+    try:
+        if not path.exists():
+            return None
+        info = inspect_remarks_workbook(path)
+        if not info.get("ok"):
+            return None
+        matched_sheets = info.get("matched_sheets") or []
+        return (len(matched_sheets), int(info.get("sheet_count") or 0))
+    except Exception:
+        return None
+
+
+def resolve_source_excel_with_strikes_path(source_path: str | None = None, project_id: int | None = None) -> Path:
+    if source_path:
+        direct_source = Path(source_path)
+        if direct_source.exists():
+            return direct_source
+
+    candidates: list[Path] = []
+    seen: set[str] = set()
+
+    def add_candidate(candidate: str | Path | None) -> None:
+        if not candidate:
+            return
+        path = Path(candidate)
+        key = str(path)
+        if key in seen:
+            return
+        seen.add(key)
+        candidates.append(path)
+
+    add_candidate(source_path)
+    if project_id is not None:
+        add_candidate(get_setting(f"latest_excel_path_project_{project_id}"))
+        recent_logs = (
+            SyncLog.query.filter(
+                SyncLog.project_id == project_id,
+                SyncLog.source_type == "excel",
+                SyncLog.status == "success",
+                SyncLog.source_name.isnot(None),
+            )
+            .order_by(SyncLog.started_at.desc(), SyncLog.id.desc())
+            .limit(25)
+            .all()
+        )
+        for log in recent_logs:
+            add_candidate(log.source_name)
+    add_candidate(get_setting("latest_excel_path"))
+
+    best_candidate: Path | None = None
+    best_quality: tuple[int, int] = (-1, -1)
+    for candidate in candidates:
+        quality = _remarks_source_quality(candidate)
+        if quality and quality > best_quality:
+            best_candidate = candidate
+            best_quality = quality
+
+    if best_candidate is not None:
+        return best_candidate
+
+    if source_path:
+        source_file = Path(source_path)
+        if not source_file.exists():
+            raise FileNotFoundError(f"Файл не найден: {source_file}")
+    raise FileNotFoundError("Не найден корректный исходный Excel замечаний для полного экспорта. Загрузите исходный файл замечаний заново.")
+
+
+def export_source_excel_with_strikes(source_path: str | None = None, project_name: str | None = None, project_id: int | None = None) -> Path:
     """Return a copy of the latest source Excel with CRM statuses applied to source cells."""
-    source = source_path or get_setting("latest_excel_path")
-    if not source:
-        raise FileNotFoundError("Нет последнего Excel-файла. Сначала загрузите .xlsx.")
-    source_file = Path(source)
-    if not source_file.exists():
-        raise FileNotFoundError(f"Файл не найден: {source_file}")
+    source_file = resolve_source_excel_with_strikes_path(source_path=source_path, project_id=project_id)
 
     folder = Path(current_app.config["EXPORT_FOLDER"])
     folder.mkdir(parents=True, exist_ok=True)
@@ -506,8 +640,6 @@ def export_source_excel_with_strikes(source_path: str | None = None, project_nam
                 task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
             ])
         apply_worksheet_style(ws_manual, [20, 36, 100, 20, 18])
-    for worksheet in wb.worksheets:
-        apply_borders(worksheet)
     wb.save(target)
     return target
 

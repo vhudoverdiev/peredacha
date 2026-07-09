@@ -1,0 +1,26 @@
+﻿<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+html,body{margin:0;background:#111;height:100%;display:grid;place-items:center}
+video{max-width:100vw;max-height:100vh;background:#000}
+</style>
+</head>
+<body>
+<video id="v" controls muted playsinline></video>
+<script>
+const video = document.getElementById('v');
+video.src = 'file:///C:/Users/%D0%92%D0%BB%D0%B0%D0%B4%D0%B8%D0%BC%D0%B8%D1%80/Desktop/bandicam%202026-07-09%2019-09-52-484.mp4';
+const params = new URLSearchParams(location.search);
+const t = Number(params.get('t') || '0');
+video.addEventListener('loadedmetadata', () => {
+  video.currentTime = Math.min(Math.max(0, t), Math.max(0, video.duration - 0.05));
+});
+video.addEventListener('seeked', () => {
+  video.pause();
+  document.body.dataset.ready = '1';
+});
+</script>
+</body>
+</html>

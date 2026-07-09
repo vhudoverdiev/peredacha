@@ -15,6 +15,9 @@
   <a class="developer-section-tab active" href="{{ url_for('main.developer_delete_logs') }}">
     <i class="bi bi-clock-history"></i><span>Логи удалений</span>
   </a>
+  <a class="developer-section-tab" href="{{ url_for('main.developer_statistics', days=7) }}">
+    <i class="bi bi-graph-up-arrow"></i><span>Статистика</span>
+  </a>
 </div>
 
 <div class="developer-delete-log-list">

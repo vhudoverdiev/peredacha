@@ -2,6 +2,13 @@
 {% block title %}Журнал синхронизаций</div>
 {% endblock %}
 {% block content %}
+{% set source_labels = {
+  'excel': 'Excel',
+  'google_sheets': 'Google Sheets',
+  'transfer_excel': 'Импорт АПП',
+  'manual_act': 'Ручной акт',
+  'pdf_recognition': 'PDF-акты'
+} %}
 <div class="sync-logs-page">
 <div class="page-head remarks-page-head sync-logs-head">
   <div>
@@ -30,7 +37,7 @@
         {% for log in logs %}
           <tr>
             <td>{{ log.started_at|msk_datetime }}</td>
-            <td><span class="text-muted">{{ log.source_type }}</span><br><small>{{ log.source_name or '' }}</small></td>
+            <td><span class="text-muted">{{ source_labels.get(log.source_type, log.source_type) }}</span><br><small>{{ log.source_name or '' }}</small></td>
             <td><span class="sync-status-pill {{ 'sync-status-pill-success' if log.status=='success' else 'sync-status-pill-error' if log.status=='error' else 'sync-status-pill-progress' }}">{{ 'Успешно' if log.status=='success' else 'Ошибка' if log.status=='error' else 'В процессе' }}</span></td>
             <td>{{ log.created_count }}</td>
             <td>{{ log.updated_count }}</td>

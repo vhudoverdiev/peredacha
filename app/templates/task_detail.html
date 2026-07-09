@@ -33,12 +33,14 @@
           </dd>
           <dt class="col-sm-3">Замечание</dt>
           <dd class="col-sm-9 task-text {% if task.is_done %}text-decoration-line-through{% endif %}">
-            <span class="inline-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
-            {% if task.glass_measurement and task.glass_measurement.status == 'replaced' %}<span class="glass-ordered-badge glass-replaced-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% elif task.glass_measurement and task.glass_measurement.status == 'ordered' %}<span class="glass-ordered-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% endif %}
-            {% if current_user.role != 'viewer' %}
-            <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
-            <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
-            {% endif %}
+            <div class="d-flex flex-wrap align-items-start gap-2 inline-editor-anchor task-detail-remark-anchor">
+              <span class="inline-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
+              {% if task.glass_measurement and task.glass_measurement.status == 'replaced' %}<span class="glass-ordered-badge glass-replaced-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% elif task.glass_measurement and task.glass_measurement.status == 'ordered' %}<span class="glass-ordered-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% endif %}
+              {% if current_user.role != 'viewer' %}
+              <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
+              <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
+              {% endif %}
+            </div>
           </dd>
         </dl>
       </div>
@@ -90,7 +92,7 @@
           {% if task.status != 'done' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-success">Выполнено</button></form>{% endif %}
           {% if task.status != 'finishers' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info">Чистовики</button></form>{% endif %}
           {% if task.status != 'contractor' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning">Подрядчик</button></form>{% endif %}
-          {% if task.status != 'guarantee' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-primary">Гарантия</button></form>{% endif %}
+          {% if task.status != 'guarantee' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-guarantee">Гарантия</button></form>{% endif %}
           {% if task.status != 'problem' %}
           <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="d-flex gap-1 align-items-center problem-action-form" data-task-detail-status="1">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -100,7 +102,7 @@
           {% if task.status != 'not_started' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-secondary">Не выполнено</button></form>{% endif %}
         </div>
         {% if can_delete_task %}
-        <form method="post" action="{{ url_for('main.task_delete', task_id=task.id) }}" data-confirm="Удалить это замечание? Удалять можно только замечания, созданные вручную внутри CRM.">
+        <form method="post" action="{{ url_for('main.task_delete', task_id=task.id) }}" data-confirm="Удалить это замечание? Это действие нельзя отменить.">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn btn-outline-danger w-100" type="submit"><i class="bi bi-trash me-2"></i>Удалить замечание</button>
         </form>

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from copy import copy
 from datetime import date, datetime, timedelta
 import json
@@ -28,7 +29,7 @@ EXCEL_DOWNLOAD_BORDER = Border(
     top=Side(style="thin", color="000000"),
     bottom=Side(style="thin", color="000000"),
 )
-from app import db
+from app import csrf, db
 from app.forms import CommentForm, ProjectForm, TaskEditForm, UploadExcelForm, UserForm, UserPasswordForm
 from app.models import (
     Apartment,
@@ -42,6 +43,7 @@ from app.models import (
     SyncConflict,
     SyncLog,
     SiteErrorReport,
+    SiteVisit,
     DeletionActionLog,
     ChangeLog,
     Task,
@@ -67,6 +69,7 @@ from app.models import (
     DONE_STATUSES,
 )
 from app.permissions import can_change_task, can_export, can_manage_mapping, can_manage_sync, role_required
+from app.security import client_ip, hit_rate_limit, resolve_site_visit_project_id
 from app.services.changelog_service import log_change
 from app.services.document_flow import (
     addendum_field_keys,
@@ -85,7 +88,7 @@ from app.services.avr_document import (
     format_input_date,
     safe_avr_filename,
 )
-from app.services.excel_export import _excel_premise_label, _safe_filename_part, export_glass_measurements_excel, export_remark_tasks_excel, export_report_tasks_excel, export_simple_tasks_excel, export_source_excel_with_strikes, export_tasks_to_excel
+from app.services.excel_export import _excel_premise_label, _safe_filename_part, build_export_path, export_glass_measurements_excel, export_remark_tasks_excel, export_report_tasks_excel, export_simple_tasks_excel, export_source_excel_reconstructed, export_source_excel_with_strikes, export_tasks_to_excel, resolve_source_excel_with_strikes_path
 from app.services.pdf_export import export_assignment_worker_pdf, export_table_pdf, export_tasks_pdf
 from app.services.excel_import import inspect_remarks_workbook, preview_excel, save_upload, sync_excel_file
 from app.services.google_sheets_sync import sync_google_sheets, update_task_strike_in_google_sheet
@@ -114,8 +117,8 @@ from app.services.task_service import (
     APP_DEADLINE_NO_REMARKS,
 )
 from app.services.status_rules import is_problem_details_required
-from app.services.sync_rollback import apply_sync_rollback
-from app.services.uid_service import build_task_uid, stable_hash
+from app.services.sync_rollback import apply_sync_rollback, build_project_rollback_data
+from app.services.uid_service import build_task_uid, cell_hash, normalize_text, stable_hash
 from app.services.remark_format import remark_text_html
 from app.security import hit_rate_limit, security_event, validate_upload
 from app.two_factor import generate_totp_secret, provisioning_uri, qr_svg_data_uri, verify_totp
@@ -155,7 +158,7 @@ SECTION_LOCK_CHOICES = [
             "main.object_delete_confirm", "main.object_open",
         },
     },
-    {"key": "dashboard", "label": "Дашборд", "icon": "bi-grid-1x2", "endpoints": {"main.dashboard"}},
+    {"key": "dashboard", "label": "Главная", "icon": "bi-grid-1x2", "endpoints": {"main.dashboard"}},
     {
         "key": "remarks",
         "label": "Замечания",
@@ -258,7 +261,14 @@ SECTION_LOCK_CHOICES = [
         "key": "site_errors",
         "label": "Для разработчика",
         "icon": "bi-bug",
-        "endpoints": {"main.site_errors", "main.site_error_close", "main.site_error_delete", "main.developer_delete_logs", "main.developer_delete_log_undo"},
+        "endpoints": {
+            "main.site_errors",
+            "main.site_error_close",
+            "main.site_error_delete",
+            "main.developer_delete_logs",
+            "main.developer_delete_log_undo",
+            "main.developer_statistics",
+        },
     },
     {
         "key": "worker_tasks",
@@ -397,6 +407,13 @@ def format_ru_date(value: date | datetime | None = None) -> str:
     if isinstance(value, datetime):
         value = value.date()
     return f"{value.day} {RU_MONTHS_GENITIVE.get(value.month, '')} {value.year}".strip()
+
+
+def format_ru_day_month(value: date | datetime | None = None) -> str:
+    value = value or date.today()
+    if isinstance(value, datetime):
+        value = value.date()
+    return f"{value.day} {RU_MONTHS_GENITIVE.get(value.month, '')}".strip()
 
 
 def format_ru_datetime(value: datetime | None = None) -> str:
@@ -1439,6 +1456,676 @@ def report_error():
     return _safe_redirect(request.form.get("page_url") or request.referrer, "auth.login")
 
 
+def _visit_browser_label(user_agent: str | None) -> str:
+    ua = (user_agent or "").lower()
+    if "yabrowser" in ua:
+        return "Yandex Browser"
+    if "edg/" in ua:
+        return "Microsoft Edge"
+    if "opr/" in ua or "opera" in ua:
+        return "Opera"
+    if "chrome/" in ua and "chromium" not in ua:
+        return "Google Chrome"
+    if "firefox/" in ua:
+        return "Mozilla Firefox"
+    if "safari/" in ua and "chrome/" not in ua:
+        return "Safari"
+    if "postmanruntime" in ua:
+        return "Postman"
+    if "python-requests" in ua:
+        return "Python Requests"
+    return "Неизвестный браузер"
+
+
+def _visit_os_label(user_agent: str | None) -> str:
+    ua = (user_agent or "").lower()
+    if "windows" in ua:
+        return "Windows"
+    if "iphone" in ua or "ios" in ua:
+        return "iPhone (iOS)"
+    if "ipad" in ua:
+        return "iPadOS"
+    if "android" in ua:
+        return "Android"
+    if "mac os x" in ua or "macintosh" in ua:
+        return "macOS"
+    if "linux" in ua:
+        return "Linux"
+    return "Неизвестная ОС"
+
+
+def _visit_device_label(user_agent: str | None) -> str:
+    ua = (user_agent or "").lower()
+    if "ipad" in ua or "tablet" in ua:
+        return "Планшет"
+    if "iphone" in ua or "android" in ua and "mobile" in ua:
+        return "Телефон"
+    if "mobile" in ua:
+        return "Телефон"
+    return "Компьютер"
+
+
+def _visit_status_tone(status_code: int | None) -> str:
+    if not status_code:
+        return "muted"
+    if status_code >= 500:
+        return "danger"
+    if status_code >= 400:
+        return "warning"
+    if status_code >= 300:
+        return "info"
+    return "success"
+
+
+def _visit_status_bucket_label(status_code: int | None) -> str:
+    if not status_code:
+        return "Без ответа"
+    if status_code >= 500:
+        return "5xx"
+    if status_code >= 400:
+        return "4xx"
+    if status_code >= 300:
+        return "3xx"
+    if status_code >= 200:
+        return "2xx"
+    return "Прочее"
+
+
+def _visit_user_label(user: User | None) -> str:
+    if not user:
+        return "Гость"
+    return (user.full_name or user.username or f"ID {user.id}").strip()
+
+
+def _visit_short_path(path: str | None, endpoint: str | None = None) -> str:
+    parsed = urlparse(path or "")
+    short = parsed.path or path or endpoint or "—"
+    if len(short) > 44:
+        return f"{short[:41]}..."
+    return short
+
+
+def _build_site_visit_daily_series(base_query, start_date: date, end_date: date) -> list[dict]:
+    span = max(1, min((end_date - start_date).days + 1, 30))
+    chart_start_date = end_date - timedelta(days=span - 1)
+    use_compact_labels = span >= 21
+    rows = (
+        base_query
+        .with_entities(func.date(SiteVisit.created_at).label("day"), func.count(SiteVisit.id).label("hits"))
+        .filter(SiteVisit.created_at >= datetime.combine(chart_start_date, datetime.min.time()))
+        .group_by(func.date(SiteVisit.created_at))
+        .all()
+    )
+    day_map = {str(day): int(hits or 0) for day, hits in rows}
+    peak = max(day_map.values(), default=0)
+    series = []
+    for offset in range(span):
+        day = chart_start_date + timedelta(days=offset)
+        hits = day_map.get(day.isoformat(), 0)
+        if peak <= 0 or hits <= 0:
+            bar = 0
+            if False and duplicate_count:
+                flash("Такие замечания уже есть в базе", "warning")
+                return render_template(
+                    "task_form.html",
+                    project=project,
+                    apartments=apartments,
+                    points=points,
+                    add_mode=add_mode,
+                    manual_kind=manual_kind,
+                )
+        else:
+            # Scale strictly against the current peak for the visible period.
+            bar = max(1, min(100, int(round((hits / peak) * 100))))
+        series.append({
+            "date": day,
+            "label": day.strftime("%d"),
+            "full_label": day.strftime("%d.%m.%Y"),
+            "compact_label": use_compact_labels,
+            "hits": hits,
+            "bar": bar,
+        })
+    return series
+
+
+def _build_site_visit_chart_month_label(start_date: date, end_date: date) -> str:
+    month_names = {
+        1: "Январь",
+        2: "Февраль",
+        3: "Март",
+        4: "Апрель",
+        5: "Май",
+        6: "Июнь",
+        7: "Июль",
+        8: "Август",
+        9: "Сентябрь",
+        10: "Октябрь",
+        11: "Ноябрь",
+        12: "Декабрь",
+    }
+    start_month = month_names.get(start_date.month, "")
+    end_month = month_names.get(end_date.month, "")
+    if start_date.year == end_date.year:
+        if start_date.month == end_date.month:
+            return f"{start_month} {start_date.year}"
+        return f"{start_month} - {end_month} {start_date.year}"
+    return f"{start_month} {start_date.year} - {end_month} {end_date.year}"
+
+
+def _build_site_visit_future_notice(start_date: date, end_date: date, today: date, total_visits: int) -> str:
+    if total_visits > 0 or start_date <= today:
+        return ""
+    if start_date == end_date:
+        return "Информации за эту дату еще нет."
+    return "Информации за этот период еще нет."
+
+
+def _build_site_visit_period_label(start_date: date, end_date: date) -> str:
+    if start_date == end_date:
+        return format_ru_day_month(start_date)
+    return f"с {format_ru_date(start_date)} по {format_ru_date(end_date)}"
+
+
+def _build_site_visit_ip_summary(base_query, ip_address: str | None) -> dict | None:
+    if not ip_address:
+        return None
+
+    path_counter: Counter[str] = Counter()
+    users_seen: dict[int, User] = {}
+    projects_seen: Counter[str] = Counter()
+    browser_counter: Counter[str] = Counter()
+    first_seen = None
+    last_seen = None
+
+    visits = (
+        base_query
+        .filter(SiteVisit.ip_address == ip_address)
+        .options(selectinload(SiteVisit.user), selectinload(SiteVisit.project))
+        .order_by(SiteVisit.created_at.asc(), SiteVisit.id.asc())
+        .limit(500)
+        .all()
+    )
+    if not visits:
+        return None
+
+    for visit in visits:
+        path_counter[_visit_short_path(visit.path, visit.endpoint)] += 1
+        browser_counter[_visit_browser_label(visit.user_agent)] += 1
+        if visit.user:
+            users_seen[visit.user.id] = visit.user
+        if visit.project:
+            projects_seen[visit.project.name] += 1
+        elif not visit.project_id:
+            projects_seen["Р‘РµР· РѕР±СЉРµРєС‚Р°"] += 1
+        if first_seen is None:
+            first_seen = visit.created_at
+        last_seen = visit.created_at
+
+    return {
+        "ip": ip_address,
+        "first_seen": first_seen,
+        "last_seen": last_seen,
+        "top_paths": path_counter.most_common(5),
+        "users": list(users_seen.values())[:6],
+        "projects": projects_seen.most_common(4),
+        "browsers": browser_counter.most_common(4),
+    }
+
+
+def _build_site_visit_visitor_groups(visits: list[SiteVisit]) -> list[dict]:
+    groups: dict[tuple[str, str], dict] = {}
+    ordered_groups: list[dict] = []
+
+    for visit in visits:
+        if visit.user_id:
+            key = ("user", str(visit.user_id))
+            label = _visit_user_label(visit.user)
+            kind_label = "Авторизован"
+            kind_class = "is-auth"
+        else:
+            guest_ip = (visit.ip_address or "").strip()
+            key = ("guest", guest_ip or f"guest-{visit.id}")
+            label = f"Гость • {guest_ip}" if guest_ip else "Гость"
+            kind_label = "Гость"
+            kind_class = "is-guest"
+
+        group = groups.get(key)
+        if group is None:
+            group = {
+                "key": key,
+                "label": label,
+                "kind_label": kind_label,
+                "kind_class": kind_class,
+                "hits": 0,
+                "ip_set": set(),
+                "last_seen": visit.created_at,
+                "visits": [],
+            }
+            groups[key] = group
+            ordered_groups.append(group)
+
+        group["hits"] += 1
+        if visit.ip_address:
+            group["ip_set"].add(visit.ip_address)
+        group["visits"].append(visit)
+
+    for group in ordered_groups:
+        group["ip_count"] = len(group["ip_set"])
+        group.pop("ip_set", None)
+
+    return ordered_groups
+
+
+def _build_site_visit_agent_stats(base_query) -> tuple[list[dict], list[dict], list[dict]]:
+    browser_counter: Counter[str] = Counter()
+    os_counter: Counter[str] = Counter()
+    device_counter: Counter[str] = Counter()
+    rows = base_query.with_entities(SiteVisit.user_agent).order_by(SiteVisit.created_at.desc()).limit(1500).all()
+    for (user_agent,) in rows:
+        browser_counter[_visit_browser_label(user_agent)] += 1
+        os_counter[_visit_os_label(user_agent)] += 1
+        device_counter[_visit_device_label(user_agent)] += 1
+
+    def build_items(counter: Counter[str]) -> list[dict]:
+        peak = max(counter.values(), default=0)
+        return [
+            {
+                "label": label,
+                "count": count,
+                "bar": 0 if peak <= 0 else max(12, int((count / peak) * 100)),
+            }
+            for label, count in counter.most_common(5)
+        ]
+
+    return build_items(browser_counter), build_items(os_counter), build_items(device_counter)
+
+
+def _ru_plural(number: int, forms: tuple[str, str, str]) -> str:
+    value = abs(int(number))
+    if 11 <= value % 100 <= 14:
+        return forms[2]
+    if value % 10 == 1:
+        return forms[0]
+    if 2 <= value % 10 <= 4:
+        return forms[1]
+    return forms[2]
+
+
+def _format_ru_milliseconds(value: float | int | None) -> str:
+    milliseconds = max(int(round(value or 0)), 0)
+    return f"{milliseconds} м/сек"
+
+
+def _developer_statistics_filters() -> dict:
+    allowed_days = [7, 14, 30]
+    max_period_days = max(allowed_days)
+    try:
+        days = int(request.args.get("days") or 7)
+    except (TypeError, ValueError):
+        days = 7
+    if days not in allowed_days:
+        days = 7
+    today = date.today()
+    period_end_date = parse_date(request.args.get("end_date")) or parse_date(request.args.get("date")) or today
+    period_start_date = parse_date(request.args.get("start_date"))
+    if period_start_date and period_start_date > period_end_date:
+        period_start_date, period_end_date = period_end_date, period_start_date
+    if period_start_date:
+        current_period_days = max(1, (period_end_date - period_start_date).days + 1)
+        if current_period_days > max_period_days:
+            period_start_date = period_end_date - timedelta(days=max_period_days - 1)
+            current_period_days = max_period_days
+        days = current_period_days
+    else:
+        period_start_date = period_end_date - timedelta(days=days - 1)
+    scope = (request.args.get("scope") or "all").strip().lower()
+    if scope not in {"all", "auth", "guest"}:
+        scope = "all"
+    ip_filter = (request.args.get("ip") or "").strip()
+    path_filter = (request.args.get("path") or "").strip()
+    user_filter_raw = (request.args.get("user_id") or "").strip()
+    try:
+        user_filter_id = int(user_filter_raw) if user_filter_raw else None
+    except (TypeError, ValueError):
+        user_filter_id = None
+    return {
+        "allowed_days": allowed_days,
+        "days": days,
+        "selected_date": period_end_date,
+        "selected_date_iso": period_end_date.isoformat(),
+        "period_start_date": period_start_date,
+        "period_start_date_iso": period_start_date.isoformat(),
+        "period_end_date": period_end_date,
+        "period_end_date_iso": period_end_date.isoformat(),
+        "max_period_days": max_period_days,
+        "today": today,
+        "scope": scope,
+        "ip_filter": ip_filter,
+        "path_filter": path_filter,
+        "user_filter_id": user_filter_id,
+    }
+
+
+def _apply_site_visit_filters(query, *, project, range_start, range_end, scope, ip_filter, path_filter, user_filter_id, visit_kind: str | None = None):
+    query = query.filter(SiteVisit.created_at >= range_start, SiteVisit.created_at < range_end)
+    if project:
+        query = query.filter(or_(SiteVisit.project_id == project.id, SiteVisit.project_id.is_(None)))
+    if visit_kind == "request":
+        query = query.filter(or_(SiteVisit.visit_kind == "request", SiteVisit.visit_kind.is_(None)))
+    elif visit_kind:
+        query = query.filter(SiteVisit.visit_kind == visit_kind)
+    if scope == "auth":
+        query = query.filter(SiteVisit.is_authenticated.is_(True))
+    elif scope == "guest":
+        query = query.filter(SiteVisit.is_authenticated.is_(False))
+    if ip_filter:
+        like_value = f"%{ip_filter[:80]}%"
+        query = query.filter(or_(SiteVisit.ip_address.ilike(like_value), SiteVisit.forwarded_for.ilike(like_value)))
+    if path_filter:
+        like_value = f"%{path_filter[:200]}%"
+        query = query.filter(or_(SiteVisit.path.ilike(like_value), SiteVisit.endpoint.ilike(like_value)))
+    if user_filter_id:
+        query = query.filter(SiteVisit.user_id == user_filter_id)
+    return query
+
+
+def _build_developer_statistics_context() -> dict:
+    project = selected_project()
+    filters = _developer_statistics_filters()
+    period_start_date = filters["period_start_date"]
+    period_end_date = filters["period_end_date"]
+    scope = filters["scope"]
+    ip_filter = filters["ip_filter"]
+    path_filter = filters["path_filter"]
+    user_filter_id = filters["user_filter_id"]
+    range_start = datetime.combine(period_start_date, datetime.min.time())
+    range_end = datetime.combine(period_end_date + timedelta(days=1), datetime.min.time())
+
+    tab_query = _apply_site_visit_filters(
+        SiteVisit.query,
+        project=project,
+        range_start=range_start,
+        range_end=range_end,
+        scope=scope,
+        ip_filter=ip_filter,
+        path_filter=path_filter,
+        user_filter_id=user_filter_id,
+        visit_kind="tab_open",
+    )
+    request_query = _apply_site_visit_filters(
+        SiteVisit.query,
+        project=project,
+        range_start=range_start,
+        range_end=range_end,
+        scope=scope,
+        ip_filter=ip_filter,
+        path_filter=path_filter,
+        user_filter_id=user_filter_id,
+        visit_kind="request",
+    )
+
+    total_visits = tab_query.order_by(None).count()
+    avg_duration = request_query.with_entities(func.avg(SiteVisit.duration_ms)).scalar() or 0
+    unique_ips = (
+        tab_query
+        .with_entities(func.count(distinct(SiteVisit.ip_address)))
+        .filter(SiteVisit.ip_address.isnot(None))
+        .scalar()
+        or 0
+    )
+    known_users = (
+        tab_query
+        .with_entities(SiteVisit.user_id)
+        .filter(SiteVisit.user_id.isnot(None))
+        .distinct()
+        .all()
+    )
+    guest_ips = (
+        tab_query
+        .with_entities(SiteVisit.ip_address)
+        .filter(SiteVisit.user_id.is_(None), SiteVisit.ip_address.isnot(None))
+        .distinct()
+        .all()
+    )
+    latest_visit_at = tab_query.with_entities(func.max(SiteVisit.created_at)).scalar()
+    unique_visitors = len(known_users) + len(guest_ips)
+
+    top_ip_rows = (
+        tab_query
+        .with_entities(
+            SiteVisit.ip_address,
+            func.count(SiteVisit.id).label("hits"),
+            func.count(distinct(SiteVisit.user_id)).label("users_count"),
+            func.max(SiteVisit.created_at).label("last_seen"),
+        )
+        .filter(SiteVisit.ip_address.isnot(None))
+        .group_by(SiteVisit.ip_address)
+        .order_by(func.count(SiteVisit.id).desc(), func.max(SiteVisit.created_at).desc())
+        .limit(10)
+        .all()
+    )
+    top_ips = [
+        {
+            "ip_address": ip_address or "—",
+            "hits": int(hits or 0),
+            "users_count": int(users_count or 0),
+            "last_seen": last_seen,
+        }
+        for ip_address, hits, users_count, last_seen in top_ip_rows
+    ]
+
+    top_user_rows = (
+        tab_query
+        .with_entities(
+            SiteVisit.user_id,
+            func.count(SiteVisit.id).label("hits"),
+            func.count(distinct(SiteVisit.ip_address)).label("ip_count"),
+            func.max(SiteVisit.created_at).label("last_seen"),
+        )
+        .filter(SiteVisit.user_id.isnot(None))
+        .group_by(SiteVisit.user_id)
+        .order_by(func.count(SiteVisit.id).desc(), func.max(SiteVisit.created_at).desc())
+        .limit(10)
+        .all()
+    )
+    top_user_ids = [user_id for user_id, _, _, _ in top_user_rows if user_id]
+    top_user_map = {user.id: user for user in User.query.filter(User.id.in_(top_user_ids)).all()} if top_user_ids else {}
+    top_users = [
+        {
+            "user": top_user_map.get(user_id),
+            "hits": int(hits or 0),
+            "ip_count": int(ip_count or 0),
+            "last_seen": last_seen,
+        }
+        for user_id, hits, ip_count, last_seen in top_user_rows
+    ]
+
+    recent_visits = (
+        tab_query
+        .options(selectinload(SiteVisit.user), selectinload(SiteVisit.project))
+        .order_by(SiteVisit.created_at.desc(), SiteVisit.id.desc())
+        .limit(240)
+        .all()
+    )
+    visitor_groups = _build_site_visit_visitor_groups(recent_visits)
+
+    focused_ip_summary = None
+    if ip_filter and total_visits:
+        path_counter: Counter[str] = Counter()
+        users_seen: dict[int, User] = {}
+        projects_seen: Counter[str] = Counter()
+        browser_counter: Counter[str] = Counter()
+        first_seen = None
+        for visit in (
+            tab_query
+            .options(selectinload(SiteVisit.user), selectinload(SiteVisit.project))
+            .order_by(SiteVisit.created_at.asc(), SiteVisit.id.asc())
+            .limit(500)
+            .all()
+        ):
+            path_counter[_visit_short_path(visit.path, visit.endpoint)] += 1
+            browser_counter[_visit_browser_label(visit.user_agent)] += 1
+            if visit.user:
+                users_seen[visit.user.id] = visit.user
+            if visit.project:
+                projects_seen[visit.project.name] += 1
+            elif not visit.project_id:
+                projects_seen["Без объекта"] += 1
+            if first_seen is None:
+                first_seen = visit.created_at
+        focused_ip_summary = {
+            "ip": ip_filter,
+            "first_seen": first_seen,
+            "last_seen": latest_visit_at,
+            "top_paths": path_counter.most_common(5),
+            "users": list(users_seen.values())[:6],
+            "projects": projects_seen.most_common(4),
+            "browsers": browser_counter.most_common(4),
+        }
+
+    ip_summaries = {
+        item["ip_address"]: _build_site_visit_ip_summary(tab_query, item["ip_address"])
+        for item in top_ips
+    }
+    if ip_filter and not focused_ip_summary:
+        focused_ip_summary = ip_summaries.get(ip_filter)
+
+    browser_stats, os_stats, device_stats = _build_site_visit_agent_stats(tab_query)
+    environment_summary = {
+        "browser": browser_stats[0] if browser_stats else None,
+        "os": os_stats[0] if os_stats else None,
+        "device": device_stats[0] if device_stats else None,
+    }
+    daily_series = _build_site_visit_daily_series(tab_query, period_start_date, period_end_date)
+    chart_month_label = _build_site_visit_chart_month_label(period_start_date, period_end_date)
+    period_display_label = _build_site_visit_period_label(period_start_date, period_end_date)
+    future_notice = _build_site_visit_future_notice(period_start_date, period_end_date, filters["today"], total_visits)
+    return {
+        "project": project,
+        **filters,
+        "total_visits": total_visits,
+        "unique_visitors": unique_visitors,
+        "unique_ips": unique_ips,
+        "avg_duration": int(avg_duration or 0),
+        "avg_duration_label": _format_ru_milliseconds(avg_duration),
+        "latest_visit_at": latest_visit_at,
+        "top_ips": top_ips,
+        "top_users": top_users,
+        "ip_summaries": ip_summaries,
+        "recent_visits": recent_visits,
+        "visitor_groups": visitor_groups,
+        "browser_stats": browser_stats,
+        "os_stats": os_stats,
+        "device_stats": device_stats,
+        "environment_summary": environment_summary,
+        "daily_series": daily_series,
+        "chart_month_label": chart_month_label,
+        "period_display_label": period_display_label,
+        "future_notice": future_notice,
+        "focused_ip_summary": focused_ip_summary,
+        "visit_browser_label": _visit_browser_label,
+        "visit_os_label": _visit_os_label,
+        "visit_device_label": _visit_device_label,
+        "visit_user_label": _visit_user_label,
+        "visit_short_path": _visit_short_path,
+    }
+
+
+def _render_developer_statistics_page(template_name: str, active_page: str, subtitle: str):
+    if current_user.role != ROLE_ADMIN:
+        abort(403)
+    context = _build_developer_statistics_context()
+    context.update(
+        active_statistics_page=active_page,
+        statistics_subtitle=subtitle,
+    )
+    return render_template(template_name, **context)
+
+
+@bp.route("/developer/statistics")
+@login_required
+def developer_statistics():
+    return _render_developer_statistics_page(
+        "developer_statistics.html",
+        active_page="overview",
+        subtitle="",
+    )
+
+
+@bp.route("/developer/statistics/visits")
+@login_required
+def developer_statistics_visits():
+    return _render_developer_statistics_page(
+        "developer_statistics_visits.html",
+        active_page="visits",
+        subtitle="",
+    )
+
+
+@bp.route("/developer/statistics/sources")
+@login_required
+def developer_statistics_sources():
+    return _render_developer_statistics_page(
+        "developer_statistics_sources.html",
+        active_page="sources",
+        subtitle="",
+    )
+
+
+@bp.route("/analytics/tab-open", methods=["POST"])
+@csrf.exempt
+def analytics_tab_open():
+    if hit_rate_limit("site-tab-open", 180, 60):
+        return ("", 204)
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        payload = {}
+    tab_id = str(payload.get("tab_id") or "").strip()[:80]
+    if not tab_id:
+        return ("", 204)
+
+    opened_path = str(payload.get("path") or "").strip()
+    if not opened_path and request.referrer:
+        parsed_referrer = urlparse(request.referrer)
+        opened_path = parsed_referrer.path or "/"
+        if parsed_referrer.query:
+            opened_path = f"{opened_path}?{parsed_referrer.query}"
+    referrer = str(payload.get("referrer") or "").strip()[:500] or None
+    forwarded_for = (request.headers.get("X-Forwarded-For") or "")[:255] or None
+
+    try:
+        existing_visit = (
+            SiteVisit.query
+            .with_entities(SiteVisit.id)
+            .filter(SiteVisit.visit_kind == "tab_open", SiteVisit.tab_id == tab_id)
+            .first()
+        )
+        if existing_visit:
+            return ("", 204)
+
+        visit = SiteVisit(
+            project_id=resolve_site_visit_project_id(),
+            user_id=current_user.id if getattr(current_user, "is_authenticated", False) else None,
+            ip_address=client_ip()[:80],
+            forwarded_for=forwarded_for,
+            endpoint="analytics_tab_open",
+            method="TAB",
+            path=(opened_path or "/")[:500],
+            referrer=referrer,
+            user_agent=(request.headers.get("User-Agent") or "")[:500] or None,
+            status_code=204,
+            duration_ms=None,
+            is_authenticated=bool(getattr(current_user, "is_authenticated", False)),
+            visit_kind="tab_open",
+            tab_id=tab_id,
+        )
+        db.session.add(visit)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    return ("", 204)
+
+
 @bp.route("/site-errors")
 @login_required
 def site_errors():
@@ -1751,6 +2438,8 @@ def developer_delete_log_undo(log_id: int):
             flash(message, "success")
         else:
             db.session.rollback()
+            if False:
+                flash("Такие замечания уже есть в базе", "warning")
             flash(message, "warning")
     except ValueError as exc:
         db.session.rollback()
@@ -1926,41 +2615,43 @@ def contractors_export():
     return send_file(path, as_attachment=True, download_name=Path(path).name)
 
 
-def _selected_task_ids_from_request() -> list[int]:
-    task_ids = []
-    seen = set()
-    for raw_id in request.args.getlist("task_ids"):
+def _unique_int_list(values) -> list[int]:
+    result: list[int] = []
+    seen: set[int] = set()
+    for raw_value in values or []:
         try:
-            task_id = int(raw_id)
+            item_id = int(raw_value)
         except (TypeError, ValueError):
             continue
-        if task_id in seen:
+        if item_id in seen:
             continue
-        seen.add(task_id)
-        task_ids.append(task_id)
-    return task_ids
+        seen.add(item_id)
+        result.append(item_id)
+    return result
+
+
+def _selected_task_ids_from_request() -> list[int]:
+    return _unique_int_list(request.args.getlist("task_ids"))
+
+
+def _selected_task_ids_from_form() -> list[int]:
+    return _unique_int_list(request.form.getlist("task_ids"))
 
 
 def _selected_premise_ids_from_request() -> list[int]:
-    premise_ids = []
-    seen = set()
-    for raw_id in request.args.getlist("premise_ids"):
-        try:
-            premise_id = int(raw_id)
-        except (TypeError, ValueError):
-            continue
-        if premise_id in seen:
-            continue
-        seen.add(premise_id)
-        premise_ids.append(premise_id)
-    return premise_ids
+    return _unique_int_list(request.args.getlist("premise_ids"))
 
 
 def _export_tasks_from_request(query_args: dict, project_id: int, category_id: int | None = None):
+    export_options = (
+        selectinload(Task.apartment),
+        selectinload(Task.work_point),
+        selectinload(Task.responsible),
+    )
     task_ids = _selected_task_ids_from_request()
     if task_ids:
         return (
-            Task.query.options(selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.responsible))
+            Task.query.options(*export_options)
             .join(Apartment)
             .join(WorkPoint)
             .filter(Task.project_id == project_id, Task.id.in_(task_ids))
@@ -1968,8 +2659,8 @@ def _export_tasks_from_request(query_args: dict, project_id: int, category_id: i
         )
     premise_ids = _selected_premise_ids_from_request()
     if premise_ids:
-        return build_task_query(query_args, category_id=category_id, project_id=project_id).filter(Apartment.id.in_(premise_ids))
-    return build_task_query(query_args, category_id=category_id, project_id=project_id)
+        return build_task_query(query_args, category_id=category_id, project_id=project_id).options(*export_options).filter(Apartment.id.in_(premise_ids))
+    return build_task_query(query_args, category_id=category_id, project_id=project_id).options(*export_options)
 
 
 def _executor_users(project_id: int | None = None) -> list[User]:
@@ -3301,10 +3992,20 @@ def glass_need_measure(task_id: int):
     if not measurement.apartment_id:
         measurement.apartment_id = task.apartment_id
     db.session.commit()
+    return_tab = (request.form.get("return_tab") or request.args.get("tab") or "order").strip().lower()
+    if return_tab not in {"all", "order"}:
+        return_tab = "order"
+    success_message = "Позиция переведена в статус «В заказе»"
     if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
-        return jsonify({"ok": True, "message": "Замечание перенесено во вкладку «Заказать»", "status": GLASS_STATUS_MEASURE_NEEDED})
-    flash("Замечание перенесено во вкладку «Заказать»", "success")
-    return redirect(url_for("main.glass_measurements", tab="order"))
+        return jsonify({
+            "ok": True,
+            "message": success_message,
+            "status": GLASS_STATUS_MEASURE_NEEDED,
+            "task_id": task.id,
+            "measurement_id": measurement.id,
+        })
+    flash(success_message, "success")
+    return redirect(url_for("main.glass_measurements", tab=return_tab))
 
 
 @bp.route("/glass/<int:task_id>/save", methods=["POST"])
@@ -3428,7 +4129,12 @@ def glass_measurement_return_to_all(measurement_id: int):
     if return_tab not in {"all", "order"}:
         return_tab = "all"
     if wants_json:
-        return jsonify({"ok": True, "message": "Позиция снова доступна как «Сделать замер»", "status": GLASS_STATUS_NONE})
+        return jsonify({
+            "ok": True,
+            "message": "Позиция снова доступна как «Сделать замер»",
+            "status": GLASS_STATUS_NONE,
+            "task_id": measurement.task_id,
+        })
     flash("Позиция снова доступна как «Сделать замер»", "success")
     return redirect(url_for("main.glass_measurements", tab=return_tab))
 
@@ -4423,6 +5129,14 @@ def material_writeoff_new():
                     )
                     db.session.add(writeoff)
                 db.session.commit()
+                if False:
+                    message = f"Отправлено в синхронизацию: {conflict_count}"
+                    if created_count:
+                        message += f". Добавлено новых замечаний: {created_count}"
+                    if duplicate_count:
+                        message += f". Уже были в базе: {duplicate_count}"
+                    flash(message, "warning")
+                    return redirect(url_for("main.sync_conflicts"))
                 flash(f"Материал распределён между замечаниями: {len(selected_tasks)}", "success")
                 return redirect(url_for("main.materials", tab="history"))
             writeoff = MaterialWriteOff(project_id=project.id, author_id=current_user.id, writeoff_date=writeoff_date, comment=None)
@@ -4461,7 +5175,11 @@ def _project_apartment_options(project_id: int) -> list[Apartment]:
     apartments = [_pick_apartment_representative(group) for group in grouped.values()]
     return sorted(
         apartments,
-        key=lambda apartment: (apartment.premise_type == "commercial", _apartment_number_sort_value(apartment.apartment_number or apartment.construction_number), apartment.building or ""),
+        key=lambda apartment: (
+            apartment.premise_type == "commercial",
+            _apartment_number_sort_value(apartment.display_number(fallback_to_id=False)),
+            apartment.building or "",
+        ),
     )
 
 
@@ -4575,6 +5293,190 @@ def _create_manual_remark_task(
     return task
 
 
+def _task_effective_remark_text(task: Task) -> str:
+    return (task.description or task.source_cell_value or "").strip()
+
+
+def _pending_task_sync_conflict(task_id: int) -> SyncConflict | None:
+    return (
+        SyncConflict.query.filter_by(task_id=task_id, status="pending", target_type="task")
+        .order_by(SyncConflict.id.desc())
+        .first()
+    )
+
+
+def _remark_task_candidates(project_id: int, apartment_id: int, work_point_id: int) -> list[Task]:
+    return (
+        Task.query.filter(
+            Task.project_id == project_id,
+            Task.apartment_id == apartment_id,
+            Task.work_point_id == work_point_id,
+            Task.is_archived.is_(False),
+        )
+        .order_by(Task.is_done.asc(), Task.id.desc())
+        .all()
+    )
+
+
+def _find_existing_remark_duplicate_or_conflict(
+    *,
+    project: Project,
+    apartment: Apartment,
+    point_number: str | None,
+    text: str,
+) -> tuple[WorkPoint, Task | None, Task | None]:
+    work_point = _get_or_create_manual_work_point(point_number)
+    target_text = normalize_text(text)
+    duplicate_task = None
+    conflict_task = None
+    for task in _remark_task_candidates(project.id, apartment.id, work_point.id):
+        task_text = normalize_text(_task_effective_remark_text(task))
+        pending_conflict = _pending_task_sync_conflict(task.id)
+        pending_text = normalize_text(pending_conflict.new_value or "") if pending_conflict else ""
+        if target_text and (task_text == target_text or pending_text == target_text):
+            duplicate_task = task
+            break
+        if conflict_task is None and (task_text or pending_conflict is not None):
+            conflict_task = task
+    return work_point, duplicate_task, conflict_task
+
+
+def _queue_remark_sync_conflict(
+    *,
+    task: Task,
+    new_text: str,
+    source_type: str,
+    source_name: str | None = None,
+    sheet_name: str | None = None,
+    field_label: str | None = None,
+    cell_address: str | None = None,
+) -> SyncConflict | None:
+    old_text = _task_effective_remark_text(task)
+    old_hash = task.source_hash or cell_hash(old_text)
+    new_hash = cell_hash(new_text)
+    if old_hash == new_hash and normalize_text(old_text) == normalize_text(new_text):
+        return None
+    existing = _pending_task_sync_conflict(task.id)
+    if existing is None:
+        existing = SyncConflict(
+            task_id=task.id,
+            target_type="task",
+            field_name="description",
+            field_label=field_label or "Замечание",
+            source_type=source_type,
+            source_name=source_name,
+            sheet_name=sheet_name,
+            cell_address=cell_address,
+            old_value=old_text,
+            new_value=new_text,
+            old_hash=old_hash,
+            new_hash=new_hash,
+        )
+        db.session.add(existing)
+        return existing
+    existing.field_name = "description"
+    existing.field_label = field_label or existing.field_label or "Замечание"
+    existing.source_type = source_type
+    existing.source_name = source_name
+    existing.sheet_name = sheet_name
+    existing.cell_address = cell_address
+    existing.old_value = old_text
+    existing.new_value = new_text
+    existing.old_hash = old_hash
+    existing.new_hash = new_hash
+    return existing
+
+
+def _work_point_conflict_label(work_point: WorkPoint | None) -> str:
+    if work_point is None:
+        return "Замечание"
+    point_number = str(work_point.point_number or "").strip()
+    display_name = str(work_point.display_name or "").strip()
+    if point_number and display_name:
+        cleaned_name = re.sub(rf"^\s*{re.escape(point_number)}\s*[\.\-:)]?\s*", "", display_name).strip()
+        if cleaned_name:
+            return f"Пункт {point_number}: {cleaned_name}"
+    if point_number:
+        return f"Пункт {point_number}"
+    return display_name or "Замечание"
+
+
+def _save_remark_with_sync_fallback(
+    *,
+    project: Project,
+    apartment: Apartment,
+    point_number: str | None,
+    text: str,
+    created_source_sheet_name: str,
+    created_action: str,
+    conflict_source_type: str,
+    conflict_source_name: str | None = None,
+    conflict_sheet_name: str | None = None,
+) -> str:
+    work_point, duplicate_task, conflict_task = _find_existing_remark_duplicate_or_conflict(
+        project=project,
+        apartment=apartment,
+        point_number=point_number,
+        text=text,
+    )
+    if duplicate_task is not None:
+        return "duplicate"
+    if conflict_task is not None:
+        _queue_remark_sync_conflict(
+            task=conflict_task,
+            new_text=text,
+            source_type=conflict_source_type,
+            source_name=conflict_source_name,
+            sheet_name=conflict_sheet_name or conflict_source_name or created_source_sheet_name,
+            field_label=_work_point_conflict_label(work_point),
+            cell_address=None,
+        )
+        return "conflict"
+    _create_manual_remark_task(
+        project=project,
+        apartment=apartment,
+        point_number=work_point.point_number,
+        text=text,
+        source_sheet_name=created_source_sheet_name,
+        action=created_action,
+    )
+    return "created"
+
+
+def _start_snapshot_sync_log(*, project: Project | None, source_type: str, source_name: str | None = None) -> SyncLog:
+    sync_log = SyncLog(
+        source_type=(source_type or "").strip() or "manual",
+        source_name=((source_name or "").strip()[:255] or None),
+        started_at=datetime.utcnow(),
+        status="running",
+        project_id=project.id if project else None,
+    )
+    sync_log.rollback_data = build_project_rollback_data(project.id if project else None)
+    db.session.add(sync_log)
+    db.session.commit()
+    return sync_log
+
+
+def _finish_snapshot_sync_log(
+    sync_log: SyncLog,
+    *,
+    created_count: int = 0,
+    updated_count: int = 0,
+    missing_count: int = 0,
+    status: str = "success",
+    error_message: str | None = None,
+) -> SyncLog:
+    sync_log.created_count = int(created_count or 0)
+    sync_log.updated_count = int(updated_count or 0)
+    sync_log.missing_count = int(missing_count or 0)
+    sync_log.status = (status or "success").strip() or "success"
+    sync_log.error_message = ((error_message or "").strip() or None)
+    sync_log.finished_at = datetime.utcnow()
+    db.session.add(sync_log)
+    db.session.commit()
+    return sync_log
+
+
 def _pdf_preview_to_dict(preview, project: Project) -> dict:
     apartment = None
     if preview.apartment_number:
@@ -4665,42 +5567,147 @@ def task_new():
         elif manual_kind == "act":
             inspection_date = parse_date(request.form.get("inspection_date"))
             created_count = 0
-            target_group = _apartment_group_for_project(apartment, project.id)
-            _apply_inspection_date_to_group(target_group, inspection_date)
+            conflict_count = 0
+            duplicate_count = 0
+            prepared_entries: list[tuple[str, str]] = []
             for point in points:
                 point_number = point["number"]
                 text = (request.form.get(f"description_{point_number}") or "").strip()
                 if not text or is_no_remark_text(text):
                     continue
-                _create_manual_remark_task(
+                prepared_entries.append((point_number, text))
+            if not prepared_entries:
+                db.session.rollback()
+                flash("Заполните хотя бы одно замечание по пункту", "warning")
+            else:
+                apartment_label = apartment.full_label() if apartment.premise_type == "commercial" else apartment.label()
+                sync_log = _start_snapshot_sync_log(
                     project=project,
-                    apartment=apartment,
-                    point_number=point_number,
-                    text=text,
-                    source_sheet_name="manual_act",
-                    action="manual_act_created",
+                    source_type="manual_act",
+                    source_name=f"Ручной акт / {apartment_label}",
                 )
-                created_count += 1
-            if created_count:
-                db.session.commit()
-                flash(f"Добавлено замечаний из акта: {created_count}", "success")
-                return redirect(url_for("main.task_list", status=STATUS_NOT_STARTED))
-            db.session.rollback()
-            flash("Заполните хотя бы одно замечание по пункту", "warning")
+                try:
+                    all_entries_are_duplicates = True
+                    for point_number, text in prepared_entries:
+                        _, duplicate_task, _ = _find_existing_remark_duplicate_or_conflict(
+                            project=project,
+                            apartment=apartment,
+                            point_number=point_number,
+                            text=text,
+                        )
+                        if duplicate_task is None:
+                            all_entries_are_duplicates = False
+                            break
+                    if all_entries_are_duplicates:
+                        db.session.rollback()
+                        _finish_snapshot_sync_log(sync_log)
+                        flash("Точно такой же акт уже подгружен", "danger")
+                        return render_template(
+                            "task_form.html",
+                            project=project,
+                            apartments=apartments,
+                            points=points,
+                            add_mode=add_mode,
+                            manual_kind=manual_kind,
+                        )
+
+                    target_group = _apartment_group_for_project(apartment, project.id)
+                    _apply_inspection_date_to_group(target_group, inspection_date)
+                    for point_number, text in prepared_entries:
+                        outcome = _save_remark_with_sync_fallback(
+                            project=project,
+                            apartment=apartment,
+                            point_number=point_number,
+                            text=text,
+                            created_source_sheet_name="manual_act",
+                            created_action="manual_act_created",
+                            conflict_source_type="manual_act",
+                            conflict_source_name="Ручной акт",
+                            conflict_sheet_name="Ручной акт",
+                        )
+                        if outcome == "created":
+                            created_count += 1
+                        elif outcome == "conflict":
+                            conflict_count += 1
+                        else:
+                            duplicate_count += 1
+
+                    if created_count or conflict_count:
+                        db.session.commit()
+                        _finish_snapshot_sync_log(
+                            sync_log,
+                            created_count=created_count,
+                            missing_count=conflict_count,
+                        )
+                        if conflict_count:
+                            message = f"Отправлено в синхронизацию: {conflict_count}"
+                            if created_count:
+                                message += f". Добавлено новых замечаний: {created_count}"
+                            if duplicate_count:
+                                message += f". Уже были в базе: {duplicate_count}"
+                            flash(message, "warning")
+                            return redirect(url_for("main.sync_conflicts"))
+                        message = f"Добавлено замечаний из акта: {created_count}"
+                        if duplicate_count:
+                            message += f". Уже были в базе: {duplicate_count}"
+                        flash(message, "success")
+                        return redirect(url_for("main.task_list", status=STATUS_NOT_STARTED))
+
+                    db.session.rollback()
+                    _finish_snapshot_sync_log(sync_log)
+                    flash("Ничего не сохранено: проверьте заполненные пункты акта", "warning")
+                except Exception as exc:
+                    db.session.rollback()
+                    _finish_snapshot_sync_log(
+                        sync_log,
+                        created_count=created_count,
+                        missing_count=conflict_count,
+                        status="error",
+                        error_message=str(exc),
+                    )
+                    raise
         else:
             manual_kind = "single"
             text = (request.form.get("description") or "").strip()
             if not text:
                 flash("Введите описание работы", "warning")
             else:
-                _create_manual_remark_task(
+                outcome = _save_remark_with_sync_fallback(
                     project=project,
                     apartment=apartment,
                     point_number="22",
                     text=text,
-                    source_sheet_name="manual",
-                    action="manual_created",
+                    created_source_sheet_name="manual",
+                    created_action="manual_created",
+                    conflict_source_type="manual",
+                    conflict_source_name="Ручное добавление",
+                    conflict_sheet_name="Ручное добавление",
                 )
+                if outcome == "conflict":
+                    db.session.commit()
+                    if False and conflict_count:
+                        message = f"Отправлено в синхронизацию: {conflict_count}"
+                        if created_count:
+                            message += f". Сохранено новых замечаний: {created_count}"
+                        if blocked_count:
+                            message += f". Актов пропущено: {blocked_count}"
+                        if duplicate_act_names:
+                            message += f". Уже подгружены: {', '.join(duplicate_act_names)}"
+                        flash(message, "warning")
+                        return redirect(url_for("main.sync_conflicts"))
+                    flash("Замечание отправлено в синхронизацию: выберите, что оставить, а что заменить", "warning")
+                    return redirect(url_for("main.sync_conflicts"))
+                if outcome == "duplicate":
+                    db.session.rollback()
+                    flash("Точно такое же замечание уже добавлено", "warning")
+                    return render_template(
+                        "task_form.html",
+                        project=project,
+                        apartments=apartments,
+                        points=points,
+                        add_mode=add_mode,
+                        manual_kind=manual_kind,
+                    )
                 db.session.commit()
                 flash("Замечание добавлено со статусом не выполнено", "success")
                 return redirect(url_for("main.task_list", status=STATUS_NOT_STARTED))
@@ -4763,47 +5770,128 @@ def task_recognition():
             else:
                 act_count = request.form.get("act_count", type=int) or 0
                 created_count = 0
+                conflict_count = 0
                 blocked_count = 0
+                duplicate_act_names: list[str] = []
+                sync_log_source_names: list[str] = []
                 for act_idx in range(act_count):
-                    if request.form.get(f"act_{act_idx}_template_ok") != "1":
-                        blocked_count += 1
-                        continue
-                    if request.form.get(f"act_{act_idx}_project_ok") != "1":
-                        blocked_count += 1
-                        continue
-                    apartment_id = request.form.get(f"act_{act_idx}_apartment_id", type=int)
-                    apartment = db.session.get(Apartment, apartment_id) if apartment_id else None
-                    if not apartment or apartment.project_id != project.id:
-                        blocked_count += 1
-                        continue
-                    inspection_date = parse_date(request.form.get(f"act_{act_idx}_inspection_date"))
-                    _apply_inspection_date_to_group(_apartment_group_for_project(apartment, project.id), inspection_date)
-                    row_count = request.form.get(f"act_{act_idx}_row_count", type=int) or 0
-                    for row_idx in range(row_count):
-                        if request.form.get(f"act_{act_idx}_row_{row_idx}_active") != "1":
+                    act_filename = (request.form.get(f"act_{act_idx}_filename") or f"PDF-акт {act_idx + 1}").strip()
+                    if act_filename and act_filename not in sync_log_source_names:
+                        sync_log_source_names.append(act_filename)
+                sync_log = _start_snapshot_sync_log(
+                    project=project,
+                    source_type="pdf_recognition",
+                    source_name=", ".join(sync_log_source_names) or "PDF-акты",
+                )
+                try:
+                    for act_idx in range(act_count):
+                        if request.form.get(f"act_{act_idx}_template_ok") != "1":
+                            blocked_count += 1
                             continue
-                        text = (request.form.get(f"act_{act_idx}_row_{row_idx}_description") or "").strip()
-                        point_number = (request.form.get(f"act_{act_idx}_row_{row_idx}_point") or "22").strip()
-                        if not text or is_no_remark_text(text):
+                        if request.form.get(f"act_{act_idx}_project_ok") != "1":
+                            blocked_count += 1
                             continue
-                        _create_manual_remark_task(
-                            project=project,
-                            apartment=apartment,
-                            point_number=point_number,
-                            text=text,
-                            source_sheet_name="pdf_recognition",
-                            action="pdf_recognition_created",
+                        apartment_id = request.form.get(f"act_{act_idx}_apartment_id", type=int)
+                        apartment = db.session.get(Apartment, apartment_id) if apartment_id else None
+                        if not apartment or apartment.project_id != project.id:
+                            blocked_count += 1
+                            continue
+                        act_filename = (request.form.get(f"act_{act_idx}_filename") or f"PDF-акт {act_idx + 1}").strip()
+                        inspection_date = parse_date(request.form.get(f"act_{act_idx}_inspection_date"))
+                        row_count = request.form.get(f"act_{act_idx}_row_count", type=int) or 0
+                        prepared_rows: list[tuple[str, str]] = []
+                        duplicate_row_count = 0
+                        for row_idx in range(row_count):
+                            if request.form.get(f"act_{act_idx}_row_{row_idx}_active") != "1":
+                                continue
+                            text = (request.form.get(f"act_{act_idx}_row_{row_idx}_description") or "").strip()
+                            point_number = (request.form.get(f"act_{act_idx}_row_{row_idx}_point") or "22").strip()
+                            if not text or is_no_remark_text(text):
+                                continue
+                            prepared_rows.append((point_number, text))
+                            _, duplicate_task, _ = _find_existing_remark_duplicate_or_conflict(
+                                project=project,
+                                apartment=apartment,
+                                point_number=point_number,
+                                text=text,
+                            )
+                            if duplicate_task is not None:
+                                duplicate_row_count += 1
+                        if prepared_rows and duplicate_row_count == len(prepared_rows):
+                            duplicate_act_names.append(act_filename)
+                            continue
+                        if prepared_rows:
+                            _apply_inspection_date_to_group(_apartment_group_for_project(apartment, project.id), inspection_date)
+                        for point_number, text in prepared_rows:
+                            outcome = _save_remark_with_sync_fallback(
+                                project=project,
+                                apartment=apartment,
+                                point_number=point_number,
+                                text=text,
+                                created_source_sheet_name="pdf_recognition",
+                                created_action="pdf_recognition_created",
+                                conflict_source_type="pdf_recognition",
+                                conflict_source_name=act_filename,
+                                conflict_sheet_name=act_filename,
+                            )
+                            if outcome == "created":
+                                created_count += 1
+                            elif outcome == "conflict":
+                                conflict_count += 1
+                    if conflict_count:
+                        db.session.commit()
+                        _finish_snapshot_sync_log(
+                            sync_log,
+                            created_count=created_count,
+                            missing_count=conflict_count,
                         )
-                        created_count += 1
-                if created_count:
-                    db.session.commit()
-                    message = f"Сохранено замечаний: {created_count}"
-                    if blocked_count:
-                        message += f". Актов пропущено: {blocked_count}"
-                    flash(message, "success")
-                    return redirect(url_for("main.task_list", status=STATUS_NOT_STARTED))
-                db.session.rollback()
-                flash("Ничего не сохранено: проверьте ЖК, квартиру и выбранные строки", "warning")
+                        if duplicate_act_names:
+                            flash("Точно такой же акт уже подгружен", "danger")
+                        message = f"Отправлено в синхронизацию: {conflict_count}"
+                        if created_count:
+                            message += f". Сохранено новых замечаний: {created_count}"
+                        if blocked_count:
+                            message += f". Актов пропущено: {blocked_count}"
+                        flash(message, "warning")
+                        return redirect(url_for("main.sync_conflicts"))
+                    if created_count or conflict_count:
+                        db.session.commit()
+                        _finish_snapshot_sync_log(
+                            sync_log,
+                            created_count=created_count,
+                            missing_count=conflict_count,
+                        )
+                        if duplicate_act_names:
+                            flash("Точно такой же акт уже подгружен", "danger")
+                        message = f"Сохранено замечаний: {created_count}"
+                        if blocked_count:
+                            message += f". Актов пропущено: {blocked_count}"
+                        flash(message, "success")
+                        return redirect(url_for("main.task_recognition"))
+                    if duplicate_act_names:
+                        db.session.rollback()
+                        _finish_snapshot_sync_log(sync_log)
+                        flash("Точно такой же акт уже подгружен", "danger")
+                        return render_template(
+                            "task_recognition.html",
+                            project=project,
+                            apartments=apartments,
+                            points=points,
+                            previews=previews,
+                        )
+                    db.session.rollback()
+                    _finish_snapshot_sync_log(sync_log)
+                    flash("Ничего не сохранено: проверьте ЖК, квартиру и выбранные строки", "warning")
+                except Exception as exc:
+                    db.session.rollback()
+                    _finish_snapshot_sync_log(
+                        sync_log,
+                        created_count=created_count,
+                        missing_count=conflict_count,
+                        status="error",
+                        error_message=str(exc),
+                    )
+                    raise
 
     return render_template(
         "task_recognition.html",
@@ -5001,7 +6089,7 @@ def _writeoff_sort_value(writeoff: MaterialWriteOff):
 
 
 def _apartment_identity_text(apartment: Apartment) -> str:
-    return str(apartment.apartment_number or apartment.construction_number or "").strip()
+    return apartment.display_number(fallback_to_id=False)
 
 
 def _clean_apartment_key(text: str) -> str:
@@ -5017,9 +6105,21 @@ def _is_service_apartment_row(apartment: Apartment) -> bool:
     return any(word in text for word in service_words)
 
 
+def _is_orphan_bogus_apartment_row(apartment: Apartment) -> bool:
+    if (apartment.premise_type or "apartment") != "apartment":
+        return False
+    apartment_number = str(apartment.apartment_number or "").strip()
+    construction_number = str(apartment.construction_number or "").strip()
+    if not apartment_number or apartment_number != construction_number:
+        return False
+    if len(apartment_number) <= 24:
+        return False
+    return not list(apartment.tasks or [])
+
+
 def _is_visible_apartment_row(apartment: Apartment) -> bool:
     text = _apartment_identity_text(apartment)
-    return bool(text) and not _is_service_apartment_row(apartment)
+    return bool(text) and not _is_service_apartment_row(apartment) and not _is_orphan_bogus_apartment_row(apartment)
 
 
 def _apartment_group_key(apartment: Apartment) -> str:
@@ -5610,14 +6710,14 @@ def _filtered_apartment_overview_rows(project_id: int, args) -> tuple[list[dict]
                     len(premise_selectors),
                 ),
                 _inspection_sort_rank(row, inspection_order),
-                _apartment_number_sort_value(row["apartment"].apartment_number or row["apartment"].construction_number),
+                _apartment_number_sort_value(row["apartment"].display_number(fallback_to_id=False)),
             )
         )
     else:
         rows.sort(
             key=lambda row: (
                 _inspection_sort_rank(row, inspection_order),
-                _apartment_number_sort_value(row["apartment"].apartment_number or row["apartment"].construction_number),
+                _apartment_number_sort_value(row["apartment"].display_number(fallback_to_id=False)),
             )
         )
     return rows, premise_selectors, po_only
@@ -6255,22 +7355,29 @@ def work_report_export():
         start = today - timedelta(days=55)
         end = today
         filename_prefix = f"{project.name}_отчет_весь период"
+    base_query = Task.query.filter(
+        Task.project_id == project.id,
+        Task.is_done.is_(True),
+        Task.status == STATUS_DONE,
+        Task.completed_date.isnot(None),
+        Task.completed_date >= start,
+        Task.completed_date <= end + timedelta(days=1),
+    )
+    task_count, last_updated = base_query.with_entities(func.count(Task.id), func.max(Task.updated_at)).one()
+    cache_stamp = last_updated.strftime("%Y%m%d%H%M%S") if last_updated else "empty"
+    cache_key = f"count-{task_count}_updated-{cache_stamp}"
+    path = build_export_path(filename_prefix, cache_key=cache_key)
+    download_name = f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    if path.exists():
+        return send_file(path, as_attachment=True, download_name=download_name)
     tasks = (
-        Task.query.join(Apartment)
-        .join(WorkPoint)
-        .filter(
-            Task.project_id == project.id,
-            Task.is_done.is_(True),
-            Task.status == STATUS_DONE,
-            Task.completed_date.isnot(None),
-            Task.completed_date >= start,
-            Task.completed_date <= end + timedelta(days=1),
-        )
+        base_query.options(selectinload(Task.apartment))
+        .join(Apartment)
         .order_by(Task.completed_date.desc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc())
         .all()
     )
-    path = export_report_tasks_excel(tasks, filename_prefix)
-    return send_file(path, as_attachment=True, download_name=Path(path).name)
+    path = export_report_tasks_excel(tasks, filename_prefix, cache_key=cache_key)
+    return send_file(path, as_attachment=True, download_name=download_name)
 
 
 def _apartment_task_groups(query):
@@ -6331,11 +7438,84 @@ def archive_apartment_avr(apartment_id: int):
     flash("Квартира перенесена в архив АВР.", "success")
     return redirect(url_for("main.notifications", tab="60"))
 
+def _delete_task_with_relations(task: Task, project_id: int) -> None:
+    _record_simple_deletion(
+        "task_delete",
+        "task",
+        task,
+        f"Р—Р°РјРµС‡Р°РЅРёРµ #{task.id}",
+        f"РЈРґР°Р»РµРЅРѕ СЂСѓС‡РЅРѕРµ Р·Р°РјРµС‡Р°РЅРёРµ: {(task.description or task.source_cell_value or '')[:180]}",
+        project_id=project_id,
+        extra={
+            "apartment_label": task.apartment.label() if task.apartment else None,
+            "work_point": task.work_point.display_name if task.work_point else None,
+            "comments": _snapshot_children(task.comments),
+            "changes": _snapshot_children(task.changes),
+            "glass_measurement": (
+                _snapshot_model(
+                    task.glass_measurement,
+                    extra={"items": _snapshot_children(task.glass_measurement.items)},
+                )
+                if task.glass_measurement
+                else None
+            ),
+            "material_writeoff_ids": [writeoff.id for writeoff in list(task.material_writeoffs)],
+            "comment_count": len(task.comments),
+            "change_count": len(task.changes),
+        },
+    )
+    for writeoff in list(task.material_writeoffs):
+        writeoff.tasks.remove(task)
+    db.session.delete(task)
 
 
-def _is_crm_created_task(task: Task) -> bool:
-    """Удалять разрешаем только замечания, созданные вручную внутри CRM."""
-    return (task.source_sheet_name or "").strip().lower() in {"manual", "assignment_manual", "manual_glass", "manual_split"}
+@bp.route("/tasks/delete-selected", methods=["POST"])
+@login_required
+def tasks_bulk_delete():
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    if current_user.role == "viewer":
+        abort(403)
+
+    next_url = request.form.get("next")
+    task_ids = _selected_task_ids_from_form()
+    if not task_ids:
+        flash("Выберите хотя бы одно замечание для удаления", "warning")
+        return _safe_redirect(next_url, "main.task_list")
+
+    order_map = {task_id: index for index, task_id in enumerate(task_ids)}
+    tasks = (
+        Task.query.options(
+            selectinload(Task.apartment),
+            selectinload(Task.work_point),
+            selectinload(Task.comments),
+            selectinload(Task.changes),
+            selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items),
+        )
+        .filter(Task.project_id == project.id, Task.id.in_(task_ids))
+        .all()
+    )
+    tasks.sort(key=lambda task: order_map.get(task.id, len(order_map)))
+
+    if not tasks:
+        flash("Выбранные замечания не найдены", "warning")
+        return _safe_redirect(next_url, "main.task_list")
+
+    deleted_count = 0
+    for task in tasks:
+        _delete_task_with_relations(task, project.id)
+        deleted_count += 1
+
+    if deleted_count:
+        db.session.commit()
+
+    if deleted_count == 1:
+        flash("Замечание удалено", "success")
+    elif deleted_count > 1:
+        flash(f"Удалено замечаний: {deleted_count}", "success")
+
+    return _safe_redirect(next_url, "main.task_list")
 
 
 @bp.route("/tasks/<int:task_id>")
@@ -6385,7 +7565,7 @@ def task_detail(task_id: int):
         history_entries=history_entries,
         other_open_tasks=other_open_tasks,
         back_url=back_url,
-        can_delete_task=_is_crm_created_task(task) and current_user.role != "viewer",
+        can_delete_task=current_user.role != "viewer",
     )
 
 
@@ -6402,37 +7582,7 @@ def task_delete(task_id: int):
         .first()
         or abort(404)
     )
-    if not _is_crm_created_task(task):
-        flash("Удалять можно только замечания, добавленные вручную внутри CRM", "warning")
-        return redirect(url_for("main.task_detail", task_id=task.id))
-    _record_simple_deletion(
-        "task_delete",
-        "task",
-        task,
-        f"Замечание #{task.id}",
-        f"Удалено ручное замечание: {(task.description or task.source_cell_value or '')[:180]}",
-        project_id=project.id,
-        extra={
-            "apartment_label": task.apartment.label() if task.apartment else None,
-            "work_point": task.work_point.display_name if task.work_point else None,
-            "comments": _snapshot_children(task.comments),
-            "changes": _snapshot_children(task.changes),
-            "glass_measurement": (
-                _snapshot_model(
-                    task.glass_measurement,
-                    extra={"items": _snapshot_children(task.glass_measurement.items)},
-                )
-                if task.glass_measurement
-                else None
-            ),
-            "material_writeoff_ids": [writeoff.id for writeoff in list(task.material_writeoffs)],
-            "comment_count": len(task.comments),
-            "change_count": len(task.changes),
-        },
-    )
-    for writeoff in list(task.material_writeoffs):
-        writeoff.tasks.remove(task)
-    db.session.delete(task)
+    _delete_task_with_relations(task, project.id)
     db.session.commit()
     flash("Замечание удалено", "success")
     return redirect(url_for("main.task_list"))
@@ -6719,17 +7869,46 @@ def export_category_tasks_pdf(category_id: int):
 def export_source_with_strikes():
     if not can_export(current_user):
         abort(403)
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
     try:
         project = selected_project()
         if project is None:
+            if wants_json:
+                return jsonify({"ok": False, "message": "Сначала выберите объект."}), 400
             return redirect(url_for("main.objects"))
         source_path = get_setting(f"latest_excel_path_project_{project.id}")
         if not source_path:
+            if wants_json:
+                return jsonify({"ok": False, "message": "Для этого объекта ещё не загружали Excel с замечаниями."}), 400
             flash("Для этого объекта ещё не загружали Excel с замечаниями.", "warning")
             return redirect(url_for("main.upload_excel"))
-        path = export_source_excel_with_strikes(source_path=source_path, project_name=project.name)
+        resolved_source_path = resolve_source_excel_with_strikes_path(source_path=source_path, project_id=project.id)
+        if str(resolved_source_path) != str(Path(source_path)):
+            set_setting(f"latest_excel_path_project_{project.id}", str(resolved_source_path))
+            db.session.commit()
+        path = export_source_excel_with_strikes(
+            source_path=str(resolved_source_path),
+            project_name=project.name,
+            project_id=project.id,
+        )
         return send_file(path, as_attachment=True, download_name=Path(path).name)
+    except FileNotFoundError as exc:
+        tasks = (
+            Task.query.filter(Task.project_id == project.id)
+            .order_by(Task.apartment_id.asc(), Task.id.asc())
+            .all()
+        ) if project is not None else []
+        if tasks:
+            path = export_source_excel_reconstructed(tasks, filename_prefix=f"{project.name}_замечания")
+            return send_file(path, as_attachment=True, download_name=Path(path).name)
+        message = str(exc) or "Не удалось найти исходный Excel с замечаниями. Загрузите его заново."
+        if wants_json:
+            return jsonify({"ok": False, "message": message}), 400
+        flash(message, "warning")
+        return redirect(url_for("main.upload_excel"))
     except Exception as exc:
+        if wants_json:
+            return jsonify({"ok": False, "message": str(exc) or "Не удалось подготовить Excel."}), 500
         flash(str(exc), "danger")
         return redirect(url_for("main.dashboard"))
 
@@ -7074,6 +8253,42 @@ def _apply_sync_conflict_new_value(conflict: SyncConflict) -> None:
         task.description = conflict.new_value
 
 
+def _create_task_from_sync_conflict(conflict: SyncConflict) -> Task | None:
+    task = conflict.task
+    if not task or not task.project or not task.apartment or not task.work_point:
+        return None
+    new_text = str(conflict.new_value or "").strip()
+    if not new_text:
+        return None
+    if normalize_text(_task_effective_remark_text(task)) == normalize_text(new_text):
+        return None
+    for sibling in _remark_task_candidates(task.project_id, task.apartment_id, task.work_point_id):
+        if sibling.id == task.id:
+            continue
+        if normalize_text(_task_effective_remark_text(sibling)) == normalize_text(new_text):
+            return sibling
+        pending_conflict = _pending_task_sync_conflict(sibling.id)
+        if pending_conflict and normalize_text(pending_conflict.new_value or "") == normalize_text(new_text):
+            return sibling
+    source_sheet_name = (task.source_sheet_name or "").strip() or "manual"
+    if (conflict.source_type or "").strip() == "pdf_recognition":
+        source_sheet_name = "pdf_recognition"
+    elif (conflict.source_type or "").strip() == "manual_act":
+        source_sheet_name = "manual_act"
+    elif (conflict.source_type or "").strip() == "manual":
+        source_sheet_name = "manual"
+    elif (conflict.source_type or "").strip() == "excel" and conflict.sheet_name:
+        source_sheet_name = conflict.sheet_name
+    return _create_manual_remark_task(
+        project=task.project,
+        apartment=task.apartment,
+        point_number=task.work_point.point_number,
+        text=new_text,
+        source_sheet_name=source_sheet_name,
+        action="sync_conflict_keep_both_created",
+    )
+
+
 @bp.route("/conflicts")
 @login_required
 def sync_conflicts():
@@ -7110,10 +8325,14 @@ def resolve_conflict(conflict_id: int, action: str):
         abort(404)
     if conflict.status != "pending":
         return redirect(url_for("main.sync_conflicts"))
-    if action not in {"keep_old", "apply_new"}:
+    if action not in {"keep_old", "apply_new", "keep_both"}:
         abort(400)
     if action == "apply_new":
         _apply_sync_conflict_new_value(conflict)
+    elif action == "keep_both":
+        if (conflict.target_type or "task") != "task":
+            abort(400)
+        _create_task_from_sync_conflict(conflict)
     conflict.status = action
     conflict.resolved_at = datetime.utcnow()
     conflict.resolved_by_user_id = current_user.id

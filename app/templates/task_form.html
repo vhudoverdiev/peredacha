@@ -16,11 +16,11 @@
   <div class="card-body">
     <h2 class="section-title mb-3">Способ добавления</h2>
     <div class="d-flex flex-wrap gap-2">
-      <a class="btn task-add-mode-btn {{ 'is-active' if current_mode == 'manual' else '' }}" href="{{ url_for('main.task_new', mode='manual') }}">
-        <i class="bi bi-pencil-square me-2"></i>Ручное
+      <a class="btn btn-sm btn-outline-success task-add-choice-btn {{ 'is-active' if current_mode == 'manual' else '' }}" href="{{ url_for('main.task_new', mode='manual') }}">
+        <i class="bi bi-pencil-square" aria-hidden="true"></i>Ручное
       </a>
-      <a class="btn task-add-mode-btn {{ 'is-active' if current_mode == 'auto' else '' }}" href="{{ url_for('main.task_recognition') }}">
-        <i class="bi bi-file-earmark-pdf me-2"></i>Автоматическое
+      <a class="btn btn-sm btn-outline-success task-add-choice-btn {{ 'is-active' if current_mode == 'auto' else '' }}" href="{{ url_for('main.task_recognition') }}">
+        <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>Автоматическое
       </a>
     </div>
   </div>
@@ -29,18 +29,15 @@
 {% if current_mode == 'manual' %}
 <div class="card content-card mb-3">
   <div class="card-body">
-    <h2 class="section-title mb-3">2. Формат ручного добавления</h2>
+    <h2 class="section-title mb-3">Формат ручного добавления</h2>
     <div class="d-flex flex-wrap gap-2">
-      <a class="btn {{ 'btn-success' if current_kind == 'single' else 'btn-outline-success' }}" href="{{ url_for('main.task_new', mode='manual', kind='single') }}">
-        <i class="bi bi-plus-circle me-2"></i>Одно замечание
+      <a class="btn btn-sm btn-outline-success task-add-choice-btn {{ 'is-active' if current_kind == 'single' else '' }}" href="{{ url_for('main.task_new', mode='manual', kind='single') }}">
+        <i class="bi bi-plus-circle" aria-hidden="true"></i>Одно
       </a>
-      <a class="btn {{ 'btn-success' if current_kind == 'act' else 'btn-outline-success' }}" href="{{ url_for('main.task_new', mode='manual', kind='act') }}">
-        <i class="bi bi-list-check me-2"></i>С акта
+      <a class="btn btn-sm btn-outline-success task-add-choice-btn {{ 'is-active' if current_kind == 'act' else '' }}" href="{{ url_for('main.task_new', mode='manual', kind='act') }}">
+        <i class="bi bi-list-check" aria-hidden="true"></i>С акта
       </a>
     </div>
-    {% if not current_kind %}
-    <div class="text-muted mt-3">Выберите, нужно добавить одно замечание вручную или сразу пройтись по пунктам акта.</div>
-    {% endif %}
   </div>
 </div>
 {% endif %}
@@ -104,15 +101,15 @@
         {% for point in points %}
         <div class="col-12">
           <label class="form-label">{{ point.number }}. {{ point.label }}</label>
-          <textarea class="form-control" name="description_{{ point.number }}" rows="2" placeholder="Оставьте пустым, если по этому пункту замечаний нет">{{ request.form.get('description_' ~ point.number, '') }}</textarea>
+          <textarea class="form-control" name="description_{{ point.number }}" rows="2">{{ request.form.get('description_' ~ point.number, '') }}</textarea>
         </div>
         {% endfor %}
       </div>
     </div>
 
     <div class="material-form-footer mt-4">
-      <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Добавить из акта</button>
-      <a class="btn btn-outline-secondary" href="{{ url_for('main.task_list') }}">Отмена</a>
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Добавить</button>
+      <a class="btn btn-outline-secondary task-act-cancel-btn" href="{{ url_for('main.task_list') }}">Отмена</a>
     </div>
   </div>
 </form>
@@ -129,52 +126,81 @@
 {% endif %}
 
 <style>
-.task-add-mode-btn,
-.task-add-mode-btn:visited {
-  border-color: rgba(15, 23, 42, 0.1) !important;
-  background: #f8fafc !important;
+.task-add-choice-btn,
+.task-add-choice-btn:visited,
+.task-add-choice-btn:focus {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: .38rem !important;
+  min-height: 2.9rem !important;
+  padding: .72rem 1.12rem !important;
+  border-radius: .92rem !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(95, 152, 36, .52) !important;
   color: #111827 !important;
   -webkit-text-fill-color: #111827 !important;
-  box-shadow: none !important;
+  font-size: .98rem !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, .05) !important;
 }
 
-.task-add-mode-btn *,
-.task-add-mode-btn i,
-.task-add-mode-btn .bi,
-.task-add-mode-btn .bi::before,
-.task-add-mode-btn:visited * {
+.task-add-choice-btn *,
+.task-add-choice-btn i,
+.task-add-choice-btn .bi,
+.task-add-choice-btn .bi::before,
+.task-add-choice-btn:visited *,
+.task-add-choice-btn:focus * {
   color: #111827 !important;
   -webkit-text-fill-color: #111827 !important;
 }
 
-.task-add-mode-btn:hover,
-.task-add-mode-btn:focus,
-.task-add-mode-btn:focus-visible,
-.task-add-mode-btn.is-active {
+.task-add-choice-btn i,
+.task-add-choice-btn .bi,
+.task-add-choice-btn .bi::before {
+  margin: 0 !important;
+  font-size: 1rem !important;
+  line-height: 1 !important;
+}
+
+.task-add-choice-btn:hover,
+.task-add-choice-btn:focus-visible,
+.task-add-choice-btn:active,
+.task-add-choice-btn.is-active {
   background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
   border-color: var(--peredacha-action-green-hover) !important;
-  color: #111827 !important;
-  -webkit-text-fill-color: #111827 !important;
-  box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 12px 26px var(--peredacha-action-green-shadow) !important;
   outline: none !important;
 }
 
-.task-add-mode-btn:hover *,
-.task-add-mode-btn:focus *,
-.task-add-mode-btn:focus-visible *,
-.task-add-mode-btn.is-active *,
-.task-add-mode-btn:hover i,
-.task-add-mode-btn:focus i,
-.task-add-mode-btn:focus-visible i,
-.task-add-mode-btn.is-active i,
-.task-add-mode-btn:hover .bi,
-.task-add-mode-btn:focus .bi,
-.task-add-mode-btn:focus-visible .bi,
-.task-add-mode-btn.is-active .bi,
-.task-add-mode-btn:hover .bi::before,
-.task-add-mode-btn:focus .bi::before,
-.task-add-mode-btn:focus-visible .bi::before,
-.task-add-mode-btn.is-active .bi::before {
+.task-add-choice-btn:hover *,
+.task-add-choice-btn:focus-visible *,
+.task-add-choice-btn:active *,
+.task-add-choice-btn.is-active *,
+.task-add-choice-btn:hover i,
+.task-add-choice-btn:focus-visible i,
+.task-add-choice-btn:active i,
+.task-add-choice-btn.is-active i,
+.task-add-choice-btn:hover .bi,
+.task-add-choice-btn:focus-visible .bi,
+.task-add-choice-btn:active .bi,
+.task-add-choice-btn.is-active .bi,
+.task-add-choice-btn:hover .bi::before,
+.task-add-choice-btn:focus-visible .bi::before,
+.task-add-choice-btn:active .bi::before,
+.task-add-choice-btn.is-active .bi::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.task-act-cancel-btn,
+.task-act-cancel-btn:visited,
+.task-act-cancel-btn:hover,
+.task-act-cancel-btn:focus {
   color: #111827 !important;
   -webkit-text-fill-color: #111827 !important;
 }

@@ -148,9 +148,11 @@ LEADING_MULTI_PREMISE_RE = re.compile(
     (
         \d+-\d+-\d+
         |
-        (?:кв|квартира|к|комм|коммерция|помещение|пом)\D{0,12}\d+\s*/\s*(?:к|корпус)?\s*\d+
+        (?:кв|к|комм|коммерция|помещение|пом)?\s*\d+\s*/\s*(?:к|корпус)?\s*\d+
         |
         (?:кв|квартира|к|комм|коммерция|помещение|пом)\D{0,12}\d+
+        |
+        \d+\s*(?:к|кв|комм)
         |
         \d+
     )
@@ -190,25 +192,28 @@ def parse_multi_premise_search(query: str | None) -> tuple[list[tuple[str, str]]
         return [], ""
     selectors: list[tuple[str, str]] = []
     seen: set[tuple[str, str]] = set()
-    tail_parts: list[str] = []
-    parsing_selectors = True
-    for raw_part in re.split(r"[;,]+", text):
-        part = raw_part.strip()
-        if not part:
-            continue
-        if parsing_selectors:
-            mode, value = detect_search_mode(part)
-            if mode in PREMISE_SEARCH_MODES and str(value or "").strip():
-                selector = (mode, str(value).strip())
-                if selector not in seen:
-                    seen.add(selector)
-                    selectors.append(selector)
-                continue
-            parsing_selectors = False
-        tail_parts.append(part)
+    cursor = 0
+    while cursor < len(text):
+        separator_match = re.match(r"\s*(?:[;,]\s*)?", text[cursor:])
+        if separator_match:
+            cursor += separator_match.end()
+        if cursor >= len(text):
+            break
+        match = LEADING_MULTI_PREMISE_RE.match(text[cursor:])
+        if not match:
+            break
+        part = match.group(1).strip()
+        mode, value = detect_search_mode(part)
+        if mode not in PREMISE_SEARCH_MODES or not str(value or "").strip():
+            break
+        selector = (mode, str(value).strip())
+        if selector not in seen:
+            seen.add(selector)
+            selectors.append(selector)
+        cursor += match.end()
     if not selectors:
         return [], text
-    return selectors, ", ".join(tail_parts)
+    return selectors, text[cursor:].strip(" \t,;")
 
 
 def get_multi_param_values(params, key: str) -> list[str]:
@@ -661,6 +666,26 @@ def normalize_number_cell(value: Any) -> str | None:
 def is_service_premise_text(value: str | None) -> bool:
     text = normalize_text(value or "").replace("ё", "е")
     return bool(text) and any(word in text for word in SERVICE_PREMISE_WORDS)
+
+
+def looks_like_apartment_identifier(value: str | None) -> bool:
+    text = normalize_number_cell(value)
+    if not text:
+        return False
+    if len(text) > 24:
+        return False
+    if sum(1 for part in text.split() if part) > 2:
+        return False
+    if any(ch in text for ch in ".,:;!?"):
+        return False
+    if not any(ch.isdigit() for ch in text):
+        return False
+    if sum(1 for ch in text if ch.isalpha()) > 4:
+        return False
+    if not all(ch.isalnum() or ch in {" ", "-", "/", "\\", "(", ")"} for ch in text):
+        return False
+    normalized = normalize_text(text).replace("С‘", "Рµ")
+    return not any(word in normalized for word in SERVICE_PREMISE_WORDS)
 
 
 def normalize_commercial_number(value: str | None) -> str | None:
@@ -1420,7 +1445,13 @@ def sync_rows(
         raw_apartment_number = normalize_number_cell(value_at(row, base_mapping.get("apartment_number")))
         raw_construction_number = normalize_number_cell(value_at(row, base_mapping.get("construction_number")))
         if current_premise_type == "apartment":
-            if not raw_construction_number or is_service_premise_text(raw_apartment_number):
+            apartment_number_looks_valid = looks_like_apartment_identifier(raw_apartment_number)
+            construction_number_looks_valid = looks_like_apartment_identifier(raw_construction_number)
+            if (
+                not raw_construction_number
+                or is_service_premise_text(raw_apartment_number)
+                or (not construction_number_looks_valid and not apartment_number_looks_valid)
+            ):
                 continue
         if current_premise_type == "commercial":
             raw_apartment_number = normalize_commercial_number(raw_apartment_number)

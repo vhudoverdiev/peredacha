@@ -10,11 +10,18 @@
   </div>
   <div class="d-flex gap-2 flex-wrap">
     {% set export_form_id = 'contractorExportForm' if contractor_page else 'remarksExportForm' %}
+    {% set bulk_delete_form_id = 'contractorBulkDeleteForm' if contractor_page else 'remarksBulkDeleteForm' %}
     <form id="{{ export_form_id }}" class="d-none js-remark-export-form" method="get" action="{{ url_for('main.contractors_export') if contractor_page else url_for('main.export_category_tasks', category_id=active_category_id) }}">
       {% for key, value in args.items() if key not in ['page', 'task_ids'] %}
       <input type="hidden" name="{{ key }}" value="{{ value }}">
       {% endfor %}
     </form>
+    {% if current_user.role != 'viewer' %}
+    <form id="{{ bulk_delete_form_id }}" class="d-none" method="post" action="{{ url_for('main.tasks_bulk_delete') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ request.full_path }}">
+    </form>
+    {% endif %}
     {% if not contractor_page %}
       {% if current_user.role != 'viewer' %}
       <a class="btn btn-success" href="{{ url_for('main.task_new') }}">
@@ -88,22 +95,22 @@
         <select class="form-select" name="acceptance_status">
           <option value="">Все</option>
           <option value="accepted" {% if args.get('acceptance_status') == 'accepted' %}selected{% endif %}>АПП</option>
-          <option value="waiting" {% if args.get('acceptance_status') == 'waiting' %}selected{% endif %}>не принята</option>
+          <option value="waiting" {% if args.get('acceptance_status') == 'waiting' %}selected{% endif %}>Не принята</option>
         </select>
       </div>
       <div class="col-12 col-md-2">
         <label class="form-label">Статус</label>
         <select class="form-select" name="status">
           <option value="">Все</option>
-          <option value="not_started" {% if args.get('status') == 'not_started' %}selected{% endif %}>{{ 'не занесен' if is_dop else 'не выполнено' }}</option>
-          <option value="done" {% if args.get('status') == 'done' %}selected{% endif %}>{{ 'занесен' if is_dop else 'выполнено' }}</option>
+          <option value="not_started" {% if args.get('status') == 'not_started' %}selected{% endif %}>{{ 'Не занесен' if is_dop else 'Не выполнено' }}</option>
+          <option value="done" {% if args.get('status') == 'done' %}selected{% endif %}>{{ 'Занесен' if is_dop else 'Выполнено' }}</option>
           {% if not is_dop %}
-          <option value="finishers" {% if args.get('status') == 'finishers' %}selected{% endif %}>чистовики</option>
-          <option value="contractor" {% if args.get('status') == 'contractor' %}selected{% endif %}>подрядчик</option>
-          <option value="guarantee" {% if args.get('status') == 'guarantee' %}selected{% endif %}>гарантия</option>
-          <option value="problem" {% if args.get('status') == 'problem' %}selected{% endif %}>проблема</option>
-          <option value="deadline_expiring" {% if args.get('status') == 'deadline_expiring' %}selected{% endif %}>срок истекает</option>
-          <option value="deadline_expired" {% if args.get('status') == 'deadline_expired' %}selected{% endif %}>срок истёк</option>
+          <option value="finishers" {% if args.get('status') == 'finishers' %}selected{% endif %}>Чистовики</option>
+          <option value="contractor" {% if args.get('status') == 'contractor' %}selected{% endif %}>Подрядчик</option>
+          <option value="guarantee" {% if args.get('status') == 'guarantee' %}selected{% endif %}>Гарантия</option>
+          <option value="problem" {% if args.get('status') == 'problem' %}selected{% endif %}>Проблема</option>
+          <option value="deadline_expiring" {% if args.get('status') == 'deadline_expiring' %}selected{% endif %}>Срок истекает</option>
+          <option value="deadline_expired" {% if args.get('status') == 'deadline_expired' %}selected{% endif %}>Срок истёк</option>
           {% endif %}
         </select>
       </div>
@@ -142,11 +149,14 @@
 </div>
 {% endif %}
 
-<div class="remarks-export-scope js-bulk-selectable js-remark-export-scope" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" data-export-form="#{{ export_form_id }}" data-selection-storage="local" data-premise-storage-key="{{ premise_storage_key }}">
+<div class="remarks-export-scope js-bulk-selectable js-remark-export-scope" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" data-export-form="#{{ export_form_id }}" {% if current_user.role != 'viewer' %}data-bulk-persist-form="#{{ bulk_delete_form_id }}"{% endif %} data-selection-storage="local" data-premise-storage-key="{{ premise_storage_key }}">
 
 <div class="card table-shell task-table-shell remarks-export-table-shell" data-search-query="{{ args.get('q', '')|e }}">
   <div class="bulk-actions-panel js-bulk-panel d-none remarks-export-bulk-panel">
     <div class="bulk-actions-count">Выбрано: <b class="js-bulk-count">0</b> <span class="js-bulk-label">замечаний</span></div>
+    {% if current_user.role != 'viewer' %}
+    <button class="btn btn-danger btn-sm js-bulk-submit" type="submit" form="{{ bulk_delete_form_id }}" data-confirm="Удалить выбранные записи?\n\nБудет удалено: {count} {label}.\n\nЭто действие нельзя отменить." disabled title="Удалить выбранные" aria-label="Удалить выбранные"><i class="bi bi-trash me-2"></i>Удалить</button>
+    {% endif %}
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
@@ -171,11 +181,11 @@
         {% endif %}
         <tr class="task-row-link js-bulk-row {% if task.is_done %}table-success done-task{% endif %} {% if task.is_missing_in_latest_sync %}table-warning{% endif %}" data-task-id="{{ task.id }}" data-apartment-id="{{ task.apartment.id if task.apartment else '' }}" data-href="{{ url_for('main.task_detail', task_id=task.id, back=request.full_path) }}">
           <td class="assignment-check-cell">
-            <input class="form-check-input remark-task-check js-bulk-check" type="checkbox" value="{{ task.id }}" aria-label="Выбрать замечание">
+            <input class="form-check-input remark-task-check js-bulk-check" type="checkbox" value="{{ task.id }}" {% if current_user.role != 'viewer' %}name="task_ids" form="{{ bulk_delete_form_id }}"{% endif %} aria-label="Выбрать замечание">
           </td>
           <td class="task-card-premise-cell" data-label="№">{% if task.apartment %}<span class="premise-number">{{ task.apartment.label() }}</span>{% else %}—{% endif %}</td>
           <td class="task-card-finish-cell" data-label="Отделка">{{ task.apartment.finishing_type or '' }}</td>
-          <td class="task-card-mode-cell" data-label="Режим">{% if task.apartment.is_app_mode %}<span class="status-pill status-pill-success">АПП</span>{% else %}<span class="status-pill status-pill-warning">не принята</span>{% endif %}</td>
+          <td class="task-card-mode-cell" data-label="Режим">{% if task.apartment.is_app_mode %}<span class="status-pill status-pill-success">АПП</span>{% else %}<span class="status-pill status-pill-warning">Не принята</span>{% endif %}</td>
           <td class="task-card-deadline-cell" data-label="Срок">
             {% if task.apartment %}
               <div>{{ task.apartment.app_deadline_label() }}</div>
@@ -214,7 +224,7 @@
               </form>
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" class="status-action-form {% if task.status == 'guarantee' %}d-none{% endif %}" data-status-action="guarantee">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-primary" title="Гарантия">Г</button>
+                <button class="btn btn-sm btn-outline-guarantee" title="Гарантия">Г</button>
               </form>
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="status-action-form problem-action-form problem-action-form-inline {% if task.status == 'problem' %}d-none{% endif %}" data-status-action="problem">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

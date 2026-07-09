@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable
 
-from flask import current_app, request, session
+from flask import current_app, g, request, session
 from flask_login import current_user
 from werkzeug.datastructures import FileStorage
 
@@ -114,6 +114,71 @@ def security_event(kind: str, message: str, user_id: int | None = None, severity
         db.session.commit()
     except Exception:
         db.session.rollback()
+
+
+def should_record_site_visit() -> bool:
+    endpoint = request.endpoint or ""
+    path = request.path or ""
+    if request.method == "OPTIONS":
+        return False
+    if path.startswith("/static/"):
+        return False
+    if endpoint == "static" or endpoint.startswith("static."):
+        return False
+    if endpoint == "main.analytics_tab_open":
+        return False
+    return True
+
+
+def resolve_site_visit_project_id() -> int | None:
+    project_id = None
+    if getattr(current_user, "is_authenticated", False):
+        project_id = getattr(current_user, "project_id", None) or None
+    if not project_id:
+        raw_project_id = session.get("current_project_id")
+        try:
+            project_id = int(raw_project_id) if raw_project_id else None
+        except (TypeError, ValueError):
+            project_id = None
+    return project_id
+
+
+def record_site_visit(response) -> None:
+    if not should_record_site_visit():
+        return
+    try:
+        from app.models import SiteVisit
+
+        started_at = getattr(g, "request_started_at", None)
+        duration_ms = None
+        if started_at is not None:
+            duration_ms = max(0, int((time.perf_counter() - started_at) * 1000))
+        project_id = resolve_site_visit_project_id()
+        full_path = request.full_path or request.path or ""
+        path = full_path[:-1] if full_path.endswith("?") else full_path
+        forwarded_for = (request.headers.get("X-Forwarded-For") or "")[:255] or None
+        payload = {
+            "project_id": project_id,
+            "user_id": current_user.id if getattr(current_user, "is_authenticated", False) else None,
+            "ip_address": client_ip()[:80],
+            "forwarded_for": forwarded_for,
+            "endpoint": (request.endpoint or "")[:120] or None,
+            "method": (request.method or "")[:20] or None,
+            "path": path[:500] or None,
+            "referrer": (request.referrer or "")[:500] or None,
+            "user_agent": (request.headers.get("User-Agent") or "")[:500] or None,
+            "status_code": int(getattr(response, "status_code", 0) or 0),
+            "duration_ms": duration_ms,
+            "is_authenticated": bool(getattr(current_user, "is_authenticated", False)),
+            "visit_kind": "request",
+            "tab_id": None,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+        }
+        with db.engine.begin() as connection:
+            connection.execute(SiteVisit.__table__.insert().values(**payload))
+    except Exception:
+        pass
 
 
 def mark_login_success(user) -> None:

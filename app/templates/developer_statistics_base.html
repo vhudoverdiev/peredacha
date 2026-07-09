@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Для разработчика — статистика посещений{% endblock %}
+{% block content %}
+{% set overview_href = url_for('main.developer_statistics', start_date=period_start_date_iso, end_date=period_end_date_iso, scope=scope, ip=ip_filter or None, path=path_filter or None, user_id=user_filter_id or None) %}
+{% set visits_href = url_for('main.developer_statistics_visits', start_date=period_start_date_iso, end_date=period_end_date_iso, scope=scope, ip=ip_filter or None, path=path_filter or None, user_id=user_filter_id or None) %}
+{% set sources_href = url_for('main.developer_statistics_sources', start_date=period_start_date_iso, end_date=period_end_date_iso, scope=scope, ip=ip_filter or None, path=path_filter or None, user_id=user_filter_id or None) %}
+{% set period_button_label = period_start_date.strftime('%d.%m.%Y') if period_start_date == period_end_date else period_start_date.strftime('%d.%m.%Y') ~ ' - ' ~ period_end_date.strftime('%d.%m.%Y') %}
+{% set scope_label = 'Все посещения' if scope == 'all' else ('Только авторизованные' if scope == 'auth' else 'Только гости') %}
+{% set statistics_title = 'Статистика посещений' if active_statistics_page == 'overview' else ('Последние посещения' if active_statistics_page == 'visits' else 'Источники и топ IP') %}
+{% set statistics_text = 'Динамика посещений, общая активность и ключевые цифры по выбранному периоду.' if active_statistics_page == 'overview' else ('Журнал визитов по пользователям, устройствам и открытым вкладкам.' if active_statistics_page == 'visits' else 'Срез по IP-адресам, страницам и браузерам за текущий период.') %}
+<div class="developer-statistics-page developer-statistics-page-{{ active_statistics_page }}">
+  <div class="page-head remarks-page-head developer-stat-shell-head">
+    <div>
+      <h1 class="page-title">Для разработчика</h1>
+      <p class="page-subtitle">Статистика посещений, активности и источников по выбранному периоду.</p>
+    </div>
+  </div>
+
+  <div class="developer-section-tabs developer-stat-top-tabs">
+    <a class="developer-section-tab" href="{{ url_for('main.site_errors') }}">
+      <i class="bi bi-inbox"></i><span>Сообщения</span>
+    </a>
+    <a class="developer-section-tab" href="{{ url_for('main.developer_delete_logs') }}">
+      <i class="bi bi-clock-history"></i><span>Логи удалений</span>
+    </a>
+    <a class="developer-section-tab active" href="{{ url_for('main.developer_statistics', days=7) }}">
+      <i class="bi bi-graph-up-arrow"></i><span>Статистика</span>
+    </a>
+  </div>
+
+  <section class="card content-card developer-stat-hero-card">
+    <div class="card-body">
+      <div class="developer-stat-hero-head">
+        <form class="developer-stat-head-meta developer-stat-range-form" method="get">
+          <input type="hidden" name="scope" value="{{ scope }}">
+          {% if ip_filter %}<input type="hidden" name="ip" value="{{ ip_filter }}">{% endif %}
+          {% if path_filter %}<input type="hidden" name="path" value="{{ path_filter }}">{% endif %}
+          {% if user_filter_id %}<input type="hidden" name="user_id" value="{{ user_filter_id }}">{% endif %}
+          <div class="developer-stat-range-shell">
+            <div class="developer-stat-range-picker js-developer-stat-range-picker" data-start-date="{{ period_start_date_iso }}" data-end-date="{{ period_end_date_iso }}">
+              <input type="hidden" name="start_date" value="{{ period_start_date_iso }}">
+              <input type="hidden" name="end_date" value="{{ period_end_date_iso }}">
+              <button class="developer-stat-range-trigger js-developer-stat-range-open" type="button" aria-label="Выбрать период в одном календаре">
+                <span class="developer-stat-range-trigger-copy">
+                  <span class="developer-stat-date-label">Период</span>
+                  <strong class="developer-stat-range-trigger-value js-developer-stat-range-value">{{ period_button_label }}</strong>
+                </span>
+                <span class="developer-stat-range-trigger-icon" aria-hidden="true">
+                  <i class="bi bi-calendar-range"></i>
+                </span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <section class="developer-stat-summary-grid developer-stat-summary-showcase">
+        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-visits developer-stat-summary-link" href="{{ visits_href }}">
+          <div class="card-body">
+            <span class="developer-stat-summary-icon" aria-hidden="true"><i class="bi bi-activity"></i></span>
+            <span class="developer-stat-summary-label">Всего посещений</span>
+            <strong class="developer-stat-summary-value">{{ total_visits }}</strong>
+          </div>
+        </a>
+
+        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-sources developer-stat-summary-link" href="{{ sources_href }}" data-no-scroll-restore="1">
+          <div class="card-body">
+            <span class="developer-stat-summary-icon" aria-hidden="true"><i class="bi bi-diagram-3"></i></span>
+            <span class="developer-stat-summary-label">Уникальные посещения</span>
+            <strong class="developer-stat-summary-value">{{ unique_visitors }}</strong>
+          </div>
+        </a>
+
+        {% if active_statistics_page == 'overview' %}
+        <article class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-duration">
+        {% else %}
+        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-duration developer-stat-summary-link" href="{{ overview_href }}" data-no-scroll-restore="1">
+        {% endif %}
+          <div class="card-body">
+            <span class="developer-stat-summary-icon" aria-hidden="true"><i class="bi bi-stopwatch"></i></span>
+            <span class="developer-stat-summary-label">Среднее время</span>
+            <strong class="developer-stat-summary-value developer-stat-summary-value-word">{{ avg_duration_label }}</strong>
+          </div>
+        {% if active_statistics_page == 'overview' %}
+        </article>
+        {% else %}
+        </a>
+        {% endif %}
+      </section>
+    </div>
+  </section>
+
+  {% block statistics_page_content %}{% endblock %}
+</div>
+{% endblock %}

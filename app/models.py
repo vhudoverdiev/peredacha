@@ -194,14 +194,58 @@ class Apartment(TimestampMixin, db.Model):
         db.UniqueConstraint("project_id", "construction_number", "apartment_number", name="uq_apartment_identity"),
     )
 
+    @staticmethod
+    def _display_number_text(value: str | None) -> str:
+        return str(value or "").strip()
+
+    @classmethod
+    def _looks_like_display_number(cls, value: str | None, premise_type: str | None = None) -> bool:
+        text = cls._display_number_text(value)
+        if not text:
+            return False
+        if len(text) > 24:
+            return False
+        if sum(1 for part in text.split() if part) > 2:
+            return False
+        if any(ch in text for ch in ".,:;!?"):
+            return False
+        if not any(ch.isdigit() for ch in text):
+            return False
+        if not all(ch.isalnum() or ch in {" ", "-", "/", "\\", "(", ")"} for ch in text):
+            return False
+        if sum(1 for ch in text if ch.isalpha()) > 4:
+            return False
+        normalized = " ".join(text.lower().replace("ё", "е").split())
+        if premise_type != "commercial" and any(word in normalized for word in ("корпус", "подъезд", "очеред", "секц", "итог", "дом")):
+            return False
+        return True
+
+    def display_number(self, *, fallback_to_id: bool = True) -> str:
+        candidates = [self.apartment_number, self.construction_number]
+        for candidate in candidates:
+            if self._looks_like_display_number(candidate, premise_type=self.premise_type):
+                return self._display_number_text(candidate)
+        for candidate in candidates:
+            text = self._display_number_text(candidate)
+            if (
+                text
+                and len(text) <= 16
+                and text.count(" ") == 0
+                and any(ch.isdigit() for ch in text)
+                and sum(1 for ch in text if ch.isalpha()) <= 4
+                and not any(ch in text for ch in ".,:;!?")
+            ):
+                return text
+        return f"ID {self.id}" if fallback_to_id else ""
+
     def label(self) -> str:
-        number = self.apartment_number or self.construction_number or f"ID {self.id}"
+        number = self.display_number()
         if self.premise_type == "commercial":
             return self._commercial_label(number)
         return f"кв {number}"
 
     def full_label(self) -> str:
-        number = self.apartment_number or self.construction_number or f"ID {self.id}"
+        number = self.display_number()
         if self.premise_type == "commercial":
             commercial_number, commercial_building, fallback = self._commercial_parts(number)
             if commercial_number and commercial_building:
@@ -212,7 +256,7 @@ class Apartment(TimestampMixin, db.Model):
         return f"кв {number}"
 
     def detail_label(self) -> str:
-        number = self.apartment_number or self.construction_number or f"ID {self.id}"
+        number = self.display_number()
         if self.premise_type == "commercial":
             return self.full_label()
         return f"Квартира {number}"
@@ -632,6 +676,36 @@ class SecurityEvent(TimestampMixin, db.Model):
     user_agent = db.Column(db.String(500), nullable=True)
     message = db.Column(db.Text, nullable=True)
 
+    user = db.relationship("User")
+
+
+class SiteVisit(TimestampMixin, db.Model):
+    __tablename__ = "site_visits"
+    __table_args__ = (
+        db.Index("ix_site_visits_created_at", "created_at"),
+        db.Index("ix_site_visits_status_code", "status_code"),
+        db.Index("ix_site_visits_endpoint", "endpoint"),
+        db.Index("ix_site_visits_visit_kind", "visit_kind"),
+        db.Index("ix_site_visits_tab_id", "tab_id"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=True, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
+    ip_address = db.Column(db.String(80), nullable=True, index=True)
+    forwarded_for = db.Column(db.String(255), nullable=True)
+    endpoint = db.Column(db.String(120), nullable=True)
+    method = db.Column(db.String(20), nullable=True)
+    path = db.Column(db.String(500), nullable=True)
+    referrer = db.Column(db.String(500), nullable=True)
+    user_agent = db.Column(db.String(500), nullable=True)
+    status_code = db.Column(db.Integer, nullable=True)
+    duration_ms = db.Column(db.Integer, nullable=True)
+    is_authenticated = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    visit_kind = db.Column(db.String(20), nullable=False, default="request")
+    tab_id = db.Column(db.String(80), nullable=True)
+
+    project = db.relationship("Project")
     user = db.relationship("User")
 
 

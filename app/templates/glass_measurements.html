@@ -57,9 +57,10 @@
           <tr class="task-row-link {% if task.is_done %}done-task{% endif %}" data-href="{{ url_for('main.task_detail', task_id=task.id, back=request.full_path) }}">
             <td><span class="js-highlight-text">{{ task.apartment.label() if task.apartment else '—' }}</span></td>
             <td class="task-text">
-              <div class="d-flex align-items-start gap-2">
+              <div class="d-flex align-items-start gap-2 inline-editor-anchor">
                 <span class="inline-text js-highlight-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
                 {% if current_user.role != 'viewer' %}
+                <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
                 <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
                 {% endif %}
               </div>
@@ -68,18 +69,19 @@
             <td class="text-end">
               {% if current_user.role != 'viewer' %}
                 {% if row.status == 'none' %}
-                <form method="post" action="{{ url_for('main.glass_need_measure', task_id=task.id) }}" class="js-glass-need-measure-form">
+                <form method="post" action="{{ url_for('main.glass_need_measure', task_id=task.id) }}" class="js-glass-need-measure-form" data-task-id="{{ task.id }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-sm btn-primary glass-measure-icon-btn" type="submit" title="Сделать замер" aria-label="Сделать замер"><i class="bi bi-rulers"></i></button>
+                  <input type="hidden" name="return_tab" value="all">
+                  <button class="btn btn-sm btn-success glass-measure-icon-btn" type="submit" title="Сделать замер" aria-label="Сделать замер"><i class="bi bi-rulers"></i></button>
                 </form>
                 {% elif row.status == 'measure_needed' %}
                   <div class="glass-all-row-actions">
-                    <a class="btn btn-sm glass-measure-start-btn" href="{{ url_for('main.glass_measurements', tab='order', q=q) }}">В заказе</a>
+                    <span class="glass-status-badge glass-status-ordered">В заказе</span>
                     {% if row.measurement %}
-                    <form method="post" action="{{ url_for('main.glass_measurement_return_to_all', measurement_id=row.measurement.id) }}">
+                    <form method="post" action="{{ url_for('main.glass_measurement_return_to_all', measurement_id=row.measurement.id) }}" class="js-glass-return-form" data-task-id="{{ task.id }}">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                       <input type="hidden" name="return_tab" value="all">
-                      <button class="btn btn-sm btn-outline-secondary glass-measure-reset-btn" type="submit" title="Вернуть в «Сделать замер»" aria-label="Вернуть в «Сделать замер»"><i class="bi bi-arrow-counterclockwise"></i></button>
+                      <button class="btn btn-sm btn-outline-secondary glass-measure-reset-btn" type="submit" title="Вернуть" aria-label="Вернуть"><i class="bi bi-arrow-counterclockwise"></i></button>
                     </form>
                     {% endif %}
                   </div>
@@ -136,9 +138,10 @@
           <div class="glass-order-info">
             <div class="glass-order-room"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else '—' }}</div>
             <div class="glass-order-remark">
-              <div class="d-flex align-items-start gap-2">
+              <div class="d-flex align-items-start gap-2 inline-editor-anchor">
                 <span class="inline-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
                 {% if current_user.role != 'viewer' %}
+                <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
                 <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
                 {% endif %}
               </div>
@@ -173,17 +176,15 @@
             </div>
             <div class="glass-measure-actions">
               <button class="btn btn-sm btn-outline-primary js-glass-add-item" type="button"><i class="bi bi-plus-lg me-1"></i>Ещё размер</button>
+              <button class="object-action object-action-danger glass-order-delete-btn" type="submit" form="glass-order-delete-{{ measurement.id }}" data-confirm="Удалить позицию?\n\nЗамечание: {{ task.description or task.source_cell_value }}\n\nЭто действие нельзя отменить." title="Удалить позицию" aria-label="Удалить позицию"><i class="bi bi-trash"></i></button>
               <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-check2 me-1"></i>Сохранить</button>
             </div>
           </form>
-          <div class="glass-order-row-actions">
-            <form method="post" action="{{ url_for('main.glass_measurements_delete') }}">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <input type="hidden" name="scope" value="order">
-              <input type="hidden" name="measurement_ids" value="{{ measurement.id }}">
-              <button class="btn btn-sm btn-outline-danger glass-order-delete-btn" type="submit" data-confirm="Удалить позицию?\n\nЗамечание: {{ task.description or task.source_cell_value }}\n\nЭто действие нельзя отменить." title="Удалить позицию" aria-label="Удалить позицию"><i class="bi bi-trash"></i></button>
-            </form>
-          </div>
+          <form id="glass-order-delete-{{ measurement.id }}" method="post" action="{{ url_for('main.glass_measurements_delete') }}" hidden>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="scope" value="order">
+            <input type="hidden" name="measurement_ids" value="{{ measurement.id }}">
+          </form>
           <div class="glass-order-transferred-note" hidden>
             <i class="bi bi-check2-circle"></i>
             <span>Размеры перенесены в заказ</span>
@@ -261,7 +262,7 @@
             <td class="glass-select-col"><input class="form-check-input glass-order-check js-bulk-check" type="checkbox" name="measurement_ids" value="{{ measurement.id }}" form="glass-bulk-request-form" {% if linked_request %}disabled title="Уже внесено в заявку"{% endif %}></td>
             <td>{{ task.apartment.label() if task.apartment else '—' }}</td>
             <td class="task-text">
-              <div class="d-flex align-items-start gap-2">
+              <div class="d-flex align-items-start gap-2 inline-editor-anchor">
                 <span class="inline-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
                 {% if current_user.role != 'viewer' %}
                 <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
