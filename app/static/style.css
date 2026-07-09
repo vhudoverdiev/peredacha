@@ -31122,6 +31122,7 @@ html.standalone-app .site-page-loader {
   }
 
   .objects-topbar .object-add-button,
+  .objects-topbar .objects-documents-button,
   .app-topbar .topbar-actions .topbar-icon {
     display: none !important;
   }
@@ -39665,6 +39666,11 @@ body.app-body .app-content > .po-notification-widget {
   display: inline-flex !important;
 }
 
+html.mobile-viewport body.app-body:has(.apartments-page) .po-notification-widget,
+html.adaptive-mobile-viewport body.app-body:has(.apartments-page) .po-notification-widget {
+  display: none !important;
+}
+
 html.desktop-like-pointer body.app-body:has(.apartments-page) .apartments-grid::after {
   content: "";
   display: block;
@@ -40055,16 +40061,19 @@ html.desktop-like-pointer body.app-body:has(.apartments-page) .floating-error-co
     color: #ffffff !important;
   }
 
-  html.mobile-viewport body.app-body .mobile-shell-brand {
-    background: linear-gradient(135deg, #a6ea39 0%, #79c71d 100%) !important;
-    box-shadow: 0 10px 18px rgba(121, 199, 29, .22) !important;
+  html.mobile-viewport body.app-body .mobile-shell-brand,
+  html.adaptive-mobile-viewport body.app-body .mobile-shell-brand {
+    background: #fefdfe !important;
+    border: 1px solid rgba(86, 93, 98, 0.08) !important;
+    box-shadow: 0 10px 24px rgba(86, 93, 98, 0.16) !important;
   }
 
-  html.mobile-viewport body.app-body .mobile-top-avatar-logo {
-    width: 1.18rem !important;
-    height: 1.18rem !important;
-    object-fit: contain !important;
-    filter: brightness(0) invert(1) !important;
+  html.mobile-viewport body.app-body .mobile-shell-brand .mobile-top-avatar-logo,
+  html.adaptive-mobile-viewport body.app-body .mobile-shell-brand .mobile-top-avatar-logo {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    filter: none !important;
   }
 
   html.mobile-viewport body.app-body .mobile-top-title {
