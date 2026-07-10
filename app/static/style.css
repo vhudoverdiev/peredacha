@@ -50354,7 +50354,7 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign) .app-content {
-    padding-top: 0 !important;
+    padding-top: var(--crm-mobile-header-content-gap, 1.34rem) !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-page.dashboard-redesign {
@@ -50604,5 +50604,84 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* v373: one stable breathing space between the fixed mobile header and page content. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
+    --crm-mobile-page-gap: clamp(1rem, 3.8vw, 1.34rem);
+    --crm-mobile-header-content-gap: clamp(1.1rem, 4.4vw, 1.34rem);
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
+    > .crm-mobile-page-shell {
+    box-sizing: border-box !important;
+    padding-top: var(--crm-mobile-page-gap) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
+    > .crm-mobile-page-shell > :first-child {
+    margin-top: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign)
+    .app-content > .crm-mobile-page-shell {
+    padding-top: 0 !important;
+  }
+}
+
+/* v376: anchor every mobile tab to the bottom edge of the dark header. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .app-layout {
+    padding-top: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .app-layout > .app-main {
+    padding-top: var(--ref-mobile-topbar-height, calc(4.18rem + var(--ios-safe-top, 0px))) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .app-layout > .app-main > .app-content {
+    padding-top: var(--crm-mobile-header-content-gap, 1.34rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
+    > .crm-mobile-page-shell {
+    padding-top: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.objects-layout, .documents-standalone-layout)
+    > :is(.objects-content, .documents-content, .documents-standalone-content) {
+    padding-top: calc(var(--ref-mobile-topbar-height, calc(4.18rem + var(--ios-safe-top, 0px))) + var(--crm-mobile-header-content-gap, 1.34rem)) !important;
+  }
+}
+
+/* v377: use the dashboard page-enter motion on every authenticated page. */
+html body.app-body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > .crm-mobile-page-shell.crm-mobile-page-shell {
+  opacity: 0;
+  animation: dashboardFadeUp .36s ease both !important;
+  will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body.app-body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > .crm-mobile-page-shell.crm-mobile-page-shell {
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+    will-change: auto;
+  }
+}
+
+/* v378: compact apartment number inside mobile cards. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .apartments-page :is(.apartment-card-full-label, .apartment-card-number) {
+    font-size: 1rem !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0 !important;
   }
 }
