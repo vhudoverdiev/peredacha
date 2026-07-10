@@ -8244,15 +8244,6 @@ html.crm-custom-select-pending body.app-body .documents-standalone-content {
   overflow-anchor: none;
 }
 
-html.crm-custom-select-pending body.app-body .content-card:has(.remarks-filter-form),
-html.crm-custom-select-pending body.app-body .content-card:has(.apartments-filter-form),
-html.crm-custom-select-pending body.app-body .assignment-search-card-compact,
-html.crm-custom-select-pending body.app-body .assignment-smart-card-compact,
-html.crm-custom-select-pending body.app-body .assignment-issue-panel-restored {
-  visibility: hidden;
-  pointer-events: none;
-}
-
 body.app-body .remarks-page-head,
 body.app-body .search-result-summary,
 body.app-body .content-card:has(.remarks-filter-form),
@@ -49883,8 +49874,8 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     border-radius: .96rem !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack),
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):not(.crm-mobile-page-shell),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):not(.crm-mobile-page-shell),
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page) .apartments-page > *,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page) .apartments-grid > * {
     opacity: 1 !important;
@@ -50299,14 +50290,14 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     pointer-events: auto !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):not(.crm-mobile-page-shell),
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-filter-card,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-export-table-shell,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-export-table-shell tbody,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-export-table-shell tbody tr.task-row-link,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-export-table-shell tbody tr.task-row-link > *,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):not(.crm-mobile-page-shell),
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page) .apartments-page > *,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page) .apartments-grid,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page) .apartments-grid > *,
@@ -50324,13 +50315,13 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     transform: none !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):not(.crm-mobile-page-shell),
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-page.dashboard-redesign > *,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-specialists-grid,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-specialists-grid > *,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.account-page) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.account-page) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):not(.crm-mobile-page-shell),
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.account-page) .account-page > *,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.objects-page) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.objects-page) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):not(.crm-mobile-page-shell),
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.objects-page) .objects-page > *,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.objects-page) .objects-grid,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.objects-page) .objects-grid > * {
@@ -50439,8 +50430,10 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   html.touch-app-device body.app-body .crm-mobile-page-shell {
     width: 100% !important;
     padding-top: var(--crm-mobile-page-gap) !important;
-    animation: crmMobilePageEnter .24s ease-out both !important;
-    will-change: opacity, transform;
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+    will-change: auto;
   }
 
   html.mobile-viewport body.app-body .crm-mobile-page-shell > :first-child,
@@ -50596,45 +50589,12 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   }
 }
 
-@keyframes crmMobilePageEnter {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* v373: one stable breathing space between the fixed mobile header and page content. */
+/* v376: anchor every mobile tab to the bottom edge of the dark header. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
     --crm-mobile-page-gap: clamp(1rem, 3.8vw, 1.34rem);
     --crm-mobile-header-content-gap: clamp(1.1rem, 4.4vw, 1.34rem);
   }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
-    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
-    > .crm-mobile-page-shell {
-    box-sizing: border-box !important;
-    padding-top: var(--crm-mobile-page-gap) !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
-    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
-    > .crm-mobile-page-shell > :first-child {
-    margin-top: 0 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign)
-    .app-content > .crm-mobile-page-shell {
-    padding-top: 0 !important;
-  }
-}
-
-/* v376: anchor every mobile tab to the bottom edge of the dark header. */
-@media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .app-layout {
     padding-top: 0 !important;
   }
@@ -50660,13 +50620,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   }
 }
 
-/* v377: use the dashboard page-enter motion on every authenticated page. */
-html body.app-body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > .crm-mobile-page-shell.crm-mobile-page-shell {
-  opacity: 0;
-  animation: dashboardFadeUp .36s ease both !important;
-  will-change: opacity, transform;
-}
-
 @media (prefers-reduced-motion: reduce) {
   html body.app-body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > .crm-mobile-page-shell.crm-mobile-page-shell {
     opacity: 1 !important;
@@ -50680,8 +50633,295 @@ html body.app-body.app-body :is(.app-content, .objects-content, .documents-conte
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
     .apartments-page :is(.apartment-card-full-label, .apartment-card-number) {
-    font-size: 1rem !important;
-    line-height: 1.15 !important;
+    font-size: .82rem !important;
+    line-height: 1.2 !important;
     letter-spacing: 0 !important;
+  }
+}
+
+/* v381: the mobile login must never depend on an entrance animation for visibility. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.auth-body .auth-shell {
+    opacity: 1 !important;
+    visibility: visible !important;
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* v382: fill the iOS standalone safe area and enforce the portrait UI. */
+.portrait-orientation-guard {
+  display: none;
+}
+
+/* v383: reveal one fully initialized mobile page instead of animating partial controls. */
+@media (max-width: 767.98px) {
+  html.crm-js.crm-custom-select-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
+    > .crm-mobile-page-shell.crm-mobile-page-shell {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    animation: none !important;
+    transform: translateY(12px) !important;
+    pointer-events: none !important;
+    will-change: opacity, transform !important;
+  }
+
+  html.crm-js.crm-custom-select-ready:not(.crm-page-entry-complete):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
+    > .crm-mobile-page-shell.crm-mobile-page-shell {
+    visibility: visible !important;
+    opacity: 0 !important;
+    animation: dashboardFadeUp .36s ease both !important;
+    pointer-events: auto !important;
+    z-index: 1 !important;
+    will-change: opacity, transform !important;
+  }
+
+  html.crm-js.crm-page-entry-complete:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
+    > .crm-mobile-page-shell.crm-mobile-page-shell,
+  html.crm-js.crm-custom-select-fallback:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
+    > .crm-mobile-page-shell.crm-mobile-page-shell {
+    visibility: visible !important;
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+    pointer-events: auto !important;
+    will-change: auto !important;
+  }
+}
+
+@media (max-width: 767.98px) and (prefers-reduced-motion: reduce) {
+  html.crm-js.crm-custom-select-ready:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
+    > .crm-mobile-page-shell.crm-mobile-page-shell {
+    visibility: visible !important;
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+}
+
+/* v384: one stable mobile page entry and native touch selects.
+   Keep the whole page as a single animated surface; inner cards must not
+   animate independently during first paint. */
+@media (max-width: 767.98px) {
+  html.crm-js:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
+    > .crm-mobile-page-shell {
+    visibility: visible !important;
+    opacity: 0 !important;
+    transform: translate3d(0, 12px, 0) !important;
+    animation: dashboardFadeUp .36s ease-out both !important;
+    will-change: opacity, transform !important;
+    pointer-events: auto !important;
+  }
+
+  html.crm-js:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .crm-mobile-page-shell > *,
+  html.crm-js:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .crm-mobile-page-shell * {
+    animation: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .developer-custom-select:has(> select.mobile-native-select),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    select.mobile-native-select {
+    width: 100% !important;
+    min-height: 3.16rem !important;
+    height: auto !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    position: relative !important;
+    inset: auto !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.crm-js:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .crm-mobile-page-shell {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}
+
+/* v385: deterministic first paint for every authenticated mobile tab. */
+@media (max-width: 767.98px) {
+  html.crm-page-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body {
+    overflow-x: hidden !important;
+  }
+
+  html.crm-page-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    transform: translate3d(0, 12px, 0) !important;
+  }
+
+  html.crm-page-entry-started.crm-page-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface {
+    visibility: visible !important;
+    opacity: 0 !important;
+    animation: dashboardFadeUp .36s ease-out both !important;
+    will-change: opacity, transform !important;
+  }
+
+  html.crm-page-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.crm-page-entry-started body.app-body .crm-page-entry-surface {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* v387: mobile selects stay native from the first frame. Do not create a
+   second visual control and a portal for the same field on touch screens. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .developer-custom-select > .developer-select-button,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .developer-select-menu-portal {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .developer-custom-select > select,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    select.mobile-native-select {
+    display: block !important;
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 3.16rem !important;
+    min-height: 3.16rem !important;
+    max-height: 3.16rem !important;
+    box-sizing: border-box !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .developer-custom-select {
+    position: relative !important;
+    width: 100% !important;
+    min-height: 3.16rem !important;
+    height: 3.16rem !important;
+    overflow: visible !important;
+  }
+}
+
+html.standalone-app,
+html.standalone-app body.app-body,
+body.standalone-app.app-body {
+  background-color: #151c23 !important;
+}
+
+@media (max-width: 767.98px) {
+  html.standalone-app body.app-body .mobile-bottom-nav,
+  body.standalone-app.app-body .mobile-bottom-nav {
+    bottom: 0 !important;
+    min-height: calc(4.18rem + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(.46rem + env(safe-area-inset-bottom)) !important;
+    border-radius: var(--crm-mobile-shell-bar-radius) var(--crm-mobile-shell-bar-radius) 0 0 !important;
+    background: linear-gradient(180deg, #202831 0%, #151c23 100%) !important;
+    background-color: #151c23 !important;
+  }
+
+  html.standalone-app body.app-body .mobile-bottom-nav::after,
+  body.standalone-app.app-body .mobile-bottom-nav::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    left: 0;
+    right: 0;
+    bottom: calc(-1 * env(safe-area-inset-bottom));
+    height: calc(env(safe-area-inset-bottom) + 2px);
+    background: #151c23;
+    pointer-events: none;
+  }
+}
+
+@media (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  html.mobile-landscape-locked,
+  html.mobile-landscape-locked body {
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  html.mobile-landscape-locked body > :not(.portrait-orientation-guard) {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  html.mobile-landscape-locked .portrait-orientation-guard {
+    position: fixed;
+    z-index: 2147483647;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+    visibility: visible !important;
+    pointer-events: auto !important;
+    background:
+      radial-gradient(circle at 50% 20%, rgba(141, 214, 44, .2), transparent 38%),
+      linear-gradient(145deg, #202a32, #11181e);
+  }
+
+  .portrait-orientation-guard-card {
+    display: grid;
+    justify-items: center;
+    gap: .45rem;
+    width: min(100%, 24rem);
+    padding: 1.15rem 1.4rem;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 1.4rem;
+    background: rgba(255, 255, 255, .08);
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .28);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .portrait-orientation-guard-card i {
+    color: #8dd62c;
+    font-size: 2rem;
+    transform: rotate(-90deg);
+  }
+
+  .portrait-orientation-guard-card strong {
+    font-size: 1.05rem;
+  }
+
+  .portrait-orientation-guard-card span {
+    color: rgba(255, 255, 255, .72);
+    font-size: .82rem;
   }
 }

@@ -39,7 +39,7 @@ const getViewportHeight = () => Math.max(
 );
 const getDesktopReferenceWidth = () => DESKTOP_REFERENCE_WIDTH;
 const getDesktopStageScale = () => Math.min(1, getViewportWidth() / DESKTOP_REFERENCE_WIDTH);
-const shouldAllowAdaptiveMobileViewport = () => false;
+const shouldAllowAdaptiveMobileViewport = () => true;
 const isAdaptiveMobileViewport = () => shouldAllowAdaptiveMobileViewport() && !isTouchAppDevice() && getViewportWidth() <= DESKTOP_TO_MOBILE_VIEWPORT_WIDTH;
 const isTouchMobileViewport = () => isPhoneTouchDevice();
 const isMobileViewport = () => isTouchMobileViewport() || isAdaptiveMobileViewport();
@@ -201,13 +201,13 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const syncMobileOrientationLockState = () => {
-    const landscapeLocked = isTouchMobileViewport() && window.matchMedia('(orientation: landscape)').matches;
+    const landscapeLocked = isTouchAppDevice() && window.matchMedia('(orientation: landscape)').matches;
     document.documentElement.classList.toggle('mobile-landscape-locked', landscapeLocked);
     document.body.classList.toggle('mobile-landscape-locked', landscapeLocked);
   };
 
   const tryLockPortraitOrientation = () => {
-    if (!isTouchMobileViewport()) return;
+    if (!isTouchAppDevice()) return;
     if (!screen.orientation || typeof screen.orientation.lock !== 'function') return;
     screen.orientation.lock('portrait').catch(() => {});
   };
@@ -414,8 +414,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const customSelectBootRoot = document.documentElement;
   const finishCustomSelectBoot = () => {
+    customSelectBootRoot.classList.remove('crm-custom-select-fallback', 'crm-page-entry-complete');
     customSelectBootRoot.classList.remove('crm-custom-select-pending');
     customSelectBootRoot.classList.add('crm-custom-select-ready');
+    if (document.body.classList.contains('app-body')) {
+      // Wait one frame so native selects and layout measurements settle before
+      // the single page-surface animation starts.
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          customSelectBootRoot.classList.remove('crm-page-entry-pending');
+          customSelectBootRoot.classList.add('crm-page-entry-started');
+          const entrySurface = document.body.querySelector('.crm-page-entry-surface');
+          entrySurface?.addEventListener('animationend', event => {
+            if (event.target === entrySurface && event.animationName === 'dashboardFadeUp') {
+              customSelectBootRoot.classList.remove('crm-page-entry-started');
+            }
+          }, { once: true });
+        });
+      });
+    }
+    const pageShell = document.querySelector('.crm-mobile-page-shell');
+    if (pageShell) {
+      pageShell.addEventListener('animationend', event => {
+        if (event.target !== pageShell || event.animationName !== 'dashboardFadeUp') return;
+        customSelectBootRoot.classList.add('crm-page-entry-complete');
+      }, { once: true });
+    }
   };
 
   const prepareNativeSelectsForCustomUi = (scope = document) => {
@@ -428,14 +452,17 @@ document.addEventListener('DOMContentLoaded', () => {
       '.flatpickr-monthDropdown-months'
     ].join(',');
     // Mobile now uses the same custom select UI as desktop for visual consistency.
-    const useNativeMobileSelect = false;
+    // Native controls are more stable on touch devices: constructing a portal
+    // during first paint caused the filter row to reflow and visibly flicker.
+    const useNativeMobileSelect = true;
+    const isMobileSelectUi = document.documentElement.matches('.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device');
 
     scope.querySelectorAll('select').forEach(select => {
       if (select.matches(excludedSelector)) return;
       if (select.closest('.developer-custom-select')) return;
       if (select.dataset.customSelectReady === '1') return;
 
-      if (useNativeMobileSelect && !select.matches('[data-force-custom-select]')) {
+      if (useNativeMobileSelect && isMobileSelectUi && !select.matches('[data-force-custom-select]')) {
         select.dataset.nativeSelect = '1';
         select.classList.add('mobile-native-select');
         return;

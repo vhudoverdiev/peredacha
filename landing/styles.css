@@ -2225,9 +2225,11 @@ body:not(.landing-mobile-layout) .landing-scale-stage {
 }
 
 body.landing-mobile-layout {
-  --container: 528px;
+  --container: calc(100% - 24px);
   --radius-xl: 28px;
-  overflow: hidden;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 body.landing-mobile-layout .page-shell {
@@ -2236,28 +2238,27 @@ body.landing-mobile-layout .page-shell {
   min-height: 100dvh;
   height: auto;
   padding-bottom: max(0.35rem, calc(env(safe-area-inset-bottom) * 0.42));
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 body.landing-mobile-layout .landing-scale-shell {
   position: relative;
   width: 100%;
-  height: auto;
+  height: auto !important;
   min-height: 100vh;
   min-height: calc(100svh - max(0.35rem, calc(env(safe-area-inset-bottom) * 0.42)));
   min-height: calc(100dvh - max(0.35rem, calc(env(safe-area-inset-bottom) * 0.42)));
-  overflow: hidden;
+  overflow: visible;
 }
 
 body.landing-mobile-layout .landing-scale-stage {
-  --landing-mobile-scale: 1;
-  --landing-mobile-top-offset: 0px;
-  position: absolute;
-  top: var(--landing-mobile-top-offset);
-  left: 50%;
-  width: 560px;
-  transform-origin: top center;
-  transform: translateX(-50%) scale(var(--landing-mobile-scale));
+  position: relative;
+  top: auto;
+  left: auto;
+  width: 100%;
+  min-width: 0;
+  transform: none;
 }
 
 @media (orientation: landscape) and (hover: none) and (pointer: coarse) {
@@ -2274,9 +2275,9 @@ body.landing-mobile-layout .landing-scale-stage {
   }
 
   html.landing-real-phone-device body.landing-mobile-landscape-locked .landing-scale-stage {
-    left: 50%;
-    width: 560px;
-    transform: translateX(-50%) scale(var(--landing-mobile-scale, 1));
+    left: auto;
+    width: 100%;
+    transform: none;
   }
 }
 
@@ -2507,6 +2508,69 @@ body.landing-mobile-layout .founder-quote-text::before,
 body.landing-mobile-layout .founder-quote-text::after {
   font-size: 1.28rem;
   vertical-align: -0.08em;
+}
+
+.landing-portrait-guard {
+  display: none;
+}
+
+@media (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  html.landing-mobile-landscape-locked,
+  html.landing-mobile-landscape-locked body {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
+  html.landing-mobile-landscape-locked body > :not(.landing-portrait-guard) {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  html.landing-mobile-landscape-locked .landing-portrait-guard {
+    position: fixed;
+    z-index: 2147483647;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+    visibility: visible !important;
+    pointer-events: auto !important;
+    background:
+      radial-gradient(circle at 50% 20%, rgba(141, 214, 44, .2), transparent 38%),
+      linear-gradient(145deg, #202a32, #11181e);
+  }
+
+  .landing-portrait-guard-card {
+    display: grid;
+    justify-items: center;
+    gap: .45rem;
+    width: min(100%, 24rem);
+    padding: 1.15rem 1.4rem;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 1.4rem;
+    background: rgba(255, 255, 255, .08);
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .28);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .landing-portrait-phone {
+    color: #8dd62c;
+    font-size: 2.25rem;
+    line-height: 1;
+    transform: rotate(-90deg);
+  }
+
+  .landing-portrait-guard-card strong {
+    font-size: 1.05rem;
+  }
+
+  .landing-portrait-guard-card > span:last-child {
+    color: rgba(255, 255, 255, .72);
+    font-size: .82rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

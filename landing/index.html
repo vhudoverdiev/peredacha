@@ -27,9 +27,16 @@
       pointer-events: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260710-0119">
+  <link rel="stylesheet" href="styles.css?v=20260711-portrait-guard">
 </head>
 <body>
+  <div class="landing-portrait-guard" aria-live="polite" aria-label="Поверните устройство вертикально">
+    <div class="landing-portrait-guard-card">
+      <span class="landing-portrait-phone" aria-hidden="true">▯</span>
+      <strong>Поверните телефон</strong>
+      <span>Сайт работает в вертикальном режиме</span>
+    </div>
+  </div>
   <div class="page-shell">
     <section class="site-page-loader landing-site-loader js-landing-nav-loader is-hidden" hidden role="status" aria-label="Загрузка сайта">
       <div class="site-page-loader-card">
@@ -266,7 +273,6 @@
       var mobileLayoutQuery = window.matchMedia("(max-width: 640px)");
       var landscapeQuery = window.matchMedia("(orientation: landscape)");
       var coarsePointerQuery = window.matchMedia("(hover: none) and (pointer: coarse)");
-      var mobileStageWidth = 560;
       var nav = window.navigator || {};
       var userAgent = nav.userAgent || "";
       var isRealPhoneDevice = !!(
@@ -309,24 +315,9 @@
         }
         if (mobileLayout) {
           scaleStage.style.removeProperty("--landing-stage-scale");
-          scaleStage.style.setProperty("--landing-mobile-scale", "1");
-          scaleStage.style.setProperty("--landing-mobile-top-offset", "0px");
-          var mobileViewportWidth = Math.max(
-            window.visualViewport ? window.visualViewport.width || 0 : 0,
-            document.documentElement.clientWidth || 0,
-            window.innerWidth || 0,
-            mobileStageWidth
-          );
-          var mobileViewportHeight = Math.max(
-            window.visualViewport ? window.visualViewport.height || 0 : 0,
-            document.documentElement.clientHeight || 0,
-            window.innerHeight || 0,
-            900
-          );
-          scaleShell.style.height = mobileViewportHeight + "px";
-          var mobileStageHeight = scaleStage.scrollHeight || scaleStage.offsetHeight || mobileViewportHeight;
-          var mobileScale = Math.min(1, mobileViewportWidth / mobileStageWidth, mobileViewportHeight / mobileStageHeight);
-          scaleStage.style.setProperty("--landing-mobile-scale", mobileScale.toFixed(5));
+          scaleStage.style.removeProperty("--landing-mobile-scale");
+          scaleStage.style.removeProperty("--landing-mobile-top-offset");
+          scaleShell.style.removeProperty("height");
           return;
         }
         var viewportWidth = document.documentElement.clientWidth || window.innerWidth || 1920;
