@@ -48876,29 +48876,15 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
 
 /* v366 apartments detail mobile tune + consistent mobile page enter */
 @media (max-width: 767.98px) {
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack) {
-    opacity: 0;
-    animation: dashboardFadeUp .36s ease both;
-    animation-delay: var(--crm-mobile-enter-delay, 0ms);
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.apartments-page, .apartment-detail-page, .account-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page, .task-detail-page, .assignment-report-page, .glass-page) {
+    opacity: 1 !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(1) { --crm-mobile-enter-delay: 0ms; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(2) { --crm-mobile-enter-delay: 70ms; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(3) { --crm-mobile-enter-delay: 140ms; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(4) { --crm-mobile-enter-delay: 210ms; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(5) { --crm-mobile-enter-delay: 280ms; }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.apartments-page, .apartment-detail-page, .account-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page) > * {
-    opacity: 0;
-    animation: dashboardFadeUp .36s ease both;
-    animation-delay: var(--crm-mobile-page-delay, 0ms);
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .crm-mobile-page-shell {
+    width: 100%;
+    animation: dashboardFadeUp .28s ease both;
+    will-change: opacity, transform;
   }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.apartments-page, .apartment-detail-page, .account-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page) > *:nth-child(1) { --crm-mobile-page-delay: 40ms; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.apartments-page, .apartment-detail-page, .account-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page) > *:nth-child(2) { --crm-mobile-page-delay: 100ms; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.apartments-page, .apartment-detail-page, .account-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page) > *:nth-child(3) { --crm-mobile-page-delay: 160ms; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.apartments-page, .apartment-detail-page, .account-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page) > *:nth-child(4) { --crm-mobile-page-delay: 220ms; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.apartments-page, .apartment-detail-page, .account-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page) > *:nth-child(n+5) { --crm-mobile-page-delay: 280ms; }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page) .app-main,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .app-main {
@@ -50338,6 +50324,21 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     transform: none !important;
   }
 
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-page.dashboard-redesign > *,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-specialists-grid,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-specialists-grid > *,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.account-page) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.account-page) .account-page > *,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.objects-page) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.objects-page) .objects-page > *,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.objects-page) .objects-grid,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.objects-page) .objects-grid > * {
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+  }
+
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .task-table tbody tr {
     transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease !important;
   }
@@ -50413,6 +50414,16 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
 
 /* v371 mobile remarks final alignment + animation restore */
 @media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
+    --ref-mobile-topbar-height: var(--crm-mobile-shell-bar-height, calc(4.18rem + var(--ios-safe-top, 0px))) !important;
+  }
+
+  html.mobile-viewport body.app-body .app-content,
+  html.adaptive-mobile-viewport body.app-body .app-content,
+  html.touch-app-device body.app-body .app-content {
+    padding-top: .78rem !important;
+  }
+
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-all {
     min-height: 2.72rem !important;
     padding: .5rem .86rem !important;
@@ -50505,40 +50516,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     justify-content: flex-start !important;
     gap: .46rem !important;
   }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack) {
-    opacity: 0 !important;
-    animation: dashboardFadeUp .36s ease both !important;
-    animation-delay: var(--crm-mobile-enter-delay, 0ms) !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(1) { --crm-mobile-enter-delay: 0ms !important; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(2) { --crm-mobile-enter-delay: 70ms !important; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(3) { --crm-mobile-enter-delay: 140ms !important; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(4) { --crm-mobile-enter-delay: 210ms !important; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(5) { --crm-mobile-enter-delay: 280ms !important; }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.apartments-page, .apartment-detail-page, .account-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page, .task-detail-page, .assignment-report-page, .glass-page) > * {
-    opacity: 0 !important;
-    animation: dashboardFadeUp .36s ease both !important;
-    animation-delay: var(--crm-mobile-page-delay, 0ms) !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.apartments-page, .apartment-detail-page, .account-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page, .task-detail-page, .assignment-report-page, .glass-page) > *:nth-child(1) { --crm-mobile-page-delay: 40ms !important; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.apartments-page, .apartment-detail-page, .account-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page, .task-detail-page, .assignment-report-page, .glass-page) > *:nth-child(2) { --crm-mobile-page-delay: 100ms !important; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.apartments-page, .apartment-detail-page, .account-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page, .task-detail-page, .assignment-report-page, .glass-page) > *:nth-child(3) { --crm-mobile-page-delay: 160ms !important; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.apartments-page, .apartment-detail-page, .account-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page, .task-detail-page, .assignment-report-page, .glass-page) > *:nth-child(4) { --crm-mobile-page-delay: 220ms !important; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.apartments-page, .apartment-detail-page, .account-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page, .task-detail-page, .assignment-report-page, .glass-page) > *:nth-child(n+5) { --crm-mobile-page-delay: 280ms !important; }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.page-head:not(.remarks-page-head), .report-task-list, .worker-task-list, .glass-order-shell, .glass-order-list, .glass-ordered-table-responsive, .glass-empty-state, .glass-request-panel, .glass-head-actions, .glass-filter-form, .contractor-excel-page-head) {
-    opacity: 0 !important;
-    animation: dashboardFadeUp .36s ease both !important;
-    animation-delay: var(--crm-mobile-section-delay, 0ms) !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.page-head:not(.remarks-page-head), .report-task-list, .worker-task-list, .glass-order-shell, .glass-order-list, .glass-ordered-table-responsive, .glass-empty-state, .glass-request-panel, .glass-head-actions, .glass-filter-form, .contractor-excel-page-head):nth-child(1) { --crm-mobile-section-delay: 40ms !important; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.page-head:not(.remarks-page-head), .report-task-list, .worker-task-list, .glass-order-shell, .glass-order-list, .glass-ordered-table-responsive, .glass-empty-state, .glass-request-panel, .glass-head-actions, .glass-filter-form, .contractor-excel-page-head):nth-child(2) { --crm-mobile-section-delay: 100ms !important; }
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.page-head:not(.remarks-page-head), .report-task-list, .worker-task-list, .glass-order-shell, .glass-order-list, .glass-ordered-table-responsive, .glass-empty-state, .glass-request-panel, .glass-head-actions, .glass-filter-form, .contractor-excel-page-head):nth-child(3) { --crm-mobile-section-delay: 160ms !important; }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .task-table tbody tr.task-row-link,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page) .apartment-card {

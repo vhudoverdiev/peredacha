@@ -388,7 +388,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {{ flash_toasts(messages) }}
     {% endwith %}
-    {{ page_content }}
+    <div class="crm-mobile-page-shell">{{ page_content }}</div>
   </main>
   {{ mobile_bottom_nav(mobile_active) }}
 </div>
@@ -427,7 +427,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {{ flash_toasts(messages) }}
     {% endwith %}
-    {{ page_content }}
+    <div class="crm-mobile-page-shell">{{ page_content }}</div>
   </main>
   {{ mobile_bottom_nav(mobile_active) }}
 </div>
@@ -566,7 +566,7 @@
       {% with messages = get_flashed_messages(with_categories=true) %}
         {{ flash_toasts(messages) }}
       {% endwith %}
-      {{ page_content }}
+      <div class="crm-mobile-page-shell">{{ page_content }}</div>
     </main>
   </div>
   {{ mobile_bottom_nav(mobile_active) }}
