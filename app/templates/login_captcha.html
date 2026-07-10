@@ -18,8 +18,8 @@
           </div>
         </div>
         <div class="login-form-row login-captcha-actions">
-          <a class="btn btn-outline-secondary" href="{{ url_for('auth.login') }}">Назад</a>
-          {{ form.submit(class="btn btn-primary login-submit") }}
+          <a class="btn btn-outline-secondary login-captcha-back-btn" href="{{ url_for('auth.login') }}">Назад</a>
+          {{ form.submit(class="btn btn-primary login-submit login-captcha-continue-btn") }}
         </div>
       </form>
     </div>

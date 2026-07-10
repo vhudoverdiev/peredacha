@@ -2,7 +2,7 @@
 {% block title %}Квартиры{% endblock %}
 {% block content %}
 <div class="apartments-page">
-<div class="page-head">
+<div class="page-head apartments-page-head">
   <div>
     <h1 class="page-title">Квартиры</h1>
     <p class="page-subtitle">Данные, замечания, комментарии и история изменений.</p>
@@ -19,7 +19,7 @@
       </div>
       <div class="col-12 col-sm-6 col-lg-2">
         <label class="form-label">Осмотр</label>
-        <select class="form-select" name="inspection_status">
+        <select class="form-select" name="inspection_status" data-force-custom-select>
           <option value="">Все</option>
           <option value="was" {% if args.get('inspection_status') == 'was' %}selected{% endif %}>Был</option>
           <option value="not_was" {% if args.get('inspection_status') == 'not_was' %}selected{% endif %}>Не был</option>
@@ -27,7 +27,7 @@
       </div>
       <div class="col-12 col-sm-6 col-lg-2">
         <label class="form-label">Сортировка осмотра</label>
-        <select class="form-select" name="inspection_order">
+        <select class="form-select" name="inspection_order" data-force-custom-select>
           <option value="">По номеру</option>
           <option value="was_first" {% if args.get('inspection_order') == 'was_first' %}selected{% endif %}>Сначала был</option>
           <option value="not_was_first" {% if args.get('inspection_order') == 'not_was_first' %}selected{% endif %}>Сначала не был</option>
@@ -35,7 +35,7 @@
       </div>
       <div class="col-12 col-sm-6 col-lg-2">
         <label class="form-label">АПП</label>
-        <select class="form-select" name="app_status">
+        <select class="form-select" name="app_status" data-force-custom-select>
           <option value="">Все</option>
           <option value="accepted" {% if args.get('app_status') == 'accepted' %}selected{% endif %}>АПП</option>
           <option value="not_accepted" {% if args.get('app_status') == 'not_accepted' %}selected{% endif %}>Не принята</option>
@@ -43,7 +43,7 @@
       </div>
       <div class="col-12 col-sm-6 col-lg-1">
         <label class="form-label">АВР</label>
-        <select class="form-select" name="avr_status">
+        <select class="form-select" name="avr_status" data-force-custom-select>
           <option value="">Все</option>
           <option value="{{ avr_status_needed }}" {% if args.get('avr_status') == avr_status_needed %}selected{% endif %}>Нужен</option>
           <option value="{{ avr_status_signed }}" {% if args.get('avr_status') == avr_status_signed %}selected{% endif %}>Подписан</option>
@@ -51,7 +51,7 @@
       </div>
       <div class="col-12 col-sm-6 col-lg-1">
         <label class="form-label">Внутренний статус</label>
-        <select class="form-select" name="po_status">
+        <select class="form-select" name="po_status" data-force-custom-select>
           <option value="">Все</option>
           {% for value, label in po_status_labels.items() %}
           {% if value != 'po' %}<option value="{{ value }}" {% if args.get('po_status') == value or (po_only and value == 'to_throw') %}selected{% endif %}>{{ label }}</option>{% endif %}
@@ -66,7 +66,7 @@
   </div>
 </div>
 
-<div class="d-flex align-items-center justify-content-between mb-3">
+<div class="d-flex align-items-center justify-content-between mb-3 apartments-page-summary">
   <div class="text-muted">Найдено квартир / помещений: <b>{{ total_count }}</b></div>
 </div>
 

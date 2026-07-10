@@ -3,15 +3,21 @@
 {% block title %}Объекты{% endblock %}
 {% block content %}
 <section class="objects-page">
-  <div class="objects-head">
-    <h1 class="objects-title">Выберите объект</h1>
-  </div>
+  <div class="objects-mobile-hero">
+    {% if not is_mobile_phone_request %}
+    <div class="objects-head">
+      <div class="objects-head-copy">
+        <h1 class="objects-title">Выберите объект</h1>
+      </div>
+    </div>
+    {% endif %}
 
-  <div class="mobile-object-tools">
-    <label class="mobile-search-field" aria-label="Поиск объектов">
-      <i class="bi bi-search"></i>
-      <input type="search" placeholder="Поиск объектов" data-object-search>
-    </label>
+    <div class="mobile-object-tools">
+      <label class="mobile-search-field" aria-label="Поиск объектов">
+        <i class="bi bi-search"></i>
+        <input type="search" placeholder="Поиск объектов" data-object-search>
+      </label>
+    </div>
   </div>
 
   {% if project_cards %}
@@ -20,7 +26,7 @@
     {% set project = item.project %}
     {% set stats = item.stats %}
     <article class="object-card" role="link" tabindex="0" data-href="{{ url_for('main.object_open', project_id=project.id) }}">
-      {% if current_user.role in ['admin', 'manager'] %}
+      {% if current_user.role in ['admin', 'manager'] and not is_mobile_phone_request %}
       <div class="object-card-actions">
         <a class="object-action" href="{{ url_for('main.object_edit', project_id=project.id) }}" title="Редактировать объект">
           <i class="bi bi-pencil"></i>
@@ -46,7 +52,6 @@
   </div>
   {% else %}
   <div class="objects-empty objects-empty-minimal">
-    <span class="objects-empty-icon" aria-hidden="true"><i class="bi bi-buildings"></i></span>
     <div class="objects-empty-copy">
       <h2>Объекты пока не добавлены</h2>
       <p>Добавьте объект сверху, чтобы открыть замечания и статистику передач.</p>

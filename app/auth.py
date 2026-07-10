@@ -95,6 +95,16 @@ def _show_login_loader_once() -> None:
     session["login_intro_loader_seen"] = True
 
 
+def _skip_intro_loader_for_mobile_landing() -> None:
+    """Landing on mobile already shows its own loader, so do not duplicate it on CRM login."""
+    if not request.args.get("landing_loader"):
+        return
+    if not request.args.get("mobile"):
+        return
+    session["login_intro_loader_seen"] = True
+    session.pop("show_success_loader", None)
+
+
 def _redirect_after_login(user: User, next_url: str | None = None):
     is_worker = user.role in WORKER_ROLES
     next_path = urlparse(next_url or "").path
@@ -145,6 +155,7 @@ def login():
         return _continue_after_password(user)
 
     if request.method == "GET":
+        _skip_intro_loader_for_mobile_landing()
         _show_login_loader_once()
     return _render_login(form)
 

@@ -1,8 +1,8 @@
-﻿const desktopPointerQueries = ['(hover: hover)', '(any-hover: hover)', '(pointer: fine)', '(any-pointer: fine)'];
+const desktopPointerQueries = ['(hover: hover)', '(any-hover: hover)', '(pointer: fine)', '(any-pointer: fine)'];
 const getNavigatorInfo = () => window.navigator || {};
 const DESKTOP_REFERENCE_WIDTH = 1920;
 const DESKTOP_REFERENCE_HEIGHT = 1080;
-const DESKTOP_TO_MOBILE_VIEWPORT_WIDTH = 560;
+const DESKTOP_TO_MOBILE_VIEWPORT_WIDTH = 768;
 const isIpadOsLike = () => {
   const nav = getNavigatorInfo();
   return nav.platform === 'MacIntel' && (nav.maxTouchPoints || 0) > 1;
@@ -14,6 +14,21 @@ const isRealPhoneDevice = () => {
     || /iPhone|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile/i.test(userAgent)
     || (/Android/i.test(userAgent) && /Mobile/i.test(userAgent));
 };
+const isTabletTouchDevice = () => {
+  const nav = getNavigatorInfo();
+  const userAgent = nav.userAgent || '';
+  const maxTouchPoints = nav.maxTouchPoints || 0;
+  return hasCoarseTouchPointer()
+    && !isRealPhoneDevice()
+    && (
+      isIpadOsLike()
+    || /iPad|Tablet|PlayBook|Silk|Kindle|KFAPWI|SM-T|Lenovo Tab/i.test(userAgent)
+    || (/Android/i.test(userAgent) && !/Mobile/i.test(userAgent) && maxTouchPoints > 0)
+    );
+};
+const hasCoarseTouchPointer = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+const isPhoneTouchDevice = () => isRealPhoneDevice() && hasCoarseTouchPointer();
+const isTouchAppDevice = () => isPhoneTouchDevice() || isTabletTouchDevice();
 const getViewportWidth = () => Math.max(
   320,
   Math.round(window.visualViewport?.width || window.innerWidth || document.documentElement.clientWidth || DESKTOP_REFERENCE_WIDTH),
@@ -24,12 +39,13 @@ const getViewportHeight = () => Math.max(
 );
 const getDesktopReferenceWidth = () => DESKTOP_REFERENCE_WIDTH;
 const getDesktopStageScale = () => Math.min(1, getViewportWidth() / DESKTOP_REFERENCE_WIDTH);
-const shouldAllowAdaptiveMobileViewport = () => !document.body?.classList.contains('app-body');
-const isAdaptiveMobileViewport = () => shouldAllowAdaptiveMobileViewport() && !isRealPhoneDevice() && getViewportWidth() <= DESKTOP_TO_MOBILE_VIEWPORT_WIDTH;
-const isTouchMobileViewport = () => window.matchMedia('(max-width: 767.98px)').matches && isRealPhoneDevice();
+const shouldAllowAdaptiveMobileViewport = () => false;
+const isAdaptiveMobileViewport = () => shouldAllowAdaptiveMobileViewport() && !isTouchAppDevice() && getViewportWidth() <= DESKTOP_TO_MOBILE_VIEWPORT_WIDTH;
+const isTouchMobileViewport = () => isPhoneTouchDevice();
 const isMobileViewport = () => isTouchMobileViewport() || isAdaptiveMobileViewport();
-const isDesktopLikePointer = () => !isRealPhoneDevice() && !isAdaptiveMobileViewport();
+const isDesktopLikePointer = () => !isTouchAppDevice() && !isAdaptiveMobileViewport();
 const shouldUseDesktopViewportLock = () => isDesktopLikePointer();
+const normalizeConfirmText = (text) => (text || '').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
 let desktopViewportSyncUnlocked = document.readyState === 'complete';
 
 try {
@@ -41,10 +57,19 @@ const syncDesktopViewportLock = (options = {}) => {
   if (!force && !desktopViewportSyncUnlocked) return;
   const desktopLike = shouldUseDesktopViewportLock();
   const adaptiveMobileViewport = isAdaptiveMobileViewport();
+  const phoneTouchDevice = isPhoneTouchDevice();
+  const tabletTouchDevice = isTabletTouchDevice();
+  const touchAppDevice = isTouchAppDevice();
   document.documentElement.classList.toggle('desktop-like-pointer', desktopLike);
   document.body?.classList.toggle('desktop-like-pointer', desktopLike);
   document.documentElement.classList.toggle('adaptive-mobile-viewport', adaptiveMobileViewport);
   document.body?.classList.toggle('adaptive-mobile-viewport', adaptiveMobileViewport);
+  document.documentElement.classList.toggle('touch-app-device', touchAppDevice);
+  document.body?.classList.toggle('touch-app-device', touchAppDevice);
+  document.documentElement.classList.toggle('real-phone-device', phoneTouchDevice);
+  document.body?.classList.toggle('real-phone-device', phoneTouchDevice);
+  document.documentElement.classList.toggle('tablet-touch-device', tabletTouchDevice);
+  document.body?.classList.toggle('tablet-touch-device', tabletTouchDevice);
   if (!desktopLike) {
     document.documentElement.style.removeProperty('--desktop-lock-width');
     document.documentElement.style.removeProperty('--desktop-reference-width');
@@ -62,18 +87,19 @@ const syncDesktopViewportLock = (options = {}) => {
 
 (() => {
   syncDesktopViewportLock({ force: true });
-  const suppressCrmLoaders = (forceDisplayNone = false) => {
+  const mobileDevLoaders = document.querySelectorAll('.mobile-dev-screen.site-page-loader');
+  const suppressStaticCrmLoaders = (forceDisplayNone = false) => {
     document.documentElement.classList.add('crm-loader-suppressed');
-    document.querySelectorAll('.js-success-loader, .js-app-launch-loader, .viewport-transition-loader, .mobile-dev-screen.site-page-loader').forEach(loader => {
+    document.querySelectorAll('.js-success-loader, .js-app-launch-loader, .mobile-dev-screen.site-page-loader').forEach(loader => {
       loader.classList.add('is-hidden');
       loader.style.pointerEvents = 'none';
       if (forceDisplayNone) loader.style.display = 'none';
     });
   };
   if (document.documentElement.classList.contains('crm-loader-suppressed')) {
-    suppressCrmLoaders(true);
+    suppressStaticCrmLoaders(true);
   }
-  if (!isRealPhoneDevice()) {
+  if (!isTouchAppDevice()) {
     document.querySelectorAll('.viewport-transition-loader, .mobile-dev-screen.site-page-loader').forEach(loader => {
       loader.classList.add('is-hidden');
       loader.style.display = 'none';
@@ -81,23 +107,58 @@ const syncDesktopViewportLock = (options = {}) => {
     });
   }
   const loaders = document.querySelectorAll('.js-success-loader, .js-app-launch-loader');
-  if (!loaders.length) return;
+  const hideMobileDevLoaders = (forceDisplayNone = false) => {
+    mobileDevLoaders.forEach(loader => {
+      loader.classList.add('is-hidden');
+      loader.style.pointerEvents = 'none';
+      if (forceDisplayNone) loader.style.display = 'none';
+    });
+  };
+  const hideMobileDevLoadersWithDelay = () => {
+    const delay = document.readyState === 'complete' ? 220 : 320;
+    window.setTimeout(() => hideMobileDevLoaders(true), delay);
+  };
+  if (!loaders.length) {
+    if (mobileDevLoaders.length) {
+      if (document.readyState === 'complete') {
+        hideMobileDevLoadersWithDelay();
+      } else {
+        window.addEventListener('load', hideMobileDevLoadersWithDelay, { once: true });
+      }
+      window.addEventListener('beforeunload', () => hideMobileDevLoaders(true));
+      window.addEventListener('pagehide', () => hideMobileDevLoaders(true));
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') hideMobileDevLoaders(true);
+      });
+    }
+    return;
+  }
   const startedAt = Date.now();
   const minVisibleMs = 2300;
   const hide = () => {
     const delay = Math.max(0, minVisibleMs - (Date.now() - startedAt));
-    window.setTimeout(() => loaders.forEach(loader => loader.classList.add('is-hidden')), delay);
+    window.setTimeout(() => {
+      loaders.forEach(loader => loader.classList.add('is-hidden'));
+      hideMobileDevLoaders(true);
+    }, delay);
   };
   if (document.readyState === 'complete') {
     hide();
   } else {
     window.addEventListener('load', hide, { once: true });
   }
-  window.addEventListener('beforeunload', () => suppressCrmLoaders(true));
-  window.addEventListener('pagehide', () => suppressCrmLoaders(true));
+  window.addEventListener('beforeunload', () => suppressStaticCrmLoaders(true));
+  window.addEventListener('pagehide', () => suppressStaticCrmLoaders(true));
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') suppressCrmLoaders(true);
+    if (document.visibilityState === 'hidden') suppressStaticCrmLoaders(true);
   });
+  if (mobileDevLoaders.length) {
+    if (document.readyState === 'complete') {
+      hideMobileDevLoadersWithDelay();
+    } else {
+      window.addEventListener('load', hideMobileDevLoadersWithDelay, { once: true });
+    }
+  }
 })();
 
 window.addEventListener('load', () => {
@@ -106,6 +167,19 @@ window.addEventListener('load', () => {
 }, { once: true });
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.crm-search-btn').forEach(button => {
+    const lockButtonSize = () => {
+      const rect = button.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      button.style.width = `${Math.ceil(rect.width)}px`;
+      button.style.minWidth = `${Math.ceil(rect.width)}px`;
+      button.style.height = `${Math.ceil(rect.height)}px`;
+      button.style.minHeight = `${Math.ceil(rect.height)}px`;
+    };
+    button.addEventListener('pointerdown', lockButtonSize, { passive: true });
+    button.addEventListener('touchstart', lockButtonSize, { passive: true });
+  });
+
   let activeInlineEditor = null;
 
   const isIosDevice = /iPad|iPhone|iPod/.test(window.navigator.userAgent || '') || isIpadOsLike();
@@ -180,19 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('gesturechange', event => event.preventDefault(), { passive: false });
     document.addEventListener('gestureend', event => event.preventDefault(), { passive: false });
   }
-  document.querySelectorAll('.js-ios-install-button').forEach(button => {
-    if (isIosDevice && !isStandaloneApp) {
-      button.hidden = false;
-    }
-  });
-
-  const iosInstallModal = document.getElementById('iosInstallModal');
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   const msTileColorMeta = document.querySelector('meta[name="msapplication-TileColor"]');
   const defaultThemeColor = themeColorMeta?.getAttribute('content') || '#8dd62c';
   const authThemeColor = '#ffffff';
   const appTopbarThemeColor = '#1f2730';
-  const iosInstallThemeColor = '#ffffff';
 
   const setThemeColor = value => {
     if (themeColorMeta) themeColorMeta.setAttribute('content', value);
@@ -203,24 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setThemeColor(authThemeColor);
   } else if (document.body.classList.contains('app-body')) {
     setThemeColor(appTopbarThemeColor);
-  }
-
-  if (iosInstallModal) {
-    const openIosInstallModal = () => {
-      document.body.classList.add('ios-install-open');
-      setThemeColor(iosInstallThemeColor);
-      syncAppViewportHeight();
-    };
-    const closeIosInstallModal = () => {
-      document.body.classList.remove('ios-install-open');
-      setThemeColor(document.body.classList.contains('auth-body') ? authThemeColor : appTopbarThemeColor);
-      syncAppViewportHeight();
-    };
-
-    iosInstallModal.addEventListener('show.bs.modal', openIosInstallModal);
-    iosInstallModal.addEventListener('shown.bs.modal', openIosInstallModal);
-    iosInstallModal.addEventListener('hide.bs.modal', closeIosInstallModal);
-    iosInstallModal.addEventListener('hidden.bs.modal', closeIosInstallModal);
   }
 
   if (document.body.classList.contains('auth-body')) {
@@ -379,7 +427,8 @@ document.addEventListener('DOMContentLoaded', () => {
       'select[data-no-custom-select]',
       '.flatpickr-monthDropdown-months'
     ].join(',');
-    const useNativeMobileSelect = isMobileViewport();
+    // Mobile now uses the same custom select UI as desktop for visual consistency.
+    const useNativeMobileSelect = false;
 
     scope.querySelectorAll('select').forEach(select => {
       if (select.matches(excludedSelector)) return;
@@ -899,6 +948,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sessionStorage.setItem(statisticsOverviewTopKey, '1');
     } catch (error) {}
   };
+  window.requestStatisticsOverviewTop = requestStatisticsOverviewTop;
   const consumeStatisticsOverviewTopRequest = () => {
     try {
       if (sessionStorage.getItem(statisticsOverviewTopKey) !== '1') return false;
@@ -1114,6 +1164,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     showCrmNotice('Добро пожаловать!\nCRM от Худовердиева В.С.', 'success');
   };
+
+  const viewportTransitionLoader = document.querySelector('.viewport-transition-loader');
+  const canShowViewportTransitionLoader = () => (
+    Boolean(viewportTransitionLoader)
+    && isTouchAppDevice()
+    && !document.documentElement.classList.contains('crm-loader-suppressed')
+  );
+
+  const showViewportTransitionLoader = () => {
+    if (!canShowViewportTransitionLoader()) return;
+    viewportTransitionLoader.style.removeProperty('display');
+    viewportTransitionLoader.style.pointerEvents = 'auto';
+    viewportTransitionLoader.classList.remove('is-hidden');
+  };
+
+  const navigateWithViewportTransition = href => {
+    if (!href) return;
+    showViewportTransitionLoader();
+    window.location.href = href;
+  };
+
+  document.addEventListener('click', event => {
+    if (!canShowViewportTransitionLoader()) return;
+    if (event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest('a[href]');
+    if (!link) return;
+    if ((link.getAttribute('target') || '').toLowerCase() === '_blank') return;
+    if (link.hasAttribute('download') || link.dataset.noLoader === '1') return;
+    if (link.dataset.bsToggle || link.dataset.bsDismiss) return;
+    const href = link.getAttribute('href') || '';
+    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+    try {
+      const targetUrl = new URL(href, window.location.href);
+      const currentUrl = new URL(window.location.href);
+      if (targetUrl.origin !== currentUrl.origin) return;
+      if (`${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}` === `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`) return;
+      showViewportTransitionLoader();
+    } catch (error) {}
+  }, true);
 
   showSiteEntryNoticeOnce();
 
@@ -1463,6 +1553,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!select) return;
       select.innerHTML = remarkSplitStatuses.map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`).join('');
     });
+    initDeveloperCustomSelects(modal);
     return modal;
   };
 
@@ -1549,7 +1640,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.object-card[data-href]').forEach(card => {
     const openCard = event => {
       if (event.target.closest('a, button, form')) return;
-      window.location.href = card.dataset.href;
+      navigateWithViewportTransition(card.dataset.href);
     };
     card.addEventListener('click', openCard);
     card.addEventListener('keydown', event => {
@@ -1568,7 +1659,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (event.target.closest('a, button, form, input, textarea, select, label, .inline-editor, .problem-comment-wrap')) return;
       const bulkScope = row.closest('.js-bulk-selectable');
       if (bulkScope?.dataset.bulkRowDblclick) return;
-      window.location.href = row.dataset.href;
+      navigateWithViewportTransition(row.dataset.href);
     };
     const openEvent = row.dataset.openOnClick ? 'click' : 'dblclick';
     row.addEventListener(openEvent, openRow);
@@ -1578,13 +1669,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.related-task-item[data-href]').forEach(item => {
     item.addEventListener('click', event => {
       if (event.target.closest('a, button, form, input, textarea, select, label, .inline-editor')) return;
-      window.location.href = item.dataset.href;
+      navigateWithViewportTransition(item.dataset.href);
     });
     item.setAttribute('tabindex', '0');
     item.addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        window.location.href = item.dataset.href;
+        navigateWithViewportTransition(item.dataset.href);
       }
     });
   });
@@ -1594,7 +1685,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (event.target.closest('a, button, form, input, textarea, select, label')) return;
       const href = card.querySelector('.apartment-card-link')?.getAttribute('href');
       if (href) {
-        window.location.href = href;
+        navigateWithViewportTransition(href);
       }
     });
   });
@@ -1613,6 +1704,21 @@ document.addEventListener('DOMContentLoaded', () => {
     list.hidden = false;
     if (emptyNode) emptyNode.hidden = true;
   };
+
+  const syncStatusActionVisibility = (root = document) => {
+    root.querySelectorAll('.actions-cell[data-current-status]').forEach(actionsCell => {
+      const currentStatus = actionsCell.dataset.currentStatus || '';
+      actionsCell.querySelectorAll('.status-action-form[data-status-action]').forEach(actionForm => {
+        const action = actionForm.dataset.statusAction || '';
+        let shouldHide = action === currentStatus;
+        if (action === 'done') shouldHide = currentStatus !== 'not_started';
+        if (action === 'not_started') shouldHide = currentStatus !== 'done';
+        actionForm.classList.toggle('d-none', shouldHide);
+      });
+    });
+  };
+
+  syncStatusActionVisibility();
 
   document.querySelectorAll('form[action*="/status/"]').forEach(form => {
     form.addEventListener('click', event => {
@@ -1710,9 +1816,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (actionsCell) {
           actionsCell.dataset.currentStatus = data.status || '';
         }
-        row?.querySelectorAll('.status-action-form[data-status-action]').forEach(actionForm => {
-          actionForm.classList.toggle('d-none', actionForm.dataset.statusAction === data.status);
-        });
+        syncStatusActionVisibility(row || document);
 
         const submittedProblemInput = form.querySelector('input[name="problem_comment"]');
         if (submittedProblemInput) submittedProblemInput.remove();
@@ -2062,7 +2166,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
     return many;
   };
-  const normalizeConfirmText = (text) => (text || '').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
   const bulkStorageKey = (scope) => {
     if (scope.dataset.noPersistSelection === '1') return '';
     if (scope.dataset.selectionKey) return `crm-bulk-selection:${scope.dataset.selectionKey}`;
@@ -4363,7 +4466,37 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', () => {
   const objectSearch = document.querySelector('[data-object-search]');
   if (!objectSearch) return;
+  const searchField = objectSearch.closest('.mobile-search-field');
   const cards = Array.from(document.querySelectorAll('.object-card'));
+  const focusSearch = () => {
+    try {
+      objectSearch.focus({ preventScroll: true });
+    } catch (error) {
+      objectSearch.focus();
+    }
+  };
+
+  if (searchField) {
+    searchField.addEventListener('pointerdown', event => {
+      event.stopPropagation();
+      if (event.target === objectSearch) return;
+      event.preventDefault();
+      focusSearch();
+    });
+    searchField.addEventListener('click', event => {
+      event.stopPropagation();
+      if (event.target === objectSearch) return;
+      focusSearch();
+    });
+  }
+
+  objectSearch.addEventListener('pointerdown', event => {
+    event.stopPropagation();
+  });
+  objectSearch.addEventListener('click', event => {
+    event.stopPropagation();
+  });
+
   objectSearch.addEventListener('input', () => {
     const query = objectSearch.value.trim().toLowerCase();
     cards.forEach(card => {

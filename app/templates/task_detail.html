@@ -4,6 +4,7 @@
 {% set point_name = task.work_point.display_name | replace(task.work_point.point_number ~ '. ', '') | replace(task.work_point.point_number ~ '.', '') %}
 {% set status_labels = {'not_started': 'не выполнено', 'done': 'выполнено', 'finishers': 'чистовики', 'contractor': 'подрядчик', 'guarantee': 'гарантия', 'problem': 'проблема'} %}
 {% set status_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'guarantee': 'status-pill-primary', 'problem': 'status-pill-danger'} %}
+<div class="task-detail-page">
 <div class="page-head task-detail-head">
   <div><h1 class="page-title">{{ point_name }}</h1></div>
   <a class="btn btn-outline-secondary task-detail-back-btn" href="{{ back_url }}">Назад</a>
@@ -11,7 +12,7 @@
 
 <div class="row g-3">
   <div class="col-lg-8">
-    <div class="card content-card mb-3">
+    <div class="card content-card mb-3 task-detail-main-card">
       <div class="card-body">
         <h2 class="section-title">Данные задачи</h2>
         <dl class="row detail-data">
@@ -46,7 +47,7 @@
       </div>
     </div>
 
-    <div class="card content-card mb-3">
+    <div class="card content-card mb-3 task-detail-comments-card">
       <div class="card-body">
         <h2 class="section-title">Комментарии</h2>
         {% for comment in task.comments %}
@@ -67,7 +68,7 @@
       </div>
     </div>
 
-    <div class="card content-card">
+    <div class="card content-card task-detail-history-card">
       <div class="card-body">
         <h2 class="section-title">История изменений</h2>
         <div class="timeline" data-task-history-list {% if not history_entries %}hidden{% endif %}>
@@ -84,11 +85,11 @@
   </div>
 
   <div class="col-lg-4">
-    <div class="card content-card mb-3">
+    <div class="card content-card mb-3 task-detail-actions-card">
       <div class="card-body">
         <h2 class="section-title">Управление</h2>
         {% if current_user.role != 'viewer' %}
-        <div class="d-flex flex-wrap gap-1 mb-3" data-task-detail-shell>
+        <div class="d-flex flex-wrap gap-1 mb-3 task-detail-status-grid" data-task-detail-shell>
           {% if task.status != 'done' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-success">Выполнено</button></form>{% endif %}
           {% if task.status != 'finishers' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info">Чистовики</button></form>{% endif %}
           {% if task.status != 'contractor' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning">Подрядчик</button></form>{% endif %}
@@ -104,14 +105,14 @@
         {% if can_delete_task %}
         <form method="post" action="{{ url_for('main.task_delete', task_id=task.id) }}" data-confirm="Удалить это замечание? Это действие нельзя отменить.">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn btn-outline-danger w-100" type="submit"><i class="bi bi-trash me-2"></i>Удалить замечание</button>
+          <button class="btn btn-outline-danger w-100" type="submit"><i class="bi bi-trash me-2"></i>Удалить</button>
         </form>
         {% endif %}
         {% endif %}
       </div>
     </div>
 
-    <div class="card content-card">
+    <div class="card content-card task-detail-related-card">
       <div class="card-body">
         <h2 class="section-title">Еще задачи по помещению</h2>
         {% if other_open_tasks %}
@@ -130,5 +131,6 @@
       </div>
     </div>
   </div>
+</div>
 </div>
 {% endblock %}

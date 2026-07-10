@@ -2,15 +2,17 @@
 {% block title %}{{ page_title or 'Замечания' }}{% endblock %}
 {% block content %}
 {% set is_dop = active_category and active_category.name == 'Доп.Соглашение' %}
+{% set status_pill_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'guarantee': 'status-pill-primary', 'problem': 'status-pill-danger'} %}
 {% set selected_finishing_groups = args.getlist('finishing_group') %}
 <div class="page-head remarks-page-head">
   <div>
     <h1 class="page-title">{{ page_title or 'Замечания' }}</h1>
     <p class="page-subtitle">{{ page_subtitle or 'Перечень всех замечаний' }}</p>
   </div>
-  <div class="d-flex gap-2 flex-wrap">
+  <div class="d-flex gap-2 flex-wrap remarks-page-actions">
     {% set export_form_id = 'contractorExportForm' if contractor_page else 'remarksExportForm' %}
     {% set bulk_delete_form_id = 'contractorBulkDeleteForm' if contractor_page else 'remarksBulkDeleteForm' %}
+    {% set task_add_href = url_for('main.task_new', mode='manual', kind='single') if is_mobile_phone_request else url_for('main.task_new') %}
     <form id="{{ export_form_id }}" class="d-none js-remark-export-form" method="get" action="{{ url_for('main.contractors_export') if contractor_page else url_for('main.export_category_tasks', category_id=active_category_id) }}">
       {% for key, value in args.items() if key not in ['page', 'task_ids'] %}
       <input type="hidden" name="{{ key }}" value="{{ value }}">
@@ -24,23 +26,23 @@
     {% endif %}
     {% if not contractor_page %}
       {% if current_user.role != 'viewer' %}
-      <a class="btn btn-success" href="{{ url_for('main.task_new') }}">
+      <a class="btn btn-success remarks-page-primary-btn" href="{{ task_add_href }}" title="Добавить замечание" aria-label="Добавить замечание">
         <i class="bi bi-plus-lg me-2"></i>Добавить
       </a>
       {% endif %}
       {% if active_category %}
-      <a class="btn btn-outline-success remarks-excel-options-toggle" href="{{ remarks_excel_selection_url }}">
+      <a class="btn btn-outline-success remarks-excel-options-toggle remarks-page-secondary-btn" href="{{ remarks_excel_selection_url }}">
         <i class="bi bi-ui-checks-grid me-2"></i>Выбор для Excel
       </a>
-      <button class="btn btn-outline-success remarks-export-btn js-remark-export-submit" type="submit" form="{{ export_form_id }}">
+      <button class="btn btn-outline-success remarks-export-btn remarks-page-secondary-btn js-remark-export-submit" type="submit" form="{{ export_form_id }}">
         <i class="bi bi-file-earmark-arrow-down me-2"></i>Скачать Excel
       </button>
       {% endif %}
     {% else %}
-      <a class="btn btn-outline-success remarks-excel-options-toggle" href="{{ contractor_excel_selection_url }}">
+      <a class="btn btn-outline-success remarks-excel-options-toggle remarks-page-secondary-btn" href="{{ contractor_excel_selection_url }}">
         <i class="bi bi-ui-checks-grid me-2"></i>Выбор для Excel
       </a>
-      <button class="btn btn-outline-success js-remark-export-submit" type="submit" form="{{ export_form_id }}">
+      <button class="btn btn-outline-success remarks-page-secondary-btn js-remark-export-submit" type="submit" form="{{ export_form_id }}">
         <i class="bi bi-file-earmark-excel me-2"></i>Скачать Excel
       </button>
     {% endif %}
@@ -51,19 +53,19 @@
 <div class="remarks-tabs mb-3">
   <ul class="nav crm-tabs">
   {% for category in categories if category.name == 'Все' %}
-    <li class="nav-item"><a class="nav-link {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id) }}"><i class="bi bi-grid-3x3-gap remarks-tab-icon"></i>{{ category.name }}</a></li>
+    <li class="nav-item"><a class="nav-link remarks-tab-link remarks-tab-link-all {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id) }}" title="{{ category.name }}" aria-label="{{ category.name }}"><i class="bi bi-grid-3x3-gap remarks-tab-icon"></i><span class="remarks-tab-text">{{ category.name }}</span></a></li>
   {% endfor %}
   </ul>
   <ul class="nav crm-tabs justify-content-end">
   {% for category in categories if category.name != 'Все' %}
     {% set category_icon = 'bi-brush' if category.name == 'Маляры' else ('bi-tools' if category.name == 'Разнорабочие' else ('bi-window' if category.name == 'Витражники' else ('bi-file-earmark-text' if category.name == 'Доп.Соглашение' else 'bi-tag'))) %}
-    <li class="nav-item"><a class="nav-link {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id) }}"><i class="bi {{ category_icon }} remarks-tab-icon"></i>{{ category.name }}</a></li>
+    <li class="nav-item"><a class="nav-link remarks-tab-link remarks-tab-link-category {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id) }}" title="{{ category.name }}" aria-label="{{ category.name }}"><i class="bi {{ category_icon }} remarks-tab-icon"></i><span class="remarks-tab-text">{{ category.name }}</span></a></li>
   {% endfor %}
   </ul>
 </div>
 {% endif %}
 
-<div class="card content-card mb-3">
+<div class="card content-card mb-3 remarks-filter-card">
   <div class="card-body">
     <form method="get" class="row g-2 align-items-end crm-filter-form remarks-filter-form">
       {% if contractor_page %}
@@ -73,7 +75,7 @@
       </div>
       <div class="col-12 col-lg-4">
         <label class="form-label">Сортировка по пункту</label>
-        <select class="form-select" name="point">
+        <select class="form-select mobile-native-select" name="point">
           <option value="">Все пункты</option>
           {% for point in contractor_points %}
           <option value="{{ point.number }}" {% if args.get('point') == point.number %}selected{% endif %}>{{ point.label }}</option>
@@ -92,7 +94,7 @@
       </div>
       <div class="col-12 col-md-2">
         <label class="form-label">Режим</label>
-        <select class="form-select" name="acceptance_status">
+        <select class="form-select mobile-native-select" name="acceptance_status">
           <option value="">Все</option>
           <option value="accepted" {% if args.get('acceptance_status') == 'accepted' %}selected{% endif %}>АПП</option>
           <option value="waiting" {% if args.get('acceptance_status') == 'waiting' %}selected{% endif %}>Не принята</option>
@@ -100,7 +102,7 @@
       </div>
       <div class="col-12 col-md-2">
         <label class="form-label">Статус</label>
-        <select class="form-select" name="status">
+        <select class="form-select mobile-native-select" name="status">
           <option value="">Все</option>
           <option value="not_started" {% if args.get('status') == 'not_started' %}selected{% endif %}>{{ 'Не занесен' if is_dop else 'Не выполнено' }}</option>
           <option value="done" {% if args.get('status') == 'done' %}selected{% endif %}>{{ 'Занесен' if is_dop else 'Выполнено' }}</option>
@@ -196,44 +198,57 @@
             {% endif %}
           </td>
           <td class="task-text" data-label="Замечание">
-            <span class="inline-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
-            {% if task.glass_measurement and task.glass_measurement.status == 'replaced' %}<span class="glass-ordered-badge glass-replaced-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% elif task.glass_measurement and task.glass_measurement.status == 'ordered' %}<span class="glass-ordered-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% endif %}
+            <div class="task-text-body">
+              <span class="inline-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
+              {% if task.glass_measurement and task.glass_measurement.status == 'replaced' %}<span class="glass-ordered-badge glass-replaced-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% elif task.glass_measurement and task.glass_measurement.status == 'ordered' %}<span class="glass-ordered-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% endif %}
+            </div>
             {% if current_user.role != 'viewer' %}
-            <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
-            <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
+            <div class="task-text-tools">
+              <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
+              <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
+            </div>
             {% endif %}
           </td>
           <td class="task-status-cell" data-label="Статус">
-            <span class="badge bg-{{ task.status_class() }}">{{ task_status_label }}</span>
+            <span class="status-pill {{ status_pill_classes.get(task.status, 'status-pill-muted') }}" data-status-pill>{{ task_status_label }}</span>
           </td>
           <td class="task-actions-cell" data-label="Действия">
             <div class="actions-cell" data-current-status="{{ task.status }}">
             {% if current_user.role != 'viewer' %}
-              <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" class="status-action-form {% if task.status == 'done' %}d-none{% endif %}" data-status-action="done">
+              <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" class="status-action-form {% if task.status != 'not_started' %}d-none{% endif %}" data-status-action="done">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-success" title="{{ 'Занесен' if is_dop else 'Выполнено' }}"><i class="bi bi-check2-circle"></i></button>
+                <button class="btn btn-sm btn-outline-success" title="{{ 'Занесен' if is_dop else 'Выполнено' }}" aria-label="{{ 'Занесен' if is_dop else 'Выполнено' }}"><i class="bi bi-check2-circle"></i></button>
               </form>
               {% if not is_dop %}
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" class="status-action-form {% if task.status == 'finishers' %}d-none{% endif %}" data-status-action="finishers">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-info" title="Чистовики">Ч</button>
+                <button class="btn btn-sm btn-outline-info" title="Чистовики" aria-label="Чистовики">
+                  <i class="bi bi-brush remarks-status-icon" aria-hidden="true"></i>
+                  <span class="remarks-status-text">Ч</span>
+                </button>
               </form>
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" class="status-action-form {% if task.status == 'contractor' %}d-none{% endif %}" data-status-action="contractor">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-warning" title="Подрядчик">П</button>
+                <button class="btn btn-sm btn-outline-warning" title="Подрядчик" aria-label="Подрядчик">
+                  <i class="bi bi-person-gear remarks-status-icon" aria-hidden="true"></i>
+                  <span class="remarks-status-text">П</span>
+                </button>
               </form>
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" class="status-action-form {% if task.status == 'guarantee' %}d-none{% endif %}" data-status-action="guarantee">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-guarantee" title="Гарантия">Г</button>
+                <button class="btn btn-sm btn-outline-guarantee" title="Гарантия" aria-label="Гарантия">
+                  <i class="bi bi-shield-check remarks-status-icon" aria-hidden="true"></i>
+                  <span class="remarks-status-text">Г</span>
+                </button>
               </form>
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="status-action-form problem-action-form problem-action-form-inline {% if task.status == 'problem' %}d-none{% endif %}" data-status-action="problem">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-danger problem-toggle-btn" type="button" title="Проблема" data-problem-modal-title="Проблема"><i class="bi bi-exclamation-triangle"></i></button>
+                <button class="btn btn-sm btn-outline-danger problem-toggle-btn" type="button" title="Проблема" aria-label="Проблема" data-problem-modal-title="Проблема"><i class="bi bi-exclamation-triangle"></i></button>
               </form>
               {% endif %}
-              <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" class="status-action-form {% if task.status == 'not_started' %}d-none{% endif %}" data-status-action="not_started">
+              <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" class="status-action-form {% if task.status != 'done' %}d-none{% endif %}" data-status-action="not_started">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-secondary" title="{{ 'Не занесен' if is_dop else 'Не выполнено' }}"><i class="bi bi-arrow-counterclockwise"></i></button>
+                <button class="btn btn-sm btn-outline-secondary" title="{{ 'Не занесен' if is_dop else 'Не выполнено' }}" aria-label="{{ 'Не занесен' if is_dop else 'Не выполнено' }}"><i class="bi bi-arrow-counterclockwise"></i></button>
               </form>
             {% endif %}
             </div>

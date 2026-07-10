@@ -11,7 +11,9 @@
 
 {% set current_mode = add_mode or request.args.get('mode', '') %}
 {% set current_kind = manual_kind or request.args.get('kind', '') %}
+{% set mobile_single_direct = is_mobile_phone_request and current_mode == 'manual' and current_kind == 'single' %}
 
+{% if not mobile_single_direct %}
 <div class="card content-card mb-3">
   <div class="card-body">
     <h2 class="section-title mb-3">Способ добавления</h2>
@@ -25,8 +27,9 @@
     </div>
   </div>
 </div>
+{% endif %}
 
-{% if current_mode == 'manual' %}
+{% if current_mode == 'manual' and not mobile_single_direct %}
 <div class="card content-card mb-3">
   <div class="card-body">
     <h2 class="section-title mb-3">Формат ручного добавления</h2>

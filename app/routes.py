@@ -873,6 +873,7 @@ def inject_globals():
         "site_maintenance_mode": _setting_bool("site_maintenance_mode"),
         "blocked_site_sections": _setting_csv("blocked_site_sections"),
         "section_lock_choices": SECTION_LOCK_CHOICES,
+        "is_mobile_phone_request": _is_mobile_phone_request(),
         "fmt_quantity": fmt_quantity,
         "ru_plural": ru_plural,
         "task_word": task_word,
@@ -1028,6 +1029,12 @@ def enforce_role_access():
 
     if _setting_bool("site_maintenance_mode") and current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
         return _maintenance_response()
+
+    if _is_mobile_phone_request():
+        if endpoint not in _mobile_phone_allowed_endpoints():
+            if request.method in {"GET", "HEAD", "OPTIONS"}:
+                return redirect(url_for(_mobile_phone_home_endpoint()))
+            abort(403)
 
     if current_user.role in {ROLE_ADMIN, ROLE_MANAGER}:
         return None
@@ -1503,6 +1510,74 @@ def _visit_device_label(user_agent: str | None) -> str:
     if "mobile" in ua:
         return "Телефон"
     return "Компьютер"
+
+
+def _is_mobile_phone_request(user_agent: str | None = None) -> bool:
+    ua = (user_agent or request.headers.get("User-Agent") or "").lower()
+    return (
+        "iphone" in ua
+        or "ipod" in ua
+        or "windows phone" in ua
+        or "webos" in ua
+        or "blackberry" in ua
+        or "opera mini" in ua
+        or "iemobile" in ua
+        or ("android" in ua and "mobile" in ua)
+        or ("mobile" in ua and "ipad" not in ua and "tablet" not in ua)
+    )
+
+
+def _mobile_phone_home_endpoint() -> str:
+    if current_user.role in WORKER_ROLES:
+        return "main.my_tasks"
+    if current_user.role == ROLE_VERIFIER:
+        return "main.work_report"
+    project_id = current_user.project_id if current_user.is_authenticated and current_user.project_id else session.get("current_project_id")
+    return "main.dashboard" if project_id else "main.objects"
+
+
+def _mobile_phone_allowed_endpoints() -> set[str]:
+    if current_user.role in WORKER_ROLES:
+        return set(WORKER_ALLOWED_ENDPOINTS)
+    if current_user.role == ROLE_VERIFIER:
+        return set(VERIFIER_ALLOWED_ENDPOINTS)
+
+    allowed = {
+        "main.report_error",
+        "main.objects",
+        "main.object_open",
+        "main.dashboard",
+        "main.account",
+        "main.task_list",
+        "main.task_detail",
+        "main.task_new",
+        "main.task_delete",
+        "main.task_recognition",
+        "main.quick_status",
+        "main.update_task",
+        "main.add_task_comment",
+        "main.inline_update_text",
+        "main.split_task_remark",
+        "main.remarks_excel_selection",
+        "main.export_category_tasks",
+        "main.export_category_tasks_pdf",
+        "main.apartments",
+        "main.apartments_export",
+        "main.apartment_detail",
+        "main.update_apartment_po_status",
+        "main.update_apartment_inspection_status",
+        "main.update_apartment_inspection_date",
+        "main.update_apartment_inspection_note",
+        "main.update_apartment_comment",
+        "main.update_apartment_avr_status",
+    }
+    if current_user.role in {ROLE_ADMIN, ROLE_MANAGER}:
+        allowed.update({
+            "main.assignments",
+            "main.assignment_manual_task_new",
+            "main.assignment_issued_employee_export",
+        })
+    return allowed
 
 
 def _visit_status_tone(status_code: int | None) -> str:
@@ -6349,10 +6424,10 @@ def _apartment_inspection_status_class(status: str | None) -> str:
 
 
 def _apartment_inspection_status(apartments: list[Apartment]) -> str | None:
-    # Непроданные квартиры считаем уже осмотренными автоматически.
-    # В интерфейсе для них нельзя переключить «Был / Не был».
+    # Для непроданных квартир статус осмотра фиксируем как «Не был».
+    # В интерфейсе для них нельзя переключить это состояние вручную.
     if apartments and any(_is_unsold_apartment(apartment) for apartment in apartments):
-        return "Был"
+        return "Не был"
     if any(apartment.first_inspection_present for apartment in apartments):
         return "Был"
     return "Не был"
@@ -7040,10 +7115,11 @@ def update_apartment_inspection_status(apartment_id: int):
         return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
     if any(_is_unsold_apartment(item) for item in target_group):
         for item in target_group:
-            item.first_inspection_present = True
-            item.first_inspection_date = item.first_inspection_date or date.today()
+            item.first_inspection_present = False
+            item.first_inspection_date = None
+            item.inspection_date = None
         db.session.commit()
-        flash("У непроданной квартиры осмотр фиксируется автоматически: Был", "info")
+        flash("У непроданной квартиры осмотр фиксируется автоматически: Не был", "info")
         return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
 
     was_present = status == "was"

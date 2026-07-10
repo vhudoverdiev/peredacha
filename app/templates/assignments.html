@@ -192,8 +192,23 @@
 </div>
 
 {% else %}
+<div class="assignment-mobile-quick-actions" aria-label="Быстрые действия">
+  <a class="assignment-mobile-quick-action assignment-mobile-quick-action-add" href="{{ url_for('main.assignment_manual_task_new') }}">
+    <i class="bi bi-plus-lg"></i>
+    <span>Добавить</span>
+  </a>
+  <a class="assignment-mobile-quick-action assignment-mobile-quick-action-issued" href="{{ url_for('main.assignments', view='issued') }}">
+    <i class="bi bi-people"></i>
+    <span>Выданные сотрудникам</span>
+  </a>
+  <button class="assignment-mobile-quick-action assignment-mobile-quick-action-search {% if args.get('q') %}is-active{% endif %}" type="button" data-bs-toggle="modal" data-bs-target="#assignmentSearchModal">
+    <i class="bi bi-search"></i>
+    <span>Найти задачу</span>
+  </button>
+</div>
+
 <div class="assignment-toolbar-grid assignment-toolbar-grid-restored mb-3">
-  <div class="card content-card assignment-search-card assignment-search-card-compact">
+  <div class="card content-card assignment-search-card assignment-search-card-compact" id="assignmentSearchPanel">
     <div class="card-body">
       <form method="get" class="assignment-search-form assignment-search-form-compact">
         <div class="assignment-search-field">
@@ -355,5 +370,28 @@
   </ul>
 </nav>
 {% endif %}
+<div class="modal fade assignment-search-modal" id="assignmentSearchModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content assignment-search-modal-card">
+      <div class="assignment-search-modal-head">
+        <div>
+          <h2>Найти задачу</h2>
+        </div>
+        <button type="button" class="assignment-search-modal-close" data-bs-dismiss="modal" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="assignment-search-modal-body">
+        <form method="get" class="assignment-search-form assignment-search-form-compact assignment-search-form-modal">
+          <div class="assignment-search-field">
+            <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Найти задачу">
+          </div>
+          <div class="assignment-search-actions">
+            <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
+            <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.assignments') }}">Сброс</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 {% endif %}
 {% endblock %}
