@@ -50416,12 +50416,49 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
     --ref-mobile-topbar-height: var(--crm-mobile-shell-bar-height, calc(4.18rem + var(--ios-safe-top, 0px))) !important;
+    --crm-mobile-page-gap: 1.34rem;
   }
 
   html.mobile-viewport body.app-body .app-content,
+  html.mobile-viewport body.app-body .objects-content,
+  html.mobile-viewport body.app-body .documents-content,
   html.adaptive-mobile-viewport body.app-body .app-content,
-  html.touch-app-device body.app-body .app-content {
-    padding-top: .78rem !important;
+  html.adaptive-mobile-viewport body.app-body .objects-content,
+  html.adaptive-mobile-viewport body.app-body .documents-content,
+  html.touch-app-device body.app-body .app-content,
+  html.touch-app-device body.app-body .objects-content,
+  html.touch-app-device body.app-body .documents-content,
+  html.touch-app-device body.app-body .documents-standalone-content,
+  html.mobile-viewport body.app-body .documents-standalone-content,
+  html.adaptive-mobile-viewport body.app-body .documents-standalone-content {
+    padding-top: 0 !important;
+  }
+
+  html.mobile-viewport body.app-body .crm-mobile-page-shell,
+  html.adaptive-mobile-viewport body.app-body .crm-mobile-page-shell,
+  html.touch-app-device body.app-body .crm-mobile-page-shell {
+    width: 100% !important;
+    padding-top: var(--crm-mobile-page-gap) !important;
+    animation: crmMobilePageEnter .24s ease-out both !important;
+    will-change: opacity, transform;
+  }
+
+  html.mobile-viewport body.app-body .crm-mobile-page-shell > :first-child,
+  html.adaptive-mobile-viewport body.app-body .crm-mobile-page-shell > :first-child,
+  html.touch-app-device body.app-body .crm-mobile-page-shell > :first-child {
+    margin-top: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .crm-mobile-page-shell > :not(.crm-toast-stack),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .crm-mobile-page-shell :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > * {
+    opacity: 1 !important;
+    animation: none !important;
+    transition-property: background-color, border-color, box-shadow, color, opacity !important;
+    transform: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.account-page-head, .objects-head, .dashboard-redesign-hero, .remarks-page-head, .page-head):first-child {
+    margin-top: 0 !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-all {
@@ -50556,5 +50593,16 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.auth-body .auth-shell {
     opacity: 0 !important;
     animation: dashboardFadeUp .36s ease both !important;
+  }
+}
+
+@keyframes crmMobilePageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
