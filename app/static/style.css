@@ -52588,6 +52588,35 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 }
 
+/* v412: cover the iOS home-indicator area from the very first standalone
+   layout pass. Safari may initially place the fixed bar one safe-area above
+   the physical bottom and only correct it after an orientation change. */
+@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
+  html.standalone-app body.app-body .mobile-bottom-nav,
+  body.standalone-app.app-body .mobile-bottom-nav {
+    isolation: isolate !important;
+    overflow: visible !important;
+  }
+
+  html.standalone-app body.app-body .mobile-bottom-nav::after,
+  body.standalone-app.app-body .mobile-bottom-nav::after {
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    z-index: -1 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: calc(100% - 2px) !important;
+    bottom: auto !important;
+    width: auto !important;
+    height: max(5rem, calc(env(safe-area-inset-bottom) + 2px)) !important;
+    background: #151c23 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+  }
+}
+
 /* v407: all mobile remark category buttons share the same green treatment as "Все". */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head)
@@ -52716,16 +52745,43 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
 @media (max-width: 1366px) {
   html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
     :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar, .mobile-bottom-nav) {
-    left: max(var(--crm-touch-shell-gutter, .82rem), calc((100vw - var(--crm-touch-shell-max-width, 28.5rem)) / 2)) !important;
-    right: max(var(--crm-touch-shell-gutter, .82rem), calc((100vw - var(--crm-touch-shell-max-width, 28.5rem)) / 2)) !important;
+    left: var(--crm-touch-shell-gutter, .82rem) !important;
+    right: var(--crm-touch-shell-gutter, .82rem) !important;
     width: auto !important;
-    max-width: none !important;
-    margin-inline: 0 !important;
+    max-width: var(--crm-touch-shell-max-width, 28.5rem) !important;
+    margin-inline: auto !important;
     transform: none !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* v412-final: the navigation itself paints the initial iOS safe-area gap. */
+@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
+  html.standalone-app body.app-body .mobile-bottom-nav,
+  body.standalone-app.app-body .mobile-bottom-nav {
+    isolation: isolate !important;
+    overflow: visible !important;
+  }
+
+  html.standalone-app body.app-body .mobile-bottom-nav::after,
+  body.standalone-app.app-body .mobile-bottom-nav::after {
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    z-index: -1 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: calc(100% - 2px) !important;
+    bottom: auto !important;
+    width: auto !important;
+    height: max(5rem, calc(env(safe-area-inset-bottom) + 2px)) !important;
+    background: #151c23 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
   }
 }

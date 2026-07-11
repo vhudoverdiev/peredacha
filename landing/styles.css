@@ -2636,9 +2636,15 @@ body.landing-touch-compact-shell .page-shell {
     min-height: calc(100dvh - 88px);
   }
 
+  body.landing-mobile-layout .feature-grid {
+    flex: 1 1 auto;
+    grid-template-rows: repeat(2, minmax(137px, 1fr));
+  }
+
   body.landing-mobile-layout .hero-actions {
-    margin-top: auto;
-    padding-top: 18px;
+    flex: 0 0 auto;
+    margin-top: 18px;
+    padding-top: 0;
   }
 
   body.landing-mobile-layout .trust-line {
