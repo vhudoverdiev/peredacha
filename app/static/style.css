@@ -52588,35 +52588,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 }
 
-/* v412: cover the iOS home-indicator area from the very first standalone
-   layout pass. Safari may initially place the fixed bar one safe-area above
-   the physical bottom and only correct it after an orientation change. */
-@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
-  html.standalone-app body.app-body .mobile-bottom-nav,
-  body.standalone-app.app-body .mobile-bottom-nav {
-    isolation: isolate !important;
-    overflow: visible !important;
-  }
-
-  html.standalone-app body.app-body .mobile-bottom-nav::after,
-  body.standalone-app.app-body .mobile-bottom-nav::after {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    z-index: -1 !important;
-    left: 0 !important;
-    right: 0 !important;
-    top: calc(100% - 2px) !important;
-    bottom: auto !important;
-    width: auto !important;
-    height: max(5rem, calc(env(safe-area-inset-bottom) + 2px)) !important;
-    background: #151c23 !important;
-    border: 0 !important;
-    box-shadow: none !important;
-    pointer-events: none !important;
-  }
-}
-
 /* v407: all mobile remark category buttons share the same green treatment as "Все". */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head)
@@ -52759,42 +52730,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 }
 
-/* v412-final: the navigation itself paints the initial iOS safe-area gap. */
-@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
-  html.standalone-app body.app-body .mobile-bottom-nav,
-  body.standalone-app.app-body .mobile-bottom-nav {
-    isolation: isolate !important;
-    overflow: visible !important;
-  }
-
-  html.standalone-app body.app-body .mobile-bottom-nav::after,
-  body.standalone-app.app-body .mobile-bottom-nav::after {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    z-index: -1 !important;
-    left: 0 !important;
-    right: 0 !important;
-    top: calc(100% - 2px) !important;
-    bottom: auto !important;
-    width: auto !important;
-    height: max(5rem, calc(env(safe-area-inset-bottom) + 2px)) !important;
-    background: #151c23 !important;
-    border: 0 !important;
-    box-shadow: none !important;
-    pointer-events: none !important;
-  }
-}
-
-/* v413: iOS can report a zero safe-area value during the first standalone
-   layout pass. Home-indicator iPhones still need the native 34px shift until
-   Safari publishes the real inset (normally after its first viewport update). */
-@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
-  html.standalone-app.ios-home-indicator-device body.app-body .mobile-bottom-nav {
-    bottom: calc(-1 * max(env(safe-area-inset-bottom), 34px)) !important;
-  }
-}
-
 /* v414: stable pressed/selected colors for issued-day partial filters. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
@@ -52927,5 +52862,104 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     opacity: 1 !important;
     transform: none !important;
     animation: none !important;
+  }
+}
+
+/* v416: clip scrolling page content below the fixed mobile header. */
+.mobile-fixed-top-scroll-mask {
+  display: none;
+}
+
+/* v418: one authoritative root-level tab bar for installed iPhone apps. */
+@media (max-width: 767.98px) {
+  html.standalone-app,
+  html.standalone-app body.app-body {
+    background: #151c24 !important;
+    background-color: #151c24 !important;
+  }
+
+  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root {
+    position: fixed !important;
+    z-index: 1065 !important;
+    inset: auto 0 0 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: calc(4.5rem + env(safe-area-inset-bottom)) !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding-top: .5rem !important;
+    padding-right: max(.28rem, env(safe-area-inset-right)) !important;
+    padding-bottom: calc(.5rem + env(safe-area-inset-bottom)) !important;
+    padding-left: max(.28rem, env(safe-area-inset-left)) !important;
+    border: 0 !important;
+    border-radius: 1.55rem 1.55rem 0 0 !important;
+    background:
+      linear-gradient(
+        180deg,
+        #242d38 0%,
+        #1c242e 45%,
+        #151c24 72%,
+        #151c24 100%
+      ) !important;
+    background-color: #151c24 !important;
+    box-shadow: 0 -14px 30px rgba(11, 17, 25, .22) !important;
+    transform: none !important;
+    filter: none !important;
+    contain: none !important;
+    isolation: isolate !important;
+    overflow: visible !important;
+  }
+
+  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::before,
+  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  html.standalone-app body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
+    overscroll-behavior-y: none;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-fixed-top-scroll-mask {
+    display: block;
+    position: fixed;
+    z-index: 1059;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: calc(var(--ref-mobile-topbar-height, calc(4.18rem + var(--ios-safe-top, 0px))) + 2px);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: #f6f8fb;
+    pointer-events: none;
+    transform: translateZ(0);
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-fixed-top-scroll-mask {
+    height: calc(var(--ref-mobile-topbar-height, calc(4.18rem + env(safe-area-inset-top))) + 2px);
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar) {
+    z-index: 1060 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-switch-panel {
+    z-index: 1095 !important;
   }
 }

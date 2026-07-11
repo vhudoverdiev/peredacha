@@ -37,6 +37,15 @@ const getViewportHeight = () => Math.max(
   480,
   Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || DESKTOP_REFERENCE_HEIGHT),
 );
+
+// Keep fixed mobile navigation attached to the root viewport. Ancestors of
+// the page content are animated/resized and can otherwise become a containing
+// block for position: fixed on iOS standalone launches.
+const mobileRootNavigation = document.querySelector('.mobile-bottom-nav');
+if (mobileRootNavigation && isTouchAppDevice() && mobileRootNavigation.parentElement !== document.body) {
+  document.body.appendChild(mobileRootNavigation);
+  mobileRootNavigation.classList.add('mobile-bottom-nav-root');
+}
 const getDesktopReferenceWidth = () => DESKTOP_REFERENCE_WIDTH;
 const getDesktopStageScale = () => Math.min(1, getViewportWidth() / DESKTOP_REFERENCE_WIDTH);
 const shouldAllowAdaptiveMobileViewport = () => true;
