@@ -52785,3 +52785,147 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     pointer-events: none !important;
   }
 }
+
+/* v413: iOS can report a zero safe-area value during the first standalone
+   layout pass. Home-indicator iPhones still need the native 34px shift until
+   Safari publishes the real inset (normally after its first viewport update). */
+@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
+  html.standalone-app.ios-home-indicator-device body.app-body .mobile-bottom-nav {
+    bottom: calc(-1 * max(env(safe-area-inset-bottom), 34px)) !important;
+  }
+}
+
+/* v414: stable pressed/selected colors for issued-day partial filters. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .assignment-issued-filters .assignment-filter-pill {
+    -webkit-tap-highlight-color: transparent !important;
+    touch-action: manipulation;
+    -webkit-text-fill-color: currentColor !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .assignment-issued-filters .assignment-filter-pill:not(.active):not(.assignment-filter-pill-danger):is(:active, :focus) {
+    border-color: rgba(132, 203, 34, .78) !important;
+    background: linear-gradient(180deg, #f4fbe9 0%, #e9f6d9 100%) !important;
+    color: #35472f !important;
+    -webkit-text-fill-color: #35472f !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .assignment-issued-filters .assignment-filter-pill.active:is(:active, :focus) {
+    border-color: rgba(116, 190, 25, .98) !important;
+    background: linear-gradient(180deg, #91d936 0%, #72bb1b 100%) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .assignment-issued-filters.is-updating .assignment-filter-pill:not(.active) {
+    opacity: .72;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .assignment-issued-layout {
+    transition: opacity .16s ease !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .assignment-issued-filters.is-updating + .assignment-issued-layout {
+    opacity: .58;
+    pointer-events: none;
+  }
+}
+
+/* v415: final mobile-only typography, category states, content entry and
+   one-tap bottom navigation. Fixed top/bottom shells never animate. */
+@keyframes crmMobileContentReveal {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(.995);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page)
+    .apartments-filter-form
+    :is(select, option, .developer-select-button, .developer-select-value, .developer-select-option),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page)
+    .developer-select-menu-portal .developer-select-option {
+    font-weight: 400 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head)
+    .remarks-tabs :is(.remarks-tab-link-all, .remarks-tab-link-category) {
+    border: 1px solid rgba(91, 146, 37, .48) !important;
+    background: linear-gradient(180deg, #ffffff 0%, #f7faF3 100%) !important;
+    background-color: #fff !important;
+    color: #315020 !important;
+    -webkit-text-fill-color: #315020 !important;
+    box-shadow: 0 8px 18px rgba(38, 65, 27, .07) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head)
+    .remarks-tabs :is(.remarks-tab-link-all, .remarks-tab-link-category)
+    :is(i, i::before, .remarks-tab-icon, .remarks-tab-text) {
+    color: inherit !important;
+    -webkit-text-fill-color: inherit !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head)
+    .remarks-tabs :is(.remarks-tab-link-all, .remarks-tab-link-category):is(.active, :active) {
+    border-color: #315f17 !important;
+    background: linear-gradient(180deg, #4f862a 0%, #315f17 100%) !important;
+    background-color: #3d711f !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    box-shadow: 0 10px 22px rgba(43, 91, 20, .24) !important;
+  }
+
+  html.crm-js:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .crm-page-entry-surface.crm-mobile-content-enter {
+    visibility: visible !important;
+    opacity: 0;
+    animation: crmMobileContentReveal .44s cubic-bezier(.22, .8, .28, 1) both !important;
+    will-change: opacity, transform !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.mobile-app-topbar, .mobile-project-topbar, .mobile-bottom-nav) {
+    animation: none !important;
+    transition-property: background-color, border-color, box-shadow, color !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-bottom-nav .mobile-nav-item {
+    position: relative;
+    z-index: 1;
+    cursor: pointer;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-bottom-nav .mobile-nav-item:is(.is-touching, .is-navigation-pending) {
+    color: #8dde2c !important;
+    -webkit-text-fill-color: #8dde2c !important;
+    opacity: 1 !important;
+    transform: scale(.97) !important;
+  }
+}
+
+@media (max-width: 767.98px) and (prefers-reduced-motion: reduce) {
+  html.crm-js:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .crm-page-entry-surface.crm-mobile-content-enter {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}

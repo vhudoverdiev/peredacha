@@ -513,9 +513,17 @@ document.addEventListener('DOMContentLoaded', () => {
           if (entrySurface && !entrySurface.classList.contains('crm-page-entry-surface')) {
             entrySurface.classList.add('crm-page-entry-surface');
           }
+          if (entrySurface && isTouchAppDevice()) {
+            entrySurface.classList.remove('crm-mobile-content-enter');
+            // A distinct animation name guarantees a real restart after native
+            // selects and responsive measurements have settled.
+            void entrySurface.offsetWidth;
+            entrySurface.classList.add('crm-mobile-content-enter');
+          }
           entrySurface?.addEventListener('animationend', event => {
-            if (event.target === entrySurface && event.animationName === 'dashboardFadeUp') {
+            if (event.target === entrySurface && ['dashboardFadeUp', 'crmMobileContentReveal'].includes(event.animationName)) {
               customSelectBootRoot.classList.remove('crm-page-entry-started');
+              entrySurface.classList.remove('crm-mobile-content-enter');
             }
           }, { once: true });
           customSelectBootRoot.classList.remove('crm-page-entry-pending');
@@ -3336,6 +3344,139 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, 5000);
   });
+});
+
+// Issued-day filters update only their own content. The fixed mobile header
+// and bottom navigation stay mounted, so changing Today/Tomorrow does not
+// replay the full-page entry animation or make the shell jump.
+document.addEventListener('DOMContentLoaded', () => {
+  let issuedFilterRequest = null;
+
+  const replaceIssuedRegion = (sourceDocument, targetUrl, pushHistory = true) => {
+    const nextFilters = sourceDocument.querySelector('.assignment-issued-filters');
+    const nextLayout = sourceDocument.querySelector('.assignment-issued-layout');
+    const currentFilters = document.querySelector('.assignment-issued-filters');
+    const currentLayout = document.querySelector('.assignment-issued-layout');
+    if (!nextFilters || !nextLayout || !currentFilters || !currentLayout) return false;
+
+    currentFilters.replaceWith(nextFilters);
+    currentLayout.replaceWith(nextLayout);
+
+    const nextAssigneeForm = sourceDocument.querySelector('#assignmentChangeAssigneeModal form');
+    const currentAssigneeForm = document.querySelector('#assignmentChangeAssigneeModal form');
+    if (nextAssigneeForm && currentAssigneeForm) {
+      currentAssigneeForm.action = nextAssigneeForm.action;
+    }
+
+    const nextIssuedSubtab = sourceDocument.querySelector('.assignment-subtab[href*="view=issued"]');
+    const currentIssuedSubtab = document.querySelector('.assignment-subtab[href*="view=issued"]');
+    if (nextIssuedSubtab && currentIssuedSubtab) currentIssuedSubtab.innerHTML = nextIssuedSubtab.innerHTML;
+    if (pushHistory) window.history.pushState({ assignmentIssuedFilter: true }, '', targetUrl);
+    return true;
+  };
+
+  const loadIssuedFilter = async (url, pushHistory = true) => {
+    if (!url) return;
+    issuedFilterRequest?.abort();
+    issuedFilterRequest = new AbortController();
+
+    const filters = document.querySelector('.assignment-issued-filters');
+    filters?.classList.add('is-updating');
+    filters?.setAttribute('aria-busy', 'true');
+
+    try {
+      const response = await fetch(url, {
+        credentials: 'same-origin',
+        signal: issuedFilterRequest.signal,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'text/html',
+        },
+      });
+      if (!response.ok) throw new Error('Не удалось обновить список задач');
+      const html = await response.text();
+      const sourceDocument = new DOMParser().parseFromString(html, 'text/html');
+      if (!replaceIssuedRegion(sourceDocument, url, pushHistory)) {
+        throw new Error('Не удалось обновить список задач');
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+      showCrmNotice(error.message || 'Не удалось обновить список задач', 'danger');
+    } finally {
+      const activeFilters = document.querySelector('.assignment-issued-filters');
+      activeFilters?.classList.remove('is-updating');
+      activeFilters?.removeAttribute('aria-busy');
+    }
+  };
+
+  document.addEventListener('click', event => {
+    const link = event.target.closest('.js-assignment-issued-filter');
+    if (!link || event.defaultPrevented) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+
+    const filters = link.closest('.assignment-issued-filters');
+    filters?.querySelectorAll('.assignment-filter-pill').forEach(item => item.classList.remove('active'));
+    link.classList.add('active');
+    void loadIssuedFilter(link.href, true);
+  }, true);
+
+  window.addEventListener('popstate', () => {
+    if (!document.querySelector('.assignment-issued-filters')) return;
+    void loadIssuedFilter(window.location.href, false);
+  });
+});
+
+// iOS can keep a :hover/focus state after the first tap on fixed navigation.
+// Commit a short touch gesture on pointerup so one deliberate tap always
+// navigates, while a drag/scroll gesture is ignored.
+document.addEventListener('DOMContentLoaded', () => {
+  let mobileNavGesture = null;
+
+  document.addEventListener('pointerdown', event => {
+    const link = event.target.closest('.mobile-bottom-nav .mobile-nav-item[href]');
+    if (!link || event.pointerType !== 'touch' || event.button !== 0) return;
+    mobileNavGesture = {
+      link,
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      startedAt: Date.now(),
+    };
+    link.classList.add('is-touching');
+  }, { passive: true, capture: true });
+
+  document.addEventListener('pointercancel', () => {
+    mobileNavGesture?.link?.classList.remove('is-touching');
+    mobileNavGesture = null;
+  }, { passive: true, capture: true });
+
+  document.addEventListener('pointerup', event => {
+    const gesture = mobileNavGesture;
+    mobileNavGesture = null;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    gesture.link.classList.remove('is-touching');
+    const moved = Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y);
+    const heldFor = Date.now() - gesture.startedAt;
+    if (moved > 12 || heldFor > 700) return;
+
+    const targetUrl = new URL(gesture.link.href, window.location.href);
+    const currentUrl = new URL(window.location.href);
+    if (targetUrl.href === currentUrl.href) return;
+    event.preventDefault();
+    event.stopPropagation();
+    gesture.link.classList.add('active', 'is-navigation-pending');
+    gesture.link.dataset.touchNavigationCommitted = '1';
+    window.location.assign(targetUrl.href);
+  }, { passive: false, capture: true });
+
+  document.addEventListener('click', event => {
+    const link = event.target.closest('.mobile-bottom-nav .mobile-nav-item[data-touch-navigation-committed="1"]');
+    if (!link) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+  }, true);
 });
 
 // Mobile adaptation helpers

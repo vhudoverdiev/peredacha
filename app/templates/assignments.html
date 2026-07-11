@@ -100,9 +100,9 @@
 
 {% if view_mode == 'issued' %}
 <div class="assignment-issued-filters mb-3">
-  <a class="assignment-filter-pill {% if issued_filter == 'today' %}active{% endif %}" href="{{ url_for('main.assignments', view='issued', issued_day='today') }}"><i class="bi bi-calendar-day"></i>Сегодня</a>
-  <a class="assignment-filter-pill {% if issued_filter == 'tomorrow' %}active{% endif %}" href="{{ url_for('main.assignments', view='issued', issued_day='tomorrow') }}"><i class="bi bi-calendar-plus"></i>Завтра</a>
-  <a class="assignment-filter-pill assignment-filter-pill-danger {% if issued_filter == 'overdue' %}active{% endif %}" href="{{ url_for('main.assignments', view='issued', issued_day='overdue') }}"><i class="bi bi-exclamation-triangle"></i>Просроченные{% if overdue_total %}<span>{{ overdue_total }}</span>{% endif %}</a>
+  <a class="assignment-filter-pill js-assignment-issued-filter {% if issued_filter == 'today' %}active{% endif %}" data-no-loader="1" href="{{ url_for('main.assignments', view='issued', issued_day='today') }}"><i class="bi bi-calendar-day"></i>Сегодня</a>
+  <a class="assignment-filter-pill js-assignment-issued-filter {% if issued_filter == 'tomorrow' %}active{% endif %}" data-no-loader="1" href="{{ url_for('main.assignments', view='issued', issued_day='tomorrow') }}"><i class="bi bi-calendar-plus"></i>Завтра</a>
+  <a class="assignment-filter-pill assignment-filter-pill-danger js-assignment-issued-filter {% if issued_filter == 'overdue' %}active{% endif %}" data-no-loader="1" href="{{ url_for('main.assignments', view='issued', issued_day='overdue') }}"><i class="bi bi-exclamation-triangle"></i>Просроченные{% if overdue_total %}<span>{{ overdue_total }}</span>{% endif %}</a>
 </div>
 <section class="assignment-issued-layout {% if issued_filter == 'overdue' %}assignment-overdue-layout{% endif %}">
   {% if issued_filter == 'overdue' %}
