@@ -150,7 +150,7 @@
   </style>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v407-green-remark-categories">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v411-fixed-mobile-shells">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and mobile_version_under_development %} mobile-dev-flag{% endif %}{% if current_user.is_authenticated and current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <div class="portrait-orientation-guard" aria-live="polite" aria-label="Поверните устройство вертикально">
@@ -342,7 +342,7 @@
       <i class="bi bi-person-check"></i><span class="mobile-nav-label-assignments">&#1042;&#1099;&#1076;&#1072;&#1095;&#1072; &#1079;&#1072;&#1076;&#1072;&#1095;</span>
     </a>
     {% endif %}
-    <a class="mobile-nav-item {% if active == 'apartments' %}active{% endif %}" href="{{ url_for('main.apartments') }}">
+    <a class="mobile-nav-item mobile-nav-item-apartments {% if active == 'apartments' %}active{% endif %}" href="{{ url_for('main.apartments') }}">
       <i class="bi bi-buildings"></i><span>&#1050;&#1074;&#1072;&#1088;&#1090;&#1080;&#1088;&#1099;</span>
     </a>
     {% endif %}
@@ -695,6 +695,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v407-green-remark-categories"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v411-fixed-mobile-shells"></script>
 </body>
 </html>

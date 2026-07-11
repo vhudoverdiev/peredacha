@@ -6666,9 +6666,10 @@ def apartments():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    rows, premise_selectors, po_only = _filtered_apartment_overview_rows(project.id, request.args)
-
     all_rows = [_build_apartment_overview(group) for group in _group_project_apartments(project.id)]
+    rows, premise_selectors, po_only = _filtered_apartment_overview_rows(
+        project.id, request.args, source_rows=all_rows
+    )
     po_alert_count = sum(1 for row in all_rows if row.get("po_status") == PO_STATUS_TO_THROW)
     finishing_types = [
         x[0]
@@ -6733,7 +6734,11 @@ def _inspection_sort_rank(row: dict, order: str) -> int:
     return 0
 
 
-def _filtered_apartment_overview_rows(project_id: int, args) -> tuple[list[dict], list[dict], bool]:
+def _filtered_apartment_overview_rows(
+    project_id: int,
+    args,
+    source_rows: list[dict] | None = None,
+) -> tuple[list[dict], list[dict], bool]:
     q = (args.get("q") or "").strip()
     premise_selectors, _tail_query = parse_multi_premise_search(q)
     po_only = args.get("po") == "1"
@@ -6743,8 +6748,10 @@ def _filtered_apartment_overview_rows(project_id: int, args) -> tuple[list[dict]
     avr_status_filter = (args.get("avr_status") or "").strip()
     po_status_filter = (args.get("po_status") or "").strip()
     rows = []
-    for group in _group_project_apartments(project_id):
-        row = _build_apartment_overview(group)
+    overview_rows = source_rows
+    if overview_rows is None:
+        overview_rows = [_build_apartment_overview(group) for group in _group_project_apartments(project_id)]
+    for row in overview_rows:
         if q:
             premise_selectors, tail_query = parse_multi_premise_search(q)
             search_mode, search_value = detect_search_mode(q)

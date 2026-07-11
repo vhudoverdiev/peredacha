@@ -2624,6 +2624,32 @@ body.landing-touch-compact-shell .page-shell {
   }
 }
 
+/* v20260711-first-fold: finish every touch/mobile first screen on the trust line. */
+@media (max-width: 1366px) {
+  body.landing-mobile-layout .hero-card {
+    min-height: calc(100dvh - 84px);
+  }
+
+  body.landing-mobile-layout .hero-copy {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 88px);
+  }
+
+  body.landing-mobile-layout .hero-actions {
+    margin-top: auto;
+    padding-top: 18px;
+  }
+
+  body.landing-mobile-layout .trust-line {
+    margin-bottom: max(4px, calc(env(safe-area-inset-bottom) * .12));
+  }
+
+  body.landing-mobile-layout .founder-section {
+    margin-top: 18px;
+  }
+}
+
 .landing-portrait-guard {
   display: none;
 }

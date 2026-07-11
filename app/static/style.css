@@ -52615,3 +52615,117 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
       0 10px 22px rgba(80, 148, 15, .28) !important;
   }
 }
+
+/* v408: remove legacy translucent decoration layers behind the mobile login card. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.auth-body::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.auth-body::after,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.auth-body .auth-shell::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.auth-body .auth-shell::after,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.auth-body .login-card-glow {
+    content: none !important;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    pointer-events: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.auth-body .login-wrap,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.auth-body .login-card {
+    isolation: isolate !important;
+  }
+}
+
+/* v409: iPhone standalone bottom bar owns the safe area once, with one continuous surface. */
+@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
+  html.standalone-app body.app-body .mobile-bottom-nav,
+  body.standalone-app.app-body .mobile-bottom-nav {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding-top: .48rem !important;
+    padding-right: max(.28rem, env(safe-area-inset-right)) !important;
+    padding-bottom: max(.5rem, env(safe-area-inset-bottom)) !important;
+    padding-left: max(.28rem, env(safe-area-inset-left)) !important;
+    border-radius: 1.55rem 1.55rem 0 0 !important;
+    background: linear-gradient(180deg, #242d38 0%, #1b232d 62%, #151c23 100%) !important;
+    background-color: #151c23 !important;
+    box-shadow: 0 -14px 30px rgba(11, 17, 25, .22) !important;
+    transform: none !important;
+  }
+
+  html.standalone-app body.app-body .mobile-bottom-nav::after,
+  body.standalone-app.app-body .mobile-bottom-nav::after {
+    content: none !important;
+    display: none !important;
+    height: 0 !important;
+    background: none !important;
+  }
+
+  html.standalone-app,
+  html.standalone-app body.app-body,
+  body.standalone-app.app-body {
+    background-color: #151c23 !important;
+  }
+
+  html.standalone-app body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
+  body.standalone-app.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-bottom: calc(4.45rem + env(safe-area-inset-bottom) + .62rem) !important;
+  }
+}
+
+/* v410: halve the final-card clearance on mobile apartment/task detail screens. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(:is(.task-detail-page, .apartment-detail-page))
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-bottom: calc(2.35rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(:is(.task-detail-page, .apartment-detail-page))
+    .crm-mobile-page-shell {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.task-detail-page)
+    .task-detail-page > .row.g-3,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page)
+    .apartment-detail-page > .row.g-3 {
+    margin-bottom: 0 !important;
+  }
+}
+
+/* v411: center fixed mobile shells without transform. iOS can temporarily
+   replace transforms during a viewport/orientation update, which previously
+   left these panels starting at the middle of the screen. Keep this final so
+   legacy mobile rules cannot restore the fragile left: 50% positioning. */
+@media (max-width: 1366px) {
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar, .mobile-bottom-nav) {
+    left: max(var(--crm-touch-shell-gutter, .82rem), calc((100vw - var(--crm-touch-shell-max-width, 28.5rem)) / 2)) !important;
+    right: max(var(--crm-touch-shell-gutter, .82rem), calc((100vw - var(--crm-touch-shell-max-width, 28.5rem)) / 2)) !important;
+    width: auto !important;
+    max-width: none !important;
+    margin-inline: 0 !important;
+    transform: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
