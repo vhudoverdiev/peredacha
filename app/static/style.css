@@ -52793,53 +52793,49 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 }
 
-/* v420: lower and slim down the mobile bottom bar to match the reference dock.
-   Keep it glued to the bottom edge; only the visible chrome becomes shorter. */
+/* v421: one lightweight mobile shell. Chrome stays fixed while page content
+   animates on the compositor; the original dock size is preserved. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
-    --ref-mobile-nav-height: 2.82rem !important;
+    --ref-mobile-nav-height: 4.5rem !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav {
-    bottom: calc(-1 * env(safe-area-inset-bottom)) !important;
+    bottom: 0 !important;
     min-height: calc(var(--ref-mobile-nav-height) + env(safe-area-inset-bottom)) !important;
-    padding-top: .14rem !important;
-    padding-right: max(.14rem, env(safe-area-inset-right)) !important;
-    padding-bottom: calc(.14rem + env(safe-area-inset-bottom)) !important;
-    padding-left: max(.14rem, env(safe-area-inset-left)) !important;
-    border-top-left-radius: 1.18rem !important;
-    border-top-right-radius: 1.18rem !important;
-    box-shadow: 0 -10px 22px rgba(11, 17, 25, .2) !important;
+    padding: .28rem max(.28rem, env(safe-area-inset-right)) calc(.18rem + env(safe-area-inset-bottom)) max(.28rem, env(safe-area-inset-left)) !important;
+    border-radius: 1.55rem 1.55rem 0 0 !important;
+    align-items: flex-end !important;
+    transform: none !important;
+    filter: none !important;
+    contain: layout paint !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle {
-    min-height: 2.06rem !important;
-    padding: .12rem .04rem !important;
-    gap: .08rem !important;
+    min-height: 3.75rem !important;
+    padding: .34rem .08rem .2rem !important;
+    gap: .2rem !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item i,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle i {
-    font-size: 1.18rem !important;
+    font-size: 1.42rem !important;
     line-height: 1 !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item span,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle span {
-    font-size: .56rem !important;
-    line-height: .92 !important;
+    font-size: .68rem !important;
+    line-height: 1.05 !important;
   }
 
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body .mobile-bottom-nav,
   html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root {
     min-height: calc(var(--ref-mobile-nav-height) + env(safe-area-inset-bottom)) !important;
-    padding-top: .14rem !important;
-    padding-right: max(.14rem, env(safe-area-inset-right)) !important;
-    padding-bottom: calc(.14rem + env(safe-area-inset-bottom)) !important;
-    padding-left: max(.14rem, env(safe-area-inset-left)) !important;
-    border-radius: 1.18rem 1.18rem 0 0 !important;
+    padding: .28rem max(.28rem, env(safe-area-inset-right)) calc(.18rem + env(safe-area-inset-bottom)) max(.28rem, env(safe-area-inset-left)) !important;
+    border-radius: 1.55rem 1.55rem 0 0 !important;
   }
 
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -52848,5 +52844,36 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   html.standalone-app body.app-body
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
     padding-bottom: calc(var(--ref-mobile-nav-height) + env(safe-area-inset-bottom) + .34rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar) {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    contain: layout paint !important;
+  }
+
+  html.crm-mobile-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface.crm-page-entry-surface * {
+    transition: revert-layer !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .crm-page-entry-surface :is(.dashboard-info-card, .category-progress-bar) {
+    animation: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .dashboard-page :is(.dashboard-info-card, .dashboard-roadmap-mini-card, .category-progress-bar) {
+    animation: none !important;
+    will-change: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .crm-page-entry-surface.crm-page-entry-surface {
+    animation: none !important;
   }
 }

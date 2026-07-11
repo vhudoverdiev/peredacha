@@ -49,7 +49,6 @@ if (mobileRootNavigation && isTouchAppDevice() && mobileRootNavigation.parentEle
 
 const runMobileEntryReveal = entrySurface => {
   if (!entrySurface) return Promise.resolve();
-  const setRevealStyle = (property, value) => entrySurface.style.setProperty(property, value, 'important');
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     entrySurface.style.removeProperty('opacity');
     entrySurface.style.removeProperty('transform');
@@ -58,67 +57,18 @@ const runMobileEntryReveal = entrySurface => {
     return Promise.resolve();
   }
 
-  const distance = 22;
-  const startScale = 0.988;
-  const startBlur = 8;
-  const duration = 560;
-  const easeOutCubic = progress => 1 - Math.pow(1 - progress, 3);
-
-  if (entrySurface.__crmMobileEntryTimer) {
-    window.clearTimeout(entrySurface.__crmMobileEntryTimer);
-  }
-  entrySurface.__crmMobileEntryTimer = null;
-  entrySurface.__crmMobileEntryStartedAt = null;
-  setRevealStyle('opacity', '0');
-  setRevealStyle('transform', `translate3d(0, ${distance}px, 0) scale(${startScale})`);
-  setRevealStyle('filter', `blur(${startBlur}px) saturate(.96)`);
-  setRevealStyle('will-change', 'opacity, transform, filter');
-
-  return new Promise(resolve => {
-    const finish = () => {
-      if (entrySurface.__crmMobileEntryTimer) {
-        window.clearTimeout(entrySurface.__crmMobileEntryTimer);
-      }
-      entrySurface.__crmMobileEntryTimer = null;
-      entrySurface.__crmMobileEntryStartedAt = null;
-      entrySurface.style.removeProperty('opacity');
-      entrySurface.style.removeProperty('transform');
-      entrySurface.style.removeProperty('filter');
-      entrySurface.style.removeProperty('will-change');
-      resolve();
-    };
-
-    const step = now => {
-      if (!entrySurface.isConnected) {
-        finish();
-        return;
-      }
-      if (entrySurface.__crmMobileEntryStartedAt == null) {
-        entrySurface.__crmMobileEntryStartedAt = now;
-      }
-      const elapsed = now - entrySurface.__crmMobileEntryStartedAt;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = easeOutCubic(progress);
-      const currentOffset = distance * (1 - eased);
-      const currentScale = startScale + ((1 - startScale) * eased);
-      const currentBlur = startBlur * (1 - eased);
-      setRevealStyle('opacity', eased.toFixed(4));
-      setRevealStyle('transform', `translate3d(0, ${currentOffset.toFixed(3)}px, 0) scale(${currentScale.toFixed(4)})`);
-      setRevealStyle('filter', `blur(${currentBlur.toFixed(3)}px) saturate(${(0.96 + (0.04 * eased)).toFixed(4)})`);
-      if (progress >= 1) {
-        finish();
-        return;
-      }
-      entrySurface.__crmMobileEntryTimer = window.setTimeout(() => {
-        step(Date.now());
-      }, 16);
-    };
-
-    entrySurface.__crmMobileEntryStartedAt = Date.now();
-    entrySurface.__crmMobileEntryTimer = window.setTimeout(() => {
-      step(Date.now());
-    }, 16);
+  entrySurface.getAnimations().forEach(animation => {
+    if (animation.id === 'crm-mobile-entry') animation.cancel();
   });
+  const animation = entrySurface.animate(
+    [
+      { opacity: 0, transform: 'translate3d(0, 18px, 0) scale(.992)' },
+      { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)' },
+    ],
+    { duration: 360, easing: 'cubic-bezier(.22, .72, .2, 1)', fill: 'both' },
+  );
+  animation.id = 'crm-mobile-entry';
+  return animation.finished.catch(() => {}).finally(() => animation.cancel());
 };
 const getDesktopReferenceWidth = () => DESKTOP_REFERENCE_WIDTH;
 const getDesktopStageScale = () => Math.min(1, getViewportWidth() / DESKTOP_REFERENCE_WIDTH);
