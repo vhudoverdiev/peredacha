@@ -46,6 +46,80 @@ if (mobileRootNavigation && isTouchAppDevice() && mobileRootNavigation.parentEle
   document.body.appendChild(mobileRootNavigation);
   mobileRootNavigation.classList.add('mobile-bottom-nav-root');
 }
+
+const runMobileEntryReveal = entrySurface => {
+  if (!entrySurface) return Promise.resolve();
+  const setRevealStyle = (property, value) => entrySurface.style.setProperty(property, value, 'important');
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    entrySurface.style.removeProperty('opacity');
+    entrySurface.style.removeProperty('transform');
+    entrySurface.style.removeProperty('filter');
+    entrySurface.style.removeProperty('will-change');
+    return Promise.resolve();
+  }
+
+  const distance = 22;
+  const startScale = 0.988;
+  const startBlur = 8;
+  const duration = 560;
+  const easeOutCubic = progress => 1 - Math.pow(1 - progress, 3);
+
+  if (entrySurface.__crmMobileEntryTimer) {
+    window.clearTimeout(entrySurface.__crmMobileEntryTimer);
+  }
+  entrySurface.__crmMobileEntryTimer = null;
+  entrySurface.__crmMobileEntryStartedAt = null;
+  setRevealStyle('opacity', '0');
+  setRevealStyle('transform', `translate3d(0, ${distance}px, 0) scale(${startScale})`);
+  setRevealStyle('filter', `blur(${startBlur}px) saturate(.96)`);
+  setRevealStyle('will-change', 'opacity, transform, filter');
+
+  return new Promise(resolve => {
+    const finish = () => {
+      if (entrySurface.__crmMobileEntryTimer) {
+        window.clearTimeout(entrySurface.__crmMobileEntryTimer);
+      }
+      entrySurface.__crmMobileEntryTimer = null;
+      entrySurface.__crmMobileEntryStartedAt = null;
+      entrySurface.style.removeProperty('opacity');
+      entrySurface.style.removeProperty('transform');
+      entrySurface.style.removeProperty('filter');
+      entrySurface.style.removeProperty('will-change');
+      resolve();
+    };
+
+    const step = now => {
+      if (!entrySurface.isConnected) {
+        finish();
+        return;
+      }
+      if (entrySurface.__crmMobileEntryStartedAt == null) {
+        entrySurface.__crmMobileEntryStartedAt = now;
+      }
+      const elapsed = now - entrySurface.__crmMobileEntryStartedAt;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeOutCubic(progress);
+      const currentOffset = distance * (1 - eased);
+      const currentScale = startScale + ((1 - startScale) * eased);
+      const currentBlur = startBlur * (1 - eased);
+      setRevealStyle('opacity', eased.toFixed(4));
+      setRevealStyle('transform', `translate3d(0, ${currentOffset.toFixed(3)}px, 0) scale(${currentScale.toFixed(4)})`);
+      setRevealStyle('filter', `blur(${currentBlur.toFixed(3)}px) saturate(${(0.96 + (0.04 * eased)).toFixed(4)})`);
+      if (progress >= 1) {
+        finish();
+        return;
+      }
+      entrySurface.__crmMobileEntryTimer = window.setTimeout(() => {
+        step(Date.now());
+      }, 16);
+    };
+
+    entrySurface.__crmMobileEntryStartedAt = Date.now();
+    entrySurface.__crmMobileEntryTimer = window.setTimeout(() => {
+      step(Date.now());
+    }, 16);
+  });
+};
 const getDesktopReferenceWidth = () => DESKTOP_REFERENCE_WIDTH;
 const getDesktopStageScale = () => Math.min(1, getViewportWidth() / DESKTOP_REFERENCE_WIDTH);
 const shouldAllowAdaptiveMobileViewport = () => true;
@@ -506,47 +580,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const customSelectBootRoot = document.documentElement;
   const finishCustomSelectBoot = () => {
-    customSelectBootRoot.classList.remove('crm-custom-select-fallback', 'crm-page-entry-complete');
+    const isMobileEntrySurface = customSelectBootRoot.matches('.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device');
+    customSelectBootRoot.classList.remove(
+      'crm-custom-select-fallback',
+      'crm-page-entry-pending',
+      'crm-page-entry-started',
+      'crm-page-entry-complete',
+      'crm-mobile-entry-started',
+      'crm-mobile-entry-complete'
+    );
     customSelectBootRoot.classList.remove('crm-custom-select-pending');
     customSelectBootRoot.classList.add('crm-custom-select-ready');
     if (document.body.classList.contains('app-body')) {
-      // Wait one frame so native selects and layout measurements settle before
-      // the single page-surface animation starts.
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => {
-          const entrySurface = document.body.querySelector('.crm-page-entry-surface')
-            || document.body.querySelector('.app-content, .objects-content, .documents-content, .documents-standalone-content');
-          // A few internal tabs render their content without the shared shell.
-          // Normalize them to the same single animated surface before the
-          // pending state is released, so they cannot flash in unanimated.
-          if (entrySurface && !entrySurface.classList.contains('crm-page-entry-surface')) {
-            entrySurface.classList.add('crm-page-entry-surface');
-          }
-          if (entrySurface && isTouchAppDevice()) {
+      window.setTimeout(() => {
+        const entrySurface = document.body.querySelector('.crm-page-entry-surface')
+          || document.body.querySelector('.app-content, .objects-content, .documents-content, .documents-standalone-content');
+        // A few internal tabs render their content without the shared shell.
+        // Normalize them to the same single animated surface before the
+        // pending state is released, so they cannot flash in unanimated.
+        if (entrySurface && !entrySurface.classList.contains('crm-page-entry-surface')) {
+          entrySurface.classList.add('crm-page-entry-surface');
+        }
+        if (entrySurface && isMobileEntrySurface) {
+          entrySurface.classList.remove('crm-mobile-content-enter');
+          customSelectBootRoot.classList.remove('crm-mobile-entry-pending');
+          customSelectBootRoot.classList.add('crm-mobile-entry-started');
+          entrySurface.classList.add('crm-mobile-content-enter');
+          runMobileEntryReveal(entrySurface).finally(() => {
+            customSelectBootRoot.classList.remove('crm-mobile-entry-started');
+            customSelectBootRoot.classList.add('crm-mobile-entry-complete');
             entrySurface.classList.remove('crm-mobile-content-enter');
-            // A distinct animation name guarantees a real restart after native
-            // selects and responsive measurements have settled.
-            void entrySurface.offsetWidth;
-            entrySurface.classList.add('crm-mobile-content-enter');
-          }
-          entrySurface?.addEventListener('animationend', event => {
-            if (event.target === entrySurface && ['dashboardFadeUp', 'crmMobileContentReveal'].includes(event.animationName)) {
-              customSelectBootRoot.classList.remove('crm-page-entry-started');
-              entrySurface.classList.remove('crm-mobile-content-enter');
-            }
-          }, { once: true });
-          customSelectBootRoot.classList.remove('crm-page-entry-pending');
-          customSelectBootRoot.classList.add('crm-page-entry-started');
-        });
-      });
+          });
+        } else if (isMobileEntrySurface) {
+          customSelectBootRoot.classList.remove('crm-mobile-entry-pending');
+          customSelectBootRoot.classList.add('crm-mobile-entry-complete');
+        }
+      }, 40);
     }
-    const pageShell = document.querySelector('.crm-mobile-page-shell');
-    if (pageShell) {
-      pageShell.addEventListener('animationend', event => {
-        if (event.target !== pageShell || event.animationName !== 'dashboardFadeUp') return;
-        customSelectBootRoot.classList.add('crm-page-entry-complete');
-      }, { once: true });
-    }
+    if (!isMobileEntrySurface) customSelectBootRoot.classList.remove('crm-mobile-entry-pending');
   };
 
   const prepareNativeSelectsForCustomUi = (scope = document) => {

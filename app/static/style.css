@@ -50688,82 +50688,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
 
 /* v383: reveal one fully initialized mobile page instead of animating partial controls. */
 @media (max-width: 767.98px) {
-  html.crm-js.crm-custom-select-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body
-    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
-    > .crm-mobile-page-shell.crm-mobile-page-shell {
-    visibility: hidden !important;
-    opacity: 0 !important;
-    animation: none !important;
-    transform: translateY(12px) !important;
-    pointer-events: none !important;
-    will-change: opacity, transform !important;
-  }
-
-  html.crm-js.crm-custom-select-ready:not(.crm-page-entry-complete):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body
-    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
-    > .crm-mobile-page-shell.crm-mobile-page-shell {
-    visibility: visible !important;
-    opacity: 0 !important;
-    animation: dashboardFadeUp .36s ease both !important;
-    pointer-events: auto !important;
-    z-index: 1 !important;
-    will-change: opacity, transform !important;
-  }
-
-  html.crm-js.crm-page-entry-complete:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body
-    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
-    > .crm-mobile-page-shell.crm-mobile-page-shell,
-  html.crm-js.crm-custom-select-fallback:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body
-    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
-    > .crm-mobile-page-shell.crm-mobile-page-shell {
-    visibility: visible !important;
-    opacity: 1 !important;
-    animation: none !important;
-    transform: none !important;
-    pointer-events: auto !important;
-    will-change: auto !important;
-  }
-}
-
-@media (max-width: 767.98px) and (prefers-reduced-motion: reduce) {
-  html.crm-js.crm-custom-select-ready:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body
-    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
-    > .crm-mobile-page-shell.crm-mobile-page-shell {
-    visibility: visible !important;
-    opacity: 1 !important;
-    animation: none !important;
-    transform: none !important;
-    will-change: auto !important;
-  }
-}
-
-/* v384: one stable mobile page entry and native touch selects.
-   Keep the whole page as a single animated surface; inner cards must not
-   animate independently during first paint. */
-@media (max-width: 767.98px) {
-  html.crm-js:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
-    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
-    > .crm-mobile-page-shell {
-    visibility: visible !important;
-    opacity: 0 !important;
-    transform: translate3d(0, 12px, 0) !important;
-    animation: dashboardFadeUp .36s ease-out both !important;
-    will-change: opacity, transform !important;
-    pointer-events: auto !important;
-  }
-
-  html.crm-js:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
-    .crm-mobile-page-shell > *,
-  html.crm-js:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
-    .crm-mobile-page-shell * {
-    animation: none !important;
-  }
-
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
     .developer-custom-select:has(> select.mobile-native-select),
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
@@ -50778,51 +50702,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     inset: auto !important;
     transform: none !important;
     transition: none !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html.crm-js:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
-    .crm-mobile-page-shell {
-    opacity: 1 !important;
-    transform: none !important;
-    animation: none !important;
-  }
-}
-
-/* v385: deterministic first paint for every authenticated mobile tab. */
-@media (max-width: 767.98px) {
-  html.crm-page-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body {
-    overflow-x: hidden !important;
-  }
-
-  html.crm-page-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface {
-    visibility: hidden !important;
-    opacity: 0 !important;
-    transform: translate3d(0, 12px, 0) !important;
-  }
-
-  html.crm-page-entry-started.crm-page-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface {
-    visibility: visible !important;
-    opacity: 0 !important;
-    animation: dashboardFadeUp .36s ease-out both !important;
-    will-change: opacity, transform !important;
-  }
-
-  html.crm-page-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface * {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html.crm-page-entry-started body.app-body .crm-page-entry-surface {
-    animation: none !important;
-    transform: none !important;
   }
 }
 
@@ -51065,95 +50944,6 @@ body.standalone-app.app-body {
   .portrait-orientation-guard-card span {
     color: rgba(255, 255, 255, .72);
     font-size: .82rem;
-  }
-}
-
-/* v391: one desktop-parity entry animation for every mobile internal tab.
-   The shell chrome stays fixed and completely outside this animated surface. */
-@media (max-width: 767.98px) {
-  html.crm-page-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body
-    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
-    :not(:has(.crm-page-entry-surface)) {
-    visibility: hidden !important;
-    opacity: 0 !important;
-    transform: none !important;
-  }
-
-  html.crm-page-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface {
-    visibility: hidden !important;
-    opacity: 0 !important;
-    transform: translate3d(0, 12px, 0) !important;
-    animation: none !important;
-    will-change: opacity, transform !important;
-  }
-
-  html.crm-page-entry-started.crm-page-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface {
-    visibility: visible !important;
-    opacity: 0 !important;
-    transform: translate3d(0, 12px, 0) !important;
-    animation: dashboardFadeUp .36s ease both !important;
-    will-change: opacity, transform !important;
-  }
-
-  html.crm-page-entry-started.crm-page-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface * {
-    animation: none !important;
-    transition: none !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface {
-    animation: none !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface > :not(.crm-toast-stack) {
-    animation: none !important;
-  }
-
-  html:not(.crm-page-entry-pending):not(.crm-page-entry-started):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body
-    .crm-page-entry-surface.crm-page-entry-surface {
-    visibility: visible !important;
-    opacity: 1 !important;
-    transform: none !important;
-    will-change: auto !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body .mobile-app-topbar.mobile-shell-topbar,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body .mobile-project-topbar.mobile-shell-topbar,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body .mobile-bottom-nav {
-    position: fixed !important;
-    transform: none !important;
-    animation: none !important;
-    will-change: auto !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body .mobile-app-topbar.mobile-shell-topbar,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body .mobile-project-topbar.mobile-shell-topbar {
-    top: 0 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body .mobile-bottom-nav {
-    bottom: calc(-1 * env(safe-area-inset-bottom)) !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
   }
 }
 
@@ -52772,12 +52562,12 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 }
 
-/* v415: final mobile-only typography, category states, content entry and
-   one-tap bottom navigation. Fixed top/bottom shells never animate. */
+/* v419: mobile inner tabs use one dedicated shared reveal. Fixed shell chrome
+   stays still while only the page surface fades in like the landing. */
 @keyframes crmMobileContentReveal {
   from {
     opacity: 0;
-    transform: translate3d(0, 14px, 0) scale(.995);
+    transform: translate3d(0, 18px, 0) scale(.992);
   }
   to {
     opacity: 1;
@@ -52821,12 +52611,48 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     box-shadow: 0 10px 22px rgba(43, 91, 20, .24) !important;
   }
 
-  html.crm-js:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
-    .crm-page-entry-surface.crm-mobile-content-enter {
-    visibility: visible !important;
-    opacity: 0;
-    animation: crmMobileContentReveal .44s cubic-bezier(.22, .8, .28, 1) both !important;
+  html.crm-mobile-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface.crm-page-entry-surface {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    transform: translate3d(0, 18px, 0) scale(.992) !important;
+    animation: none !important;
+    pointer-events: none !important;
     will-change: opacity, transform !important;
+  }
+
+  html.crm-mobile-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface.crm-page-entry-surface {
+    visibility: visible !important;
+    animation: none !important;
+    pointer-events: none !important;
+    will-change: opacity, transform !important;
+  }
+
+  html.crm-mobile-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface.crm-page-entry-surface.crm-mobile-content-enter {
+    visibility: visible !important;
+    animation: none !important;
+    pointer-events: auto !important;
+    will-change: opacity, transform !important;
+  }
+
+  html.crm-mobile-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface.crm-page-entry-surface * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html.crm-mobile-entry-complete:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface.crm-page-entry-surface,
+  html.crm-custom-select-fallback:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface.crm-page-entry-surface {
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    pointer-events: auto !important;
+    will-change: auto !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
@@ -52857,10 +52683,13 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
 }
 
 @media (max-width: 767.98px) and (prefers-reduced-motion: reduce) {
-  html.crm-js:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
-    .crm-page-entry-surface.crm-mobile-content-enter {
+  html.crm-mobile-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface.crm-page-entry-surface,
+  html.crm-mobile-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface.crm-page-entry-surface.crm-mobile-content-enter {
     opacity: 1 !important;
     transform: none !important;
+    visibility: visible !important;
     animation: none !important;
   }
 }
@@ -52961,5 +52790,63 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
     .mobile-project-switch-panel {
     z-index: 1095 !important;
+  }
+}
+
+/* v420: lower and slim down the mobile bottom bar to match the reference dock.
+   Keep it glued to the bottom edge; only the visible chrome becomes shorter. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
+    --ref-mobile-nav-height: 2.82rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav {
+    bottom: calc(-1 * env(safe-area-inset-bottom)) !important;
+    min-height: calc(var(--ref-mobile-nav-height) + env(safe-area-inset-bottom)) !important;
+    padding-top: .14rem !important;
+    padding-right: max(.14rem, env(safe-area-inset-right)) !important;
+    padding-bottom: calc(.14rem + env(safe-area-inset-bottom)) !important;
+    padding-left: max(.14rem, env(safe-area-inset-left)) !important;
+    border-top-left-radius: 1.18rem !important;
+    border-top-right-radius: 1.18rem !important;
+    box-shadow: 0 -10px 22px rgba(11, 17, 25, .2) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle {
+    min-height: 2.06rem !important;
+    padding: .12rem .04rem !important;
+    gap: .08rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item i,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle i {
+    font-size: 1.18rem !important;
+    line-height: 1 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item span,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle span {
+    font-size: .56rem !important;
+    line-height: .92 !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .mobile-bottom-nav,
+  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root {
+    min-height: calc(var(--ref-mobile-nav-height) + env(safe-area-inset-bottom)) !important;
+    padding-top: .14rem !important;
+    padding-right: max(.14rem, env(safe-area-inset-right)) !important;
+    padding-bottom: calc(.14rem + env(safe-area-inset-bottom)) !important;
+    padding-left: max(.14rem, env(safe-area-inset-left)) !important;
+    border-radius: 1.18rem 1.18rem 0 0 !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:not(:has(.remarks-empty-row))
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
+  html.standalone-app body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-bottom: calc(var(--ref-mobile-nav-height) + env(safe-area-inset-bottom) + .34rem) !important;
   }
 }
