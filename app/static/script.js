@@ -41,10 +41,52 @@ const getDesktopReferenceWidth = () => DESKTOP_REFERENCE_WIDTH;
 const getDesktopStageScale = () => Math.min(1, getViewportWidth() / DESKTOP_REFERENCE_WIDTH);
 const shouldAllowAdaptiveMobileViewport = () => true;
 const isAdaptiveMobileViewport = () => shouldAllowAdaptiveMobileViewport() && !isTouchAppDevice() && getViewportWidth() <= DESKTOP_TO_MOBILE_VIEWPORT_WIDTH;
-const isTouchMobileViewport = () => isPhoneTouchDevice();
+const isTouchMobileViewport = () => isPhoneTouchDevice() || isTabletTouchDevice();
 const isMobileViewport = () => isTouchMobileViewport() || isAdaptiveMobileViewport();
 const isDesktopLikePointer = () => !isTouchAppDevice() && !isAdaptiveMobileViewport();
 const shouldUseDesktopViewportLock = () => isDesktopLikePointer();
+const getTouchViewportProfile = () => {
+  const viewportWidth = getViewportWidth();
+  const viewportHeight = getViewportHeight();
+  const shortEdge = Math.min(viewportWidth, viewportHeight);
+  const longEdge = Math.max(viewportWidth, viewportHeight);
+  if (isTabletTouchDevice()) {
+    return viewportHeight >= viewportWidth ? 'tablet-portrait' : 'tablet-landscape';
+  }
+  if (shortEdge <= 390 || longEdge <= 760) return 'phone-compact';
+  if (shortEdge >= 430 || longEdge >= 920) return 'phone-large';
+  return 'phone-standard';
+};
+const applyTouchViewportProfile = () => {
+  const profileClassNames = [
+    'touch-profile-phone-compact',
+    'touch-profile-phone-standard',
+    'touch-profile-phone-large',
+    'touch-profile-tablet-portrait',
+    'touch-profile-tablet-landscape',
+  ];
+  document.documentElement.classList.remove(...profileClassNames);
+  document.body?.classList.remove(...profileClassNames);
+  if (!isTouchAppDevice()) {
+    document.documentElement.style.removeProperty('--crm-touch-shell-max-width');
+    document.documentElement.style.removeProperty('--crm-touch-shell-gutter');
+    document.documentElement.style.removeProperty('--crm-touch-shell-radius');
+    return;
+  }
+  const profile = getTouchViewportProfile();
+  const profileConfig = ({
+    'phone-compact': { className: 'touch-profile-phone-compact', maxWidth: '25.75rem', gutter: '.82rem', radius: '1.42rem' },
+    'phone-standard': { className: 'touch-profile-phone-standard', maxWidth: '27rem', gutter: '.94rem', radius: '1.5rem' },
+    'phone-large': { className: 'touch-profile-phone-large', maxWidth: '28.5rem', gutter: '1.02rem', radius: '1.58rem' },
+    'tablet-portrait': { className: 'touch-profile-tablet-portrait', maxWidth: '29.75rem', gutter: '1.08rem', radius: '1.64rem' },
+    'tablet-landscape': { className: 'touch-profile-tablet-landscape', maxWidth: '31rem', gutter: '1.14rem', radius: '1.7rem' },
+  })[profile];
+  document.documentElement.classList.add(profileConfig.className);
+  document.body?.classList.add(profileConfig.className);
+  document.documentElement.style.setProperty('--crm-touch-shell-max-width', profileConfig.maxWidth);
+  document.documentElement.style.setProperty('--crm-touch-shell-gutter', profileConfig.gutter);
+  document.documentElement.style.setProperty('--crm-touch-shell-radius', profileConfig.radius);
+};
 const normalizeConfirmText = (text) => (text || '').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
 let desktopViewportSyncUnlocked = document.readyState === 'complete';
 
@@ -70,6 +112,7 @@ const syncDesktopViewportLock = (options = {}) => {
   document.body?.classList.toggle('real-phone-device', phoneTouchDevice);
   document.documentElement.classList.toggle('tablet-touch-device', tabletTouchDevice);
   document.body?.classList.toggle('tablet-touch-device', tabletTouchDevice);
+  applyTouchViewportProfile();
   if (!desktopLike) {
     document.documentElement.style.removeProperty('--desktop-lock-width');
     document.documentElement.style.removeProperty('--desktop-reference-width');
@@ -167,6 +210,46 @@ window.addEventListener('load', () => {
 }, { once: true });
 
 document.addEventListener('DOMContentLoaded', () => {
+  const mobileProjectToggle = document.querySelector('[data-mobile-project-toggle]');
+  const mobileProjectPanel = document.querySelector('[data-mobile-project-panel]');
+  if (mobileProjectToggle && mobileProjectPanel) {
+    const closeMobileProjectPanel = () => {
+      mobileProjectToggle.setAttribute('aria-expanded', 'false');
+      mobileProjectToggle.classList.remove('is-open');
+      mobileProjectPanel.classList.remove('is-open');
+      document.body.classList.remove('mobile-project-switch-open');
+      window.setTimeout(() => {
+        if (!mobileProjectPanel.classList.contains('is-open')) mobileProjectPanel.hidden = true;
+      }, 180);
+    };
+    const openMobileProjectPanel = () => {
+      mobileProjectPanel.hidden = false;
+      window.requestAnimationFrame(() => {
+        mobileProjectToggle.setAttribute('aria-expanded', 'true');
+        mobileProjectToggle.classList.add('is-open');
+        mobileProjectPanel.classList.add('is-open');
+        document.body.classList.add('mobile-project-switch-open');
+      });
+    };
+    mobileProjectToggle.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (mobileProjectPanel.classList.contains('is-open')) closeMobileProjectPanel();
+      else openMobileProjectPanel();
+    });
+    document.addEventListener('click', event => {
+      if (!mobileProjectPanel.classList.contains('is-open')) return;
+      if (mobileProjectPanel.contains(event.target) || mobileProjectToggle.contains(event.target)) return;
+      closeMobileProjectPanel();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && mobileProjectPanel.classList.contains('is-open')) {
+        closeMobileProjectPanel();
+        mobileProjectToggle.focus({ preventScroll: true });
+      }
+    });
+  }
+
   document.querySelectorAll('.crm-search-btn').forEach(button => {
     const lockButtonSize = () => {
       const rect = button.getBoundingClientRect();
@@ -422,14 +505,21 @@ document.addEventListener('DOMContentLoaded', () => {
       // the single page-surface animation starts.
       window.requestAnimationFrame(() => {
         window.requestAnimationFrame(() => {
-          customSelectBootRoot.classList.remove('crm-page-entry-pending');
-          customSelectBootRoot.classList.add('crm-page-entry-started');
-          const entrySurface = document.body.querySelector('.crm-page-entry-surface');
+          const entrySurface = document.body.querySelector('.crm-page-entry-surface')
+            || document.body.querySelector('.app-content, .objects-content, .documents-content, .documents-standalone-content');
+          // A few internal tabs render their content without the shared shell.
+          // Normalize them to the same single animated surface before the
+          // pending state is released, so they cannot flash in unanimated.
+          if (entrySurface && !entrySurface.classList.contains('crm-page-entry-surface')) {
+            entrySurface.classList.add('crm-page-entry-surface');
+          }
           entrySurface?.addEventListener('animationend', event => {
             if (event.target === entrySurface && event.animationName === 'dashboardFadeUp') {
               customSelectBootRoot.classList.remove('crm-page-entry-started');
             }
           }, { once: true });
+          customSelectBootRoot.classList.remove('crm-page-entry-pending');
+          customSelectBootRoot.classList.add('crm-page-entry-started');
         });
       });
     }
@@ -480,10 +570,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const initDeveloperCustomSelects = (scope = document) => {
     prepareNativeSelectsForCustomUi(scope);
+    const isMobileSelectUi = document.documentElement.matches('.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device');
 
     scope.querySelectorAll('.js-developer-custom-select').forEach(selectShell => {
       const select = selectShell.querySelector('select');
-      if (!select || selectShell.querySelector('.developer-select-button')) return;
+      if (!select) return;
+      if (isMobileSelectUi) {
+        select.classList.add('mobile-native-select');
+        select.tabIndex = 0;
+        select.removeAttribute('aria-hidden');
+        select.classList.remove('developer-native-select');
+        selectShell.querySelectorAll('.developer-select-button').forEach(button => button.remove());
+        selectShell.classList.remove('is-open');
+        return;
+      }
+      if (selectShell.querySelector('.developer-select-button')) return;
 
       select.tabIndex = -1;
       select.setAttribute('aria-hidden', 'true');
@@ -568,26 +669,36 @@ document.addEventListener('DOMContentLoaded', () => {
       function placeMenu() {
         if (!selectShell.classList.contains('is-open')) return;
         const rect = button.getBoundingClientRect();
-        const viewportGap = 12;
-        const minWidth = Math.max(rect.width, 180);
-        const availableBelow = Math.max(0, window.innerHeight - rect.bottom - viewportGap);
+        const mobileLikeSelectUi = document.documentElement.matches('.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device');
+        const viewportGap = mobileLikeSelectUi ? 10 : 12;
+        const mobileBottomNav = mobileLikeSelectUi ? document.querySelector('.mobile-bottom-nav') : null;
+        const bottomNavRect = mobileBottomNav?.getBoundingClientRect?.();
+        const bottomNavInset = bottomNavRect
+          ? Math.max(0, window.innerHeight - Math.max(0, bottomNavRect.top))
+          : 0;
+        const minWidth = Math.max(rect.width, mobileLikeSelectUi ? 220 : 180);
+        const availableBelow = Math.max(0, window.innerHeight - bottomNavInset - rect.bottom - viewportGap);
         const availableAbove = Math.max(0, rect.top - viewportGap);
         const estimatedHeight = Math.min(300, Math.max(46, options.length * 42 + 18));
         const measuredHeight = menu.scrollHeight ? Math.min(300, Math.max(46, menu.scrollHeight)) : estimatedHeight;
         // Выпадающий список по умолчанию открываем вниз, чтобы он не налезал на поле и кнопки сверху.
         // Вверх открываем только когда снизу совсем мало места, иначе ограничиваем высоту и даем прокрутку.
         const openAbove = availableBelow < 96 && availableAbove > availableBelow + 80;
-        const available = Math.max(96, (openAbove ? availableAbove : availableBelow) - 8);
-        const maxHeight = Math.max(96, Math.min(300, available));
+        const available = Math.max(96, (openAbove ? availableAbove : availableBelow) - (mobileLikeSelectUi ? 2 : 8));
+        const maxHeight = Math.max(96, Math.min(mobileLikeSelectUi ? 320 : 300, available));
         const menuHeight = Math.min(measuredHeight, maxHeight);
-        const left = Math.min(Math.max(viewportGap, rect.left), Math.max(viewportGap, window.innerWidth - minWidth - viewportGap));
+        const left = Math.min(
+          Math.max(viewportGap, rect.left),
+          Math.max(viewportGap, window.innerWidth - minWidth - viewportGap),
+        );
         const top = openAbove
           ? Math.max(viewportGap, rect.top - menuHeight - 8)
-          : Math.max(viewportGap, Math.min(window.innerHeight - viewportGap - menuHeight, rect.bottom + 8));
+          : Math.max(viewportGap, Math.min(window.innerHeight - bottomNavInset - viewportGap - menuHeight, rect.bottom + 8));
         menu.style.left = `${left}px`;
         menu.style.top = `${top}px`;
         menu.style.width = `${minWidth}px`;
         menu.style.maxHeight = `${maxHeight}px`;
+        menu.style.setProperty('--developer-select-mobile-bottom-gap', `${bottomNavInset}px`);
         menu.classList.toggle('is-above', openAbove);
       }
 

@@ -49659,6 +49659,7 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .developer-select-menu-portal {
     border-radius: 1rem !important;
     padding: .42rem !important;
+    padding-bottom: max(.42rem, calc(var(--developer-select-mobile-bottom-gap, 0px) * .16)) !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .developer-select-option {
@@ -50589,6 +50590,37 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   }
 }
 
+/* v390-final: iPhone chrome must win over every legacy mobile override. */
+@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
+  html.real-phone-device body.app-body .mobile-bottom-nav,
+  html.standalone-app body.app-body .mobile-bottom-nav {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    bottom: calc(-1 * env(safe-area-inset-bottom)) !important;
+    margin: 0 !important;
+    padding-bottom: calc(.44rem + env(safe-area-inset-bottom)) !important;
+    transform: none !important;
+    box-sizing: border-box !important;
+  }
+
+  html.real-phone-device body.app-body .assignment-mobile-quick-action-add,
+  html.standalone-app body.app-body .assignment-mobile-quick-action-add {
+    min-width: 0 !important;
+    min-height: 5.4rem !important;
+    height: 5.4rem !important;
+    padding: .68rem .4rem !important;
+    gap: .42rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    -webkit-tap-highlight-color: transparent !important;
+    touch-action: manipulation !important;
+  }
+}
+
 /* v376: anchor every mobile tab to the bottom edge of the dark header. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
@@ -50837,6 +50869,59 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   }
 }
 
+/* v390: final iPhone bottom chrome and assignment add action alignment. */
+@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
+  html.real-phone-device body.app-body .mobile-bottom-nav,
+  html.standalone-app body.app-body .mobile-bottom-nav {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    bottom: calc(-1 * env(safe-area-inset-bottom)) !important;
+    margin: 0 !important;
+    padding-bottom: calc(.44rem + env(safe-area-inset-bottom)) !important;
+    transform: none !important;
+    box-sizing: border-box !important;
+  }
+
+  html.real-phone-device body.app-body .assignment-mobile-quick-action-add,
+  html.standalone-app body.app-body .assignment-mobile-quick-action-add {
+    min-width: 0 !important;
+    min-height: 5.4rem !important;
+    height: 5.4rem !important;
+    padding: .68rem .4rem !important;
+    gap: .42rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    -webkit-tap-highlight-color: transparent !important;
+    touch-action: manipulation !important;
+  }
+
+  html.real-phone-device body.app-body .assignment-mobile-quick-action-add i,
+  html.real-phone-device body.app-body .assignment-mobile-quick-action-add i::before,
+  html.standalone-app body.app-body .assignment-mobile-quick-action-add i,
+  html.standalone-app body.app-body .assignment-mobile-quick-action-add i::before {
+    display: block !important;
+    width: 1.6rem !important;
+    height: 1.6rem !important;
+    margin: 0 auto !important;
+    line-height: 1 !important;
+    font-size: 1.42rem !important;
+  }
+
+  html.real-phone-device body.app-body .assignment-mobile-quick-action-add span,
+  html.standalone-app body.app-body .assignment-mobile-quick-action-add span {
+    display: block !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    line-height: 1.12 !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+  }
+}
+
 html.standalone-app,
 html.standalone-app body.app-body,
 body.standalone-app.app-body {
@@ -50868,6 +50953,37 @@ body.standalone-app.app-body {
   }
 }
 
+/* v390-final: iPhone chrome must win over every legacy mobile override. */
+@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
+  html.real-phone-device body.app-body .mobile-bottom-nav,
+  html.standalone-app body.app-body .mobile-bottom-nav {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    bottom: calc(-1 * env(safe-area-inset-bottom)) !important;
+    margin: 0 !important;
+    padding-bottom: calc(.44rem + env(safe-area-inset-bottom)) !important;
+    transform: none !important;
+    box-sizing: border-box !important;
+  }
+
+  html.real-phone-device body.app-body .assignment-mobile-quick-action-add,
+  html.standalone-app body.app-body .assignment-mobile-quick-action-add {
+    min-width: 0 !important;
+    min-height: 5.4rem !important;
+    height: 5.4rem !important;
+    padding: .68rem .4rem !important;
+    gap: .42rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    -webkit-tap-highlight-color: transparent !important;
+    touch-action: manipulation !important;
+  }
+}
+
 @media (orientation: landscape) and (hover: none) and (pointer: coarse) {
   html.mobile-landscape-locked,
   html.mobile-landscape-locked body {
@@ -50884,6 +51000,8 @@ body.standalone-app.app-body {
     position: fixed;
     z-index: 2147483647;
     inset: 0;
+    isolation: isolate;
+    overflow: clip;
     display: grid;
     place-items: center;
     padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
@@ -50892,6 +51010,30 @@ body.standalone-app.app-body {
     background:
       radial-gradient(circle at 50% 20%, rgba(141, 214, 44, .2), transparent 38%),
       linear-gradient(145deg, #202a32, #11181e);
+  }
+
+  html.mobile-landscape-locked .portrait-orientation-guard::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -12vmax;
+    background:
+      radial-gradient(circle at 50% 18%, rgba(141, 214, 44, .16), transparent 30%),
+      radial-gradient(circle at 18% 82%, rgba(255, 255, 255, .05), transparent 24%),
+      radial-gradient(circle at 82% 78%, rgba(255, 255, 255, .04), transparent 22%),
+      linear-gradient(145deg, #202a32 0%, #11181e 100%);
+    filter: blur(34px);
+    transform: scale(1.05);
+    pointer-events: none;
+  }
+
+  html.mobile-landscape-locked body::before,
+  html.mobile-landscape-locked body::after {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    max-width: none !important;
+    transform: none !important;
   }
 
   .portrait-orientation-guard-card {
@@ -50923,5 +51065,1553 @@ body.standalone-app.app-body {
   .portrait-orientation-guard-card span {
     color: rgba(255, 255, 255, .72);
     font-size: .82rem;
+  }
+}
+
+/* v391: one desktop-parity entry animation for every mobile internal tab.
+   The shell chrome stays fixed and completely outside this animated surface. */
+@media (max-width: 767.98px) {
+  html.crm-page-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content)
+    :not(:has(.crm-page-entry-surface)) {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    transform: none !important;
+  }
+
+  html.crm-page-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    transform: translate3d(0, 12px, 0) !important;
+    animation: none !important;
+    will-change: opacity, transform !important;
+  }
+
+  html.crm-page-entry-started.crm-page-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface {
+    visibility: visible !important;
+    opacity: 0 !important;
+    transform: translate3d(0, 12px, 0) !important;
+    animation: dashboardFadeUp .36s ease both !important;
+    will-change: opacity, transform !important;
+  }
+
+  html.crm-page-entry-started.crm-page-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface {
+    animation: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface > :not(.crm-toast-stack) {
+    animation: none !important;
+  }
+
+  html:not(.crm-page-entry-pending):not(.crm-page-entry-started):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body
+    .crm-page-entry-surface.crm-page-entry-surface {
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body .mobile-app-topbar.mobile-shell-topbar,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body .mobile-project-topbar.mobile-shell-topbar,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body .mobile-bottom-nav {
+    position: fixed !important;
+    transform: none !important;
+    animation: none !important;
+    will-change: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body .mobile-app-topbar.mobile-shell-topbar,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body .mobile-project-topbar.mobile-shell-topbar {
+    top: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body .mobile-bottom-nav {
+    bottom: calc(-1 * env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body .crm-page-entry-surface.crm-page-entry-surface {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* v392: remarks apartment cards must use one layout on every mobile profile.
+   The previous hover/pointer split left the table half-desktop on some phones. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .table-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table thead {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table tbody {
+    display: grid !important;
+    width: 100% !important;
+    gap: .72rem !important;
+    padding: .72rem !important;
+    background: transparent !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table tbody tr.task-row-link {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: .82rem .88rem .94rem !important;
+    border: 1px solid rgba(214, 226, 205, .96) !important;
+    border-radius: 1.22rem !important;
+    background:
+      radial-gradient(circle at 100% 0, rgba(193, 230, 90, .14), transparent 36%),
+      linear-gradient(180deg, #fff, #f8fbf4) !important;
+    box-shadow: 0 14px 30px rgba(31, 45, 61, .07) !important;
+    transform: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .assignment-check-cell {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table td {
+    display: grid !important;
+    grid-template-columns: minmax(5.3rem, 29%) minmax(0, 1fr) !important;
+    gap: .58rem !important;
+    align-items: start !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: .58rem 0 !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(121, 191, 37, .12) !important;
+    background: transparent !important;
+    vertical-align: top !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table td:last-child {
+    border-bottom: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table td::before {
+    content: attr(data-label) !important;
+    display: block !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: .12rem 0 0 !important;
+    color: #76816e !important;
+    font-size: .68rem !important;
+    font-weight: 900 !important;
+    line-height: 1.25 !important;
+    letter-spacing: .09em !important;
+    text-align: left !important;
+    text-transform: uppercase !important;
+    white-space: normal !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-card-premise-cell {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: .04rem 0 .76rem !important;
+    margin-bottom: .18rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-card-premise-cell::before {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .premise-number {
+    display: inline-flex !important;
+    align-items: center !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    min-height: 2.1rem !important;
+    padding: .38rem .76rem !important;
+    border: 1px solid rgba(141, 214, 44, .28) !important;
+    border-radius: 999px !important;
+    background: linear-gradient(180deg, #f5fbe9, #ebf7d8) !important;
+    color: #26311f !important;
+    font-size: .98rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table
+    :is(.task-card-finish-cell, .task-card-mode-cell, .task-card-deadline-cell, .task-status-cell) > * {
+    justify-self: start !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table
+    :is(.task-card-finish-cell, .task-card-mode-cell, .task-card-deadline-cell, .task-status-cell) .status-pill,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .deadline-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    min-height: 2rem !important;
+    padding: .38rem .68rem !important;
+    border-radius: 999px !important;
+    font-size: .76rem !important;
+    font-weight: 850 !important;
+    line-height: 1.15 !important;
+    white-space: normal !important;
+    text-align: center !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-status-cell .status-pill {
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-text,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-actions-cell {
+    display: grid !important;
+    grid-template-columns: minmax(5.3rem, 29%) minmax(0, 1fr) !important;
+    gap: .58rem !important;
+    padding-top: .68rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-status-cell,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-actions-cell {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-text-body,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-actions-cell > .actions-cell {
+    grid-column: 2 !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-text-body {
+    display: grid !important;
+    gap: .46rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .inline-text {
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    color: #111827 !important;
+    font-size: 1rem !important;
+    font-weight: 720 !important;
+    line-height: 1.45 !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+    white-space: pre-line !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-text-tools {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: .46rem !important;
+    margin: .08rem 0 0 !important;
+    padding: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .inline-edit-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 2.46rem !important;
+    min-width: 2.46rem !important;
+    height: 2.46rem !important;
+    min-height: 2.46rem !important;
+    padding: 0 !important;
+    border: 1px solid rgba(214, 226, 205, .98) !important;
+    border-radius: .86rem !important;
+    background: #fff !important;
+    box-shadow: 0 7px 16px rgba(31, 45, 61, .08) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-actions-cell > .actions-cell {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    align-items: stretch !important;
+    gap: .48rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .status-action-form {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-actions-cell .btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.72rem !important;
+    padding: 0 !important;
+    aspect-ratio: 1 / 1 !important;
+    border-radius: .9rem !important;
+    font-size: 1.08rem !important;
+  }
+}
+
+/* v396: issued-to-employees mobile view uses the same polished card rhythm as the rest of the site. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) {
+    --assignment-issued-mobile-label-width: 5.05rem;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-subtabs {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .56rem !important;
+    margin: 0 0 .88rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-subtabs .assignment-subtab:last-child {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-subtabs .assignment-subtab:first-child {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    min-height: 3.12rem !important;
+    padding: .82rem 1rem !important;
+    gap: .66rem !important;
+    border: 1px solid rgba(214, 226, 203, .96) !important;
+    border-radius: 1.14rem !important;
+    background:
+      radial-gradient(circle at top right, rgba(141, 214, 44, .12), transparent 38%),
+      linear-gradient(180deg, rgba(255, 255, 255, .995), rgba(248, 251, 244, .985)) !important;
+    color: #1d2a1a !important;
+    font-size: .96rem !important;
+    font-weight: 900 !important;
+    line-height: 1.24 !important;
+    box-shadow: 0 14px 28px rgba(31, 45, 61, .07) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-subtabs .assignment-subtab:first-child::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-subtabs .assignment-subtab:first-child::after {
+    content: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-subtabs .assignment-subtab:first-child i {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 2rem !important;
+    min-width: 2rem !important;
+    height: 2rem !important;
+    margin: 0 !important;
+    border-radius: .76rem !important;
+    background: rgba(141, 214, 44, .12) !important;
+    color: #23301f !important;
+    font-size: .98rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-filters {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: .58rem !important;
+    margin: 0 0 .94rem !important;
+    padding: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-filter-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 3.12rem !important;
+    padding: .72rem .82rem !important;
+    gap: .48rem !important;
+    border: 1px solid rgba(214, 226, 204, .96) !important;
+    border-radius: 1.18rem !important;
+    background:
+      radial-gradient(circle at top right, rgba(141, 214, 44, .08), transparent 40%),
+      linear-gradient(180deg, rgba(255, 255, 255, .992), rgba(248, 251, 244, .982)) !important;
+    color: #445247 !important;
+    font-size: .92rem !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    text-align: center !important;
+    box-shadow: 0 12px 24px rgba(31, 45, 61, .06) !important;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-filter-pill i {
+    font-size: .98rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-filter-pill.active {
+    border-color: rgba(132, 203, 34, .96) !important;
+    background: linear-gradient(180deg, #98df3f 0%, #7fc628 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 16px 30px rgba(141, 214, 44, .24) !important;
+    transform: translateY(-1px) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-filter-pill.active i,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-filter-pill.active span {
+    color: inherit !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-filter-pill.assignment-filter-pill-danger {
+    grid-column: 1 / -1 !important;
+    border-color: rgba(240, 194, 186, .98) !important;
+    background:
+      radial-gradient(circle at top right, rgba(239, 68, 68, .08), transparent 40%),
+      linear-gradient(180deg, rgba(255, 255, 255, .995), rgba(255, 246, 245, .985)) !important;
+    color: #af3d34 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-filter-pill.assignment-filter-pill-danger.active {
+    border-color: rgba(201, 69, 59, .94) !important;
+    background: linear-gradient(180deg, #ef6d61 0%, #d64f43 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 16px 30px rgba(214, 79, 67, .2) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-layout,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-cards {
+    display: grid !important;
+    gap: .92rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-empty {
+    border: 1px solid rgba(215, 226, 205, .96) !important;
+    border-radius: 1.55rem !important;
+    background:
+      radial-gradient(circle at top center, rgba(141, 214, 44, .12), transparent 34%),
+      linear-gradient(180deg, rgba(255, 255, 255, .995), rgba(248, 251, 246, .985)) !important;
+    box-shadow: 0 18px 34px rgba(31, 45, 61, .07) !important;
+    overflow: hidden !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-empty .card-body {
+    display: grid !important;
+    justify-items: center !important;
+    gap: .88rem !important;
+    padding: 2rem 1.2rem 2.08rem !important;
+    color: #536056 !important;
+    text-align: center !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-empty i {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 3.46rem !important;
+    height: 3.46rem !important;
+    border-radius: 1.18rem !important;
+    background: rgba(141, 214, 44, .1) !important;
+    color: #6bae22 !important;
+    font-size: 1.46rem !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-overdue-empty i {
+    background: rgba(239, 68, 68, .1) !important;
+    color: #c84d42 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-empty .card-body > div {
+    max-width: 16.5rem !important;
+    color: #2a3628 !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    line-height: 1.5 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-group {
+    padding: .96rem !important;
+    border: 1px solid rgba(241, 197, 188, .96) !important;
+    border-radius: 1.5rem !important;
+    background:
+      radial-gradient(circle at top right, rgba(239, 68, 68, .08), transparent 38%),
+      linear-gradient(180deg, rgba(255, 251, 250, .995), rgba(255, 245, 243, .985)) !important;
+    box-shadow: 0 18px 32px rgba(201, 79, 67, .08) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head {
+    gap: .7rem !important;
+    padding-bottom: .1rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head > div {
+    gap: .76rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head span {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 2.3rem !important;
+    min-width: 2.3rem !important;
+    height: 2.3rem !important;
+    border-radius: .88rem !important;
+    background: rgba(239, 68, 68, .12) !important;
+    color: #c84d42 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head b {
+    display: block !important;
+    color: #1f2a1d !important;
+    font-size: 1rem !important;
+    font-weight: 900 !important;
+    line-height: 1.2 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head small {
+    display: block !important;
+    margin-top: .16rem !important;
+    color: #8d6a65 !important;
+    font-size: .74rem !important;
+    font-weight: 700 !important;
+    letter-spacing: .04em !important;
+    text-transform: uppercase !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-card {
+    border: 1px solid rgba(214, 226, 204, .96) !important;
+    border-radius: 1.55rem !important;
+    background:
+      radial-gradient(circle at top right, rgba(141, 214, 44, .1), transparent 38%),
+      linear-gradient(180deg, rgba(255, 255, 255, .995), rgba(248, 251, 245, .985)) !important;
+    box-shadow: 0 18px 34px rgba(31, 45, 61, .08) !important;
+    overflow: hidden !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-head {
+    display: grid !important;
+    gap: .86rem !important;
+    padding: 1rem 1rem .86rem !important;
+    border-bottom: 1px solid rgba(226, 234, 218, .94) !important;
+    background: transparent !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-user {
+    align-items: center !important;
+    gap: .76rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-user > span {
+    width: 2.72rem !important;
+    min-width: 2.72rem !important;
+    height: 2.72rem !important;
+    border-radius: .94rem !important;
+    background:
+      radial-gradient(circle at 35% 35%, rgba(255, 255, 255, .94), rgba(255, 255, 255, .24) 58%),
+      linear-gradient(180deg, rgba(157, 226, 70, .2), rgba(141, 214, 44, .08)) !important;
+    color: #76b921 !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .95),
+      0 12px 22px rgba(141, 214, 44, .14) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-user b {
+    display: block !important;
+    color: #1f2a1d !important;
+    font-size: .98rem !important;
+    font-weight: 900 !important;
+    line-height: 1.22 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-user small {
+    display: block !important;
+    margin-top: .14rem !important;
+    color: #7a8674 !important;
+    font-size: .72rem !important;
+    font-weight: 800 !important;
+    letter-spacing: .08em !important;
+    text-transform: uppercase !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-head-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: .6rem !important;
+    align-items: center !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-export-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 2.84rem !important;
+    padding: .66rem .84rem !important;
+    border-radius: 1rem !important;
+    border-color: rgba(153, 209, 97, .68) !important;
+    background: rgba(255, 255, 255, .92) !important;
+    color: #2d5a14 !important;
+    font-size: .84rem !important;
+    font-weight: 900 !important;
+    box-shadow: 0 12px 22px rgba(141, 214, 44, .12) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-export-btn i {
+    font-size: .98rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-count {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 2.84rem !important;
+    padding: .4rem .8rem !important;
+    border: 1px solid rgba(214, 226, 203, .96) !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, .88) !important;
+    color: #607053 !important;
+    white-space: nowrap !important;
+    font-size: .78rem !important;
+    font-weight: 900 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-table-wrap {
+    overflow: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-table tbody {
+    display: grid !important;
+    gap: .82rem !important;
+    padding: .82rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row {
+    display: grid !important;
+    gap: .78rem !important;
+    padding: 1rem !important;
+    border: 1px solid rgba(221, 231, 214, .98) !important;
+    border-radius: 1.24rem !important;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(249, 251, 246, .96)) !important;
+    box-shadow: 0 12px 24px rgba(31, 45, 61, .05) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row.done-task {
+    background:
+      radial-gradient(circle at top right, rgba(141, 214, 44, .08), transparent 38%),
+      linear-gradient(180deg, rgba(248, 253, 242, .98), rgba(243, 250, 235, .96)) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td {
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(1),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(3),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(4),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(5) {
+    display: grid !important;
+    grid-template-columns: var(--assignment-issued-mobile-label-width) minmax(0, 1fr) !important;
+    gap: .42rem .74rem !important;
+    align-items: start !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(2) {
+    display: block !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(1) > *,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(3) > *,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(4) > *,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(5) > * {
+    grid-column: 2 !important;
+    min-width: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(1)::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(2)::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(3)::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(4)::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(5)::before {
+    display: block !important;
+    margin: 0 !important;
+    color: #7b8871 !important;
+    font-size: .68rem !important;
+    font-weight: 900 !important;
+    line-height: 1.16 !important;
+    letter-spacing: .08em !important;
+    text-transform: uppercase !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(1)::before { content: "Помещение"; }
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(2)::before {
+    content: "Задача";
+    margin-bottom: .42rem !important;
+  }
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(3)::before { content: "Дата"; }
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(4)::before { content: "Статус"; }
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(5)::before { content: "Действия"; }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row .assignment-task-text,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row .assignment-task-open-link {
+    display: block !important;
+    min-width: 0 !important;
+    color: #1d2a1a !important;
+    font-size: .96rem !important;
+    font-weight: 700 !important;
+    line-height: 1.52 !important;
+    text-align: left !important;
+    text-decoration: none !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row .assignment-room-pill {
+    justify-self: start !important;
+    padding: .42rem .72rem !important;
+    border: 1px solid rgba(170, 219, 111, .5) !important;
+    border-radius: 999px !important;
+    background: rgba(141, 214, 44, .12) !important;
+    color: #23301f !important;
+    font-weight: 800 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .84) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-date-cell > span {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 2rem !important;
+    color: #24321f !important;
+    font-size: .9rem !important;
+    font-weight: 700 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-date-cell > small {
+    display: block !important;
+    margin-top: .12rem !important;
+    color: #b45447 !important;
+    font-size: .72rem !important;
+    font-weight: 800 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row .assignment-status-toggle {
+    justify-self: start !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    min-height: 2.12rem !important;
+    padding: .46rem .82rem !important;
+    border-radius: 999px !important;
+    font-size: .78rem !important;
+    font-weight: 900 !important;
+    line-height: 1.16 !important;
+    white-space: nowrap !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .66) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row .assignment-issued-actions-cell {
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row .assignment-issued-actions {
+    display: grid !important;
+    grid-template-columns: .9fr 1.22fr .9fr !important;
+    gap: .52rem !important;
+    margin-top: .06rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row .assignment-date-action-form,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row .assignment-delete-employee-form {
+    width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row .assignment-issued-actions .btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-height: 2.94rem !important;
+    padding: .58rem .52rem !important;
+    border-radius: 1rem !important;
+    font-size: .82rem !important;
+    font-weight: 800 !important;
+    box-shadow: 0 10px 20px rgba(31, 45, 61, .06) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row .assignment-change-assignee-btn {
+    grid-column: auto !important;
+    gap: .36rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-row .assignment-change-assignee-text {
+    display: inline !important;
+    font-size: .79rem !important;
+    font-weight: 900 !important;
+  }
+}
+
+/* v398: remarks mobile tabs must be static, clean and without ghost tooltip artifacts. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs {
+    display: grid !important;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: .52rem !important;
+    margin: 0 0 .82rem !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    scrollbar-width: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .crm-tabs {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    min-width: 0 !important;
+    width: auto !important;
+    gap: .52rem !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .crm-tabs:first-child {
+    justify-content: flex-start !important;
+    align-self: start !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .crm-tabs.justify-content-end {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    justify-content: stretch !important;
+    gap: .52rem !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .nav-item {
+    min-width: 0 !important;
+    width: auto !important;
+    overflow: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-all,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category {
+    position: relative !important;
+    overflow: hidden !important;
+    isolation: isolate !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-all::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-all::after,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-all {
+    justify-self: start !important;
+    min-width: 5.5rem !important;
+    box-shadow: 0 12px 24px rgba(141, 214, 44, .2) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.72rem !important;
+    padding: 0 !important;
+    aspect-ratio: auto !important;
+    box-shadow: 0 10px 18px rgba(31, 45, 61, .05) !important;
+  }
+}
+
+/* v399: reduce oversized bottom reserve on internal mobile pages to about half while keeping safe clearance above fixed nav. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(:is(.task-detail-page, .apartment-detail-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page, .assignment-report-page, .glass-page, .account-page)) .app-content,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(:is(.task-detail-page, .apartment-detail-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page, .assignment-report-page, .glass-page, .account-page)) .objects-content,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(:is(.task-detail-page, .apartment-detail-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page, .assignment-report-page, .glass-page, .account-page)) .documents-content,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(:is(.task-detail-page, .apartment-detail-page, .objects-page, .materials-page, .work-report-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page, .assignment-report-page, .glass-page, .account-page)) .documents-standalone-content {
+    padding-bottom: calc((var(--ref-mobile-nav-height, calc(4.18rem + var(--ios-safe-bottom, 0px))) * .5) + .34rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.task-detail-page) .app-content {
+    padding-bottom: calc((var(--ref-mobile-nav-height, calc(4.18rem + var(--ios-safe-bottom, 0px))) * .5) + .24rem) !important;
+  }
+}
+
+/* v400: objects-like mobile tabs must scroll over one unified surface without gray band seams above the bottom nav. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
+    --crm-mobile-unified-surface: linear-gradient(180deg, #ffffff 0%, #fbfcff 56%, #f6f8fb 100%) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(:is(.objects-page, .account-page, .materials-page, .work-report-page, .assignment-report-page, .apartments-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page)) :is(.app-layout, .objects-layout, .documents-standalone-layout),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(:is(.objects-page, .account-page, .materials-page, .work-report-page, .assignment-report-page, .apartments-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page)) :is(.app-main, .objects-content, .documents-content, .documents-standalone-content),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(:is(.objects-page, .account-page, .materials-page, .work-report-page, .assignment-report-page, .apartments-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page)) :is(.objects-page, .account-page, .materials-page, .work-report-page, .assignment-report-page, .apartments-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(:is(.objects-page, .account-page, .materials-page, .work-report-page, .assignment-report-page, .apartments-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page)) .crm-mobile-page-shell {
+    background: var(--crm-mobile-unified-surface) !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(:is(.objects-page, .account-page, .materials-page, .work-report-page, .assignment-report-page, .apartments-page, .documents-page, .settings-page-shell, .users-page, .sync-logs-page)) :is(.objects-content, .app-content, .documents-content, .documents-standalone-content) {
+    box-shadow: none !important;
+  }
+}
+
+/* v401: mobile selects keep the desktop visual language, but with regular-weight text and stable vertical centering on iPhone. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.developer-custom-select > select, select.mobile-native-select, .form-select.mobile-native-select) {
+    display: block !important;
+    width: 100% !important;
+    height: 3.16rem !important;
+    min-height: 3.16rem !important;
+    max-height: 3.16rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: .94rem !important;
+    padding-right: 2.96rem !important;
+    border: 1px solid rgba(202, 219, 186, .96) !important;
+    border-radius: 1.05rem !important;
+    background-color: #ffffff !important;
+    color: #1f2a1d !important;
+    -webkit-text-fill-color: #1f2a1d !important;
+    font-size: 16px !important;
+    font-weight: 400 !important;
+    line-height: calc(3.16rem - 2px) !important;
+    text-align: left !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+    box-sizing: border-box !important;
+    box-shadow:
+      0 10px 22px rgba(31, 45, 61, .06),
+      inset 0 1px 0 rgba(255, 255, 255, .94) !important;
+    background-position: right .96rem center !important;
+    background-size: .92rem .92rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.developer-custom-select > select, select.mobile-native-select, .form-select.mobile-native-select):focus {
+    color: #1f2a1d !important;
+    -webkit-text-fill-color: #1f2a1d !important;
+    font-weight: 400 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.developer-custom-select > select, select.mobile-native-select, .form-select.mobile-native-select) option {
+    color: #17211a !important;
+    background: #ffffff !important;
+    font-weight: 400 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .developer-select-button,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .developer-select-value,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .developer-select-option {
+    font-weight: 400 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page)
+    .apartments-filter-form
+    :is(.developer-custom-select > select, select.mobile-native-select, .form-select.mobile-native-select) {
+    text-indent: 0 !important;
+    overflow: hidden !important;
+    text-shadow: none !important;
+  }
+}
+
+/* v402: all mobile checkboxes use the brand green instead of platform-blue defaults. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body input.form-check-input[type="checkbox"],
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .form-check-input[type="checkbox"] {
+    accent-color: #6fa91f !important;
+    border-color: rgba(111, 169, 31, 0.42) !important;
+    box-shadow: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body input.form-check-input[type="checkbox"]:checked,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .form-check-input[type="checkbox"]:checked {
+    accent-color: #6fa91f !important;
+    background-color: #6fa91f !important;
+    border-color: #6fa91f !important;
+    box-shadow: 0 10px 20px rgba(111, 169, 31, 0.22) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body input.form-check-input[type="checkbox"]:focus,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body input.form-check-input[type="checkbox"]:checked:focus,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .form-check-input[type="checkbox"]:focus,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .form-check-input[type="checkbox"]:checked:focus {
+    border-color: rgba(111, 169, 31, 0.58) !important;
+    box-shadow: 0 0 0 0.18rem rgba(111, 169, 31, 0.16) !important;
+  }
+}
+
+/* v403: normalize the touch shell across phones and tablets so every supported device
+   keeps a stable iPhone-14-Pro-Max-like composition instead of stretching per model. */
+html.touch-app-device,
+html.mobile-viewport,
+html.adaptive-mobile-viewport {
+  --crm-touch-shell-max-width: 27rem;
+  --crm-touch-shell-gutter: .94rem;
+  --crm-touch-shell-radius: 1.5rem;
+}
+
+html.touch-profile-phone-compact {
+  --crm-touch-shell-max-width: 25.75rem;
+  --crm-touch-shell-gutter: .82rem;
+  --crm-touch-shell-radius: 1.42rem;
+}
+
+html.touch-profile-phone-standard {
+  --crm-touch-shell-max-width: 27rem;
+  --crm-touch-shell-gutter: .94rem;
+  --crm-touch-shell-radius: 1.5rem;
+}
+
+html.touch-profile-phone-large {
+  --crm-touch-shell-max-width: 28.5rem;
+  --crm-touch-shell-gutter: 1.02rem;
+  --crm-touch-shell-radius: 1.58rem;
+}
+
+html.touch-profile-tablet-portrait {
+  --crm-touch-shell-max-width: 29.75rem;
+  --crm-touch-shell-gutter: 1.08rem;
+  --crm-touch-shell-radius: 1.64rem;
+}
+
+html.touch-profile-tablet-landscape {
+  --crm-touch-shell-max-width: 31rem;
+  --crm-touch-shell-gutter: 1.14rem;
+  --crm-touch-shell-radius: 1.7rem;
+}
+
+html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+  padding-left: var(--crm-touch-shell-gutter) !important;
+  padding-right: var(--crm-touch-shell-gutter) !important;
+}
+
+html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .crm-mobile-page-shell {
+  width: min(100%, var(--crm-touch-shell-max-width)) !important;
+  max-width: var(--crm-touch-shell-max-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .crm-mobile-page-shell > :not(.crm-toast-stack) {
+  border-radius: min(var(--crm-touch-shell-radius), 1.75rem) !important;
+}
+
+html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-app-topbar.mobile-shell-topbar,
+html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-project-topbar.mobile-shell-topbar,
+html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav {
+  width: min(calc(100vw - (var(--crm-touch-shell-gutter) * 2)), var(--crm-touch-shell-max-width)) !important;
+  max-width: var(--crm-touch-shell-max-width) !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+}
+
+html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-app-topbar.mobile-shell-topbar,
+html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-project-topbar.mobile-shell-topbar {
+  border-radius: 0 0 min(calc(var(--crm-touch-shell-radius) + .5rem), 2rem) min(calc(var(--crm-touch-shell-radius) + .5rem), 2rem) !important;
+}
+
+html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav {
+  border-top-left-radius: min(calc(var(--crm-touch-shell-radius) + .24rem), 1.85rem) !important;
+  border-top-right-radius: min(calc(var(--crm-touch-shell-radius) + .24rem), 1.85rem) !important;
+}
+
+html.tablet-touch-device body.app-body .crm-mobile-page-shell {
+  box-shadow:
+    0 22px 48px rgba(31, 45, 61, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78) !important;
+}
+
+/* v404: compact, full-width empty state on the mobile remarks page. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell:has(.remarks-empty-row) {
+    margin-bottom: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table
+    tbody:has(.remarks-empty-row) {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table
+    .remarks-empty-row {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table
+    .remarks-empty-cell {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 4.6rem !important;
+    margin: 0 !important;
+    padding: .9rem .72rem !important;
+    border: 0 !important;
+    color: #5f6a59 !important;
+    font-size: clamp(.76rem, 3.35vw, .9rem) !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-empty-row) .app-content {
+    padding-bottom: calc(max(.5rem, var(--ios-safe-bottom, 0px)) + .35rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-empty-row) .crm-mobile-page-shell {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+}
+
+/* v405: final installed-app geometry for iOS/Android home-screen launches. */
+html.standalone-app {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  min-height: 100dvh;
+  background: #151c23 !important;
+  overscroll-behavior: none;
+}
+
+html.standalone-app body {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--app-height, 100dvh) !important;
+  margin: 0 !important;
+  background: #f6f8fb;
+  overscroll-behavior-y: none;
+}
+
+html.standalone-app body.app-body :is(.app-layout, .objects-layout, .documents-standalone-layout) {
+  min-width: 0 !important;
+  min-height: var(--app-height, 100dvh) !important;
+}
+
+html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-content, .documents-standalone-content) {
+  min-width: 0 !important;
+}
+
+@media (max-width: 767.98px) {
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-left: max(var(--crm-touch-shell-gutter, .82rem), env(safe-area-inset-left)) !important;
+    padding-right: max(var(--crm-touch-shell-gutter, .82rem), env(safe-area-inset-right)) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.mobile-app-topbar, .mobile-project-topbar).mobile-shell-topbar {
+    top: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 !important;
+    padding-top: max(.58rem, env(safe-area-inset-top)) !important;
+    transform: none !important;
+    border-radius: 0 0 min(calc(var(--crm-touch-shell-radius, 1.5rem) + .5rem), 2rem)
+      min(calc(var(--crm-touch-shell-radius, 1.5rem) + .5rem), 2rem) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .mobile-bottom-nav {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: calc(-1 * env(safe-area-inset-bottom)) !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: calc(var(--ref-mobile-nav-height, 4.18rem) + env(safe-area-inset-bottom)) !important;
+    margin: 0 !important;
+    padding-left: max(.28rem, env(safe-area-inset-left)) !important;
+    padding-right: max(.28rem, env(safe-area-inset-right)) !important;
+    padding-bottom: calc(.46rem + env(safe-area-inset-bottom)) !important;
+    transform: none !important;
+    border-radius: min(calc(var(--crm-touch-shell-radius, 1.5rem) + .24rem), 1.85rem)
+      min(calc(var(--crm-touch-shell-radius, 1.5rem) + .24rem), 1.85rem) 0 0 !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:not(:has(.remarks-empty-row))
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-bottom: calc(var(--ref-mobile-nav-height, 4.18rem) + env(safe-area-inset-bottom) + .7rem) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-empty-row) .app-content {
+    padding-bottom: calc(max(.5rem, env(safe-area-inset-bottom)) + .35rem) !important;
+  }
+}
+
+@media (min-width: 768px) and (hover: none) and (pointer: coarse) {
+  html.standalone-app.touch-app-device body.app-body {
+    background:
+      radial-gradient(circle at 50% 0, rgba(141, 214, 44, .13), transparent 29rem),
+      #f6f8fb !important;
+  }
+
+  html.standalone-app.touch-app-device body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-left: max(var(--crm-touch-shell-gutter, 1.08rem), env(safe-area-inset-left)) !important;
+    padding-right: max(var(--crm-touch-shell-gutter, 1.08rem), env(safe-area-inset-right)) !important;
+    padding-bottom: calc(var(--ref-mobile-nav-height, 4.18rem) + env(safe-area-inset-bottom) + .8rem) !important;
+  }
+}
+
+/* v406: in-place mobile project switcher below the fixed project header. */
+.mobile-project-switch-panel[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 1366px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-topbar.mobile-shell-topbar {
+    overflow: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    button.mobile-shell-project-link.mobile-project-switch-toggle {
+    appearance: none !important;
+    border: 0 !important;
+    background: transparent !important;
+    cursor: pointer !important;
+    font: inherit !important;
+    text-align: inherit !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-switch-toggle.is-open .mobile-shell-project-caret {
+    transform: rotate(180deg) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-switch-panel {
+    position: absolute !important;
+    z-index: 1095 !important;
+    top: calc(100% + .62rem) !important;
+    left: 50% !important;
+    right: auto !important;
+    display: grid !important;
+    width: min(calc(100vw - (var(--crm-touch-shell-gutter, .82rem) * 2)), 27.5rem) !important;
+    max-height: min(64dvh, 34rem) !important;
+    padding: .72rem !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(204, 220, 190, .9) !important;
+    border-radius: 1.35rem !important;
+    background:
+      radial-gradient(circle at 100% 0, rgba(141, 214, 44, .15), transparent 34%),
+      rgba(252, 254, 249, .98) !important;
+    box-shadow: 0 24px 55px rgba(18, 28, 38, .24), inset 0 1px 0 rgba(255, 255, 255, .9) !important;
+    opacity: 0 !important;
+    transform: translate(-50%, -8px) scale(.985) !important;
+    transform-origin: 50% 0 !important;
+    transition: opacity .18s ease, transform .18s ease !important;
+    pointer-events: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-switch-panel.is-open {
+    opacity: 1 !important;
+    transform: translate(-50%, 0) scale(1) !important;
+    pointer-events: auto !important;
+  }
+
+  .mobile-project-switch-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .34rem .38rem .72rem !important;
+    color: #18222d !important;
+  }
+
+  .mobile-project-switch-head > span {
+    font-size: .82rem !important;
+    font-weight: 850 !important;
+    letter-spacing: -.01em !important;
+  }
+
+  .mobile-project-switch-head small {
+    padding: .25rem .48rem !important;
+    border-radius: 999px !important;
+    background: #edf6e3 !important;
+    color: #639d20 !important;
+    font-size: .65rem !important;
+    font-weight: 750 !important;
+  }
+
+  .mobile-project-switch-list {
+    display: grid !important;
+    gap: .38rem !important;
+    max-height: min(45dvh, 24rem) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    scrollbar-width: none !important;
+  }
+
+  .mobile-project-switch-list::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .mobile-project-switch-option {
+    display: grid !important;
+    grid-template-columns: 2.45rem minmax(0, 1fr) 1.4rem !important;
+    align-items: center !important;
+    gap: .65rem !important;
+    min-height: 3.55rem !important;
+    padding: .55rem .62rem !important;
+    border: 1px solid transparent !important;
+    border-radius: 1rem !important;
+    background: rgba(255, 255, 255, .74) !important;
+    color: #172130 !important;
+    text-decoration: none !important;
+  }
+
+  .mobile-project-switch-option.is-current {
+    border-color: rgba(125, 199, 39, .34) !important;
+    background: linear-gradient(135deg, #f3fae9, #fbfef7) !important;
+    box-shadow: 0 8px 20px rgba(83, 132, 31, .08) !important;
+  }
+
+  .mobile-project-switch-mark {
+    display: grid !important;
+    place-items: center !important;
+    width: 2.35rem !important;
+    height: 2.35rem !important;
+    border-radius: .78rem !important;
+    background: #edf5e5 !important;
+    color: #6cac24 !important;
+    font-size: 1rem !important;
+  }
+
+  .mobile-project-switch-option.is-current .mobile-project-switch-mark {
+    background: linear-gradient(145deg, #91df30, #72c51b) !important;
+    color: #fff !important;
+  }
+
+  .mobile-project-switch-copy {
+    display: grid !important;
+    gap: .16rem !important;
+    min-width: 0 !important;
+  }
+
+  .mobile-project-switch-copy b,
+  .mobile-project-switch-copy small {
+    display: block !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .mobile-project-switch-copy b {
+    color: #182331 !important;
+    font-size: .78rem !important;
+    font-weight: 800 !important;
+  }
+
+  .mobile-project-switch-copy small {
+    color: #77816f !important;
+    font-size: .66rem !important;
+    font-weight: 500 !important;
+  }
+
+  .mobile-project-switch-check,
+  .mobile-project-switch-arrow {
+    justify-self: center !important;
+    color: #75bc25 !important;
+    font-size: 1rem !important;
+  }
+
+  .mobile-project-switch-all {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .48rem !important;
+    min-height: 2.65rem !important;
+    margin-top: .55rem !important;
+    border-top: 1px solid rgba(113, 135, 95, .13) !important;
+    border-radius: .84rem !important;
+    color: #5d6b56 !important;
+    font-size: .72rem !important;
+    font-weight: 750 !important;
+    text-decoration: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-topbar .mobile-project-switch-panel .mobile-project-switch-head > span,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-topbar .mobile-project-switch-panel .mobile-project-switch-copy b {
+    color: #182331 !important;
+    -webkit-text-fill-color: #182331 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-topbar .mobile-project-switch-panel .mobile-project-switch-head small {
+    color: #639d20 !important;
+    -webkit-text-fill-color: #639d20 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-topbar .mobile-project-switch-panel .mobile-project-switch-copy small {
+    color: #77816f !important;
+    -webkit-text-fill-color: #77816f !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-topbar .mobile-project-switch-panel .mobile-project-switch-option:not(.is-current) .mobile-project-switch-mark,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-topbar .mobile-project-switch-panel :is(.mobile-project-switch-check, .mobile-project-switch-arrow) {
+    color: #6cac24 !important;
+    -webkit-text-fill-color: #6cac24 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-topbar .mobile-project-switch-panel .mobile-project-switch-option.is-current .mobile-project-switch-mark {
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-topbar .mobile-project-switch-panel .mobile-project-switch-all,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-project-topbar .mobile-project-switch-panel .mobile-project-switch-all * {
+    color: #5d6b56 !important;
+    -webkit-text-fill-color: #5d6b56 !important;
+  }
+}
+
+/* v407: all mobile remark category buttons share the same green treatment as "Все". */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head)
+    .remarks-tabs .remarks-tab-link-category {
+    border: 1px solid rgba(102, 177, 17, .72) !important;
+    background: linear-gradient(180deg, #82ce25 0%, #68b615 100%) !important;
+    background-color: #70bd19 !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    box-shadow: 0 8px 18px rgba(91, 161, 18, .2) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head)
+    .remarks-tabs .remarks-tab-link-category :is(i, i::before, .remarks-tab-icon, .remarks-tab-text) {
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head)
+    .remarks-tabs .remarks-tab-link-category.active {
+    border-color: rgba(255, 255, 255, .82) !important;
+    background: linear-gradient(180deg, #8bd72b 0%, #61ad10 100%) !important;
+    box-shadow:
+      0 0 0 2px rgba(119, 199, 30, .2),
+      0 10px 22px rgba(80, 148, 15, .28) !important;
   }
 }

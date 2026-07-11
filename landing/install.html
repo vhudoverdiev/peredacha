@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#f8fbf4">
+  <title>Мобильное приложение «Передача»</title>
+  <script>
+    (function () {
+      var isIphone = /iPhone|iPod/i.test(window.navigator.userAgent || "");
+      var isLocalPreview = !window.location.hostname || ["127.0.0.1", "localhost"].indexOf(window.location.hostname) !== -1;
+      if (!isIphone && !isLocalPreview) window.location.replace("./");
+    })();
+  </script>
+  <link rel="icon" href="assets/favicon.ico">
+  <link rel="apple-touch-icon" href="assets/brand-logo.png">
+  <link rel="stylesheet" href="install.css?v=20260711-ios-install-guide-v10">
+</head>
+<body>
+  <main class="install-page">
+    <header class="install-hero">
+      <div class="install-hero-copy">
+        <a class="install-back" href="./" aria-label="Вернуться на главную">
+          <span aria-hidden="true">←</span><span>на лендинг</span>
+        </a>
+        <p class="install-kicker">Установка на iPhone</p>
+        <h1>Мобильное приложение</h1>
+        <p class="install-lead">Открывайте систему одним касанием — без поиска сайта и лишних вкладок.</p>
+      </div>
+      <div class="install-app-icon" aria-hidden="true">
+        <img src="assets/brand-logo.png" alt="">
+      </div>
+    </header>
+
+    <a class="web-version-button web-version-button-top js-web-version" href="https://lk.akvilon-peredacha.ru/login">
+      <span class="web-version-symbol" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M5 6.5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z"/><path d="M3 10h18M7 8.2h.01M10 8.2h.01"/></svg>
+      </span>
+      <span><b>Использовать веб-версию</b><small>Перейти к окну входа</small></span>
+      <span class="web-version-arrow" aria-hidden="true">›</span>
+    </a>
+
+    <section class="install-steps" aria-label="Инструкция по установке">
+      <article class="install-step">
+        <div class="step-copy">
+          <span class="step-number">01</span>
+          <div>
+            <h2>Откройте сайт в Safari</h2>
+            <p class="step-domain">akvilon-peredacha.ru</p>
+            <p>В нижней панели Safari нажмите кнопку «Поделиться».</p>
+          </div>
+        </div>
+        <div class="iphone-mock iphone-safari" aria-hidden="true">
+          <div class="iphone-island"></div>
+          <div class="iphone-status"><b>9:41</b><span>●●●  Wi‑Fi  ▰</span></div>
+          <div class="safari-page-mark"><img src="assets/brand-logo.png" alt=""><b>Передача</b></div>
+          <div class="safari-address"><b>akvilon-peredacha.ru</b><span class="safari-refresh">↻</span></div>
+          <div class="safari-toolbar">
+            <span>‹</span><span class="is-muted">›</span>
+            <span class="share-target">
+              <svg viewBox="0 0 24 24"><path d="M12 15V3m0 0L8 7m4-4 4 4M6 10v9h12v-9"/></svg>
+            </span>
+            <span>▤</span><span>▢</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="install-step">
+        <div class="step-copy">
+          <span class="step-number">02</span>
+          <div>
+            <h2>Выберите «На экран Домой»</h2>
+            <p>Прокрутите меню действий вниз и нажмите этот пункт.</p>
+          </div>
+        </div>
+        <div class="iphone-mock iphone-menu" aria-hidden="true">
+          <div class="iphone-island"></div>
+          <div class="iphone-status"><b>9:41</b><span>●●●  Wi‑Fi  ▰</span></div>
+          <div class="share-sheet">
+            <div>Добавить в Избранное <span>☆</span></div>
+            <div>Добавить в закладки <span>▤</span></div>
+            <div>Добавить в заметки <span>▧</span></div>
+            <div class="home-row"><b>На экран «Домой»</b><span>⊞</span></div>
+            <div>В список для чтения <span>◎</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="install-step">
+        <div class="step-copy">
+          <span class="step-number">03</span>
+          <div>
+            <h2>Подтвердите добавление</h2>
+            <p>Нажмите «Добавить». Иконка «Передачи» появится на главном экране.</p>
+          </div>
+        </div>
+        <div class="iphone-mock iphone-home" aria-hidden="true">
+          <div class="iphone-island"></div>
+          <div class="iphone-status iphone-status-light"><b>9:41</b><span>●●●  Wi‑Fi  ▰</span></div>
+          <div class="home-glow"></div>
+          <div class="home-app">
+            <img src="assets/brand-logo.png" alt="">
+            <b>Передача</b>
+          </div>
+          <div class="home-dock"><span></span><span></span><span></span><span></span></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="install-ready">
+      <div class="ready-brand" aria-hidden="true"><img src="assets/brand-logo.png" alt=""><span>✓</span></div>
+      <div class="ready-copy">
+        <small>После установки</small>
+        <span>Открывайте приложение с домашнего экрана одним касанием.</span>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    (function () {
+      var webButton = document.querySelector(".js-web-version");
+      var isLocal = ["127.0.0.1", "localhost"].indexOf(window.location.hostname) !== -1;
+      var loginUrl = isLocal ? "http://127.0.0.1:5000/login" : "https://lk.akvilon-peredacha.ru/login";
+      if (webButton) {
+        webButton.href = loginUrl;
+        webButton.addEventListener("click", function (event) {
+          event.preventDefault();
+          window.location.assign(loginUrl);
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

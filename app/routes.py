@@ -446,7 +446,11 @@ def _parse_history_date_value(value: object) -> date | datetime | None:
 
 def _history_actor_label(change: ChangeLog) -> str:
     if change.user:
-        return change.user.full_name or change.user.username
+        label = (change.user.full_name or change.user.username or "").strip()
+        normalized_label = re.sub(r"[\s_-]+", " ", label).strip().casefold()
+        if normalized_label == "codex mobile":
+            return "Моб.Устройство"
+        return label
     return "Синхронизация"
 
 
@@ -855,6 +859,12 @@ CONTRACTOR_POINT_LABELS = {
 def inject_globals():
     project_id = current_user.project_id if current_user.is_authenticated and current_user.project_id else session.get("current_project_id")
     current_project = db.session.get(Project, project_id) if project_id else None
+    mobile_switch_projects = []
+    if current_user.is_authenticated:
+        projects_query = Project.query.order_by(Project.name.asc(), Project.id.asc())
+        if current_user.project_id:
+            projects_query = projects_query.filter(Project.id == current_user.project_id)
+        mobile_switch_projects = projects_query.all()
     new_site_errors_count = 0
     if current_user.is_authenticated and current_user.role == ROLE_ADMIN:
         error_query = SiteErrorReport.query.filter(SiteErrorReport.status == "new")
@@ -867,6 +877,7 @@ def inject_globals():
         "DONE_STATUSES": DONE_STATUSES,
         "ROLE_LABELS": ROLE_LABELS,
         "current_project": current_project,
+        "mobile_switch_projects": mobile_switch_projects,
         "new_site_errors_count": new_site_errors_count,
         "hide_documents_section": _setting_bool("hide_documents_section"),
         "mobile_version_under_development": _setting_bool("mobile_version_under_development"),

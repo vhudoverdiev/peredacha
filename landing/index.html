@@ -27,7 +27,7 @@
       pointer-events: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260711-portrait-guard">
+  <link rel="stylesheet" href="styles.css?v=20260711-compact-first-screen">
 </head>
 <body>
   <div class="landing-portrait-guard" aria-live="polite" aria-label="Поверните устройство вертикально">
@@ -275,6 +275,8 @@
       var coarsePointerQuery = window.matchMedia("(hover: none) and (pointer: coarse)");
       var nav = window.navigator || {};
       var userAgent = nav.userAgent || "";
+      var isIphoneDevice = /iPhone|iPod/i.test(userAgent);
+      var isStandaloneApp = nav.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
       var isRealPhoneDevice = !!(
         nav.userAgentData && nav.userAgentData.mobile === true
         || /iPhone|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile/i.test(userAgent)
@@ -284,6 +286,9 @@
         crmUrl = "http://127.0.0.1:5000/login";
       }
       function buildCrmUrl() {
+        if (isIphoneDevice && !isStandaloneApp) {
+          return new URL("install.html", window.location.href).toString();
+        }
         var url = new URL(crmUrl, window.location.href);
         if (isRealPhoneDevice && coarsePointerQuery.matches) {
           url.searchParams.set("landing_loader", "1");
@@ -297,6 +302,42 @@
         document.documentElement.classList.toggle("landing-mobile-landscape-locked", locked);
         document.body.classList.toggle("landing-mobile-landscape-locked", locked);
       }
+      function applyTouchViewportProfile(viewportWidth, viewportHeight) {
+        var profileClassNames = [
+          "landing-touch-profile-phone-compact",
+          "landing-touch-profile-phone-standard",
+          "landing-touch-profile-phone-large",
+          "landing-touch-profile-tablet-portrait",
+          "landing-touch-profile-tablet-landscape"
+        ];
+        document.documentElement.classList.remove.apply(document.documentElement.classList, profileClassNames);
+        if (!coarsePointerQuery.matches) {
+          document.documentElement.style.removeProperty("--landing-touch-shell-max-width");
+          document.documentElement.style.removeProperty("--landing-touch-shell-gutter");
+          return;
+        }
+        var shortEdge = Math.min(viewportWidth, viewportHeight);
+        var longEdge = Math.max(viewportWidth, viewportHeight);
+        var isTabletLike = !isRealPhoneDevice && viewportWidth >= 700;
+        var profile = "phone-standard";
+        if (isTabletLike) {
+          profile = viewportHeight >= viewportWidth ? "tablet-portrait" : "tablet-landscape";
+        } else if (shortEdge <= 390 || longEdge <= 760) {
+          profile = "phone-compact";
+        } else if (shortEdge >= 430 || longEdge >= 920) {
+          profile = "phone-large";
+        }
+        var profileConfig = {
+          "phone-compact": { className: "landing-touch-profile-phone-compact", maxWidth: "25.75rem", gutter: ".82rem" },
+          "phone-standard": { className: "landing-touch-profile-phone-standard", maxWidth: "27rem", gutter: ".94rem" },
+          "phone-large": { className: "landing-touch-profile-phone-large", maxWidth: "28.5rem", gutter: "1.02rem" },
+          "tablet-portrait": { className: "landing-touch-profile-tablet-portrait", maxWidth: "29.75rem", gutter: "1.08rem" },
+          "tablet-landscape": { className: "landing-touch-profile-tablet-landscape", maxWidth: "31rem", gutter: "1.14rem" }
+        }[profile];
+        document.documentElement.classList.add(profileConfig.className);
+        document.documentElement.style.setProperty("--landing-touch-shell-max-width", profileConfig.maxWidth);
+        document.documentElement.style.setProperty("--landing-touch-shell-gutter", profileConfig.gutter);
+      }
       function tryLockPortraitOrientation() {
         if (!isRealPhoneDevice || !coarsePointerQuery.matches) {
           return;
@@ -307,8 +348,13 @@
         screen.orientation.lock("portrait").catch(function () {});
       }
       function syncLandingViewport() {
-        var mobileLayout = mobileLayoutQuery.matches;
+        var viewportWidth = Math.round(window.visualViewport && window.visualViewport.width || document.documentElement.clientWidth || window.innerWidth || 1920);
+        var viewportHeight = Math.round(window.visualViewport && window.visualViewport.height || document.documentElement.clientHeight || window.innerHeight || 1080);
+        var compactTouchShell = coarsePointerQuery.matches && viewportWidth <= 1366;
+        var mobileLayout = mobileLayoutQuery.matches || compactTouchShell || (isRealPhoneDevice && coarsePointerQuery.matches && viewportWidth < viewportHeight);
         document.body.classList.toggle("landing-mobile-layout", mobileLayout);
+        document.body.classList.toggle("landing-touch-compact-shell", compactTouchShell);
+        applyTouchViewportProfile(viewportWidth, viewportHeight);
         syncLandscapeLockState();
         if (!scaleShell || !scaleStage) {
           return;
@@ -317,16 +363,27 @@
           scaleStage.style.removeProperty("--landing-stage-scale");
           scaleStage.style.removeProperty("--landing-mobile-scale");
           scaleStage.style.removeProperty("--landing-mobile-top-offset");
+          scaleStage.style.removeProperty("transform");
+          scaleStage.style.removeProperty("width");
+          scaleStage.style.removeProperty("left");
+          scaleStage.style.removeProperty("top");
           scaleShell.style.removeProperty("height");
+          scaleShell.style.removeProperty("min-height");
           return;
         }
-        var viewportWidth = document.documentElement.clientWidth || window.innerWidth || 1920;
         var stageWidth = 1920;
         var scale = Math.min(1, viewportWidth / stageWidth);
         scaleStage.style.setProperty("--landing-stage-scale", scale.toFixed(5));
         scaleStage.style.removeProperty("--landing-mobile-scale");
         scaleStage.style.removeProperty("--landing-mobile-top-offset");
         scaleShell.style.height = (scaleStage.scrollHeight * scale) + "px";
+      }
+      function scheduleLandingViewportSync() {
+        syncLandingViewport();
+        window.requestAnimationFrame(syncLandingViewport);
+        window.setTimeout(syncLandingViewport, 60);
+        window.setTimeout(syncLandingViewport, 180);
+        window.setTimeout(syncLandingViewport, 360);
       }
       function resetLandingLoader(immediate) {
         crmNavigationPending = false;
@@ -395,7 +452,7 @@
       }
       window.addEventListener("pageshow", function () {
         resetLandingLoader(true);
-        syncLandingViewport();
+        scheduleLandingViewportSync();
       });
       window.addEventListener("beforeunload", function () {
         if (!crmNavigationPending) {
@@ -415,17 +472,20 @@
       window.addEventListener("orientationchange", function () {
         window.setTimeout(syncLandscapeLockState, 40);
         window.setTimeout(tryLockPortraitOrientation, 80);
+        window.setTimeout(scheduleLandingViewportSync, 30);
+        window.setTimeout(scheduleLandingViewportSync, 220);
       }, { passive: true });
-      window.addEventListener("resize", syncLandingViewport);
-      window.visualViewport && window.visualViewport.addEventListener("resize", syncLandscapeLockState, { passive: true });
+      window.addEventListener("resize", scheduleLandingViewportSync, { passive: true });
+      window.visualViewport && window.visualViewport.addEventListener("resize", scheduleLandingViewportSync, { passive: true });
+      window.visualViewport && window.visualViewport.addEventListener("scroll", scheduleLandingViewportSync, { passive: true });
       if (document.fonts && typeof document.fonts.ready === "object" && typeof document.fonts.ready.then === "function") {
-        document.fonts.ready.then(syncLandingViewport);
+        document.fonts.ready.then(scheduleLandingViewportSync);
       }
-      window.addEventListener("load", syncLandingViewport, { once: true });
+      window.addEventListener("load", scheduleLandingViewportSync, { once: true });
       resetLandingLoader(true);
       syncLandscapeLockState();
       tryLockPortraitOrientation();
-      syncLandingViewport();
+      scheduleLandingViewportSync();
     })();
   </script>
 </body>
