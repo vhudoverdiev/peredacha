@@ -343,33 +343,14 @@ document.addEventListener('DOMContentLoaded', () => {
     root.classList.toggle('ios-standalone-bottom-chrome', standaloneMobileApp);
     document.body?.classList.toggle('ios-standalone-bottom-chrome', standaloneMobileApp);
     if (!standaloneMobileApp) return;
-    const readStoredSafeBottom = () => {
-      try {
-        const value = Number.parseInt(window.sessionStorage?.getItem('crmIosStandaloneSafeBottom') || '', 10);
-        return Number.isFinite(value) ? value : 0;
-      } catch (error) {
-        return 0;
-      }
-    };
-    const screenHeight = Math.max(window.screen?.height || 0, window.screen?.width || 0);
-    const viewportHeight = Math.round(
-      window.visualViewport?.height
-      || window.innerHeight
-      || document.documentElement.clientHeight
-      || 0,
-    );
-    const detectedInset = screenHeight > viewportHeight ? screenHeight - viewportHeight : 0;
-    const currentSafeBottom = Number.parseInt(root.style.getPropertyValue('--ios-standalone-safe-bottom-js') || '', 10) || 0;
-    const safeBottom = Math.min(
-      96,
-      Math.max(34, Math.round(detectedInset), readStoredSafeBottom(), currentSafeBottom),
-    );
+    // The difference between screen.height and visualViewport.height includes
+    // Safari's transient browser chrome. Using it as a safe-area inset made the
+    // dock change height after reloads and tab navigation. Standalone iPhones
+    // expose a stable 34px home-indicator inset.
+    const safeBottom = 34;
     root.style.setProperty('--ios-standalone-safe-bottom-js', `${safeBottom}px`);
-    root.style.setProperty('--ios-bottom-chrome-fill', `${Math.max(70, safeBottom + 36)}px`);
+    root.style.setProperty('--ios-bottom-chrome-fill', `${Math.max(54, safeBottom + 20)}px`);
     document.querySelector('.mobile-bottom-nav')?.style.setProperty('--ios-standalone-safe-bottom-js', `${safeBottom}px`);
-    try {
-      window.sessionStorage?.setItem('crmIosStandaloneSafeBottom', `${safeBottom}`);
-    } catch (error) {}
   };
 
   const tryLockPortraitOrientation = () => {
