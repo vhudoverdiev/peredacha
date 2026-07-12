@@ -52928,3 +52928,70 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     transition: none !important;
   }
 }
+
+/* v439: installed iPhone app keeps the tab bar attached to the bottom edge on
+   the first paint. Legacy mobile rules above can still re-raise it through
+   bottom/max(safe-area); this final standalone-only block wins over them. */
+@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device),
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body,
+  body.standalone-app.app-body {
+    background-color: #151c23 !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body::after,
+  body.standalone-app.app-body::after,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body.has-mobile-project-topbar::after,
+  body.standalone-app.app-body.has-mobile-project-topbar::after,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.mobile-project-topbar)::after,
+  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
+    background: #151c23 !important;
+    background-color: #151c23 !important;
+    height: max(var(--ios-safe-bottom), .12rem) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav,
+  body.standalone-app.app-body .mobile-bottom-nav {
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: calc(4.5rem + var(--ios-safe-bottom)) !important;
+    margin: 0 !important;
+    padding-top: .5rem !important;
+    padding-right: max(.28rem, var(--ios-safe-right)) !important;
+    padding-bottom: calc(.46rem + var(--ios-safe-bottom)) !important;
+    padding-left: max(.28rem, var(--ios-safe-left)) !important;
+    border: 0 !important;
+    border-top: 1px solid rgba(255, 255, 255, .06) !important;
+    border-radius: 1.55rem 1.55rem 0 0 !important;
+    background: linear-gradient(180deg, #242d38 0%, #1b232d 62%, #151c23 100%) !important;
+    background-color: #151c23 !important;
+    box-shadow: 0 -14px 30px rgba(11, 17, 25, .22) !important;
+    transform: none !important;
+    overflow: visible !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::before,
+  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::before,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::after,
+  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::after,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav::before,
+  body.standalone-app.app-body .mobile-bottom-nav::before,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav::after,
+  body.standalone-app.app-body .mobile-bottom-nav::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
+  body.standalone-app.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-bottom: calc(5rem + var(--ios-safe-bottom)) !important;
+  }
+}
