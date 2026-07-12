@@ -53092,3 +53092,39 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     padding-bottom: calc(var(--ref-mobile-nav-height) + var(--ios-safe-bottom) + .12rem) !important;
   }
 }
+
+/* v444: iPhone homescreen dock lives in the former browser-bar area. */
+@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
+    --ref-mobile-nav-height: 4.08rem !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav,
+  body.standalone-app.app-body .mobile-bottom-nav {
+    bottom: calc(-1 * var(--ios-safe-bottom, 0px)) !important;
+    height: calc(var(--ref-mobile-nav-height) + var(--ios-safe-bottom, 0px)) !important;
+    min-height: calc(var(--ref-mobile-nav-height) + var(--ios-safe-bottom, 0px)) !important;
+    max-height: calc(var(--ref-mobile-nav-height) + var(--ios-safe-bottom, 0px)) !important;
+    padding-top: .22rem !important;
+    padding-right: max(.28rem, var(--ios-safe-right, 0px)) !important;
+    padding-bottom: calc(.04rem + var(--ios-safe-bottom, 0px)) !important;
+    padding-left: max(.28rem, var(--ios-safe-left, 0px)) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle,
+  body.standalone-app.app-body .mobile-bottom-nav .mobile-nav-item,
+  body.standalone-app.app-body .mobile-bottom-nav .mobile-menu-toggle {
+    min-height: calc(var(--ref-mobile-nav-height) - .32rem) !important;
+    padding: .22rem .08rem .26rem !important;
+    justify-content: center !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
+  body.standalone-app.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-bottom: calc(var(--ref-mobile-nav-height) + .12rem) !important;
+  }
+}
