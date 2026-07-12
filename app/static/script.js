@@ -343,6 +343,14 @@ document.addEventListener('DOMContentLoaded', () => {
     root.classList.toggle('ios-standalone-bottom-chrome', standaloneMobileApp);
     document.body?.classList.toggle('ios-standalone-bottom-chrome', standaloneMobileApp);
     if (!standaloneMobileApp) return;
+    const readStoredSafeBottom = () => {
+      try {
+        const value = Number.parseInt(window.sessionStorage?.getItem('crmIosStandaloneSafeBottom') || '', 10);
+        return Number.isFinite(value) ? value : 0;
+      } catch (error) {
+        return 0;
+      }
+    };
     const screenHeight = Math.max(window.screen?.height || 0, window.screen?.width || 0);
     const viewportHeight = Math.round(
       window.visualViewport?.height
@@ -351,10 +359,17 @@ document.addEventListener('DOMContentLoaded', () => {
       || 0,
     );
     const detectedInset = screenHeight > viewportHeight ? screenHeight - viewportHeight : 0;
-    const safeBottom = Math.min(96, Math.max(34, Math.round(detectedInset)));
+    const currentSafeBottom = Number.parseInt(root.style.getPropertyValue('--ios-standalone-safe-bottom-js') || '', 10) || 0;
+    const safeBottom = Math.min(
+      96,
+      Math.max(34, Math.round(detectedInset), readStoredSafeBottom(), currentSafeBottom),
+    );
     root.style.setProperty('--ios-standalone-safe-bottom-js', `${safeBottom}px`);
-    root.style.setProperty('--ios-bottom-chrome-fill', `${Math.max(64, safeBottom + 30)}px`);
+    root.style.setProperty('--ios-bottom-chrome-fill', `${Math.max(70, safeBottom + 36)}px`);
     document.querySelector('.mobile-bottom-nav')?.style.setProperty('--ios-standalone-safe-bottom-js', `${safeBottom}px`);
+    try {
+      window.sessionStorage?.setItem('crmIosStandaloneSafeBottom', `${safeBottom}`);
+    } catch (error) {}
   };
 
   const tryLockPortraitOrientation = () => {
@@ -371,11 +386,20 @@ document.addEventListener('DOMContentLoaded', () => {
     syncStandaloneBottomChrome();
     tryLockPortraitOrientation();
   };
+  let mobileViewportRefreshFrame = 0;
   const scheduleMobileViewportRefresh = () => {
     if (!isMobileViewport()) return;
-    [40, 180, 420].forEach(delay => {
-      window.setTimeout(handleMobileViewportChange, delay);
-    });
+    handleMobileViewportChange();
+    if (mobileViewportRefreshFrame) return;
+    const refreshAfterPaint = () => {
+      mobileViewportRefreshFrame = 0;
+      handleMobileViewportChange();
+    };
+    if (window.requestAnimationFrame) {
+      mobileViewportRefreshFrame = window.requestAnimationFrame(refreshAfterPaint);
+    } else {
+      mobileViewportRefreshFrame = window.setTimeout(refreshAfterPaint, 16);
+    }
   };
 
   if (isIosDevice) document.body.classList.add('ios-device');

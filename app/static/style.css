@@ -52941,14 +52941,16 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
 
 }
 
-/* v451: iPhone homescreen dock keeps the original app styling but no longer
+/* v452: iPhone homescreen dock keeps the original app styling but no longer
    waits for a pointer/orientation recalculation before snapping to the bottom. */
 @media (max-width: 767.98px) {
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body,
   body.standalone-app.app-body {
-    --ref-mobile-nav-height: 4.14rem !important;
+    --ref-mobile-nav-height: 4.46rem !important;
+    --ref-mobile-topbar-height: calc(3.82rem + var(--ios-safe-top, 0px)) !important;
+    --crm-mobile-shell-bar-height: calc(3.82rem + var(--ios-safe-top, 0px)) !important;
     --ios-standalone-safe-bottom: var(--ios-standalone-safe-bottom-js, var(--ios-safe-bottom, 0px));
-    --ios-bottom-chrome-fill: calc(var(--ios-standalone-safe-bottom) + 1.9rem);
+    --ios-bottom-chrome-fill: calc(var(--ios-standalone-safe-bottom) + 2.25rem);
     padding-bottom: 0 !important;
   }
 
@@ -52964,6 +52966,45 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   body.ios-standalone-bottom-chrome.app-body {
     min-height: calc(var(--ios-app-height, 100dvh) + var(--ios-standalone-safe-bottom, 34px)) !important;
     background-color: #151c23 !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar),
+  body.standalone-app.app-body :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar) {
+    min-height: var(--ref-mobile-topbar-height) !important;
+    padding-top: calc(.34rem + var(--ios-safe-top, 0px)) !important;
+    padding-right: max(.74rem, var(--ios-safe-right, 0px)) !important;
+    padding-bottom: .34rem !important;
+    padding-left: max(.74rem, var(--ios-safe-left, 0px)) !important;
+    grid-template-columns: 2.42rem minmax(0, 1fr) 2.42rem !important;
+    gap: .42rem !important;
+    border-radius: 0 0 1.34rem 1.34rem !important;
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transition: none !important;
+    animation: none !important;
+    will-change: auto !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar)
+    :is(.mobile-top-avatar, .mobile-shell-brand, .mobile-shell-account),
+  body.standalone-app.app-body :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar)
+    :is(.mobile-top-avatar, .mobile-shell-brand, .mobile-shell-account) {
+    width: 2.42rem !important;
+    height: 2.42rem !important;
+    min-width: 2.42rem !important;
+    border-radius: .88rem !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar)
+    :is(.mobile-top-title, .mobile-shell-project-name),
+  body.standalone-app.app-body :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar)
+    :is(.mobile-top-title, .mobile-shell-project-name) {
+    font-size: .9rem !important;
+    line-height: 1.12 !important;
   }
 
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
@@ -52985,23 +53026,29 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     min-height: calc(var(--ref-mobile-nav-height) + var(--ios-standalone-safe-bottom, var(--ios-safe-bottom, 0px))) !important;
     max-height: calc(var(--ref-mobile-nav-height) + var(--ios-standalone-safe-bottom, var(--ios-safe-bottom, 0px))) !important;
     margin: 0 !important;
-    padding-top: .28rem !important;
+    padding-top: .36rem !important;
     padding-right: max(.28rem, var(--ios-safe-right, 0px)) !important;
-    padding-bottom: calc(.34rem + var(--ios-standalone-safe-bottom, var(--ios-safe-bottom, 0px))) !important;
+    padding-bottom: calc(.42rem + var(--ios-standalone-safe-bottom, var(--ios-safe-bottom, 0px))) !important;
     padding-left: max(.28rem, var(--ios-safe-left, 0px)) !important;
     border: 0 !important;
-    border-top: 1px solid rgba(255, 255, 255, .06) !important;
+    border-top: 1px solid rgba(255, 255, 255, .08) !important;
     border-radius: 1.55rem 1.55rem 0 0 !important;
-    background: linear-gradient(180deg, #242d38 0%, #1b232d 62%, #151c23 100%) !important;
-    background-color: #151c23 !important;
-    background-image: linear-gradient(180deg, #242d38 0%, #1b232d 62%, #151c23 100%) !important;
+    background: linear-gradient(180deg, #202934 0%, #18212a 58%, #111820 100%) !important;
+    background-color: #111820 !important;
+    background-image: linear-gradient(180deg, #202934 0%, #18212a 58%, #111820 100%) !important;
     box-shadow: 0 -14px 30px rgba(11, 17, 25, .22) !important;
     align-items: stretch !important;
     box-sizing: border-box !important;
+    opacity: 1 !important;
     transform: none !important;
     filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     contain: layout paint !important;
     isolation: isolate !important;
+    transition: none !important;
+    animation: none !important;
+    will-change: auto !important;
     overflow: hidden !important;
   }
 
@@ -53025,11 +53072,19 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     display: block !important;
     width: 100% !important;
     height: var(--ios-bottom-chrome-fill, 64px) !important;
-    background: linear-gradient(180deg, #1b232d 0%, #151c23 100%) !important;
-    background-color: #151c23 !important;
+    background: #111820 !important;
+    background-color: #111820 !important;
+    background-image: none !important;
+    opacity: 1 !important;
     z-index: -1 !important;
     pointer-events: none !important;
-    transform: translateZ(0) !important;
+    transform: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transition: none !important;
+    animation: none !important;
+    will-change: auto !important;
   }
 
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item,
@@ -53041,12 +53096,12 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     align-self: start !important;
     width: 100% !important;
     min-width: 0 !important;
-    height: calc(var(--ref-mobile-nav-height) - .9rem) !important;
-    min-height: calc(var(--ref-mobile-nav-height) - .9rem) !important;
+    height: calc(var(--ref-mobile-nav-height) - .78rem) !important;
+    min-height: calc(var(--ref-mobile-nav-height) - .78rem) !important;
     max-height: none !important;
     margin: 0 !important;
-    padding: .12rem .08rem .16rem !important;
-    gap: .12rem !important;
+    padding: .18rem .08rem .24rem !important;
+    gap: .14rem !important;
     border: 0 !important;
     border-radius: .9rem !important;
     background: transparent !important;
@@ -53055,6 +53110,9 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     box-shadow: none !important;
     text-decoration: none !important;
     justify-content: center !important;
+    transition: none !important;
+    animation: none !important;
+    will-change: auto !important;
   }
 
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item i,
@@ -53105,16 +53163,24 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     display: block !important;
     width: 100% !important;
     height: var(--ios-bottom-chrome-fill, 64px) !important;
-    background: linear-gradient(180deg, #1b232d 0%, #151c23 100%) !important;
-    background-color: #151c23 !important;
+    background: #111820 !important;
+    background-color: #111820 !important;
+    background-image: none !important;
+    opacity: 1 !important;
     z-index: 1064 !important;
     pointer-events: none !important;
-    transform: translateZ(0) !important;
+    transform: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transition: none !important;
+    animation: none !important;
+    will-change: auto !important;
   }
 
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
   body.standalone-app.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
-    padding-bottom: calc(var(--ref-mobile-nav-height) + .28rem) !important;
+    padding-bottom: calc(var(--ref-mobile-nav-height) + .42rem) !important;
   }
 }
