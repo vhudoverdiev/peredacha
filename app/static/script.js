@@ -345,6 +345,12 @@ document.addEventListener('DOMContentLoaded', () => {
     syncAppViewportHeight();
     tryLockPortraitOrientation();
   };
+  const scheduleMobileViewportRefresh = () => {
+    if (!isMobileViewport()) return;
+    [40, 180, 420].forEach(delay => {
+      window.setTimeout(handleMobileViewportChange, delay);
+    });
+  };
 
   if (isIosDevice) document.body.classList.add('ios-device');
   if (isCoarsePointer) document.body.classList.add('touch-device');
@@ -374,6 +380,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.setTimeout(syncMobileOrientationLockState, 40);
     window.setTimeout(tryLockPortraitOrientation, 80);
   }, { passive: true });
+  window.addEventListener('pageshow', scheduleMobileViewportRefresh, { passive: true });
+  window.addEventListener('load', scheduleMobileViewportRefresh, { passive: true });
+  scheduleMobileViewportRefresh();
 
   if (isIosDevice) {
     document.addEventListener('gesturestart', event => event.preventDefault(), { passive: false });
