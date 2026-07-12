@@ -52579,7 +52579,7 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
 @keyframes crmMobileContentReveal {
   from {
     --crm-mobile-entry-opacity: 0;
-    --crm-mobile-entry-y: 12px;
+    --crm-mobile-entry-y: 8px;
   }
   to {
     --crm-mobile-entry-opacity: 1;
@@ -52628,9 +52628,20 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     visibility: visible !important;
     opacity: var(--crm-mobile-entry-opacity) !important;
     transform: translate3d(0, var(--crm-mobile-entry-y), 0) !important;
-    animation: crmMobileContentReveal 320ms cubic-bezier(.22, .72, .2, 1) both !important;
+    animation: crmMobileContentReveal 180ms cubic-bezier(.22, .72, .2, 1) both !important;
     pointer-events: auto !important;
     will-change: opacity, transform !important;
+  }
+
+  html.crm-mobile-entry-skip:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface.crm-page-entry-surface {
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+    pointer-events: auto !important;
+    will-change: auto !important;
   }
 
   html.crm-mobile-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -52690,7 +52701,7 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     color: #8dde2c !important;
     -webkit-text-fill-color: #8dde2c !important;
     opacity: 1 !important;
-    transform: scale(.97) !important;
+    transform: none !important;
   }
 }
 
@@ -52709,61 +52720,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
 /* v416: clip scrolling page content below the fixed mobile header. */
 .mobile-fixed-top-scroll-mask {
   display: none;
-}
-
-/* v418: one authoritative root-level tab bar for installed iPhone apps. */
-@media (max-width: 767.98px) {
-  html.standalone-app,
-  html.standalone-app body.app-body {
-    background: #151c24 !important;
-    background-color: #151c24 !important;
-  }
-
-  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root {
-    position: fixed !important;
-    z-index: 1065 !important;
-    inset: auto 0 0 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    min-height: calc(4.5rem + env(safe-area-inset-bottom)) !important;
-    height: auto !important;
-    margin: 0 !important;
-    padding-top: .5rem !important;
-    padding-right: max(.28rem, env(safe-area-inset-right)) !important;
-    padding-bottom: calc(.5rem + env(safe-area-inset-bottom)) !important;
-    padding-left: max(.28rem, env(safe-area-inset-left)) !important;
-    border: 0 !important;
-    border-radius: 1.55rem 1.55rem 0 0 !important;
-    background:
-      linear-gradient(
-        180deg,
-        #242d38 0%,
-        #1c242e 45%,
-        #151c24 72%,
-        #151c24 100%
-      ) !important;
-    background-color: #151c24 !important;
-    box-shadow: 0 -14px 30px rgba(11, 17, 25, .22) !important;
-    transform: none !important;
-    filter: none !important;
-    contain: none !important;
-    isolation: isolate !important;
-    overflow: visible !important;
-  }
-
-  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::before,
-  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::after {
-    content: none !important;
-    display: none !important;
-  }
-
-  html.standalone-app body.app-body
-    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom)) !important;
-  }
 }
 
 @media (max-width: 767.98px) {
@@ -52929,73 +52885,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 }
 
-/* v439: installed iPhone app keeps the tab bar attached to the bottom edge on
-   the first paint. Legacy mobile rules above can still re-raise it through
-   bottom/max(safe-area); this final standalone-only block wins over them. */
-@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device),
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body,
-  body.standalone-app.app-body {
-    background-color: #151c23 !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body::after,
-  body.standalone-app.app-body::after,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body.has-mobile-project-topbar::after,
-  body.standalone-app.app-body.has-mobile-project-topbar::after,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.mobile-project-topbar)::after,
-  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
-    background: #151c23 !important;
-    background-color: #151c23 !important;
-    height: max(var(--ios-safe-bottom), .12rem) !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav,
-  body.standalone-app.app-body .mobile-bottom-nav {
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    min-height: calc(4.5rem + var(--ios-safe-bottom)) !important;
-    margin: 0 !important;
-    padding-top: .5rem !important;
-    padding-right: max(.28rem, var(--ios-safe-right)) !important;
-    padding-bottom: calc(.46rem + var(--ios-safe-bottom)) !important;
-    padding-left: max(.28rem, var(--ios-safe-left)) !important;
-    border: 0 !important;
-    border-top: 1px solid rgba(255, 255, 255, .06) !important;
-    border-radius: 1.55rem 1.55rem 0 0 !important;
-    background: linear-gradient(180deg, #242d38 0%, #1b232d 62%, #151c23 100%) !important;
-    background-color: #151c23 !important;
-    box-shadow: 0 -14px 30px rgba(11, 17, 25, .22) !important;
-    transform: none !important;
-    overflow: visible !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::before,
-  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::before,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::after,
-  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::after,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav::before,
-  body.standalone-app.app-body .mobile-bottom-nav::before,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav::after,
-  body.standalone-app.app-body .mobile-bottom-nav::after {
-    content: none !important;
-    display: none !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
-  body.standalone-app.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
-    padding-bottom: calc(5rem + var(--ios-safe-bottom)) !important;
-  }
-}
-
 /* v440: show a full-screen branded launch loader on standalone mobile entry so
    homescreen launch no longer resembles a blank white/light panel. */
 @media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
@@ -53072,5 +52961,134 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
       0 22px 48px rgba(7, 12, 18, .42),
       0 0 34px rgba(141, 214, 44, .16) !important;
     overflow: hidden !important;
+  }
+}
+
+/* v442: collapse all late standalone mobile nav overrides into one compact
+   geometry so iPhone homescreen launch keeps the dock flush to the bottom
+   without the oversized safe-area stack from older rules. */
+@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device),
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body,
+  body.standalone-app.app-body {
+    background-color: #151c23 !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
+    --ref-mobile-nav-height: 3.88rem !important;
+    padding-bottom: 0 !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar),
+  body.standalone-app.app-body :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar) {
+    background: linear-gradient(180deg, #242d38 0%, #1b232d 62%, #151c23 100%) !important;
+    background-color: #151c23 !important;
+    border-bottom-color: rgba(255, 255, 255, .06) !important;
+    box-shadow: 0 14px 30px rgba(11, 17, 25, .18) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar)::before,
+  body.standalone-app.app-body :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar)::before {
+    background: rgba(255, 255, 255, .04) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar) :is(.mobile-top-title, .mobile-shell-project-name, .mobile-shell-project-caret, .mobile-top-avatar, .mobile-shell-account),
+  body.standalone-app.app-body :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar) :is(.mobile-top-title, .mobile-shell-project-name, .mobile-shell-project-caret, .mobile-top-avatar, .mobile-shell-account) {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body::after,
+  body.standalone-app.app-body::after,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body.has-mobile-project-topbar::after,
+  body.standalone-app.app-body.has-mobile-project-topbar::after,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.mobile-project-topbar)::after,
+  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
+    content: none !important;
+    display: none !important;
+    height: 0 !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav,
+  body.standalone-app.app-body .mobile-bottom-nav {
+    position: fixed !important;
+    z-index: 1065 !important;
+    inset: auto 0 0 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: calc(var(--ref-mobile-nav-height) + var(--ios-safe-bottom)) !important;
+    min-height: calc(var(--ref-mobile-nav-height) + var(--ios-safe-bottom)) !important;
+    max-height: calc(var(--ref-mobile-nav-height) + var(--ios-safe-bottom)) !important;
+    margin: 0 !important;
+    padding-top: .16rem !important;
+    padding-right: max(.28rem, var(--ios-safe-right)) !important;
+    padding-bottom: calc(.02rem + var(--ios-safe-bottom)) !important;
+    padding-left: max(.28rem, var(--ios-safe-left)) !important;
+    border: 0 !important;
+    border-top: 1px solid rgba(255, 255, 255, .06) !important;
+    border-radius: 1.55rem 1.55rem 0 0 !important;
+    background: linear-gradient(180deg, #242d38 0%, #1b232d 62%, #151c23 100%) !important;
+    background-color: #151c23 !important;
+    box-shadow: 0 -14px 30px rgba(11, 17, 25, .22) !important;
+    align-items: stretch !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+    filter: none !important;
+    contain: layout paint !important;
+    isolation: isolate !important;
+    overflow: hidden !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::before,
+  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::before,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::after,
+  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::after,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav::before,
+  body.standalone-app.app-body .mobile-bottom-nav::before,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav::after,
+  body.standalone-app.app-body .mobile-bottom-nav::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle,
+  body.standalone-app.app-body .mobile-bottom-nav .mobile-nav-item,
+  body.standalone-app.app-body .mobile-bottom-nav .mobile-menu-toggle {
+    min-height: 3.06rem !important;
+    padding: .16rem .08rem 0 !important;
+    gap: .12rem !important;
+    align-self: stretch !important;
+    justify-content: flex-end !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item i,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle i,
+  body.standalone-app.app-body .mobile-bottom-nav .mobile-nav-item i,
+  body.standalone-app.app-body .mobile-bottom-nav .mobile-menu-toggle i {
+    font-size: 1.34rem !important;
+    line-height: 1 !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item span,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle span,
+  body.standalone-app.app-body .mobile-bottom-nav .mobile-nav-item span,
+  body.standalone-app.app-body .mobile-bottom-nav .mobile-menu-toggle span {
+    font-size: .63rem !important;
+    line-height: 1.02 !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
+  body.standalone-app.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-bottom: calc(var(--ref-mobile-nav-height) + var(--ios-safe-bottom) + .12rem) !important;
   }
 }

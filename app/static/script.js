@@ -37,6 +37,7 @@ const getViewportHeight = () => Math.max(
   480,
   Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || DESKTOP_REFERENCE_HEIGHT),
 );
+const mobileEntrySkipStorageKey = 'crm-mobile-nav-skip-entry';
 const hideStandaloneBootSplash = (immediate = false) => {
   if (typeof window.crmHideStandaloneBootSplash === 'function') {
     window.crmHideStandaloneBootSplash(immediate);
@@ -63,6 +64,17 @@ const isTouchMobileViewport = () => isPhoneTouchDevice() || isTabletTouchDevice(
 const isMobileViewport = () => isTouchMobileViewport() || isAdaptiveMobileViewport();
 const isDesktopLikePointer = () => !isTouchAppDevice() && !isAdaptiveMobileViewport();
 const shouldUseDesktopViewportLock = () => isDesktopLikePointer();
+const rememberInstantMobileEntryForNextNavigation = href => {
+  if (!document.body?.classList.contains('app-body')) return;
+  if (!isMobileViewport()) return;
+  try {
+    const targetUrl = new URL(href || window.location.href, window.location.href);
+    const currentUrl = new URL(window.location.href);
+    if (targetUrl.origin !== currentUrl.origin) return;
+    if (`${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}` === `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`) return;
+    window.sessionStorage.setItem(mobileEntrySkipStorageKey, '1');
+  } catch (error) {}
+};
 const getTouchViewportProfile = () => {
   const viewportWidth = getViewportWidth();
   const viewportHeight = getViewportHeight();
@@ -531,6 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const isMobileEntrySurface = customSelectBootRoot.matches('.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device');
     customSelectBootRoot.classList.remove(
       'crm-custom-select-fallback',
+      'crm-mobile-entry-skip',
       'crm-page-entry-pending',
       'crm-page-entry-started',
       'crm-page-entry-complete',
@@ -1344,12 +1357,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const navigateWithViewportTransition = href => {
     if (!href) return;
+    rememberInstantMobileEntryForNextNavigation(href);
     showViewportTransitionLoader();
     window.location.href = href;
   };
 
   document.addEventListener('click', event => {
-    if (!canShowViewportTransitionLoader()) return;
     if (event.defaultPrevented || event.button !== 0) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const link = event.target.closest('a[href]');
@@ -1364,7 +1377,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const currentUrl = new URL(window.location.href);
       if (targetUrl.origin !== currentUrl.origin) return;
       if (`${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}` === `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`) return;
-      showViewportTransitionLoader();
+      rememberInstantMobileEntryForNextNavigation(targetUrl.href);
+      if (canShowViewportTransitionLoader()) showViewportTransitionLoader();
     } catch (error) {}
   }, true);
 
@@ -3484,6 +3498,7 @@ document.addEventListener('DOMContentLoaded', () => {
     event.stopPropagation();
     gesture.link.classList.add('active', 'is-navigation-pending');
     gesture.link.dataset.touchNavigationCommitted = '1';
+    rememberInstantMobileEntryForNextNavigation(targetUrl.href);
     window.location.assign(targetUrl.href);
   }, { passive: false, capture: true });
 
