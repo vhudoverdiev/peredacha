@@ -3165,7 +3165,8 @@ def assignments():
     else:
         query = _assignment_base_query(project.id, query_args).filter(Task.responsible_id.is_(None))
         page = request.args.get("page", 1, type=int)
-        pagination = query.paginate(page=page, per_page=80, error_out=False)
+        per_page = 10 if _is_mobile_phone_request() else 80
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         tasks = pagination.items
         prev_args = {k: v for k, v in query_args.items() if v}
         next_args = {k: v for k, v in query_args.items() if v}
@@ -6056,10 +6057,12 @@ def _task_list_response(contractor_page: bool = False):
         query = query.filter(Task.responsible_id == current_user.id)
     # Список помещений для выбора Excel строим по всему отфильтрованному набору,
     # а не только по текущей странице пагинации.
-    premise_source_tasks = query.options(selectinload(Task.apartment)).all()
+    is_mobile_request = _is_mobile_phone_request()
+    premise_source_tasks = [] if is_mobile_request else query.options(selectinload(Task.apartment)).all()
 
     page = request.args.get("page", 1, type=int)
-    pagination = query.options(selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items)).paginate(page=page, per_page=50, error_out=False)
+    per_page = 10 if is_mobile_request else 50
+    pagination = query.options(selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items)).paginate(page=page, per_page=per_page, error_out=False)
     active_category = next((category for category in categories if category.id == category_id), None)
 
     prev_args = request.args.to_dict()
@@ -6570,12 +6573,18 @@ def _contractor_point_options() -> list[dict[str, str]]:
     return options
 
 
-def _group_project_apartments(project_id: int) -> list[list[Apartment]]:
+def _group_project_apartments(project_id: int, include_activity: bool = True) -> list[list[Apartment]]:
+    load_options = [
+        selectinload(Apartment.tasks).selectinload(Task.work_point),
+        selectinload(Apartment.tasks).selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items),
+    ]
+    if include_activity:
+        load_options.extend([
+            selectinload(Apartment.tasks).selectinload(Task.comments),
+            selectinload(Apartment.tasks).selectinload(Task.changes),
+        ])
     apartments = (
-        Apartment.query.options(
-            selectinload(Apartment.tasks).selectinload(Task.work_point),
-            selectinload(Apartment.tasks).selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items),
-        )
+        Apartment.query.options(*load_options)
         .filter(Apartment.project_id == project_id)
         .all()
     )
@@ -6587,7 +6596,7 @@ def _group_project_apartments(project_id: int) -> list[list[Apartment]]:
     return list(groups.values())
 
 
-def _build_apartment_overview(apartment_or_group) -> dict:
+def _build_apartment_overview(apartment_or_group, include_activity: bool = True) -> dict:
     apartments = apartment_or_group if isinstance(apartment_or_group, list) else [apartment_or_group]
     apartment = _pick_apartment_representative(apartments)
     all_tasks = sorted(
@@ -6608,14 +6617,15 @@ def _build_apartment_overview(apartment_or_group) -> dict:
     ordered_glass = [task.glass_measurement for task in tasks if task.glass_measurement and task.glass_measurement.status == GLASS_STATUS_ORDERED]
     comments = []
     changes = []
-    for task in tasks:
-        for comment in task.comments:
-            comments.append({"task": task, "comment": comment})
-    for task in all_tasks:
-        for change in task.changes:
-            changes.append({"task": task, "change": change})
-    comments.sort(key=lambda row: row["comment"].created_at, reverse=True)
-    changes.sort(key=lambda row: row["change"].created_at, reverse=True)
+    if include_activity:
+        for task in tasks:
+            for comment in task.comments:
+                comments.append({"task": task, "comment": comment})
+        for task in all_tasks:
+            for change in task.changes:
+                changes.append({"task": task, "change": change})
+        comments.sort(key=lambda row: row["comment"].created_at, reverse=True)
+        changes.sort(key=lambda row: row["change"].created_at, reverse=True)
     total = len(active_tasks)
     done = len(done_tasks)
     left = len(left_tasks)
@@ -6666,11 +6676,63 @@ def apartments():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    all_rows = [_build_apartment_overview(group) for group in _group_project_apartments(project.id)]
-    rows, premise_selectors, po_only = _filtered_apartment_overview_rows(
-        project.id, request.args, source_rows=all_rows
+    is_mobile_request = _is_mobile_phone_request()
+    has_active_filters = any(
+        str(value or "").strip()
+        for key, value in request.args.items()
+        if key != "page"
     )
-    po_alert_count = sum(1 for row in all_rows if row.get("po_status") == PO_STATUS_TO_THROW)
+    mobile_page = 1
+    mobile_total_pages = 1
+    mobile_pagination_args = request.args.to_dict(flat=True)
+    mobile_pagination_args.pop("page", None)
+    if is_mobile_request:
+        per_page = 10
+        try:
+            mobile_page = max(1, int(request.args.get("page", 1)))
+        except (TypeError, ValueError):
+            mobile_page = 1
+
+    if is_mobile_request and not has_active_filters:
+        groups = _group_project_apartments(project.id, include_activity=False)
+        groups.sort(key=lambda group: _apartment_number_sort_value(
+            _pick_apartment_representative(group).display_number(fallback_to_id=False)
+        ))
+        total_count = len(groups)
+        mobile_total_pages = max(1, (total_count + per_page - 1) // per_page)
+        mobile_page = min(mobile_page, mobile_total_pages)
+        start = (mobile_page - 1) * per_page
+        visible_groups = groups[start:start + per_page]
+        rows = [_build_apartment_overview(group, include_activity=False) for group in visible_groups]
+        premise_selectors = []
+        po_only = False
+        po_alert_count = 0
+        for group in groups:
+            tasks = [
+                task
+                for apartment in group
+                for task in list(apartment.tasks or [])
+                if (task.source_sheet_name or "") != "apartment_history"
+                and not task.is_archived
+                and not task.is_missing_in_latest_sync
+            ]
+            if _po_status_for_group(group, tasks) == PO_STATUS_TO_THROW:
+                po_alert_count += 1
+    else:
+        all_rows = [
+            _build_apartment_overview(group, include_activity=False)
+            for group in _group_project_apartments(project.id, include_activity=False)
+        ]
+        rows, premise_selectors, po_only = _filtered_apartment_overview_rows(
+            project.id, request.args, source_rows=all_rows
+        )
+        total_count = len(rows)
+        if is_mobile_request:
+            mobile_total_pages = max(1, (total_count + per_page - 1) // per_page)
+            mobile_page = min(mobile_page, mobile_total_pages)
+            start = (mobile_page - 1) * per_page
+            rows = rows[start:start + per_page]
+        po_alert_count = sum(1 for row in all_rows if row.get("po_status") == PO_STATUS_TO_THROW)
     finishing_types = [
         x[0]
         for x in db.session.query(distinct(Apartment.finishing_type))
@@ -6684,7 +6746,10 @@ def apartments():
         args=request.args,
         export_args=request.args.to_dict(flat=True),
         finishing_types=finishing_types,
-        total_count=len(rows),
+        total_count=total_count,
+        mobile_page=mobile_page,
+        mobile_total_pages=mobile_total_pages,
+        mobile_pagination_args=mobile_pagination_args,
         po_only=po_only,
         po_alert_count=po_alert_count,
         po_status_labels=PO_STATUS_LABELS,

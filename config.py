@@ -65,6 +65,17 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "change-me")
     SQLALCHEMY_DATABASE_URI = _normalize_database_url(os.getenv("DATABASE_URL"))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    COMPRESS_MIMETYPES = [
+        "text/html",
+        "text/css",
+        "text/javascript",
+        "application/javascript",
+        "application/json",
+        "image/svg+xml",
+    ]
+    COMPRESS_LEVEL = 6
+    COMPRESS_BR_LEVEL = 8
+    COMPRESS_MIN_SIZE = 500
 
     GOOGLE_SHEETS_SPREADSHEET_ID = os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID", "")
     GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")

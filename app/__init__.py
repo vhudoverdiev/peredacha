@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user, logout_user
 from flask_wtf import CSRFProtect
+from flask_compress import Compress
 from config import Config
 from sqlalchemy import inspect, text
 from datetime import date, datetime, timedelta
@@ -14,6 +15,7 @@ db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 csrf = CSRFProtect()
+compress = Compress()
 
 RU_MONTHS_GENITIVE = {
     1: "января",
@@ -58,6 +60,7 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+    compress.init_app(app)
 
     login_manager.login_view = "auth.login"
     login_manager.login_message = "Войдите в CRM, чтобы продолжить"
@@ -103,7 +106,9 @@ def create_app(config_class=Config):
         )
         if app.config.get("FORCE_HSTS") or request.is_secure:
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-        if current_user.is_authenticated:
+        if request.endpoint == "static" or request.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        elif current_user.is_authenticated:
             response.headers.setdefault("Cache-Control", "private, no-store")
         record_site_visit(response)
         return response

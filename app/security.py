@@ -5,8 +5,10 @@ import re
 import secrets
 import time
 from collections import defaultdict, deque
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from pathlib import Path
+from threading import BoundedSemaphore
 from typing import Iterable
 
 from flask import current_app, g, request, session
@@ -19,6 +21,16 @@ from app import db
 # In-process limiter. It is deliberately dependency-free so the CRM keeps working
 # on the current hosting. For multi-worker production, replace this with Redis.
 _BUCKETS: dict[str, deque[float]] = defaultdict(deque)
+_VISIT_WRITER = ThreadPoolExecutor(max_workers=1, thread_name_prefix="site-visit")
+_VISIT_WRITE_SLOTS = BoundedSemaphore(256)
+
+
+def _write_site_visit(engine, table, payload: dict) -> None:
+    try:
+        with engine.begin() as connection:
+            connection.execute(table.insert().values(**payload))
+    except Exception:
+        pass
 
 
 def client_ip() -> str:
@@ -175,8 +187,9 @@ def record_site_visit(response) -> None:
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
         }
-        with db.engine.begin() as connection:
-            connection.execute(SiteVisit.__table__.insert().values(**payload))
+        if _VISIT_WRITE_SLOTS.acquire(blocking=False):
+            future = _VISIT_WRITER.submit(_write_site_visit, db.engine, SiteVisit.__table__, payload)
+            future.add_done_callback(lambda _future: _VISIT_WRITE_SLOTS.release())
     except Exception:
         pass
 

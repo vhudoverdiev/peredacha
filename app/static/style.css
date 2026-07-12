@@ -52564,14 +52564,26 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
 
 /* v419: mobile inner tabs use one dedicated shared reveal. Fixed shell chrome
    stays still while only the page surface fades in like the landing. */
+@property --crm-mobile-entry-opacity {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
+@property --crm-mobile-entry-y {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 @keyframes crmMobileContentReveal {
   from {
-    opacity: 0;
-    transform: translate3d(0, 18px, 0) scale(.992);
+    --crm-mobile-entry-opacity: 0;
+    --crm-mobile-entry-y: 12px;
   }
   to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    --crm-mobile-entry-opacity: 1;
+    --crm-mobile-entry-y: 0px;
   }
 }
 
@@ -52613,11 +52625,11 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
 
   html.crm-mobile-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body .crm-page-entry-surface.crm-page-entry-surface {
-    visibility: hidden !important;
-    opacity: 0 !important;
-    transform: translate3d(0, 18px, 0) scale(.992) !important;
-    animation: none !important;
-    pointer-events: none !important;
+    visibility: visible !important;
+    opacity: var(--crm-mobile-entry-opacity) !important;
+    transform: translate3d(0, var(--crm-mobile-entry-y), 0) !important;
+    animation: crmMobileContentReveal 320ms cubic-bezier(.22, .72, .2, 1) both !important;
+    pointer-events: auto !important;
     will-change: opacity, transform !important;
   }
 
@@ -52867,7 +52879,7 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
-    .dashboard-page :is(.dashboard-info-card, .dashboard-roadmap-mini-card, .category-progress-bar) {
+    .dashboard-page :is(.dashboard-focus-card, .dashboard-info-card, .dashboard-roadmap-mini-card, .category-progress-bar) {
     animation: none !important;
     will-change: auto !important;
   }
@@ -52875,5 +52887,44 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
     .crm-page-entry-surface.crm-page-entry-surface {
     animation: none !important;
+  }
+
+  .mobile-apartments-pagination {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: .65rem;
+    margin: 1rem 0 .25rem;
+  }
+
+  .mobile-apartments-pagination > span {
+    color: #667085;
+    font-size: .78rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .mobile-apartments-pagination .btn:last-child {
+    justify-self: end;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    table.mobile-card-table > tbody > tr {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 9.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-apartments-pagination {
+    display: none;
+  }
+}
+
+@media (max-width: 767.98px) {
+  html.mobile-viewport body.app-body
+    .crm-page-entry-surface.crm-page-entry-surface
+    :is(.task-row-link.task-row-link, .inline-edit-btn.inline-edit-btn, .inline-split-btn.inline-split-btn) {
+    transition: none !important;
   }
 }
