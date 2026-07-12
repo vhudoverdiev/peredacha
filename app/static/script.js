@@ -332,6 +332,31 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.toggle('mobile-landscape-locked', landscapeLocked);
   };
 
+  const syncStandaloneBottomChrome = () => {
+    const root = document.documentElement;
+    const standaloneMobileApp = Boolean(
+      document.body?.classList.contains('app-body')
+      && isIosDevice
+      && isMobileViewport()
+      && (isStandaloneApp || root.classList.contains('standalone-app'))
+    );
+    root.classList.toggle('ios-standalone-bottom-chrome', standaloneMobileApp);
+    document.body?.classList.toggle('ios-standalone-bottom-chrome', standaloneMobileApp);
+    if (!standaloneMobileApp) return;
+    const screenHeight = Math.max(window.screen?.height || 0, window.screen?.width || 0);
+    const viewportHeight = Math.round(
+      window.visualViewport?.height
+      || window.innerHeight
+      || document.documentElement.clientHeight
+      || 0,
+    );
+    const detectedInset = screenHeight > viewportHeight ? screenHeight - viewportHeight : 0;
+    const safeBottom = Math.min(96, Math.max(34, Math.round(detectedInset)));
+    root.style.setProperty('--ios-standalone-safe-bottom-js', `${safeBottom}px`);
+    root.style.setProperty('--ios-bottom-chrome-fill', `${Math.max(64, safeBottom + 30)}px`);
+    document.querySelector('.mobile-bottom-nav')?.style.setProperty('--ios-standalone-safe-bottom-js', `${safeBottom}px`);
+  };
+
   const tryLockPortraitOrientation = () => {
     if (!isTouchAppDevice()) return;
     if (!screen.orientation || typeof screen.orientation.lock !== 'function') return;
@@ -343,6 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
     syncMobileViewportClass();
     syncMobileOrientationLockState();
     syncAppViewportHeight();
+    syncStandaloneBottomChrome();
     tryLockPortraitOrientation();
   };
   const scheduleMobileViewportRefresh = () => {
