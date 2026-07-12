@@ -10,7 +10,7 @@
     "standalone"
   ],
   "background_color": "#151c23",
-  "theme_color": "#1f2730",
+  "theme_color": "#151c23",
   "orientation": "portrait-primary",
   "prefer_related_applications": false,
   "icons": [

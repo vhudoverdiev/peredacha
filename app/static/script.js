@@ -37,6 +37,14 @@ const getViewportHeight = () => Math.max(
   480,
   Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || DESKTOP_REFERENCE_HEIGHT),
 );
+const hideStandaloneBootSplash = (immediate = false) => {
+  if (typeof window.crmHideStandaloneBootSplash === 'function') {
+    window.crmHideStandaloneBootSplash(immediate);
+    return;
+  }
+  if (!document.documentElement.classList.contains('mobile-standalone-boot')) return;
+  document.documentElement.classList.add('mobile-standalone-boot-hidden');
+};
 
 // Keep fixed mobile navigation attached to the root viewport. Ancestors of
 // the page content are animated/resized and can otherwise become a containing
@@ -141,8 +149,13 @@ const syncDesktopViewportLock = (options = {}) => {
 (() => {
   syncDesktopViewportLock({ force: true });
   const mobileDevLoaders = document.querySelectorAll('.mobile-dev-screen.site-page-loader');
+  const scheduleStandaloneBootSplashHide = (delay = 90) => {
+    if (!document.documentElement.classList.contains('mobile-standalone-boot')) return;
+    window.setTimeout(() => hideStandaloneBootSplash(), delay);
+  };
   const suppressStaticCrmLoaders = (forceDisplayNone = false) => {
     document.documentElement.classList.add('crm-loader-suppressed');
+    hideStandaloneBootSplash(forceDisplayNone);
     document.querySelectorAll('.js-success-loader, .js-app-launch-loader, .mobile-dev-screen.site-page-loader').forEach(loader => {
       loader.classList.add('is-hidden');
       loader.style.pointerEvents = 'none';
@@ -184,10 +197,13 @@ const syncDesktopViewportLock = (options = {}) => {
         if (document.visibilityState === 'hidden') hideMobileDevLoaders(true);
       });
     }
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => scheduleStandaloneBootSplashHide(70));
+    });
     return;
   }
   const startedAt = Date.now();
-  const minVisibleMs = 2300;
+  const minVisibleMs = document.documentElement.classList.contains('mobile-standalone-boot') ? 900 : 2300;
   const hide = () => {
     const delay = Math.max(0, minVisibleMs - (Date.now() - startedAt));
     window.setTimeout(() => {
@@ -195,6 +211,11 @@ const syncDesktopViewportLock = (options = {}) => {
       hideMobileDevLoaders(true);
     }, delay);
   };
+  if (document.readyState === 'complete') {
+    scheduleStandaloneBootSplashHide();
+  } else {
+    window.addEventListener('load', () => scheduleStandaloneBootSplashHide(), { once: true });
+  }
   if (document.readyState === 'complete') {
     hide();
   } else {

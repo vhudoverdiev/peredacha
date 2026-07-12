@@ -52995,3 +52995,82 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     padding-bottom: calc(5rem + var(--ios-safe-bottom)) !important;
   }
 }
+
+/* v440: show a full-screen branded launch loader on standalone mobile entry so
+   homescreen launch no longer resembles a blank white/light panel. */
+@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .app-launch-loader,
+  body.standalone-app.app-body .app-launch-loader {
+    padding: calc(env(safe-area-inset-top) + 1.5rem) 1.5rem calc(env(safe-area-inset-bottom) + 1.5rem) !important;
+    background:
+      radial-gradient(circle at 20% 18%, rgba(141, 214, 44, .2), transparent 18rem),
+      radial-gradient(circle at 80% 16%, rgba(141, 214, 44, .12), transparent 15rem),
+      linear-gradient(180deg, #151c23 0%, #1b242d 54%, #151c23 100%) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .app-launch-loader .site-page-loader-card,
+  body.standalone-app.app-body .app-launch-loader .site-page-loader-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    aspect-ratio: auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    animation: none !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .app-launch-loader .mobile-loading-orbit,
+  body.standalone-app.app-body .app-launch-loader .mobile-loading-orbit {
+    width: clamp(7rem, 27vw, 8rem) !important;
+    height: clamp(7rem, 27vw, 8rem) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .app-launch-loader .mobile-loading-orbit::before,
+  body.standalone-app.app-body .app-launch-loader .mobile-loading-orbit::before {
+    border-width: 2px !important;
+    border-top-color: rgba(141, 214, 44, .94) !important;
+    border-right-color: rgba(141, 214, 44, .18) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .app-launch-loader .mobile-loading-orbit::after,
+  body.standalone-app.app-body .app-launch-loader .mobile-loading-orbit::after {
+    inset: .72rem !important;
+    border-width: 2px !important;
+    border-bottom-color: rgba(141, 214, 44, .88) !important;
+    border-left-color: rgba(141, 214, 44, .14) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .app-launch-loader .mobile-loading-orbit > span:nth-child(1),
+  body.standalone-app.app-body .app-launch-loader .mobile-loading-orbit > span:nth-child(1) {
+    inset: 1.2rem !important;
+    border-top-color: rgba(141, 214, 44, .22) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .app-launch-loader .mobile-loading-orbit > span:nth-child(2),
+  body.standalone-app.app-body .app-launch-loader .mobile-loading-orbit > span:nth-child(2) {
+    inset: -.42rem !important;
+    border-right-color: rgba(141, 214, 44, .14) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .app-launch-loader .mobile-loading-orbit > span:nth-child(3),
+  body.standalone-app.app-body .app-launch-loader .mobile-loading-orbit > span:nth-child(3) {
+    inset: 1.9rem !important;
+    background: radial-gradient(circle, rgba(141, 214, 44, .18), transparent 68%) !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .app-launch-loader .mobile-loading-mark,
+  body.standalone-app.app-body .app-launch-loader .mobile-loading-mark {
+    width: clamp(4.75rem, 18vw, 5.35rem) !important;
+    height: clamp(4.75rem, 18vw, 5.35rem) !important;
+    border: 0 !important;
+    border-radius: 1.45rem !important;
+    background: transparent !important;
+    box-shadow:
+      0 0 0 1px rgba(141, 214, 44, .14),
+      0 22px 48px rgba(7, 12, 18, .42),
+      0 0 34px rgba(141, 214, 44, .16) !important;
+    overflow: hidden !important;
+  }
+}
