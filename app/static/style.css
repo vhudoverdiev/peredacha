@@ -53586,3 +53586,14 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     bottom: -8rem !important;
   }
 }
+
+/* v470: iOS paints the home-indicator area from the root background, outside
+   fixed descendants. Keep that root white for the entire launch splash. */
+@media (max-width: 767.98px) {
+  html.mobile-standalone-boot:not(.mobile-standalone-boot-complete).ios-standalone-bottom-chrome,
+  html.mobile-standalone-boot:not(.mobile-standalone-boot-complete).ios-standalone-bottom-chrome body,
+  html.mobile-standalone-boot:not(.mobile-standalone-boot-complete).ios-standalone-bottom-chrome body.app-body {
+    background: #f9fbf5 !important;
+    background-color: #f9fbf5 !important;
+  }
+}
