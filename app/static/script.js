@@ -185,6 +185,7 @@ const syncDesktopViewportLock = (options = {}) => {
     });
   }
   const loaders = document.querySelectorAll('.js-success-loader, .js-app-launch-loader');
+  const hasAuthIntroLoader = Boolean(document.body?.classList.contains('auth-body') && document.querySelector('.js-app-launch-loader'));
   const hideMobileDevLoaders = (forceDisplayNone = false) => {
     mobileDevLoaders.forEach(loader => {
       loader.classList.add('is-hidden');
@@ -215,7 +216,9 @@ const syncDesktopViewportLock = (options = {}) => {
     return;
   }
   const startedAt = Date.now();
-  const minVisibleMs = document.documentElement.classList.contains('mobile-standalone-boot') ? 900 : 2300;
+  const minVisibleMs = hasAuthIntroLoader
+    ? 1600
+    : (document.documentElement.classList.contains('mobile-standalone-boot') ? 900 : 0);
   const hide = () => {
     const delay = Math.max(0, minVisibleMs - (Date.now() - startedAt));
     window.setTimeout(() => {
@@ -423,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   const msTileColorMeta = document.querySelector('meta[name="msapplication-TileColor"]');
   const defaultThemeColor = themeColorMeta?.getAttribute('content') || '#8dd62c';
-  const authThemeColor = '#ffffff';
+  const authThemeColor = '#f9fbf5';
   const appTopbarThemeColor = '#1f2730';
 
   const setThemeColor = value => {
@@ -1382,11 +1385,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const viewportTransitionLoader = document.querySelector('.viewport-transition-loader');
-  const canShowViewportTransitionLoader = () => (
-    Boolean(viewportTransitionLoader)
-    && isTouchAppDevice()
-    && !document.documentElement.classList.contains('crm-loader-suppressed')
-  );
+  const canShowViewportTransitionLoader = () => false;
 
   const showViewportTransitionLoader = () => {
     if (!canShowViewportTransitionLoader()) return;

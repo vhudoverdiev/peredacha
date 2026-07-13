@@ -70,7 +70,6 @@ def _complete_pending_login(user: User):
     login_user(user, remember=remember)
     session.permanent = True
     session["session_version"] = int(user.session_version or 0)
-    session["show_success_loader"] = True
     mark_login_success(user)
     clear_captcha()
     security_event("login_success", f"Успешный вход {user.username}", user_id=user.id)
@@ -85,24 +84,6 @@ def _continue_after_password(user: User):
         session["pending_login_2fa"] = True
         return redirect(url_for("auth.login_2fa"))
     return _complete_pending_login(user)
-
-
-def _show_login_loader_once() -> None:
-    """Show the branded loader only on the first anonymous visit to the login page."""
-    if session.get("login_intro_loader_seen"):
-        return
-    session["show_success_loader"] = True
-    session["login_intro_loader_seen"] = True
-
-
-def _skip_intro_loader_for_mobile_landing() -> None:
-    """Landing on mobile already shows its own loader, so do not duplicate it on CRM login."""
-    if not request.args.get("landing_loader"):
-        return
-    if not request.args.get("mobile"):
-        return
-    session["login_intro_loader_seen"] = True
-    session.pop("show_success_loader", None)
 
 
 def _redirect_after_login(user: User, next_url: str | None = None):
@@ -154,9 +135,6 @@ def login():
         session["pending_login_next"] = next_url if _is_safe_next(next_url) else ""
         return _continue_after_password(user)
 
-    if request.method == "GET":
-        _skip_intro_loader_for_mobile_landing()
-        _show_login_loader_once()
     return _render_login(form)
 
 
@@ -293,7 +271,5 @@ def registration_request():
 def logout():
     logout_user()
     session.clear()
-    session["show_success_loader"] = True
-    session["login_intro_loader_seen"] = True
     flash("Вы вышли из CRM", "info")
     return redirect(url_for("auth.login"))

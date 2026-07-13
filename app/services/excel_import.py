@@ -162,13 +162,29 @@ def _rows_look_like_remark_sheet(rows: list[list[Any]]) -> bool:
         headers = merge_header_rows(rows[header_index - 1], rows[header_index])
     base_mapping = map_base_columns(headers)
     point_columns = map_work_point_columns(headers, base_mapping)
+    data_start = header_index + 1
+    if data_start < len(rows) and is_index_number_row(rows[data_start]):
+        base_indexes = set(base_mapping.values())
+        indexed_points: dict[int, str] = {}
+        for col_idx, raw in enumerate(rows[data_start]):
+            if col_idx in base_indexes:
+                continue
+            point_number = str(raw or "").strip()
+            value = point_number.replace(",", ".").replace(" ", "")
+            if value.endswith(".0"):
+                value = value[:-2]
+            if value.isdigit():
+                header = headers[col_idx] if col_idx < len(headers) else ""
+                if header:
+                    indexed_points[col_idx] = f"{value}. {header}"
+        if indexed_points:
+            point_columns = indexed_points
     if not point_columns:
         return False
     point_columns = select_primary_work_point_columns(headers, point_columns)
     anchored_mapping = map_base_columns(headers, anchor_before_col=min(point_columns))
     if anchored_mapping.get("apartment_number") is None and anchored_mapping.get("construction_number") is None:
         return False
-    data_start = header_index + 1
     if data_start < len(rows) and is_index_number_row(rows[data_start]):
         data_start += 1
     for row in rows[data_start:]:

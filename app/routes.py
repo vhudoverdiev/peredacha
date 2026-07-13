@@ -1445,11 +1445,7 @@ def sync_google():
         return redirect(url_for("main.objects"))
     try:
         result = sync_google_sheets(project_name=project.name, spreadsheet_id_override=project.google_sheet_id)
-        pending_conflicts = (
-            SyncConflict.query.join(Task, SyncConflict.task_id == Task.id)
-            .filter(SyncConflict.status == "pending", Task.project_id == project.id)
-            .count()
-        )
+        pending_conflicts = _project_pending_conflicts_query(project.id).count()
         flash(
             f"Добавлено новых - {result.get('created_count', 0)} , несостыковок - {pending_conflicts}",
             "success",
@@ -5384,9 +5380,26 @@ def _task_effective_remark_text(task: Task) -> str:
     return (task.description or task.source_cell_value or "").strip()
 
 
+def _project_pending_conflicts_query(project_id: int):
+    return (
+        SyncConflict.query.outerjoin(Task, SyncConflict.task_id == Task.id)
+        .outerjoin(Apartment, SyncConflict.apartment_id == Apartment.id)
+        .filter(SyncConflict.status == "pending")
+        .filter(or_(Task.project_id == project_id, Apartment.project_id == project_id))
+    )
+
+
 def _pending_task_sync_conflict(task_id: int) -> SyncConflict | None:
     return (
-        SyncConflict.query.filter_by(task_id=task_id, status="pending", target_type="task")
+        SyncConflict.query.filter(
+            SyncConflict.task_id == task_id,
+            SyncConflict.status == "pending",
+            SyncConflict.target_type == "task",
+            or_(
+                SyncConflict.field_name.is_(None),
+                SyncConflict.field_name.in_(("source_cell_value", "description")),
+            ),
+        )
         .order_by(SyncConflict.id.desc())
         .first()
     )
@@ -7940,11 +7953,7 @@ def upload_excel():
             _validate_uploaded_excel_kind(path, "remarks")
             result = sync_excel_file(path, project_name=project.name)
             set_setting(f"latest_excel_path_project_{project.id}", str(path))
-            pending_conflicts = (
-                SyncConflict.query.join(Task, SyncConflict.task_id == Task.id)
-                .filter(SyncConflict.status == "pending", Task.project_id == project.id)
-                .count()
-            )
+            pending_conflicts = _project_pending_conflicts_query(project.id).count()
             latest_log = SyncLog.query.filter(SyncLog.project_id == project.id).order_by(SyncLog.started_at.desc()).first()
             if latest_log:
                 latest_log.missing_count = pending_conflicts
@@ -7954,7 +7963,7 @@ def upload_excel():
                     f"Добавлено новых - {result.get('created_count', 0)} , несостыковок - {pending_conflicts}",
                     "warning",
                 )
-                return redirect(url_for("main.sync_conflicts"))
+                return redirect(url_for("main.sync_conflicts"), code=303)
             flash(
                 f"Добавлено новых - {result.get('created_count', 0)} , несостыковок - {pending_conflicts}",
                 "success",
@@ -8405,6 +8414,19 @@ def _apply_sync_conflict_new_value(conflict: SyncConflict) -> None:
     task = conflict.task
     if not task:
         return
+    if conflict.field_name == "status":
+        old_status = task.status
+        new_status = str(conflict.new_value or "").strip() or STATUS_NOT_STARTED
+        task.status = new_status
+        task.is_done = new_status in DONE_STATUSES
+        if task.is_done:
+            task.completed_date = task.completed_date or datetime.utcnow()
+        elif old_status in DONE_STATUSES:
+            task.completed_date = None
+        task.manually_edited = True
+        if old_status != new_status:
+            log_change(task, "status_change", "status", old_status, new_status, user_id=current_user.id)
+        return
     task.source_cell_value = conflict.new_value
     task.source_hash = conflict.new_hash
     # Пользователь нажал «Принять новое» — значит новый текст из Excel должен стать видимым текстом замечания.
@@ -8457,13 +8479,12 @@ def sync_conflicts():
     if project is None:
         return redirect(url_for("main.objects"))
     conflicts = (
-        SyncConflict.query.join(Task, SyncConflict.task_id == Task.id)
-        .filter(SyncConflict.status == "pending", Task.project_id == project.id)
+        _project_pending_conflicts_query(project.id)
         .order_by(SyncConflict.created_at.desc())
         .limit(500)
         .all()
     )
-    return render_template("sync_conflicts.html", conflicts=conflicts)
+    return render_template("sync_conflicts.html", conflicts=conflicts, status_labels=TASK_STATUSES)
 
 
 @bp.route("/conflicts/<int:conflict_id>/<action>", methods=["POST"])
@@ -8489,7 +8510,7 @@ def resolve_conflict(conflict_id: int, action: str):
     if action == "apply_new":
         _apply_sync_conflict_new_value(conflict)
     elif action == "keep_both":
-        if (conflict.target_type or "task") != "task":
+        if (conflict.target_type or "task") != "task" or conflict.field_name not in {None, "source_cell_value", "description"}:
             abort(400)
         _create_task_from_sync_conflict(conflict)
     conflict.status = action
@@ -8510,11 +8531,7 @@ def resolve_conflicts_bulk(action: str):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    conflicts = (
-        SyncConflict.query.join(Task, SyncConflict.task_id == Task.id)
-        .filter(SyncConflict.status == "pending", Task.project_id == project.id)
-        .all()
-    )
+    conflicts = _project_pending_conflicts_query(project.id).all()
     changed = 0
     for conflict in conflicts:
         if action == "apply_new":

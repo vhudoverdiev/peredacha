@@ -39,8 +39,20 @@
           <div class="text-muted small">{{ c.field_label or 'Ячейка замечания' }}</div>
           <div class="text-muted small">{{ c.sheet_name }}{% if c.cell_address %} &middot; {{ c.cell_address }}{% endif %}</div>
         </td>
-        <td class="sync-conflict-value">{{ c.old_value or '' }}</td>
-        <td class="sync-conflict-value">{{ c.new_value or '' }}</td>
+        <td class="sync-conflict-value">
+          {% if c.field_name == 'status' %}
+            {{ status_labels.get(c.old_value, {}).get('label', c.old_value or '') }}
+          {% else %}
+            {{ c.old_value or '' }}
+          {% endif %}
+        </td>
+        <td class="sync-conflict-value">
+          {% if c.field_name == 'status' %}
+            {{ status_labels.get(c.new_value, {}).get('label', c.new_value or '') }}
+          {% else %}
+            {{ c.new_value or '' }}
+          {% endif %}
+        </td>
         <td>
           <div class="d-flex gap-2 flex-wrap">
             <form method="post" action="{{ url_for('main.resolve_conflict', conflict_id=c.id, action='keep_old') }}">
@@ -51,7 +63,7 @@
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="btn btn-sm btn-primary">Принять новое</button>
             </form>
-            {% if c.task and c.target_type == 'task' and (c.new_value or '').strip() %}
+            {% if c.task and c.target_type == 'task' and c.field_name in [None, 'source_cell_value', 'description'] and (c.new_value or '').strip() %}
             <form method="post" action="{{ url_for('main.resolve_conflict', conflict_id=c.id, action='keep_both') }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="btn btn-sm btn-primary">Оставить оба</button>

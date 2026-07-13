@@ -17,9 +17,30 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#151c23">
-  <meta name="msapplication-TileColor" content="#151c23">
+  <meta name="theme-color" content="{% if current_user.is_authenticated %}#151c23{% else %}#f9fbf5{% endif %}">
+  <meta name="msapplication-TileColor" content="{% if current_user.is_authenticated %}#151c23{% else %}#f9fbf5{% endif %}">
   <meta name="msapplication-tap-highlight" content="no">
+  {% if not current_user.is_authenticated %}
+  <style>
+    html,
+    body {
+      background: #f9fbf5 !important;
+      background-color: #f9fbf5 !important;
+    }
+  </style>
+  <script>
+    (() => {
+      const authIntroLoaderStorageKey = 'crm-auth-intro-loader-seen-v1';
+      try {
+        if (window.sessionStorage.getItem(authIntroLoaderStorageKey) === '1') {
+          document.documentElement.classList.add('crm-auth-intro-loader-seen');
+          return;
+        }
+        window.sessionStorage.setItem(authIntroLoaderStorageKey, '1');
+      } catch (error) {}
+    })();
+  </script>
+  {% endif %}
   <script>
     (() => {
       const DESKTOP_REFERENCE_WIDTH = 1920;
@@ -164,6 +185,13 @@
     html.crm-loader-suppressed .js-success-loader,
     html.crm-loader-suppressed .viewport-transition-loader,
     html.crm-loader-suppressed .mobile-dev-screen.site-page-loader {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
+    html.crm-auth-intro-loader-seen body.auth-body .js-app-launch-loader {
       display: none !important;
       opacity: 0 !important;
       visibility: hidden !important;
@@ -322,8 +350,8 @@
   </div>
 </div>
 {% set mobile_dev_loader = current_user.is_authenticated and mobile_version_under_development %}
-{% set show_success_loader = session.pop('show_success_loader', False) %}
-{% if not current_user.is_authenticated and not show_success_loader %}
+{% set show_success_loader = false %}
+{% if not current_user.is_authenticated %}
 <section class="site-page-loader app-launch-loader js-app-launch-loader" role="status" aria-label="Загрузка приложения">
   <div class="site-page-loader-card">
     <div class="mobile-loading-orbit" aria-hidden="true">

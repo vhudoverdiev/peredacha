@@ -10,6 +10,7 @@ from app import db
 from app.models import (
     AppSetting,
     Apartment,
+    ChangeLog,
     Project,
     SyncConflict,
     Task,
@@ -727,6 +728,90 @@ def detect_status_marker(remark_text: str) -> str | None:
     return None
 
 
+def _pending_text_sync_conflict(task_id: int) -> SyncConflict | None:
+    return (
+        SyncConflict.query.filter(
+            SyncConflict.task_id == task_id,
+            SyncConflict.status == "pending",
+            SyncConflict.target_type == "task",
+            or_(
+                SyncConflict.field_name.is_(None),
+                SyncConflict.field_name.in_(("source_cell_value", "description")),
+            ),
+        )
+        .order_by(SyncConflict.id.desc())
+        .first()
+    )
+
+
+def _pending_status_sync_conflict(task_id: int) -> SyncConflict | None:
+    return (
+        SyncConflict.query.filter_by(
+            task_id=task_id,
+            status="pending",
+            target_type="task",
+            field_name="status",
+        )
+        .order_by(SyncConflict.id.desc())
+        .first()
+    )
+
+
+def _task_has_manual_non_done_status_override(task: Task | None) -> bool:
+    if task is None or task.status in DONE_STATUSES:
+        return False
+    return (
+        ChangeLog.query.filter_by(
+            task_id=task.id,
+            action="status_change",
+            field_name="status",
+        )
+        .filter(ChangeLog.user_id.isnot(None))
+        .first()
+        is not None
+    )
+
+
+def _queue_task_status_sync_conflict(
+    task: Task,
+    *,
+    new_status: str,
+    sheet_name: str,
+    row_index: int,
+    column_index: int,
+    cell_address: str,
+) -> None:
+    old_status = str(task.status or "")
+    existing = _pending_status_sync_conflict(task.id)
+    if existing is None:
+        db.session.add(
+            SyncConflict(
+                task_id=task.id,
+                target_type="task",
+                field_name="status",
+                field_label="РЎС‚Р°С‚СѓСЃ",
+                source_type="excel",
+                sheet_name=sheet_name,
+                row_index=row_index,
+                column_index=column_index,
+                cell_address=cell_address,
+                old_value=old_status,
+                new_value=new_status,
+                old_hash=cell_hash(old_status),
+                new_hash=cell_hash(new_status),
+            )
+        )
+        return
+    existing.old_value = old_status
+    existing.new_value = new_status
+    existing.old_hash = cell_hash(old_status)
+    existing.new_hash = cell_hash(new_status)
+    existing.sheet_name = sheet_name
+    existing.row_index = row_index
+    existing.column_index = column_index
+    existing.cell_address = cell_address
+
+
 def is_non_white_finishing(finishing_type: str | None) -> bool:
     text = normalize_text(finishing_type or "").replace("ё", "е")
     return bool(text) and text != "белая"
@@ -1298,7 +1383,7 @@ def upsert_task_from_cell(
     # Раньше конфликт создавался только после ручной правки на сайте, из-за этого
     # изменения дат/действий/текста из новой таблицы могли молча перетираться.
     if task.source_hash and task.source_hash != new_hash:
-        existing = SyncConflict.query.filter_by(task_id=task.id, status="pending", target_type="task").first()
+        existing = _pending_text_sync_conflict(task.id)
         if existing is None:
             db.session.add(
                 SyncConflict(
@@ -1343,7 +1428,30 @@ def upsert_task_from_cell(
         auto_status = STATUS_DONE
     if should_auto_finishers(apartment, work_point):
         auto_status = STATUS_FINISHERS
-    if auto_status and (not task.manually_edited or task.status == STATUS_NOT_STARTED or should_auto_finishers(apartment, work_point)):
+    should_apply_auto_status = bool(
+        auto_status
+        and (
+            auto_status != STATUS_DONE
+            or not _task_has_manual_non_done_status_override(task)
+        )
+        and (
+            not task.manually_edited
+            or task.status == STATUS_NOT_STARTED
+            or task.status in DONE_STATUSES
+            or should_auto_finishers(apartment, work_point)
+            or auto_status == STATUS_DONE
+        )
+    )
+    if auto_status == STATUS_DONE and _task_has_manual_non_done_status_override(task):
+        _queue_task_status_sync_conflict(
+            task,
+            new_status=auto_status,
+            sheet_name=sheet_name,
+            row_index=row_index,
+            column_index=column_index,
+            cell_address=source_cell_address,
+        )
+    elif should_apply_auto_status:
         old_status = task.status
         task.status = auto_status
         task.is_done = auto_status in DONE_STATUSES
@@ -1519,7 +1627,7 @@ def sync_rows(
                 ):
                     new_hash = cell_hash("")
                     if existing_task.source_hash != new_hash:
-                        existing_conflict = SyncConflict.query.filter_by(task_id=existing_task.id, status="pending", target_type="task").first()
+                        existing_conflict = _pending_text_sync_conflict(existing_task.id)
                         if existing_conflict is None:
                             db.session.add(
                                 SyncConflict(
