@@ -53578,7 +53578,7 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   }
 }
 
-/* v475: one final mobile-shell contract replaces the conflicting historical
+/* v476: one final mobile-shell contract replaces the conflicting historical
    bottom/safe-area rules. The same element keeps the same geometry through
    launch, navigation, and the portrait viewport settling after rotation. */
 @media (max-width: 767.98px) {
@@ -53600,12 +53600,12 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     z-index: 1065 !important;
     inset: auto 0 0 0 !important;
     width: 100% !important;
-    height: calc(4.72rem + var(--ios-standalone-safe-bottom-js, 34px)) !important;
-    min-height: calc(4.72rem + var(--ios-standalone-safe-bottom-js, 34px)) !important;
-    max-height: calc(4.72rem + var(--ios-standalone-safe-bottom-js, 34px)) !important;
+    height: 5rem !important;
+    min-height: 5rem !important;
+    max-height: 5rem !important;
     margin: 0 !important;
     padding-top: .42rem !important;
-    padding-bottom: calc(.5rem + var(--ios-standalone-safe-bottom-js, 34px)) !important;
+    padding-bottom: max(.35rem, env(safe-area-inset-bottom)) !important;
     box-sizing: border-box !important;
     transform: none !important;
     background-image: none !important;
