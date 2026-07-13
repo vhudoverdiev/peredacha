@@ -118,6 +118,7 @@ from app.services.task_service import (
 )
 from app.services.status_rules import is_problem_details_required
 from app.services.sync_rollback import apply_sync_rollback, build_project_rollback_data
+from app.time_utils import to_moscow_datetime
 from app.services.uid_service import build_task_uid, cell_hash, normalize_text, stable_hash
 from app.services.remark_format import remark_text_html
 from app.security import hit_rate_limit, security_event, validate_upload
@@ -417,7 +418,7 @@ def format_ru_day_month(value: date | datetime | None = None) -> str:
 
 
 def format_ru_datetime(value: datetime | None = None) -> str:
-    value = value or datetime.utcnow()
+    value = to_moscow_datetime(value or datetime.utcnow())
     return f"{format_ru_date(value)} {value.strftime('%H:%M')}"
 
 

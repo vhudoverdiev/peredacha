@@ -10,6 +10,8 @@ from config import Config
 from sqlalchemy import inspect, text
 from datetime import date, datetime, timedelta
 
+from app.time_utils import to_moscow_datetime
+
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -48,6 +50,7 @@ def _format_ru_datetime(value) -> str:
         return "—"
     if not isinstance(value, datetime):
         return str(value)
+    value = to_moscow_datetime(value)
     return f"{_format_ru_date(value)} {value.strftime('%H:%M')}"
 
 
@@ -117,10 +120,10 @@ def create_app(config_class=Config):
     def msk_datetime(value, fmt=None):
         if not value:
             return "—"
-        value = value + timedelta(hours=3)
+        value = to_moscow_datetime(value)
         if fmt:
             return value.strftime(fmt)
-        return _format_ru_datetime(value)
+        return f"{_format_ru_date(value)} {value.strftime('%H:%M')}"
 
     @app.template_filter("ru_date")
     def ru_date(value):

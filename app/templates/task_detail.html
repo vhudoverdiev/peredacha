@@ -89,8 +89,8 @@
       <div class="card-body">
         <h2 class="section-title">Управление</h2>
         {% if current_user.role != 'viewer' %}
-        <div class="d-flex flex-wrap gap-1 mb-3 task-detail-status-grid" data-task-detail-shell>
-          {% if task.status != 'done' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-success">Выполнено</button></form>{% endif %}
+        <div class="d-flex flex-wrap gap-1 mb-3 task-detail-status-grid actions-cell" data-task-detail-shell data-current-status="{{ task.status }}">
+          <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" class="status-action-form {% if task.status != 'not_started' %}d-none{% endif %}" data-task-detail-status="1" data-status-action="done"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-success">Выполнено</button></form>
           {% if task.status != 'finishers' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info">Чистовики</button></form>{% endif %}
           {% if task.status != 'contractor' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning">Подрядчик</button></form>{% endif %}
           {% if task.status != 'guarantee' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-guarantee">Гарантия</button></form>{% endif %}
@@ -100,7 +100,7 @@
             <button class="btn btn-sm btn-outline-danger problem-toggle-btn" type="button" data-problem-modal-title="Проблема">Проблема</button>
           </form>
           {% endif %}
-          {% if task.status != 'not_started' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-task-detail-status="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-secondary">Не выполнено</button></form>{% endif %}
+          <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" class="status-action-form {% if task.status != 'done' %}d-none{% endif %}" data-task-detail-status="1" data-status-action="not_started"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-secondary">Не выполнено</button></form>
         </div>
         {% if can_delete_task %}
         <form method="post" action="{{ url_for('main.task_delete', task_id=task.id) }}" data-confirm="Удалить это замечание? Это действие нельзя отменить.">

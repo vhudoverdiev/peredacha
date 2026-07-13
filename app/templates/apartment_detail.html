@@ -204,11 +204,17 @@
             <div class="apartment-task-head">
               <span class="apartment-task-point">{{ point_name }}</span>
               {% if current_user.role != 'viewer' %}
-              {% set toggle_status = 'not_started' if task.is_done else 'done' %}
-              <form class="apartment-task-status-form apartment-task-status-desktop" method="post" action="{{ url_for('main.quick_status', task_id=task.id, status=toggle_status) }}" data-apartment-status-toggle data-reload-after-status="1" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }} apartment-task-status-btn" type="submit" data-status-pill title="Нажмите, чтобы переключить выполнено / не выполнено">{{ status_labels.get(task.status, task.status) }}</button>
-              </form>
+              <div class="apartment-task-status-desktop actions-cell" data-current-status="{{ task.status }}">
+                <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }}" data-status-pill>{{ status_labels.get(task.status, task.status) }}</span>
+                <form class="apartment-task-status-form status-action-form {% if task.status != 'not_started' %}d-none{% endif %}" method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-status-action="done">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-success apartment-task-status-btn" type="submit">Выполнено</button>
+                </form>
+                <form class="apartment-task-status-form status-action-form {% if task.status != 'done' %}d-none{% endif %}" method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-status-action="not_started">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-secondary apartment-task-status-btn" type="submit">Не выполнено</button>
+                </form>
+              </div>
               {% else %}
               <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }} apartment-task-status-desktop" data-status-pill>{{ status_labels.get(task.status, task.status) }}</span>
               {% endif %}
@@ -217,13 +223,13 @@
             <div class="apartment-task-status-mobile">
               <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }} apartment-task-status-current-mobile">{{ status_labels.get(task.status, task.status) }}</span>
               {% if current_user.role != 'viewer' %}
-              <div class="apartment-task-actions">
-                {% if task.status != 'done' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" class="apartment-task-action-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-success apartment-task-action-btn" type="submit">Выполнено</button></form>{% endif %}
+              <div class="apartment-task-actions actions-cell" data-current-status="{{ task.status }}">
+                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" class="apartment-task-action-form status-action-form {% if task.status != 'not_started' %}d-none{% endif %}" data-status-action="done"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-success apartment-task-action-btn" type="submit">Выполнено</button></form>
                 {% if task.status != 'finishers' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" class="apartment-task-action-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-action-btn" type="submit">Чистовики</button></form>{% endif %}
                 {% if task.status != 'contractor' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" class="apartment-task-action-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning apartment-task-action-btn" type="submit">Подрядчик</button></form>{% endif %}
                 {% if task.status != 'guarantee' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" class="apartment-task-action-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-guarantee apartment-task-action-btn" type="submit">Гарантия</button></form>{% endif %}
                 {% if task.status != 'problem' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="apartment-task-action-form apartment-task-action-form-problem problem-action-form problem-action-form-inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-danger problem-toggle-btn apartment-task-action-btn" type="button" data-problem-modal-title="Проблема">Проблема</button></form>{% endif %}
-                {% if task.status != 'not_started' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" class="apartment-task-action-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-secondary apartment-task-action-btn" type="submit">Не выполнено</button></form>{% endif %}
+                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" class="apartment-task-action-form status-action-form {% if task.status != 'done' %}d-none{% endif %}" data-status-action="not_started"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-secondary apartment-task-action-btn" type="submit">Не выполнено</button></form>
               </div>
               {% endif %}
             </div>

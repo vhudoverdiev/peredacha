@@ -2065,10 +2065,12 @@ document.addEventListener('DOMContentLoaded', () => {
           form.action = data.is_done ? (form.dataset.notStartedUrl || form.action) : (form.dataset.doneUrl || form.action);
         }
 
-        const actionsCell = row?.querySelector('.actions-cell');
-        if (actionsCell) {
-          actionsCell.dataset.currentStatus = data.status || '';
-        }
+        const actionCells = [];
+        if (row?.matches?.('.actions-cell')) actionCells.push(row);
+        row?.querySelectorAll?.('.actions-cell').forEach(cell => actionCells.push(cell));
+        actionCells.forEach(cell => {
+          cell.dataset.currentStatus = data.status || '';
+        });
         syncStatusActionVisibility(row || document);
 
         const submittedProblemInput = form.querySelector('input[name="problem_comment"]');

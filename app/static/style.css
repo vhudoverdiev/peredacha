@@ -53541,3 +53541,48 @@ body.app-body:has(.assignment-issued-filters)
     box-shadow: 0 var(--ios-standalone-safe-bottom-js, 34px) 0 #111820 !important;
   }
 }
+
+/* v468: apartment filters use regular-weight text in both native mobile
+   selects and the desktop custom-select portal. */
+body:has(.apartments-page) .apartments-filter-form :is(
+  select,
+  option,
+  .form-select,
+  .developer-select-button,
+  .developer-select-value
+),
+body:has(.apartments-page) .developer-select-menu-portal .developer-select-option {
+  font-weight: 400 !important;
+}
+
+/* v469: one stable iOS dock element covers both the app viewport and the home
+   indicator area. Equal height and bottom extensions keep the visible top in
+   place while removing the separate strip beneath it. */
+@media (max-width: 767.98px) {
+  html.ios-standalone-bottom-chrome,
+  html.ios-standalone-bottom-chrome body.app-body,
+  body.ios-standalone-bottom-chrome.app-body {
+    min-height: calc(var(--ios-app-height, 100dvh) + var(--ios-standalone-safe-bottom-js, 34px)) !important;
+    background-color: #111820 !important;
+  }
+
+  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  html.standalone-app body.app-body .mobile-bottom-nav,
+  body.standalone-app.app-body .mobile-bottom-nav {
+    inset: auto 0 calc(-1 * var(--ios-bottom-chrome-fill, 54px)) 0 !important;
+    bottom: calc(-1 * var(--ios-bottom-chrome-fill, 54px)) !important;
+    height: calc(4.72rem + var(--ios-bottom-chrome-fill, 54px)) !important;
+    min-height: calc(4.72rem + var(--ios-bottom-chrome-fill, 54px)) !important;
+    max-height: calc(4.72rem + var(--ios-bottom-chrome-fill, 54px)) !important;
+    padding-bottom: calc(.5rem + var(--ios-bottom-chrome-fill, 54px)) !important;
+    border: 0 !important;
+    background: #111820 !important;
+    background-color: #111820 !important;
+    box-shadow: none !important;
+  }
+
+  html.mobile-standalone-boot .mobile-standalone-boot-screen {
+    bottom: -8rem !important;
+  }
+}
