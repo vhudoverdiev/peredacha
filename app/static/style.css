@@ -313,12 +313,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     margin-bottom: env(safe-area-inset-bottom) !important;
   }
 
-  html.standalone-app body.app-body:not(.worker-layout) .mobile-bottom-nav,
-  body.standalone-app.app-body:not(.worker-layout) .mobile-bottom-nav {
-    bottom: 0 !important;
-    margin-bottom: 0 !important;
-    padding-bottom: max(.44rem, env(safe-area-inset-bottom)) !important;
-  }
 }
 
 /* v185 true final override: account logout button is mobile-only. */
@@ -507,12 +501,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     margin-bottom: env(safe-area-inset-bottom) !important;
   }
 
-  html.standalone-app body.app-body:not(.worker-layout) .mobile-bottom-nav,
-  body.standalone-app.app-body:not(.worker-layout) .mobile-bottom-nav {
-    bottom: 0 !important;
-    margin-bottom: 0 !important;
-    padding-bottom: max(.44rem, env(safe-area-inset-bottom)) !important;
-  }
 }
 
 /* v183 final override: iOS install hint and bottom nav scroll boundary. */
@@ -605,12 +593,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     margin-bottom: env(safe-area-inset-bottom) !important;
   }
 
-  html.standalone-app body.app-body:not(.worker-layout) .mobile-bottom-nav,
-  body.standalone-app.app-body:not(.worker-layout) .mobile-bottom-nav {
-    bottom: 0 !important;
-    margin-bottom: 0 !important;
-    padding-bottom: max(.44rem, env(safe-area-inset-bottom)) !important;
-  }
 }
 
 /* v183: iOS install hint readability and mobile scroll stop above bottom nav. */
@@ -703,12 +685,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     margin-bottom: env(safe-area-inset-bottom) !important;
   }
 
-  html.standalone-app body.app-body:not(.worker-layout) .mobile-bottom-nav,
-  body.standalone-app.app-body:not(.worker-layout) .mobile-bottom-nav {
-    bottom: 0 !important;
-    margin-bottom: 0 !important;
-    padding-bottom: max(.44rem, env(safe-area-inset-bottom)) !important;
-  }
 }
 
 /* Mobile/iOS polish v181: object topbar, assignments tab and tighter cards. */
@@ -807,11 +783,6 @@ body.standalone-app.app-body {
     bottom: env(safe-area-inset-bottom) !important;
     padding: .44rem !important;
     border-radius: 1.22rem 1.22rem max(1.22rem, env(safe-area-inset-bottom)) max(1.22rem, env(safe-area-inset-bottom)) !important;
-  }
-
-  body.standalone-app .mobile-bottom-nav {
-    bottom: 0 !important;
-    padding-bottom: max(.44rem, env(safe-area-inset-bottom)) !important;
   }
 
   .mobile-nav-item.active {
@@ -31655,11 +31626,6 @@ body.standalone-app.app-body {
     background: rgba(255, 255, 255, .96) !important;
   }
 
-  body.standalone-app .mobile-bottom-nav {
-    bottom: 0 !important;
-    padding-bottom: max(.44rem, env(safe-area-inset-bottom)) !important;
-  }
-
   .mobile-nav-item.active {
     color: #fff !important;
     background: linear-gradient(135deg, #83d925, #57ad13) !important;
@@ -32041,12 +32007,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     margin-bottom: env(safe-area-inset-bottom) !important;
   }
 
-  html.standalone-app body.app-body:not(.worker-layout) .mobile-bottom-nav,
-  body.standalone-app.app-body:not(.worker-layout) .mobile-bottom-nav {
-    bottom: 0 !important;
-    margin-bottom: 0 !important;
-    padding-bottom: max(.44rem, env(safe-area-inset-bottom)) !important;
-  }
 }
 
 /* ======================================================================
@@ -32208,12 +32168,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     box-shadow: 0 18px 46px rgba(26, 35, 22, .18) !important;
     backdrop-filter: saturate(135%) blur(18px);
     -webkit-backdrop-filter: saturate(135%) blur(18px);
-  }
-
-  html.standalone-app body.app-body:not(.worker-layout) .mobile-bottom-nav,
-  body.standalone-app.app-body:not(.worker-layout) .mobile-bottom-nav {
-    bottom: max(.32rem, var(--ios-safe-bottom)) !important;
-    padding-bottom: max(.38rem, calc(.38rem + var(--ios-safe-bottom) * .2)) !important;
   }
 
   .mobile-nav-item {
@@ -32846,17 +32800,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     pointer-events: none;
   }
 
-  html.standalone-app body.app-body::after,
-  body.standalone-app.app-body::after {
-    content: "";
-    position: fixed;
-    inset: auto 0 0 0;
-    height: calc(var(--ios-safe-bottom) + .9rem);
-    background: #f7faef;
-    z-index: 1037;
-    pointer-events: none;
-  }
-
   html.standalone-app body.app-body:not(.worker-layout) .app-main,
   body.standalone-app.app-body:not(.worker-layout) .app-main,
   html.standalone-app body.app-body:not(.worker-layout) .objects-content,
@@ -33205,22 +33148,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     pointer-events: none !important;
   }
 
-  html.standalone-app body.app-body::after,
-  body.standalone-app.app-body::after,
-  html.standalone-app body.app-body.has-mobile-project-topbar::after,
-  body.standalone-app.app-body.has-mobile-project-topbar::after,
-  html.standalone-app body.app-body:has(.mobile-project-topbar)::after,
-  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
-    content: "" !important;
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    height: calc(var(--ios-safe-bottom) + 1.45rem) !important;
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-    z-index: 1037 !important;
-    pointer-events: none !important;
-  }
-
   body.app-body:not(.worker-layout) .mobile-bottom-nav {
     background: #ffffff !important;
     background-color: #ffffff !important;
@@ -33228,10 +33155,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     box-shadow: 0 14px 36px rgba(26, 35, 22, .15) !important;
   }
 
-  html.standalone-app body.app-body:not(.worker-layout) .mobile-bottom-nav,
-  body.standalone-app.app-body:not(.worker-layout) .mobile-bottom-nav {
-    bottom: max(.36rem, var(--ios-safe-bottom)) !important;
-  }
 }
 
 /* v191 mobile project chrome fix: no top white strip, PC-colored object panel, white bottom safe zone. */
@@ -33342,22 +33265,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
       linear-gradient(90deg, rgba(255, 255, 255, .03), transparent 60%),
       linear-gradient(135deg, var(--crm-topbar-start, #5e656a), var(--crm-topbar-end, #4f565b)) !important;
     z-index: 1044 !important;
-    pointer-events: none !important;
-  }
-
-  body.app-body.has-mobile-project-topbar::after,
-  body.app-body:has(.mobile-project-topbar)::after,
-  html.standalone-app body.app-body.has-mobile-project-topbar::after,
-  body.standalone-app.app-body.has-mobile-project-topbar::after,
-  html.standalone-app body.app-body:has(.mobile-project-topbar)::after,
-  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
-    content: "" !important;
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    height: calc(var(--ios-safe-bottom) + 1.75rem) !important;
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-    z-index: 1037 !important;
     pointer-events: none !important;
   }
 
@@ -33511,21 +33418,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     pointer-events: none !important;
   }
 
-  body.app-body.has-mobile-project-topbar::after,
-  body.app-body:has(.mobile-project-topbar)::after,
-  html.standalone-app body.app-body.has-mobile-project-topbar::after,
-  body.standalone-app.app-body.has-mobile-project-topbar::after,
-  html.standalone-app body.app-body:has(.mobile-project-topbar)::after,
-  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
-    content: "" !important;
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    height: calc(var(--ios-safe-bottom) + 1.7rem) !important;
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-    z-index: 1037 !important;
-    pointer-events: none !important;
-  }
 }
 
 /* v193 mobile-only: every mobile top panel uses the same color as the desktop topbar. */
@@ -33731,25 +33623,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     background: var(--mobile-desktop-topbar-bg) !important;
     background-color: var(--mobile-desktop-topbar-solid) !important;
     z-index: 1059 !important;
-    pointer-events: none !important;
-  }
-
-  body.app-body::after,
-  body.app-body.has-mobile-project-topbar::after,
-  body.app-body:has(.mobile-project-topbar)::after,
-  html.standalone-app body.app-body::after,
-  body.standalone-app.app-body::after,
-  html.standalone-app body.app-body.has-mobile-project-topbar::after,
-  body.standalone-app.app-body.has-mobile-project-topbar::after,
-  html.standalone-app body.app-body:has(.mobile-project-topbar)::after,
-  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
-    content: "" !important;
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    height: calc(var(--ios-safe-bottom) + 1.7rem) !important;
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-    z-index: 1037 !important;
     pointer-events: none !important;
   }
 
@@ -34020,25 +33893,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     background: var(--mobile-topbar-bg-final) !important;
     background-color: var(--mobile-topbar-solid-final) !important;
     z-index: 1059 !important;
-    pointer-events: none !important;
-  }
-
-  body.app-body::after,
-  body.app-body.has-mobile-project-topbar::after,
-  body.app-body:has(.mobile-project-topbar)::after,
-  html.standalone-app body.app-body::after,
-  body.standalone-app.app-body::after,
-  html.standalone-app body.app-body.has-mobile-project-topbar::after,
-  body.standalone-app.app-body.has-mobile-project-topbar::after,
-  html.standalone-app body.app-body:has(.mobile-project-topbar)::after,
-  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
-    content: "" !important;
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    height: max(var(--ios-safe-bottom), .36rem) !important;
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-    z-index: 1037 !important;
     pointer-events: none !important;
   }
 
@@ -40055,12 +39909,6 @@ html.desktop-like-pointer body.app-body:has(.apartments-page) .floating-error-co
     background: var(--ref-mobile-shell-topbar) !important;
     height: calc(var(--ios-safe-top) + .15rem) !important;
     z-index: 1061 !important;
-  }
-
-  html.mobile-viewport body.app-body::after {
-    background: var(--ref-mobile-shell-nav) !important;
-    height: calc(var(--ios-safe-bottom) + .2rem) !important;
-    z-index: 1057 !important;
   }
 
   html.mobile-viewport body.app-body .app-layout > .mobile-menu-toggle {
@@ -52776,7 +52624,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
-    --ref-mobile-nav-height: 3.88rem !important;
     padding-bottom: 0 !important;
   }
 
@@ -53081,8 +52928,8 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   }
 }
 
-/* The standalone dock has one fixed box. The safe area is contained inside
-   that box instead of being added to its height or to the document height. */
+/* The iOS system area is painted by Safari. The app dock is a separate,
+   compact box and must not reserve that area a second time. */
 @media (max-width: 767.98px) {
   html.auth-root,
   html.auth-root body.auth-body {
@@ -53103,7 +52950,7 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   }
 
   html.app-root.standalone-app body.app-body {
-    --ref-mobile-nav-height: 5rem !important;
+    --ref-mobile-nav-height: 3.88rem !important;
   }
 
   html.app-root.standalone-app body.app-body .mobile-bottom-nav {
@@ -53111,12 +52958,11 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     z-index: 1065 !important;
     inset: auto 0 0 0 !important;
     width: 100% !important;
-    height: 5rem !important;
-    min-height: 5rem !important;
-    max-height: 5rem !important;
+    height: 3.88rem !important;
+    min-height: 3.88rem !important;
+    max-height: 3.88rem !important;
     margin: 0 !important;
-    padding-top: .42rem !important;
-    padding-bottom: max(.35rem, env(safe-area-inset-bottom)) !important;
+    padding: .24rem max(.28rem, env(safe-area-inset-right)) .12rem max(.28rem, env(safe-area-inset-left)) !important;
     box-sizing: border-box !important;
     transform: none !important;
     background-image: none !important;
@@ -53137,6 +52983,8 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     min-height: 0 !important;
     max-height: 100% !important;
     margin: 0 !important;
+    padding-top: .08rem !important;
+    padding-bottom: .02rem !important;
     box-sizing: border-box !important;
     transform: none !important;
     transition: none !important;
