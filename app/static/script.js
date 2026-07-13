@@ -275,10 +275,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const toggleRect = mobileProjectToggle.getBoundingClientRect();
       const sideInset = mobileProjectPanelSideInset();
       const availableWidth = Math.max(260, window.innerWidth - sideInset * 2);
-      mobileProjectPanel.style.top = `${Math.round(toggleRect.bottom + mobileProjectPanelViewportGap)}px`;
-      mobileProjectPanel.style.left = `${Math.round(window.innerWidth / 2)}px`;
-      mobileProjectPanel.style.width = `${Math.min(availableWidth, mobileProjectPanelMaxWidth)}px`;
-      mobileProjectPanel.style.maxWidth = `${Math.min(availableWidth, mobileProjectPanelMaxWidth)}px`;
+      mobileProjectPanel.style.setProperty('top', `${Math.round(toggleRect.bottom + mobileProjectPanelViewportGap)}px`, 'important');
+      mobileProjectPanel.style.setProperty('left', `${Math.round(window.innerWidth / 2)}px`, 'important');
+      mobileProjectPanel.style.setProperty('width', `${Math.min(availableWidth, mobileProjectPanelMaxWidth)}px`, 'important');
+      mobileProjectPanel.style.setProperty('max-width', `${Math.min(availableWidth, mobileProjectPanelMaxWidth)}px`, 'important');
     };
     if (mobileProjectPanel.parentElement !== document.body) {
       document.body.appendChild(mobileProjectPanel);

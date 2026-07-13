@@ -53287,3 +53287,70 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     transform: none !important;
   }
 }
+
+/* v460 final: no mobile page-entry motion; dock geometry never changes. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface * {
+    animation: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface {
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+    will-change: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .mobile-bottom-nav {
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    margin: 0 !important;
+    opacity: 1 !important;
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+    animation: none !important;
+    transition: none !important;
+    will-change: auto !important;
+  }
+
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .mobile-bottom-nav {
+    height: calc(4.72rem + var(--ios-standalone-safe-bottom-js, 34px)) !important;
+    min-height: calc(4.72rem + var(--ios-standalone-safe-bottom-js, 34px)) !important;
+    max-height: calc(4.72rem + var(--ios-standalone-safe-bottom-js, 34px)) !important;
+    padding-bottom: calc(.5rem + var(--ios-standalone-safe-bottom-js, 34px)) !important;
+  }
+}
+
+/* v461: selected remark categories and issued-day filters use the exact same
+   green surface as the Remarks "Add" button. */
+body.app-body:has(.remarks-page-head)
+  .remarks-tabs :is(.remarks-tab-link-all, .remarks-tab-link-category):is(.active, :active, :focus-visible),
+body.app-body:has(.assignment-issued-filters)
+  .assignment-issued-filters .assignment-filter-pill:not(.assignment-filter-pill-danger):is(.active, :active, :focus-visible) {
+  border-color: #6aa81f !important;
+  background: linear-gradient(180deg, #79bf25 0%, #6aa81f 100%) !important;
+  background-color: #79bf25 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(121, 191, 37, .22) !important;
+}
+
+body.app-body:has(.remarks-page-head)
+  .remarks-tabs :is(.remarks-tab-link-all, .remarks-tab-link-category):is(.active, :active, :focus-visible) *,
+body.app-body:has(.assignment-issued-filters)
+  .assignment-issued-filters .assignment-filter-pill:not(.assignment-filter-pill-danger):is(.active, :active, :focus-visible) * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
