@@ -53520,3 +53520,24 @@ body.app-body:has(.assignment-issued-filters)
     transition: none !important;
   }
 }
+
+/* v467: the iOS home-indicator area is a paint extension of the dock, not a
+   second layout row. The dock keeps the v466 geometry while the visible
+   surface continues below the layout viewport without a seam. */
+@media (max-width: 767.98px) {
+  html.ios-standalone-bottom-chrome,
+  html.ios-standalone-bottom-chrome body.app-body,
+  body.ios-standalone-bottom-chrome.app-body {
+    min-height: var(--ios-app-height, 100dvh) !important;
+    background-color: #111820 !important;
+  }
+
+  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  html.standalone-app body.app-body .mobile-bottom-nav,
+  body.standalone-app.app-body .mobile-bottom-nav {
+    background: #111820 !important;
+    background-color: #111820 !important;
+    box-shadow: 0 var(--ios-standalone-safe-bottom-js, 34px) 0 #111820 !important;
+  }
+}
