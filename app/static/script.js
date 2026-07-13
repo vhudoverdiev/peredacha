@@ -160,10 +160,14 @@ const syncDesktopViewportLock = (options = {}) => {
 
 (() => {
   syncDesktopViewportLock({ force: true });
+  const startedAt = Date.now();
+  const standaloneBootMinVisibleMs = document.documentElement.classList.contains('mobile-standalone-boot') ? 1600 : 0;
   const mobileDevLoaders = document.querySelectorAll('.mobile-dev-screen.site-page-loader');
   const scheduleStandaloneBootSplashHide = (delay = 90) => {
     if (!document.documentElement.classList.contains('mobile-standalone-boot')) return;
-    window.setTimeout(() => hideStandaloneBootSplash(), delay);
+    const elapsed = Date.now() - startedAt;
+    const minDelay = Math.max(0, standaloneBootMinVisibleMs - elapsed);
+    window.setTimeout(() => hideStandaloneBootSplash(), Math.max(delay, minDelay));
   };
   const suppressStaticCrmLoaders = (forceDisplayNone = false) => {
     document.documentElement.classList.add('crm-loader-suppressed');
@@ -215,10 +219,9 @@ const syncDesktopViewportLock = (options = {}) => {
     });
     return;
   }
-  const startedAt = Date.now();
   const minVisibleMs = hasAuthIntroLoader
-    ? 1600
-    : (document.documentElement.classList.contains('mobile-standalone-boot') ? 900 : 0);
+    ? 2400
+    : standaloneBootMinVisibleMs;
   const hide = () => {
     const delay = Math.max(0, minVisibleMs - (Date.now() - startedAt));
     window.setTimeout(() => {
@@ -259,18 +262,47 @@ document.addEventListener('DOMContentLoaded', () => {
   const mobileProjectToggle = document.querySelector('[data-mobile-project-toggle]');
   const mobileProjectPanel = document.querySelector('[data-mobile-project-panel]');
   if (mobileProjectToggle && mobileProjectPanel) {
+    const mobileProjectPanelViewportGap = 10;
+    const mobileProjectPanelMaxWidth = 440;
+    const mobileProjectPanelSideInset = () => {
+      const cssInset = parseFloat(
+        window.getComputedStyle(document.documentElement).getPropertyValue('--crm-touch-shell-gutter')
+      );
+      return Number.isFinite(cssInset) && cssInset > 0 ? cssInset * 16 : 12;
+    };
+    const positionMobileProjectPanel = () => {
+      if (mobileProjectPanel.hidden) return;
+      const toggleRect = mobileProjectToggle.getBoundingClientRect();
+      const sideInset = mobileProjectPanelSideInset();
+      const availableWidth = Math.max(260, window.innerWidth - sideInset * 2);
+      mobileProjectPanel.style.top = `${Math.round(toggleRect.bottom + mobileProjectPanelViewportGap)}px`;
+      mobileProjectPanel.style.left = `${Math.round(window.innerWidth / 2)}px`;
+      mobileProjectPanel.style.width = `${Math.min(availableWidth, mobileProjectPanelMaxWidth)}px`;
+      mobileProjectPanel.style.maxWidth = `${Math.min(availableWidth, mobileProjectPanelMaxWidth)}px`;
+    };
+    if (mobileProjectPanel.parentElement !== document.body) {
+      document.body.appendChild(mobileProjectPanel);
+    }
     const closeMobileProjectPanel = () => {
       mobileProjectToggle.setAttribute('aria-expanded', 'false');
       mobileProjectToggle.classList.remove('is-open');
       mobileProjectPanel.classList.remove('is-open');
       document.body.classList.remove('mobile-project-switch-open');
       window.setTimeout(() => {
-        if (!mobileProjectPanel.classList.contains('is-open')) mobileProjectPanel.hidden = true;
+        if (!mobileProjectPanel.classList.contains('is-open')) {
+          mobileProjectPanel.hidden = true;
+          mobileProjectPanel.style.removeProperty('top');
+          mobileProjectPanel.style.removeProperty('left');
+          mobileProjectPanel.style.removeProperty('width');
+          mobileProjectPanel.style.removeProperty('max-width');
+        }
       }, 180);
     };
     const openMobileProjectPanel = () => {
       mobileProjectPanel.hidden = false;
+      positionMobileProjectPanel();
       window.requestAnimationFrame(() => {
+        positionMobileProjectPanel();
         mobileProjectToggle.setAttribute('aria-expanded', 'true');
         mobileProjectToggle.classList.add('is-open');
         mobileProjectPanel.classList.add('is-open');
@@ -294,6 +326,12 @@ document.addEventListener('DOMContentLoaded', () => {
         mobileProjectToggle.focus({ preventScroll: true });
       }
     });
+    window.addEventListener('resize', () => {
+      if (mobileProjectPanel.classList.contains('is-open')) positionMobileProjectPanel();
+    });
+    window.addEventListener('scroll', () => {
+      if (mobileProjectPanel.classList.contains('is-open')) positionMobileProjectPanel();
+    }, { passive: true });
   }
 
   document.querySelectorAll('.crm-search-btn').forEach(button => {
