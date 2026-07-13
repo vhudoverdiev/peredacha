@@ -52950,7 +52950,7 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   }
 
   html.app-root.standalone-app body.app-body {
-    --ref-mobile-nav-height: 3.88rem !important;
+    --ref-mobile-nav-height: 2.85rem !important;
   }
 
   html.app-root.standalone-app body.app-body .mobile-bottom-nav {
@@ -52958,11 +52958,11 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     z-index: 1065 !important;
     inset: auto 0 0 0 !important;
     width: 100% !important;
-    height: 3.88rem !important;
-    min-height: 3.88rem !important;
-    max-height: 3.88rem !important;
+    height: 2.85rem !important;
+    min-height: 2.85rem !important;
+    max-height: 2.85rem !important;
     margin: 0 !important;
-    padding: .24rem max(.28rem, env(safe-area-inset-right)) .12rem max(.28rem, env(safe-area-inset-left)) !important;
+    padding: .08rem max(.28rem, env(safe-area-inset-right)) 0 max(.28rem, env(safe-area-inset-left)) !important;
     box-sizing: border-box !important;
     transform: none !important;
     background-image: none !important;
@@ -52983,8 +52983,8 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     min-height: 0 !important;
     max-height: 100% !important;
     margin: 0 !important;
-    padding-top: .08rem !important;
-    padding-bottom: .02rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
     box-sizing: border-box !important;
     transform: none !important;
     transition: none !important;
