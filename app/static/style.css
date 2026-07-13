@@ -52958,12 +52958,13 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     z-index: 1065 !important;
     inset: auto 0 0 0 !important;
     width: 100% !important;
-    height: 2.85rem !important;
-    min-height: 2.85rem !important;
-    max-height: 2.85rem !important;
+    height: calc(2.85rem + env(safe-area-inset-bottom)) !important;
+    min-height: calc(2.85rem + env(safe-area-inset-bottom)) !important;
+    max-height: calc(2.85rem + env(safe-area-inset-bottom)) !important;
     margin: 0 !important;
-    padding: .08rem max(.28rem, env(safe-area-inset-right)) 0 max(.28rem, env(safe-area-inset-left)) !important;
+    padding: 0 max(.28rem, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(.28rem, env(safe-area-inset-left)) !important;
     box-sizing: border-box !important;
+    align-items: end !important;
     transform: none !important;
     background-image: none !important;
     background: #111820 !important;
@@ -52985,6 +52986,8 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     margin: 0 !important;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
+    justify-content: flex-end !important;
+    align-content: end !important;
     box-sizing: border-box !important;
     transform: none !important;
     transition: none !important;
