@@ -50603,6 +50603,32 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   }
 }
 
+/* v463: fixed shell chrome stays fully hidden until the standalone launch
+   screen has finished fading and has been removed from the document. */
+@media (max-width: 767.98px) {
+  html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
+    body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
+    body.app-body > :is(.mobile-app-topbar, .mobile-project-topbar) {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html.mobile-standalone-boot.mobile-standalone-boot-complete
+    body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  html.mobile-standalone-boot.mobile-standalone-boot-complete
+    body.app-body > :is(.mobile-app-topbar, .mobile-project-topbar) {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 
 /* v376: anchor every mobile tab to the bottom edge of the dark header. */
 @media (max-width: 767.98px) {
