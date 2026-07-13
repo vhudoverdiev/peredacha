@@ -53625,3 +53625,25 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     background-color: #f9fbf5 !important;
   }
 }
+
+/* v473: keep the first auth frame white and use one solid color for the
+   authenticated dock, document root, and iOS home-indicator region. */
+@media (max-width: 767.98px) {
+  html.auth-root,
+  html.auth-root body.auth-body {
+    background: #f9fbf5 !important;
+    background-color: #f9fbf5 !important;
+    color-scheme: light;
+  }
+
+  html.app-root.ios-standalone-bottom-chrome,
+  html.app-root.ios-standalone-bottom-chrome body.app-body,
+  html.app-root.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  html.app-root.standalone-app body.app-body .mobile-bottom-nav {
+    background: #111820 !important;
+    background-color: #111820 !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+}
