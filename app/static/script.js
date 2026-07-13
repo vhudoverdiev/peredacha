@@ -397,15 +397,6 @@ document.addEventListener('DOMContentLoaded', () => {
     );
     root.classList.toggle('ios-standalone-bottom-chrome', standaloneMobileApp);
     document.body?.classList.toggle('ios-standalone-bottom-chrome', standaloneMobileApp);
-    if (!standaloneMobileApp) return;
-    // The difference between screen.height and visualViewport.height includes
-    // Safari's transient browser chrome. Using it as a safe-area inset made the
-    // dock change height after reloads and tab navigation. Standalone iPhones
-    // expose a stable 34px home-indicator inset.
-    const safeBottom = 34;
-    root.style.setProperty('--ios-standalone-safe-bottom-js', `${safeBottom}px`);
-    root.style.setProperty('--ios-bottom-chrome-fill', `${Math.max(54, safeBottom + 20)}px`);
-    document.querySelector('.mobile-bottom-nav')?.style.setProperty('--ios-standalone-safe-bottom-js', `${safeBottom}px`);
   };
 
   const handleMobileViewportChange = () => {

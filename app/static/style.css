@@ -50603,33 +50603,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   }
 }
 
-/* v463: fixed shell chrome stays fully hidden until the standalone launch
-   screen has finished fading and has been removed from the document. */
-@media (max-width: 767.98px) {
-  html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
-    body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
-    body.app-body > :is(.mobile-app-topbar, .mobile-project-topbar) {
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    animation: none !important;
-    transition: none !important;
-  }
-
-  html.mobile-standalone-boot.mobile-standalone-boot-complete
-    body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  html.mobile-standalone-boot.mobile-standalone-boot-complete
-    body.app-body > :is(.mobile-app-topbar, .mobile-project-topbar) {
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-    animation: none !important;
-    transition: none !important;
-  }
-}
-
-
 /* v376: anchor every mobile tab to the bottom edge of the dark header. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
@@ -50759,20 +50732,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
 
 /* v390: final iPhone bottom chrome and assignment add action alignment. */
 @media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
-  html.real-phone-device body.app-body .mobile-bottom-nav,
-  html.standalone-app body.app-body .mobile-bottom-nav {
-    position: fixed !important;
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    bottom: calc(-1 * env(safe-area-inset-bottom)) !important;
-    margin: 0 !important;
-    padding-bottom: calc(.44rem + env(safe-area-inset-bottom)) !important;
-    transform: none !important;
-    box-sizing: border-box !important;
-  }
-
   html.real-phone-device body.app-body .assignment-mobile-quick-action-add,
   html.standalone-app body.app-body .assignment-mobile-quick-action-add {
     min-width: 0 !important;
@@ -50807,37 +50766,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     line-height: 1.12 !important;
     white-space: nowrap !important;
     text-align: center !important;
-  }
-}
-
-html.standalone-app,
-html.standalone-app body.app-body,
-body.standalone-app.app-body {
-  background-color: #151c23 !important;
-}
-
-@media (max-width: 767.98px) {
-  html.standalone-app body.app-body .mobile-bottom-nav,
-  body.standalone-app.app-body .mobile-bottom-nav {
-    bottom: 0 !important;
-    min-height: calc(4.18rem + env(safe-area-inset-bottom)) !important;
-    padding-bottom: calc(.46rem + env(safe-area-inset-bottom)) !important;
-    border-radius: var(--crm-mobile-shell-bar-radius) var(--crm-mobile-shell-bar-radius) 0 0 !important;
-    background: linear-gradient(180deg, #202831 0%, #151c23 100%) !important;
-    background-color: #151c23 !important;
-  }
-
-  html.standalone-app body.app-body .mobile-bottom-nav::after,
-  body.standalone-app.app-body .mobile-bottom-nav::after {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    left: 0;
-    right: 0;
-    bottom: calc(-1 * env(safe-area-inset-bottom));
-    height: calc(env(safe-area-inset-bottom) + 2px);
-    background: #151c23;
-    pointer-events: none;
   }
 }
 
@@ -52088,24 +52016,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .mobile-bottom-nav {
-    position: fixed !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: calc(-1 * env(safe-area-inset-bottom)) !important;
-    width: 100% !important;
-    max-width: none !important;
-    min-height: calc(var(--ref-mobile-nav-height, 4.18rem) + env(safe-area-inset-bottom)) !important;
-    margin: 0 !important;
-    padding-left: max(.28rem, env(safe-area-inset-left)) !important;
-    padding-right: max(.28rem, env(safe-area-inset-right)) !important;
-    padding-bottom: calc(.46rem + env(safe-area-inset-bottom)) !important;
-    transform: none !important;
-    border-radius: min(calc(var(--crm-touch-shell-radius, 1.5rem) + .24rem), 1.85rem)
-      min(calc(var(--crm-touch-shell-radius, 1.5rem) + .24rem), 1.85rem) 0 0 !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:not(:has(.remarks-empty-row))
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
     padding-bottom: calc(var(--ref-mobile-nav-height, 4.18rem) + env(safe-area-inset-bottom) + .7rem) !important;
@@ -52410,52 +52320,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 }
 
-/* v409: iPhone standalone bottom bar owns the safe area once, with one continuous surface. */
-@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
-  html.standalone-app body.app-body .mobile-bottom-nav,
-  body.standalone-app.app-body .mobile-bottom-nav {
-    position: fixed !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    min-height: 0 !important;
-    height: auto !important;
-    margin: 0 !important;
-    padding-top: .48rem !important;
-    padding-right: max(.28rem, env(safe-area-inset-right)) !important;
-    padding-bottom: max(.5rem, env(safe-area-inset-bottom)) !important;
-    padding-left: max(.28rem, env(safe-area-inset-left)) !important;
-    border-radius: 1.55rem 1.55rem 0 0 !important;
-    background: linear-gradient(180deg, #242d38 0%, #1b232d 62%, #151c23 100%) !important;
-    background-color: #151c23 !important;
-    box-shadow: 0 -14px 30px rgba(11, 17, 25, .22) !important;
-    transform: none !important;
-  }
-
-  html.standalone-app body.app-body .mobile-bottom-nav::after,
-  body.standalone-app.app-body .mobile-bottom-nav::after {
-    content: none !important;
-    display: none !important;
-    height: 0 !important;
-    background: none !important;
-  }
-
-  html.standalone-app,
-  html.standalone-app body.app-body,
-  body.standalone-app.app-body {
-    background-color: #151c23 !important;
-  }
-
-  html.standalone-app body.app-body
-    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
-  body.standalone-app.app-body
-    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
-    padding-bottom: calc(4.45rem + env(safe-area-inset-bottom) + .62rem) !important;
-  }
-}
-
 /* v410: halve the final-card clearance on mobile apartment/task detail screens. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(:is(.task-detail-page, .apartment-detail-page))
@@ -52742,48 +52606,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
 /* v421: one lightweight mobile shell. Chrome stays fixed while page content
    animates on the compositor; the original dock size is preserved. */
 @media (max-width: 767.98px) {
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
-    --ref-mobile-nav-height: 4.5rem !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav {
-    bottom: 0 !important;
-    min-height: calc(var(--ref-mobile-nav-height) + env(safe-area-inset-bottom)) !important;
-    padding: .28rem max(.28rem, env(safe-area-inset-right)) calc(.18rem + env(safe-area-inset-bottom)) max(.28rem, env(safe-area-inset-left)) !important;
-    border-radius: 1.55rem 1.55rem 0 0 !important;
-    align-items: flex-end !important;
-    transform: none !important;
-    filter: none !important;
-    contain: layout paint !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle {
-    min-height: 3.75rem !important;
-    padding: .34rem .08rem .2rem !important;
-    gap: .2rem !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item i,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle i {
-    font-size: 1.42rem !important;
-    line-height: 1 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item span,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle span {
-    font-size: .68rem !important;
-    line-height: 1.05 !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .mobile-bottom-nav,
-  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root {
-    min-height: calc(var(--ref-mobile-nav-height) + env(safe-area-inset-bottom)) !important;
-    padding: .28rem max(.28rem, env(safe-area-inset-right)) calc(.18rem + env(safe-area-inset-bottom)) max(.28rem, env(safe-area-inset-left)) !important;
-    border-radius: 1.55rem 1.55rem 0 0 !important;
-  }
-
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:not(:has(.remarks-empty-row))
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
@@ -52987,26 +52809,9 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
 @media (max-width: 767.98px) {
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body,
   body.standalone-app.app-body {
-    --ref-mobile-nav-height: 4.72rem !important;
     --ref-mobile-topbar-height: calc(3.82rem + var(--ios-safe-top, 0px)) !important;
     --crm-mobile-shell-bar-height: calc(3.82rem + var(--ios-safe-top, 0px)) !important;
-    --ios-standalone-safe-bottom: var(--ios-standalone-safe-bottom-js, var(--ios-safe-bottom, 0px));
-    --ios-bottom-chrome-fill: calc(var(--ios-standalone-safe-bottom) + 1.2rem);
     padding-bottom: 0 !important;
-  }
-
-  @supports (-webkit-touch-callout: none) {
-    html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body,
-    body.standalone-app.app-body {
-      --ios-standalone-safe-bottom: var(--ios-standalone-safe-bottom-js, max(var(--ios-safe-bottom, 0px), 34px));
-    }
-  }
-
-  html.ios-standalone-bottom-chrome,
-  html.ios-standalone-bottom-chrome body.app-body,
-  body.ios-standalone-bottom-chrome.app-body {
-    min-height: calc(var(--ios-app-height, 100dvh) + var(--ios-standalone-safe-bottom, 34px)) !important;
-    background-color: #151c23 !important;
   }
 
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
@@ -53078,207 +52883,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     line-height: 1.12 !important;
   }
 
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav,
-  body.standalone-app.app-body .mobile-bottom-nav {
-    position: fixed !important;
-    z-index: 1065 !important;
-    inset: auto 0 0 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: calc(-1 * var(--ios-standalone-safe-bottom, var(--ios-safe-bottom, 0px))) !important;
-    display: grid !important;
-    grid-template-columns: repeat(var(--mobile-nav-count, 4), minmax(0, 1fr)) !important;
-    gap: .12rem !important;
-    width: 100% !important;
-    max-width: none !important;
-    height: calc(var(--ref-mobile-nav-height) + var(--ios-standalone-safe-bottom, var(--ios-safe-bottom, 0px))) !important;
-    min-height: calc(var(--ref-mobile-nav-height) + var(--ios-standalone-safe-bottom, var(--ios-safe-bottom, 0px))) !important;
-    max-height: calc(var(--ref-mobile-nav-height) + var(--ios-standalone-safe-bottom, var(--ios-safe-bottom, 0px))) !important;
-    margin: 0 !important;
-    padding-top: .42rem !important;
-    padding-right: max(.28rem, var(--ios-safe-right, 0px)) !important;
-    padding-bottom: calc(.5rem + var(--ios-standalone-safe-bottom, var(--ios-safe-bottom, 0px))) !important;
-    padding-left: max(.28rem, var(--ios-safe-left, 0px)) !important;
-    border: 0 !important;
-    border-top: 0 !important;
-    border-radius: 1.55rem 1.55rem 0 0 !important;
-    background: #111820 !important;
-    background-color: #111820 !important;
-    background-image: none !important;
-    box-shadow: none !important;
-    align-items: stretch !important;
-    box-sizing: border-box !important;
-    opacity: 1 !important;
-    transform: none !important;
-    filter: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    contain: layout paint !important;
-    isolation: isolate !important;
-    transition: none !important;
-    animation: none !important;
-    will-change: auto !important;
-    overflow: hidden !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::before,
-  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::before,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav::before,
-  body.standalone-app.app-body .mobile-bottom-nav::before {
-    content: none !important;
-    display: none !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::after,
-  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root::after,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav::after,
-  body.standalone-app.app-body .mobile-bottom-nav::after {
-    content: "" !important;
-    position: fixed !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    display: block !important;
-    width: 100% !important;
-    height: var(--ios-bottom-chrome-fill, 64px) !important;
-    background: #111820 !important;
-    background-color: #111820 !important;
-    background-image: none !important;
-    opacity: 1 !important;
-    z-index: -1 !important;
-    pointer-events: none !important;
-    transform: none !important;
-    filter: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    transition: none !important;
-    animation: none !important;
-    will-change: auto !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle,
-  body.standalone-app.app-body .mobile-bottom-nav .mobile-nav-item,
-  body.standalone-app.app-body .mobile-bottom-nav .mobile-menu-toggle {
-    position: static !important;
-    inset: auto !important;
-    align-self: start !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    height: calc(var(--ref-mobile-nav-height) - .72rem) !important;
-    min-height: calc(var(--ref-mobile-nav-height) - .72rem) !important;
-    max-height: none !important;
-    margin: 0 !important;
-    padding: .2rem .08rem .28rem !important;
-    gap: .16rem !important;
-    border: 0 !important;
-    border-radius: .9rem !important;
-    background: transparent !important;
-    color: rgba(255, 255, 255, .72) !important;
-    -webkit-text-fill-color: rgba(255, 255, 255, .72) !important;
-    box-shadow: none !important;
-    text-decoration: none !important;
-    justify-content: center !important;
-    transition: none !important;
-    animation: none !important;
-    will-change: auto !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item i,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle i,
-  body.standalone-app.app-body .mobile-bottom-nav .mobile-nav-item i,
-  body.standalone-app.app-body .mobile-bottom-nav .mobile-menu-toggle i {
-    font-size: 1.34rem !important;
-    line-height: 1 !important;
-    color: inherit !important;
-    -webkit-text-fill-color: inherit !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item span,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle span,
-  body.standalone-app.app-body .mobile-bottom-nav .mobile-nav-item span,
-  body.standalone-app.app-body .mobile-bottom-nav .mobile-menu-toggle span {
-    display: block !important;
-    max-width: 100% !important;
-    white-space: normal !important;
-    overflow: hidden !important;
-    text-overflow: clip !important;
-    font-size: .63rem !important;
-    font-weight: 800 !important;
-    line-height: 1.08 !important;
-    color: inherit !important;
-    -webkit-text-fill-color: inherit !important;
-    text-align: center !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-nav-item.active,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .mobile-bottom-nav .mobile-menu-toggle.active,
-  body.standalone-app.app-body .mobile-bottom-nav .mobile-nav-item.active,
-  body.standalone-app.app-body .mobile-bottom-nav .mobile-menu-toggle.active {
-    color: #8dd62c !important;
-    -webkit-text-fill-color: #8dd62c !important;
-    background: transparent !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body::after,
-  body.standalone-app.app-body::after,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body.has-mobile-project-topbar::after,
-  body.standalone-app.app-body.has-mobile-project-topbar::after,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.mobile-project-topbar)::after,
-  body.standalone-app.app-body:has(.mobile-project-topbar)::after {
-    content: "" !important;
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    display: block !important;
-    width: 100% !important;
-    height: var(--ios-bottom-chrome-fill, 64px) !important;
-    background: #111820 !important;
-    background-color: #111820 !important;
-    background-image: none !important;
-    opacity: 1 !important;
-    z-index: 1064 !important;
-    pointer-events: none !important;
-    transform: none !important;
-    filter: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    transition: none !important;
-    animation: none !important;
-    will-change: auto !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
-  body.standalone-app.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
-    padding-bottom: calc(var(--ref-mobile-nav-height) + .52rem) !important;
-  }
-}
-
-/* v454: one opaque, fixed dock surface. Avoid separate fixed paint layers and
-   negative safe-area offsets, which WebKit can rasterize as horizontal bands. */
-@media (max-width: 767.98px) {
-  html.standalone-app body.app-body .mobile-bottom-nav,
-  body.standalone-app.app-body .mobile-bottom-nav {
-    bottom: 0 !important;
-    background: #111820 !important;
-    background-color: #111820 !important;
-    background-image: none !important;
-  }
-
-  html.standalone-app body.app-body .mobile-bottom-nav::after,
-  body.standalone-app.app-body .mobile-bottom-nav::after,
-  html.standalone-app body.app-body::after,
-  body.standalone-app.app-body::after {
-    content: none !important;
-    display: none !important;
-  }
-
-  html.standalone-app body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
-  body.standalone-app.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
-    padding-bottom: calc(var(--ref-mobile-nav-height) + var(--ios-standalone-safe-bottom, 34px) + .52rem) !important;
-  }
 }
 
 /* v456: all mobile shells use the full device width without centered gutters.
@@ -53314,7 +52918,7 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 }
 
-/* v460 final: no mobile page-entry motion; dock geometry never changes. */
+/* Mobile pages do not use entry motion. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body .crm-page-entry-surface,
@@ -53332,31 +52936,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     will-change: auto !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .mobile-bottom-nav {
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    margin: 0 !important;
-    opacity: 1 !important;
-    transform: none !important;
-    translate: none !important;
-    scale: none !important;
-    animation: none !important;
-    transition: none !important;
-    will-change: auto !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .mobile-bottom-nav {
-    height: calc(4.72rem + var(--ios-standalone-safe-bottom-js, 34px)) !important;
-    min-height: calc(4.72rem + var(--ios-standalone-safe-bottom-js, 34px)) !important;
-    max-height: calc(4.72rem + var(--ios-standalone-safe-bottom-js, 34px)) !important;
-    padding-bottom: calc(.5rem + var(--ios-standalone-safe-bottom-js, 34px)) !important;
-  }
 }
 
 /* v461: selected remark categories and issued-day filters use the exact same
@@ -53466,82 +53045,6 @@ body.app-body:has(.assignment-issued-filters)
   }
 }
 
-/* v466: iPhone standalone safe-area belongs inside the fixed dock. It must not
-   increase the outer box, otherwise the first viewport/orientation pass lifts
-   the whole panel by one home-indicator inset before snapping it back. */
-@media (max-width: 767.98px) {
-  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  html.standalone-app body.app-body .mobile-bottom-nav,
-  body.standalone-app.app-body .mobile-bottom-nav {
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    height: 4.72rem !important;
-    min-height: 4.72rem !important;
-    max-height: 4.72rem !important;
-    margin: 0 !important;
-    padding-top: .42rem !important;
-    padding-right: max(.28rem, env(safe-area-inset-right)) !important;
-    padding-bottom: max(.5rem, var(--ios-standalone-safe-bottom-js, env(safe-area-inset-bottom))) !important;
-    padding-left: max(.28rem, env(safe-area-inset-left)) !important;
-    box-sizing: border-box !important;
-    align-items: stretch !important;
-    overflow: hidden !important;
-    opacity: 1 !important;
-    transform: none !important;
-    translate: none !important;
-    scale: none !important;
-    animation: none !important;
-    transition: none !important;
-    will-change: auto !important;
-  }
-
-  html.standalone-app body.app-body .mobile-bottom-nav
-    :is(.mobile-nav-item, .mobile-menu-toggle),
-  body.standalone-app.app-body .mobile-bottom-nav
-    :is(.mobile-nav-item, .mobile-menu-toggle) {
-    align-self: stretch !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    max-height: 100% !important;
-    margin: 0 !important;
-    padding-top: .08rem !important;
-    padding-bottom: .08rem !important;
-    box-sizing: border-box !important;
-    transform: none !important;
-    translate: none !important;
-    scale: none !important;
-    animation: none !important;
-    transition: none !important;
-  }
-}
-
-/* v467: the iOS home-indicator area is a paint extension of the dock, not a
-   second layout row. The dock keeps the v466 geometry while the visible
-   surface continues below the layout viewport without a seam. */
-@media (max-width: 767.98px) {
-  html.ios-standalone-bottom-chrome,
-  html.ios-standalone-bottom-chrome body.app-body,
-  body.ios-standalone-bottom-chrome.app-body {
-    min-height: var(--ios-app-height, 100dvh) !important;
-    background-color: #111820 !important;
-  }
-
-  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  html.standalone-app body.app-body .mobile-bottom-nav,
-  body.standalone-app.app-body .mobile-bottom-nav {
-    background: #111820 !important;
-    background-color: #111820 !important;
-    box-shadow: 0 var(--ios-standalone-safe-bottom-js, 34px) 0 #111820 !important;
-  }
-}
-
 /* v468: apartment filters use regular-weight text in both native mobile
    selects and the desktop custom-select portal. */
 body:has(.apartments-page) .apartments-filter-form :is(
@@ -53578,9 +53081,8 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   }
 }
 
-/* v476: one final mobile-shell contract replaces the conflicting historical
-   bottom/safe-area rules. The same element keeps the same geometry through
-   launch, navigation, and the portrait viewport settling after rotation. */
+/* The standalone dock has one fixed box. The safe area is contained inside
+   that box instead of being added to its height or to the document height. */
 @media (max-width: 767.98px) {
   html.auth-root,
   html.auth-root body.auth-body {
@@ -53593,6 +53095,15 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   html.app-root.ios-standalone-bottom-chrome body.app-body {
     background: #111820 !important;
     background-color: #111820 !important;
+  }
+
+  html.app-root.standalone-app,
+  html.app-root.standalone-app body.app-body {
+    min-height: var(--app-height, 100dvh) !important;
+  }
+
+  html.app-root.standalone-app body.app-body {
+    --ref-mobile-nav-height: 5rem !important;
   }
 
   html.app-root.standalone-app body.app-body .mobile-bottom-nav {
@@ -53617,6 +53128,19 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     transition: none !important;
     animation: none !important;
     overflow: hidden !important;
+  }
+
+  html.app-root.standalone-app body.app-body .mobile-bottom-nav
+    :is(.mobile-nav-item, .mobile-menu-toggle) {
+    align-self: stretch !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
   }
 
   html.app-root.standalone-app body.app-body .mobile-bottom-nav::before,
