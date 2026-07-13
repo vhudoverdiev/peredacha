@@ -53555,54 +53555,6 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   font-weight: 400 !important;
 }
 
-/* v469: one stable iOS dock element covers both the app viewport and the home
-   indicator area. Equal height and bottom extensions keep the visible top in
-   place while removing the separate strip beneath it. */
-@media (max-width: 767.98px) {
-  html.ios-standalone-bottom-chrome,
-  html.ios-standalone-bottom-chrome body.app-body,
-  body.ios-standalone-bottom-chrome.app-body {
-    min-height: calc(var(--ios-app-height, 100dvh) + var(--ios-standalone-safe-bottom-js, 34px)) !important;
-    background-color: #151c23 !important;
-  }
-
-  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  html.standalone-app body.app-body .mobile-bottom-nav,
-  body.standalone-app.app-body .mobile-bottom-nav {
-    inset: auto 0 calc(-1 * var(--ios-bottom-chrome-fill, 54px)) 0 !important;
-    bottom: calc(-1 * var(--ios-bottom-chrome-fill, 54px)) !important;
-    height: calc(4.72rem + var(--ios-bottom-chrome-fill, 54px)) !important;
-    min-height: calc(4.72rem + var(--ios-bottom-chrome-fill, 54px)) !important;
-    max-height: calc(4.72rem + var(--ios-bottom-chrome-fill, 54px)) !important;
-    padding-bottom: calc(.5rem + var(--ios-bottom-chrome-fill, 54px)) !important;
-    border: 0 !important;
-    background: #151c23 !important;
-    background-color: #151c23 !important;
-    box-shadow: none !important;
-  }
-
-}
-
-/* v471: match the dock to the authenticated PWA theme color. iOS paints the
-   home-indicator region with #151c23, so using the same solid color removes
-   the compositor seam between the app viewport and the system region. */
-@media (max-width: 767.98px) {
-  html.ios-standalone-bottom-chrome,
-  html.ios-standalone-bottom-chrome body.app-body,
-  body.ios-standalone-bottom-chrome.app-body,
-  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  html.standalone-app body.app-body .mobile-bottom-nav,
-  body.standalone-app.app-body .mobile-bottom-nav {
-    background: #151c23 !important;
-    background-color: #151c23 !important;
-    background-image: none !important;
-    border-color: transparent !important;
-    box-shadow: none !important;
-  }
-}
-
 /* v472: the launch screen uses the real viewport box, so flex centering is
    geometrically exact. The iOS system area stays white via the v470 root. */
 @media (max-width: 767.98px) {
@@ -53626,8 +53578,9 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   }
 }
 
-/* v473: keep the first auth frame white and use one solid color for the
-   authenticated dock, document root, and iOS home-indicator region. */
+/* v474: one final mobile-shell contract replaces the conflicting historical
+   bottom/safe-area rules. The same element keeps the same geometry through
+   launch, navigation, and the portrait viewport settling after rotation. */
 @media (max-width: 767.98px) {
   html.auth-root,
   html.auth-root body.auth-body {
@@ -53637,13 +53590,76 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   }
 
   html.app-root.ios-standalone-bottom-chrome,
-  html.app-root.ios-standalone-bottom-chrome body.app-body,
-  html.app-root.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
-  html.app-root.standalone-app body.app-body .mobile-bottom-nav {
+  html.app-root.ios-standalone-bottom-chrome body.app-body {
     background: #111820 !important;
     background-color: #111820 !important;
+  }
+
+  html.app-root.standalone-app body.app-body .mobile-bottom-nav {
+    position: fixed !important;
+    z-index: 1065 !important;
+    inset: auto 0 calc(-1 * var(--ios-bottom-chrome-fill, 54px)) 0 !important;
+    width: 100% !important;
+    height: calc(4.72rem + var(--ios-bottom-chrome-fill, 54px)) !important;
+    min-height: calc(4.72rem + var(--ios-bottom-chrome-fill, 54px)) !important;
+    max-height: calc(4.72rem + var(--ios-bottom-chrome-fill, 54px)) !important;
+    margin: 0 !important;
+    padding-top: .42rem !important;
+    padding-bottom: calc(.5rem + var(--ios-bottom-chrome-fill, 54px)) !important;
+    box-sizing: border-box !important;
+    transform: none !important;
     background-image: none !important;
-    border-color: transparent !important;
+    background: #111820 !important;
+    background-color: #111820 !important;
+    border: 0 !important;
     box-shadow: none !important;
+    contain: layout paint !important;
+    transition: none !important;
+    animation: none !important;
+    overflow: hidden !important;
+  }
+
+  html.app-root.standalone-app body.app-body .mobile-bottom-nav::before,
+  html.app-root.standalone-app body.app-body .mobile-bottom-nav::after,
+  html.app-root.standalone-app body.app-body::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
+    body.app-body .mobile-bottom-nav,
+  html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
+    body.app-body :is(.mobile-app-topbar, .mobile-project-topbar) {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  html.mobile-orientation-settling,
+  html.mobile-orientation-settling body {
+    overflow: hidden !important;
+  }
+
+  html.mobile-orientation-settling body > :not(.portrait-orientation-guard) {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  html.mobile-orientation-settling .portrait-orientation-guard {
+    position: fixed !important;
+    z-index: 2147483647 !important;
+    inset: 0 !important;
+    display: grid !important;
+    place-items: center !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    background: #111820 !important;
+  }
+
+  html.mobile-orientation-settling:not(.mobile-landscape-locked)
+    .portrait-orientation-guard-card {
+    visibility: hidden !important;
   }
 }

@@ -432,18 +432,32 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.mobile-project-topbar')) document.body.classList.add('has-mobile-project-topbar');
   if (document.querySelector('.account-page')) document.body.classList.add('has-account-page');
   syncStandaloneBottomChrome();
-  window.setTimeout(syncMobileOrientationLockState, 320);
+  syncMobileOrientationLockState();
   if (mobileViewportMedia.addEventListener) {
     mobileViewportMedia.addEventListener('change', scheduleAdaptiveViewportRefresh);
   } else if (mobileViewportMedia.addListener) {
     mobileViewportMedia.addListener(scheduleAdaptiveViewportRefresh);
   }
   window.addEventListener('resize', scheduleAdaptiveViewportRefresh, { passive: true });
+  let orientationSettleTimer = 0;
   window.addEventListener('orientationchange', () => {
-    window.setTimeout(() => {
-      syncMobileOrientationLockState();
+    syncMobileOrientationLockState();
+    if (!isTouchAppDevice()) {
       handleMobileViewportChange();
-    }, 240);
+      return;
+    }
+
+    document.documentElement.classList.add('mobile-orientation-settling');
+    document.body.classList.add('mobile-orientation-settling');
+    window.clearTimeout(orientationSettleTimer);
+    orientationSettleTimer = window.setTimeout(() => {
+      handleMobileViewportChange();
+      syncMobileOrientationLockState();
+      window.requestAnimationFrame(() => {
+        document.documentElement.classList.remove('mobile-orientation-settling');
+        document.body.classList.remove('mobile-orientation-settling');
+      });
+    }, 360);
   }, { passive: true });
 
   if (isIosDevice) {
