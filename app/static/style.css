@@ -53563,7 +53563,7 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   html.ios-standalone-bottom-chrome body.app-body,
   body.ios-standalone-bottom-chrome.app-body {
     min-height: calc(var(--ios-app-height, 100dvh) + var(--ios-standalone-safe-bottom-js, 34px)) !important;
-    background-color: #111820 !important;
+    background-color: #151c23 !important;
   }
 
   html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
@@ -53577,13 +53577,41 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     max-height: calc(4.72rem + var(--ios-bottom-chrome-fill, 54px)) !important;
     padding-bottom: calc(.5rem + var(--ios-bottom-chrome-fill, 54px)) !important;
     border: 0 !important;
-    background: #111820 !important;
-    background-color: #111820 !important;
+    background: #151c23 !important;
+    background-color: #151c23 !important;
     box-shadow: none !important;
   }
 
+}
+
+/* v471: match the dock to the authenticated PWA theme color. iOS paints the
+   home-indicator region with #151c23, so using the same solid color removes
+   the compositor seam between the app viewport and the system region. */
+@media (max-width: 767.98px) {
+  html.ios-standalone-bottom-chrome,
+  html.ios-standalone-bottom-chrome body.app-body,
+  body.ios-standalone-bottom-chrome.app-body,
+  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  html.standalone-app body.app-body .mobile-bottom-nav,
+  body.standalone-app.app-body .mobile-bottom-nav {
+    background: #151c23 !important;
+    background-color: #151c23 !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+/* v472: the launch screen uses the real viewport box, so flex centering is
+   geometrically exact. The iOS system area stays white via the v470 root. */
+@media (max-width: 767.98px) {
   html.mobile-standalone-boot .mobile-standalone-boot-screen {
-    bottom: -8rem !important;
+    inset: 0 !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
   }
 }
 
