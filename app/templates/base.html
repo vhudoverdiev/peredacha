@@ -225,6 +225,21 @@
         overflow: hidden !important;
       }
 
+      html.standalone-app body.app-body > nav.mobile-bottom-nav-root {
+        position: fixed !important;
+        inset: auto 0 0 0 !important;
+        width: 100% !important;
+        height: 4.72rem !important;
+        min-height: 4.72rem !important;
+        max-height: 4.72rem !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        transform: none !important;
+        animation: none !important;
+        transition: none !important;
+        overflow: hidden !important;
+      }
+
       html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
         body.app-body > nav.mobile-bottom-nav-root,
       html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
@@ -416,7 +431,7 @@
   </script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v463-atomic-mobile-boot">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v466-fixed-ios-dock-height">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and mobile_version_under_development %} mobile-dev-flag{% endif %}{% if current_user.is_authenticated and current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <div class="mobile-standalone-boot-screen" aria-hidden="true">
@@ -973,6 +988,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{{ url_for('static', filename='script.js') }}?v=v463-atomic-mobile-boot"></script>
+<script src="{{ url_for('static', filename='script.js') }}?v=v466-fixed-ios-dock-height"></script>
 </body>
 </html>

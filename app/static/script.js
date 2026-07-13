@@ -408,34 +408,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.mobile-bottom-nav')?.style.setProperty('--ios-standalone-safe-bottom-js', `${safeBottom}px`);
   };
 
-  const tryLockPortraitOrientation = () => {
-    if (!isTouchAppDevice()) return;
-    if (!screen.orientation || typeof screen.orientation.lock !== 'function') return;
-    screen.orientation.lock('portrait').catch(() => {});
-  };
-
   const handleMobileViewportChange = () => {
     syncDesktopViewportLock();
     syncMobileViewportClass();
-    syncMobileOrientationLockState();
     syncAppViewportHeight();
     syncStandaloneBottomChrome();
-    tryLockPortraitOrientation();
   };
-  let mobileViewportRefreshFrame = 0;
-  const scheduleMobileViewportRefresh = () => {
-    if (!isMobileViewport()) return;
-    handleMobileViewportChange();
-    if (mobileViewportRefreshFrame) return;
-    const refreshAfterPaint = () => {
-      mobileViewportRefreshFrame = 0;
-      handleMobileViewportChange();
-    };
-    if (window.requestAnimationFrame) {
-      mobileViewportRefreshFrame = window.requestAnimationFrame(refreshAfterPaint);
-    } else {
-      mobileViewportRefreshFrame = window.setTimeout(refreshAfterPaint, 16);
-    }
+  let adaptiveViewportRefreshTimer = 0;
+  const scheduleAdaptiveViewportRefresh = () => {
+    // Mobile Safari emits several visual viewport resizes while launching and
+    // navigating. Those are browser-chrome changes, not layout changes.
+    if (isTouchAppDevice()) return;
+    window.clearTimeout(adaptiveViewportRefreshTimer);
+    adaptiveViewportRefreshTimer = window.setTimeout(handleMobileViewportChange, 120);
   };
 
   if (isIosDevice) document.body.classList.add('ios-device');
@@ -444,31 +429,22 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isStandaloneApp) document.documentElement.classList.add('standalone-app');
   syncDesktopViewportLock({ force: true });
   syncMobileViewportClass();
-  syncMobileOrientationLockState();
   if (document.querySelector('.mobile-project-topbar')) document.body.classList.add('has-mobile-project-topbar');
   if (document.querySelector('.account-page')) document.body.classList.add('has-account-page');
-  syncAppViewportHeight();
-  tryLockPortraitOrientation();
+  syncStandaloneBottomChrome();
+  window.setTimeout(syncMobileOrientationLockState, 320);
   if (mobileViewportMedia.addEventListener) {
-    mobileViewportMedia.addEventListener('change', handleMobileViewportChange);
+    mobileViewportMedia.addEventListener('change', scheduleAdaptiveViewportRefresh);
   } else if (mobileViewportMedia.addListener) {
-    mobileViewportMedia.addListener(handleMobileViewportChange);
+    mobileViewportMedia.addListener(scheduleAdaptiveViewportRefresh);
   }
-  window.addEventListener('resize', syncDesktopViewportLock, { passive: true });
-  window.addEventListener('resize', syncAppViewportHeight, { passive: true });
-  window.addEventListener('resize', handleMobileViewportChange, { passive: true });
-  window.visualViewport?.addEventListener('resize', syncDesktopViewportLock, { passive: true });
-  window.visualViewport?.addEventListener('resize', syncAppViewportHeight, { passive: true });
-  window.visualViewport?.addEventListener('resize', syncMobileOrientationLockState, { passive: true });
-  window.visualViewport?.addEventListener('scroll', syncAppViewportHeight, { passive: true });
+  window.addEventListener('resize', scheduleAdaptiveViewportRefresh, { passive: true });
   window.addEventListener('orientationchange', () => {
-    window.setTimeout(syncAppViewportHeight, 140);
-    window.setTimeout(syncMobileOrientationLockState, 40);
-    window.setTimeout(tryLockPortraitOrientation, 80);
+    window.setTimeout(() => {
+      syncMobileOrientationLockState();
+      handleMobileViewportChange();
+    }, 240);
   }, { passive: true });
-  window.addEventListener('pageshow', scheduleMobileViewportRefresh, { passive: true });
-  window.addEventListener('load', scheduleMobileViewportRefresh, { passive: true });
-  scheduleMobileViewportRefresh();
 
   if (isIosDevice) {
     document.addEventListener('gesturestart', event => event.preventDefault(), { passive: false });

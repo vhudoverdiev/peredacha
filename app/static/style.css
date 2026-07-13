@@ -53381,6 +53381,45 @@ body.app-body:has(.assignment-issued-filters)
   -webkit-text-fill-color: #ffffff !important;
 }
 
+/* v464: the legacy mobile selector above has higher specificity than the
+   shared rule. Match that specificity so every selected category is exactly
+   the same green as the Remarks primary action. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    .remarks-tab-link-all.remarks-tab-link-all:is(.active, :active, :focus-visible),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    .remarks-tab-link-category.remarks-tab-link-category:is(.active, :active, :focus-visible) {
+    border-color: #6aa81f !important;
+    background: linear-gradient(180deg, #79bf25 0%, #6aa81f 100%) !important;
+    background-color: #79bf25 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 10px 22px rgba(121, 191, 37, .22) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    :is(.remarks-tab-link-all, .remarks-tab-link-category):is(.active, :active, :focus-visible)
+    :is(i, i::before, .remarks-tab-icon, .remarks-tab-text) {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    :is(.remarks-tab-link-all, .remarks-tab-link-category):is(.active, :active, :focus-visible)::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    :is(.remarks-tab-link-all, .remarks-tab-link-category):is(.active, :active, :focus-visible)::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    opacity: 0 !important;
+  }
+}
+
 /* v462: ordinary mobile web uses one exact dock box on every page. Keeping
    height and item rows explicit prevents font/safe-area reflow after paint. */
 @media (max-width: 767.98px) {
@@ -53418,6 +53457,61 @@ body.app-body:has(.assignment-issued-filters)
     min-height: 0 !important;
     max-height: 100% !important;
     margin: 0 !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* v466: iPhone standalone safe-area belongs inside the fixed dock. It must not
+   increase the outer box, otherwise the first viewport/orientation pass lifts
+   the whole panel by one home-indicator inset before snapping it back. */
+@media (max-width: 767.98px) {
+  html.standalone-app body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  body.standalone-app.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
+  html.standalone-app body.app-body .mobile-bottom-nav,
+  body.standalone-app.app-body .mobile-bottom-nav {
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 4.72rem !important;
+    min-height: 4.72rem !important;
+    max-height: 4.72rem !important;
+    margin: 0 !important;
+    padding-top: .42rem !important;
+    padding-right: max(.28rem, env(safe-area-inset-right)) !important;
+    padding-bottom: max(.5rem, var(--ios-standalone-safe-bottom-js, env(safe-area-inset-bottom))) !important;
+    padding-left: max(.28rem, env(safe-area-inset-left)) !important;
+    box-sizing: border-box !important;
+    align-items: stretch !important;
+    overflow: hidden !important;
+    opacity: 1 !important;
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+    animation: none !important;
+    transition: none !important;
+    will-change: auto !important;
+  }
+
+  html.standalone-app body.app-body .mobile-bottom-nav
+    :is(.mobile-nav-item, .mobile-menu-toggle),
+  body.standalone-app.app-body .mobile-bottom-nav
+    :is(.mobile-nav-item, .mobile-menu-toggle) {
+    align-self: stretch !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    padding-top: .08rem !important;
+    padding-bottom: .08rem !important;
     box-sizing: border-box !important;
     transform: none !important;
     translate: none !important;
