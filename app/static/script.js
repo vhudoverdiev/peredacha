@@ -72,7 +72,7 @@ const rememberInstantMobileEntryForNextNavigation = href => {
     const currentUrl = new URL(window.location.href);
     if (targetUrl.origin !== currentUrl.origin) return;
     if (`${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}` === `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`) return;
-    window.sessionStorage.setItem(mobileEntrySkipStorageKey, '1');
+    window.sessionStorage.removeItem(mobileEntrySkipStorageKey);
   } catch (error) {}
 };
 const getTouchViewportProfile = () => {
@@ -316,10 +316,24 @@ document.addEventListener('DOMContentLoaded', () => {
     || window.matchMedia('(display-mode: standalone)').matches;
   const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
   const mobileViewportMedia = window.matchMedia('(max-width: 767.98px)');
+  const shouldUseStableStandaloneAppHeight = () => Boolean(
+    document.body?.classList.contains('app-body')
+    && isIosDevice
+    && isStandaloneApp
+    && isMobileViewport()
+  );
+  const getStableAppViewportHeight = () => {
+    const layoutViewportHeight = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
+    const visualViewportHeight = Math.round(window.visualViewport?.height || 0);
+    if (shouldUseStableStandaloneAppHeight()) {
+      return Math.max(layoutViewportHeight, visualViewportHeight);
+    }
+    return Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0);
+  };
 
   const syncAppViewportHeight = () => {
     if (!isIosDevice && !isMobileViewport()) return;
-    const height = Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight);
+    const height = getStableAppViewportHeight();
     if (height > 0) document.documentElement.style.setProperty('--app-height', `${height}px`);
   };
 
@@ -601,13 +615,22 @@ document.addEventListener('DOMContentLoaded', () => {
       if (entrySurface && !entrySurface.classList.contains('crm-page-entry-surface')) {
         entrySurface.classList.add('crm-page-entry-surface');
       }
-      const entryAnimations = entrySurface
-        ? entrySurface.getAnimations().filter(animation => animation.animationName === 'crmMobileContentReveal')
-        : [];
-      Promise.all(entryAnimations.map(animation => animation.finished.catch(() => {}))).finally(() => {
+      const finishMobileEntry = () => {
         customSelectBootRoot.classList.remove('crm-mobile-entry-pending');
         customSelectBootRoot.classList.add('crm-mobile-entry-complete');
-      });
+      };
+      if (!entrySurface) {
+        finishMobileEntry();
+        return;
+      }
+      let mobileEntryFinished = false;
+      const completeMobileEntryOnce = () => {
+        if (mobileEntryFinished) return;
+        mobileEntryFinished = true;
+        finishMobileEntry();
+      };
+      entrySurface.addEventListener('animationend', completeMobileEntryOnce, { once: true });
+      window.setTimeout(completeMobileEntryOnce, 420);
     }
     if (!isMobileEntrySurface) customSelectBootRoot.classList.remove('crm-mobile-entry-pending');
   };

@@ -8270,6 +8270,18 @@ body.app-body .assignment-issue-panel-restored {
   .remarks-filter-form {
     flex-wrap: nowrap;
   }
+
+  .task-table .task-status-cell {
+    padding-right: .9rem;
+  }
+
+  .task-table .task-actions-cell {
+    padding-left: .5rem;
+  }
+
+  .task-table .actions-cell {
+    gap: .55rem;
+  }
 }
 
 /* Final interaction fixes: true centered auth, clickable Bootstrap modals, separated floating buttons. */
@@ -52567,7 +52579,7 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     visibility: visible !important;
     opacity: var(--crm-mobile-entry-opacity) !important;
     transform: translate3d(0, var(--crm-mobile-entry-y), 0) !important;
-    animation: crmMobileContentReveal 180ms cubic-bezier(.22, .72, .2, 1) both !important;
+    animation: crmMobileContentReveal 280ms cubic-bezier(.22, .72, .2, 1) both !important;
     pointer-events: auto !important;
     will-change: opacity, transform !important;
   }
@@ -52781,7 +52793,8 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
     .crm-page-entry-surface.crm-page-entry-surface {
-    animation: none !important;
+    animation: crmMobileContentReveal 280ms cubic-bezier(.22, .72, .2, 1) both !important;
+    transform-origin: 50% 0 !important;
   }
 
   .mobile-apartments-pagination {
@@ -53238,5 +53251,38 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   html.standalone-app body.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
   body.standalone-app.app-body :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
     padding-bottom: calc(var(--ref-mobile-nav-height) + var(--ios-standalone-safe-bottom, 34px) + .52rem) !important;
+  }
+}
+
+/* v456: all mobile shells use the full device width without centered gutters.
+   Desktop web stays unchanged because this only targets mobile viewport modes. */
+@media (max-width: 1366px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) {
+    --crm-touch-shell-max-width: 100vw !important;
+    --crm-touch-shell-gutter: 0px !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .crm-mobile-page-shell {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar, .mobile-bottom-nav) {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin-inline: 0 !important;
+    transform: none !important;
   }
 }
