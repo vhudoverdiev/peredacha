@@ -9,7 +9,7 @@ from openpyxl import load_workbook
 
 from app import db
 from app.models import Apartment, Project, SyncLog
-from app.services.task_service import apply_app_deadline_logic, get_or_create_project, is_unsold_owner_name, normalize_building_marker, normalize_finishing_type, normalize_number_cell, parse_date
+from app.services.task_service import apply_app_deadline_logic, get_or_create_project, is_unsold_owner_name, normalize_apartment_number_cell, normalize_building_marker, normalize_finishing_type, normalize_number_cell, parse_date
 from app.services.sync_rollback import build_project_rollback_data
 from app.services.uid_service import normalize_text
 
@@ -256,7 +256,7 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
                     continue
                 if raw_number is None or _is_section_row(raw_number):
                     continue
-                apartment_number = normalize_number_cell(raw_number)
+                apartment_number = normalize_apartment_number_cell(raw_number)
                 if not apartment_number:
                     continue
 

@@ -664,6 +664,21 @@ def normalize_number_cell(value: Any) -> str | None:
     return text or None
 
 
+def normalize_apartment_number_cell(value: Any) -> str | None:
+    """Normalize an apartment number while discarding a parenthesized alias.
+
+    Some source tables contain values such as ``10 (11)`` where the first
+    number is the apartment number and the value in parentheses is an old or
+    secondary number. Construction numbers are intentionally not processed by
+    this helper.
+    """
+    text = normalize_number_cell(value)
+    if not text:
+        return None
+    match = re.fullmatch(r"\s*(\d+)\s*\([^)]*\)\s*", text)
+    return match.group(1) if match else text
+
+
 def is_service_premise_text(value: str | None) -> bool:
     text = normalize_text(value or "").replace("ё", "е")
     return bool(text) and any(word in text for word in SERVICE_PREMISE_WORDS)
@@ -1037,7 +1052,7 @@ def get_or_update_apartment(
     is_unsold_by_color: bool = False,
 ) -> Apartment:
     construction_number = normalize_number_cell(value_at(row, base_mapping.get("construction_number")))
-    apartment_number = normalize_number_cell(value_at(row, base_mapping.get("apartment_number")))
+    apartment_number = normalize_apartment_number_cell(value_at(row, base_mapping.get("apartment_number")))
     if apartment_number and apartment_number.startswith("="):
         apartment_number = None
     if premise_type == "commercial":
@@ -1550,7 +1565,7 @@ def sync_rows(
         if current_premise_type == "apartment" and not getattr(project, "has_apartments", True):
             continue
 
-        raw_apartment_number = normalize_number_cell(value_at(row, base_mapping.get("apartment_number")))
+        raw_apartment_number = normalize_apartment_number_cell(value_at(row, base_mapping.get("apartment_number")))
         raw_construction_number = normalize_number_cell(value_at(row, base_mapping.get("construction_number")))
         if current_premise_type == "apartment":
             apartment_number_looks_valid = looks_like_apartment_identifier(raw_apartment_number)

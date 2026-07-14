@@ -53025,6 +53025,55 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   }
 }
 
+/* v484: desktop action controls keep their readable geometry. Generic table
+   icon-button rules must not collapse the text status buttons on task detail,
+   and inline edit icons must not shrink into the remark text. */
+@media (min-width: 768px) {
+  body.app-body .task-detail-page .task-detail-status-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    gap: .55rem !important;
+    min-width: 0 !important;
+  }
+
+  body.app-body .task-detail-page .task-detail-status-grid > form,
+  body.app-body .task-detail-page .task-detail-status-grid > .dropdown,
+  body.app-body .task-detail-page .task-detail-status-grid > .problem-action-form {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  body.app-body .task-detail-page .task-detail-status-grid .btn.btn-sm {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 2.7rem !important;
+    padding: .55rem .65rem !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
+  body.app-body :is(.task-detail-page, .glass-page) .inline-editor-anchor {
+    min-width: 0 !important;
+    flex-wrap: nowrap !important;
+  }
+
+  body.app-body :is(.task-detail-page, .glass-page) .inline-editor-anchor > .inline-text {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  body.app-body :is(.task-detail-page, .glass-page) .inline-editor-anchor > .inline-edit-btn {
+    flex: 0 0 2rem !important;
+    width: 2rem !important;
+    min-width: 2rem !important;
+    height: 2rem !important;
+    padding: 0 !important;
+  }
+}
+
 @media (hover: none) and (pointer: coarse) {
   html.mobile-orientation-settling,
   html.mobile-orientation-settling body {

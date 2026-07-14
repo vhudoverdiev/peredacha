@@ -17,6 +17,9 @@ from app.services.task_service import (
     map_base_columns,
     map_work_point_columns,
     merge_header_rows,
+    looks_like_apartment_identifier,
+    normalize_apartment_number_cell,
+    normalize_number_cell,
     normalize_header_row,
     select_primary_work_point_columns,
     set_setting,
@@ -187,14 +190,21 @@ def _rows_look_like_remark_sheet(rows: list[list[Any]]) -> bool:
         return False
     if data_start < len(rows) and is_index_number_row(rows[data_start]):
         data_start += 1
+    has_valid_premise_row = False
     for row in rows[data_start:]:
         if not any(str(value or "").strip() for value in row):
             continue
         if is_index_number_row(row):
             continue
+        apartment_number = normalize_apartment_number_cell(value_at(row, anchored_mapping.get("apartment_number")))
+        construction_number = normalize_number_cell(value_at(row, anchored_mapping.get("construction_number")))
+        if looks_like_apartment_identifier(apartment_number) or looks_like_apartment_identifier(construction_number):
+            has_valid_premise_row = True
         if any(str(value_at(row, col_idx) or "").strip() for col_idx in point_columns):
             return True
-    return False
+    # A newly prepared project workbook can legitimately contain apartments
+    # and all required work-point columns before the first remark is entered.
+    return has_valid_premise_row
 
 
 def inspect_remarks_workbook(path: Path) -> dict[str, Any]:
