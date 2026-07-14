@@ -41,7 +41,15 @@
             <td><span class="sync-status-pill {{ 'sync-status-pill-success' if log.status=='success' else 'sync-status-pill-error' if log.status=='error' else 'sync-status-pill-progress' }}">{{ 'Успешно' if log.status=='success' else 'Ошибка' if log.status=='error' else 'В процессе' }}</span></td>
             <td>{{ log.created_count }}</td>
             <td>{{ log.updated_count }}</td>
-            <td>{{ log.missing_count }}</td>
+            <td>
+              {% if log.missing_count %}
+                <a class="sync-mismatch-link" href="{{ url_for('main.sync_log_details', log_id=log.id) }}" title="Посмотреть несостыковки этой синхронизации">
+                  <span>{{ log.missing_count }}</span><i class="bi bi-eye" aria-hidden="true"></i>
+                </a>
+              {% else %}
+                <span class="text-muted">0</span>
+              {% endif %}
+            </td>
             <td>
               {% if log.rolled_back_at %}
                 <span class="badge bg-secondary">Откат {{ log.rolled_back_at|msk_datetime }}</span>

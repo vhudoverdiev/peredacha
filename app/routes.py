@@ -253,7 +253,7 @@ SECTION_LOCK_CHOICES = [
         "label": "Импорт, синхронизация и распределение",
         "icon": "bi-sliders",
         "endpoints": {
-            "main.upload_excel", "main.sync_google", "main.sync_logs", "main.delete_sync_log",
+            "main.upload_excel", "main.sync_google", "main.sync_logs", "main.sync_log_details", "main.delete_sync_log",
             "main.rollback_sync_log", "main.sync_conflicts", "main.resolve_conflict",
             "main.resolve_conflicts_bulk", "main.mapping_settings",
         },
@@ -6921,6 +6921,7 @@ def apartments_export():
         "Режим",
         "Осмотр",
         "Срок устранения",
+        "Комментарий",
     ])
     for row in rows:
         apartment = row["apartment"]
@@ -6930,8 +6931,10 @@ def apartments_export():
             row.get("mode") or "",
             row.get("inspection_status") or "",
             row.get("remark_deadline_display") or "",
+            row.get("manual_comment") or row.get("inspection_comment") or "",
         ])
     _style_excel_header(ws)
+    ws.column_dimensions["F"].width = 48
     filename = f"{_apartments_export_filename_stem(project.name)}_квартиры.xlsx"
     return _make_excel_response(wb, filename)
 
@@ -8332,6 +8335,166 @@ def sync_logs():
         return redirect(url_for("main.objects"))
     logs = SyncLog.query.filter(SyncLog.project_id == project.id).order_by(SyncLog.started_at.desc()).limit(100).all()
     return render_template("sync_logs.html", logs=logs, project=project)
+
+
+def _sync_log_snapshot_payload(log: SyncLog | None) -> dict:
+    if log is None or not log.rollback_data:
+        return {}
+    try:
+        payload = json.loads(log.rollback_data)
+    except (TypeError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _sync_log_after_payload(log: SyncLog, project_id: int) -> tuple[dict, bool]:
+    next_log = (
+        SyncLog.query.filter(
+            SyncLog.project_id == project_id,
+            SyncLog.started_at > log.started_at,
+            SyncLog.rollback_data.isnot(None),
+        )
+        .order_by(SyncLog.started_at.asc(), SyncLog.id.asc())
+        .first()
+    )
+    payload = _sync_log_snapshot_payload(next_log)
+    if payload:
+        return payload, True
+    return {
+        "apartments": [
+            {
+                "id": apartment.id,
+                "apartment_number": apartment.apartment_number,
+                "construction_number": apartment.construction_number,
+                "premise_type": apartment.premise_type,
+                "building": apartment.building,
+                "owner_name": apartment.owner_name,
+                "finishing_type": apartment.finishing_type,
+                "is_unsold": apartment.is_unsold,
+                "is_app_mode": apartment.is_app_mode,
+            }
+            for apartment in Apartment.query.filter_by(project_id=project_id).all()
+        ],
+        "tasks": [
+            {
+                "id": task.id,
+                "apartment_id": task.apartment_id,
+                "work_point_id": task.work_point_id,
+                "description": task.description,
+                "source_cell_value": task.source_cell_value,
+                "source_sheet_name": task.source_sheet_name,
+                "source_cell_address": task.source_cell_address,
+                "is_missing_in_latest_sync": task.is_missing_in_latest_sync,
+            }
+            for task in Task.query.filter_by(project_id=project_id).all()
+        ],
+    }, False
+
+
+def _sync_snapshot_premise_label(apartment: dict | None) -> str:
+    apartment = apartment or {}
+    number = str(apartment.get("apartment_number") or apartment.get("construction_number") or "—").strip()
+    if (apartment.get("premise_type") or "apartment") == "commercial":
+        building = str(apartment.get("building") or "").strip()
+        return f"Комм. {number}" + (f", корпус {building}" if building else "")
+    return f"кв {number}"
+
+
+def _sync_log_conflicts(log: SyncLog, project_id: int) -> list[SyncConflict]:
+    next_log = (
+        SyncLog.query.filter(SyncLog.project_id == project_id, SyncLog.started_at > log.started_at)
+        .order_by(SyncLog.started_at.asc(), SyncLog.id.asc())
+        .first()
+    )
+    query = (
+        SyncConflict.query.outerjoin(Task, SyncConflict.task_id == Task.id)
+        .outerjoin(Apartment, SyncConflict.apartment_id == Apartment.id)
+        .filter(SyncConflict.created_at >= log.started_at - timedelta(seconds=5))
+        .filter(or_(Task.project_id == project_id, Apartment.project_id == project_id))
+    )
+    if next_log is not None:
+        query = query.filter(SyncConflict.created_at < next_log.started_at)
+    elif log.finished_at is not None:
+        query = query.filter(SyncConflict.created_at <= log.finished_at + timedelta(seconds=5))
+    return query.order_by(SyncConflict.created_at.asc(), SyncConflict.id.asc()).all()
+
+
+@bp.route("/sync-logs/<int:log_id>/details")
+@login_required
+def sync_log_details(log_id: int):
+    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+        abort(403)
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    log = db.session.get(SyncLog, log_id) or abort(404)
+    if not log.project_id or log.project_id != project.id:
+        abort(404)
+
+    after_payload, exact_snapshot = _sync_log_after_payload(log, project.id)
+    apartments = {
+        int(item["id"]): item
+        for item in (after_payload.get("apartments") or [])
+        if isinstance(item, dict) and item.get("id") is not None
+    }
+    details: list[dict] = []
+    current_task_ids = {
+        task_id for (task_id,) in db.session.query(Task.id).filter(Task.project_id == project.id).all()
+    }
+
+    if log.source_type in {"excel", "google_sheets"}:
+        task_rows = [
+            item for item in (after_payload.get("tasks") or [])
+            if isinstance(item, dict) and item.get("is_missing_in_latest_sync")
+        ]
+        work_point_ids = {
+            int(item["work_point_id"])
+            for item in task_rows
+            if item.get("work_point_id") is not None
+        }
+        work_points = {
+            point.id: point
+            for point in WorkPoint.query.filter(WorkPoint.id.in_(work_point_ids)).all()
+        } if work_point_ids else {}
+        for item in task_rows:
+            point = work_points.get(int(item.get("work_point_id") or 0))
+            if point is not None and str(point.point_number or "") not in VISIBLE_WORK_POINT_NUMBERS:
+                continue
+            apartment = apartments.get(int(item.get("apartment_id") or 0))
+            details.append({
+                "premise": _sync_snapshot_premise_label(apartment),
+                "field": point.display_name if point else "Замечание",
+                "value": str(item.get("description") or item.get("source_cell_value") or "").strip(),
+                "location": " · ".join(filter(None, [
+                    str(item.get("source_sheet_name") or "").strip(),
+                    str(item.get("source_cell_address") or "").strip(),
+                ])),
+                "reason": "Не найдено в загруженной таблице",
+                "task_id": item.get("id") if item.get("id") in current_task_ids else None,
+            })
+    elif log.source_type == "transfer_excel":
+        for apartment in apartments.values():
+            if apartment.get("is_unsold") or apartment.get("is_app_mode"):
+                continue
+            details.append({
+                "premise": _sync_snapshot_premise_label(apartment),
+                "field": "Статус передачи",
+                "value": str(apartment.get("owner_name") or apartment.get("finishing_type") or "").strip(),
+                "location": "",
+                "reason": "Ожидает приёмки (не АПП)",
+                "task_id": None,
+            })
+
+    conflicts = _sync_log_conflicts(log, project.id)
+    details.sort(key=lambda item: (_apartment_number_sort_value(item["premise"]), item["field"]))
+    return render_template(
+        "sync_log_details.html",
+        log=log,
+        project=project,
+        details=details,
+        conflicts=conflicts,
+        exact_snapshot=exact_snapshot,
+    )
 
 
 @bp.route("/sync-logs/<int:log_id>/delete", methods=["POST"])

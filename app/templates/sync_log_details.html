@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Несостыковки синхронизации{% endblock %}
+{% block content %}
+<div class="sync-logs-page sync-log-details-page">
+  <div class="page-head sync-logs-head">
+    <div>
+      <a class="sync-details-back" href="{{ url_for('main.sync_logs') }}"><i class="bi bi-arrow-left"></i> Журнал синхронизаций</a>
+      <h1 class="page-title">Несостыковки синхронизации</h1>
+      <p class="page-subtitle">{{ log.started_at|msk_datetime }} · {{ log.source_name or log.source_type }}</p>
+    </div>
+    <div class="sync-details-total"><span>В журнале</span><b>{{ log.missing_count }}</b></div>
+  </div>
+
+  {% if not exact_snapshot %}
+  <div class="alert alert-light border sync-details-note">
+    Для этой синхронизации список восстановлен по текущему состоянию объекта.
+  </div>
+  {% endif %}
+
+  <div class="card table-shell sync-log-card mb-4">
+    <div class="card-body p-0 table-responsive">
+      <table class="table align-middle sync-details-table mb-0">
+        <thead><tr><th>Помещение</th><th>Пункт / поле</th><th>Значение</th><th>Причина</th><th></th></tr></thead>
+        <tbody>
+        {% for item in details %}
+          <tr>
+            <td><b>{{ item.premise }}</b></td>
+            <td>{{ item.field }}{% if item.location %}<div class="text-muted small">{{ item.location }}</div>{% endif %}</td>
+            <td class="sync-details-value">{{ item.value or '—' }}</td>
+            <td><span class="sync-details-reason">{{ item.reason }}</span></td>
+            <td class="text-end">{% if item.task_id %}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.task_detail', task_id=item.task_id) }}">Карточка</a>{% endif %}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-5">Подробный состав для этой старой записи восстановить не удалось.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if conflicts %}
+  <div class="sync-details-section-head">
+    <h2>Изменения, отправленные на сверку</h2><span>{{ conflicts|length }}</span>
+  </div>
+  <div class="card table-shell sync-log-card">
+    <div class="card-body p-0 table-responsive">
+      <table class="table align-middle sync-details-table mb-0">
+        <thead><tr><th>Помещение</th><th>Поле</th><th>Было</th><th>Стало</th><th>Решение</th></tr></thead>
+        <tbody>
+        {% for conflict in conflicts %}
+          <tr>
+            <td><b>{{ conflict.apartment.label() if conflict.apartment else (conflict.task.apartment.label() if conflict.task and conflict.task.apartment else '—') }}</b></td>
+            <td>{{ conflict.field_label or 'Замечание' }}<div class="text-muted small">{{ conflict.sheet_name or '' }}{% if conflict.cell_address %} · {{ conflict.cell_address }}{% endif %}</div></td>
+            <td class="sync-details-value">{{ conflict.old_value or '—' }}</td>
+            <td class="sync-details-value">{{ conflict.new_value or '—' }}</td>
+            <td><span class="sync-details-decision sync-details-decision-{{ conflict.status }}">{{ {'pending':'Ожидает', 'keep_old':'Оставлено старое', 'apply_new':'Принято новое'}.get(conflict.status, conflict.status) }}</span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

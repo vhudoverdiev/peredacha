@@ -53072,6 +53072,276 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     height: 2rem !important;
     padding: 0 !important;
   }
+
+  body.app-body .apartment-detail-page .apartment-avr-form {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: stretch !important;
+    gap: .55rem !important;
+  }
+
+  body.app-body .apartment-detail-page .apartment-avr-actions {
+    display: grid !important;
+    grid-template-columns: minmax(6rem, auto) minmax(6rem, auto) minmax(9.5rem, 1fr) !important;
+    align-items: stretch !important;
+    gap: .5rem !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  body.app-body .apartment-detail-page .apartment-avr-actions .btn,
+  body.app-body .apartment-detail-page .apartment-avr-actions .form-control {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.7rem !important;
+    height: auto !important;
+    padding: .5rem .65rem !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
+  body.app-body .apartment-detail-page .apartment-task-head {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 1rem !important;
+  }
+
+  body.app-body .apartment-detail-page .apartment-task-point {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  body.app-body .apartment-detail-page .apartment-task-status-desktop.actions-cell {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: nowrap !important;
+    gap: .45rem !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  body.app-body .apartment-detail-page .apartment-task-status-desktop .status-pill {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    white-space: nowrap !important;
+  }
+
+  body.app-body .apartment-detail-page .apartment-task-status-desktop .apartment-task-status-form {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  body.app-body .apartment-detail-page .apartment-task-status-desktop .btn.btn-sm {
+    width: auto !important;
+    min-width: 6.25rem !important;
+    height: auto !important;
+    min-height: 2.15rem !important;
+    padding: .38rem .68rem !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* v486: keep the desktop apartment filters readable. The Bootstrap column
+   proportions leave the internal-status select and both actions too narrow. */
+@media (min-width: 992px) {
+  html.desktop-like-pointer body.app-body .apartments-page .apartments-filter-form {
+    display: grid !important;
+    grid-template-columns:
+      minmax(10rem, 1.15fr)
+      minmax(7.5rem, .8fr)
+      minmax(11rem, 1.05fr)
+      minmax(7rem, .75fr)
+      minmax(6.5rem, .65fr)
+      minmax(10rem, .9fr)
+      minmax(15rem, auto) !important;
+    align-items: end !important;
+    gap: .65rem !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page
+    .apartments-filter-form > [class*="col-"] {
+    flex: none !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page
+    .apartments-filter-form .filter-actions {
+    display: grid !important;
+    grid-template-columns: minmax(7.75rem, 1fr) minmax(7.25rem, 1fr) !important;
+    align-items: stretch !important;
+    gap: .5rem !important;
+    min-width: 15rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page
+    .apartments-filter-form :is(.developer-select, .developer-select-button, .form-control, .form-select) {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page
+    .apartments-filter-form :is(.form-label, .developer-select-value),
+  html.desktop-like-pointer body.app-body .apartments-page
+    .apartments-filter-form .filter-actions .btn {
+    white-space: nowrap !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page
+    .apartments-filter-form .developer-select-value {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
+/* v487: visually separate the task status pill from the first action button. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+    .remarks-export-table-shell .task-table .task-status-cell {
+    padding-right: 1.4rem !important;
+  }
+}
+
+/* v488: desktop synchronization history drill-down. */
+@media (min-width: 768px) {
+  .sync-logs-page .sync-mismatch-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    min-width: 4.15rem;
+    min-height: 2.35rem;
+    padding: .35rem .7rem;
+    border: 1px solid rgba(103, 181, 29, .35);
+    border-radius: .78rem;
+    background: #f5faed;
+    color: #497f17;
+    font-weight: 800;
+    text-decoration: none;
+    transition: background-color .16s ease, border-color .16s ease, color .16s ease;
+  }
+
+  .sync-logs-page .sync-mismatch-link:hover,
+  .sync-logs-page .sync-mismatch-link:focus-visible {
+    border-color: #67b51d;
+    background: #eaf6dc;
+    color: #315e0b;
+  }
+
+  .sync-logs-page .sync-mismatch-link i {
+    font-size: .95rem;
+  }
+
+  .sync-log-details-page .sync-details-back {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    margin-bottom: .65rem;
+    color: #667085;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .sync-log-details-page .sync-details-back:hover {
+    color: #4f9b18;
+  }
+
+  .sync-log-details-page .sync-details-total {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: center;
+    gap: .65rem;
+    padding: .7rem 1rem;
+    border: 1px solid rgba(103, 181, 29, .25);
+    border-radius: 1rem;
+    background: #f5faed;
+    color: #667085;
+  }
+
+  .sync-log-details-page .sync-details-total b {
+    color: #315e0b;
+    font-size: 1.35rem;
+  }
+
+  .sync-log-details-page .sync-details-note {
+    margin-bottom: 1rem;
+    border-radius: .9rem;
+    color: #667085;
+  }
+
+  .sync-log-details-page .sync-details-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .sync-log-details-page .sync-details-table th:nth-child(1) { width: 11rem; }
+  .sync-log-details-page .sync-details-table th:nth-child(2) { width: 18rem; }
+  .sync-log-details-page .sync-details-table th:nth-child(4) { width: 16rem; }
+  .sync-log-details-page .sync-details-table th:last-child { width: 7rem; }
+
+  .sync-log-details-page .sync-details-value {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+  }
+
+  .sync-log-details-page .sync-details-reason,
+  .sync-log-details-page .sync-details-decision {
+    display: inline-flex;
+    align-items: center;
+    padding: .35rem .62rem;
+    border-radius: 999px;
+    background: #fff5dd;
+    color: #8a5b00;
+    font-size: .8rem;
+    font-weight: 750;
+    white-space: nowrap;
+  }
+
+  .sync-log-details-page .sync-details-decision-apply_new {
+    background: #eaf7e1;
+    color: #35740f;
+  }
+
+  .sync-log-details-page .sync-details-decision-keep_old {
+    background: #eef1f4;
+    color: #565d62;
+  }
+
+  .sync-log-details-page .sync-details-section-head {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    margin: 0 0 .75rem;
+  }
+
+  .sync-log-details-page .sync-details-section-head h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 850;
+  }
+
+  .sync-log-details-page .sync-details-section-head span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: #edf6dc;
+    color: #49611b;
+    font-weight: 800;
+  }
 }
 
 @media (hover: none) and (pointer: coarse) {
