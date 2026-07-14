@@ -1829,6 +1829,12 @@ def build_task_query(params, category_id: int | None = None, project_id: int | N
         else:
             query = query.filter(Task.status == status)
 
+    acceptance_status = (params.get("acceptance_status") or "").strip()
+    if acceptance_status == "accepted":
+        query = query.filter(Apartment.is_app_mode.is_(True))
+    elif acceptance_status == "waiting":
+        query = query.filter(Apartment.is_app_mode.is_(False))
+
     responsible = params.get("responsible_id")
     if responsible:
         query = query.filter(Task.responsible_id == int(responsible))

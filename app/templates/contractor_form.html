@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Создать подрядчика{% endblock %}
+{% block content %}
+<div class="contractor-create-page">
+  <div class="page-head contractor-create-head">
+    <div>
+      <a class="contractor-create-back" href="{{ url_for('main.contractors_list') }}">
+        <i class="bi bi-arrow-left"></i>Подрядчики
+      </a>
+      <h1 class="page-title">Создать подрядчика</h1>
+      <p class="page-subtitle">Настройте зоны ответственности подрядчика на объекте «{{ project.name }}».</p>
+    </div>
+  </div>
+
+  <form class="contractor-wizard" id="contractorWizard" method="post" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="contractor-wizard-tabs" role="tablist" aria-label="Этапы создания подрядчика">
+      <button class="contractor-wizard-tab active" type="button" role="tab" aria-selected="true" data-contractor-step-tab="1">
+        <span class="contractor-wizard-tab-number">1</span>
+        <span><strong>Наименование</strong><small>Название подрядчика</small></span>
+      </button>
+      <span class="contractor-wizard-connector" aria-hidden="true"></span>
+      <button class="contractor-wizard-tab" type="button" role="tab" aria-selected="false" data-contractor-step-tab="2">
+        <span class="contractor-wizard-tab-number">2</span>
+        <span><strong>Пункты</strong><small>За что отвечает</small></span>
+      </button>
+      <span class="contractor-wizard-connector" aria-hidden="true"></span>
+      <button class="contractor-wizard-tab" type="button" role="tab" aria-selected="false" data-contractor-step-tab="3">
+        <span class="contractor-wizard-tab-number">3</span>
+        <span><strong>Квартиры</strong><small>Где отвечает</small></span>
+      </button>
+    </div>
+
+    <section class="contractor-wizard-panel active" role="tabpanel" data-contractor-step-panel="1">
+      <div class="contractor-wizard-panel-heading">
+        <span class="contractor-wizard-panel-icon"><i class="bi bi-building-add"></i></span>
+        <div>
+          <h2>Наименование подрядчика</h2>
+          <p>Введите название организации или бригады, которое будет отображаться в системе.</p>
+        </div>
+      </div>
+      <div class="contractor-name-field">
+        <label class="form-label" for="contractorName">Наименование подрядчика</label>
+        <input class="form-control form-control-lg" id="contractorName" name="name" type="text" value="{{ contractor_name }}" maxlength="180" autocomplete="organization" placeholder="Например, ООО «Строй Сервис»" required>
+        <div class="invalid-feedback">Укажите наименование подрядчика.</div>
+      </div>
+      <div class="contractor-wizard-actions contractor-wizard-actions-end">
+        <button class="btn btn-primary contractor-wizard-next" type="button" data-contractor-next="2">Продолжить<i class="bi bi-arrow-right"></i></button>
+      </div>
+    </section>
+
+    <section class="contractor-wizard-panel" role="tabpanel" data-contractor-step-panel="2" hidden>
+      <div class="contractor-wizard-panel-heading">
+        <span class="contractor-wizard-panel-icon"><i class="bi bi-list-check"></i></span>
+        <div>
+          <h2>Пункты ответственности</h2>
+          <p>Выберите один или несколько пунктов, за которые будет отвечать подрядчик.</p>
+        </div>
+      </div>
+      <div class="contractor-choice-toolbar">
+        <label class="contractor-choice-search">
+          <i class="bi bi-search"></i>
+          <input class="form-control" type="search" placeholder="Найти пункт" data-contractor-filter="points">
+        </label>
+        <span class="contractor-choice-counter"><strong data-contractor-count="points">0</strong> выбрано</span>
+      </div>
+      <div class="contractor-choice-grid contractor-point-grid" data-contractor-list="points">
+        {% for point in point_options %}
+        <label class="contractor-choice-card" data-contractor-search-text="{{ (point.number ~ ' ' ~ point.label)|lower }}">
+          <input class="form-check-input" type="checkbox" name="work_points" value="{{ point.number }}" {% if point.number in selected_point_numbers %}checked{% endif %}>
+          <span class="contractor-choice-card-icon"><i class="bi bi-check2-square"></i></span>
+          <span class="contractor-choice-card-copy"><strong>Пункт {{ point.number }}</strong><small>{{ point.label }}</small></span>
+        </label>
+        {% else %}
+        <div class="contractor-choice-empty">На объекте пока нет доступных пунктов подрядчика.</div>
+        {% endfor %}
+      </div>
+      <p class="contractor-wizard-error" data-contractor-error="points" hidden>Выберите хотя бы один пункт ответственности.</p>
+      <div class="contractor-wizard-actions">
+        <button class="btn btn-outline-secondary" type="button" data-contractor-back="1"><i class="bi bi-arrow-left"></i>Назад</button>
+        <button class="btn btn-primary contractor-wizard-next" type="button" data-contractor-next="3">Продолжить<i class="bi bi-arrow-right"></i></button>
+      </div>
+    </section>
+
+    <section class="contractor-wizard-panel" role="tabpanel" data-contractor-step-panel="3" hidden>
+      <div class="contractor-wizard-panel-heading">
+        <span class="contractor-wizard-panel-icon"><i class="bi bi-buildings"></i></span>
+        <div>
+          <h2>Квартиры подрядчика</h2>
+          <p>Выберите квартиры, в которых подрядчик отвечает за указанные пункты.</p>
+        </div>
+      </div>
+      <div class="contractor-choice-toolbar">
+        <label class="contractor-choice-search">
+          <i class="bi bi-search"></i>
+          <input class="form-control" type="search" placeholder="Найти квартиру, корпус или отделку" data-contractor-filter="apartments">
+        </label>
+        <button class="btn btn-sm btn-outline-success" type="button" data-contractor-select-visible="apartments">Выбрать показанные</button>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-contractor-clear="apartments">Снять выбор</button>
+        <span class="contractor-choice-counter"><strong data-contractor-count="apartments">0</strong> выбрано</span>
+      </div>
+      <div class="contractor-choice-grid contractor-apartment-grid" data-contractor-list="apartments">
+        {% for apartment in apartment_options %}
+        {% set apartment_meta = [apartment.building and 'Корпус ' ~ apartment.building, apartment.entrance and 'Подъезд ' ~ apartment.entrance, apartment.floor and 'Этаж ' ~ apartment.floor, apartment.finishing_type]|select|join(' · ') %}
+        <label class="contractor-choice-card contractor-apartment-card" data-contractor-search-text="{{ (apartment.label ~ ' ' ~ apartment_meta)|lower }}">
+          <input class="form-check-input" type="checkbox" name="apartment_groups" value="{{ apartment.id }}" {% if apartment.id|string in selected_apartment_group_ids %}checked{% endif %}>
+          <span class="contractor-choice-card-icon"><i class="bi bi-door-open"></i></span>
+          <span class="contractor-choice-card-copy"><strong>{{ apartment.label }}</strong><small>{{ apartment_meta or 'Объект ' ~ project.name }}</small></span>
+        </label>
+        {% else %}
+        <div class="contractor-choice-empty">На объекте пока нет квартир для выбора.</div>
+        {% endfor %}
+      </div>
+      <p class="contractor-wizard-error" data-contractor-error="apartments" hidden>Выберите хотя бы одну квартиру.</p>
+      <div class="contractor-wizard-actions">
+        <button class="btn btn-outline-secondary" type="button" data-contractor-back="2"><i class="bi bi-arrow-left"></i>Назад</button>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-person-plus"></i>Создать подрядчика</button>
+      </div>
+    </section>
+  </form>
+</div>
+
+<script>
+(() => {
+  const wizard = document.getElementById('contractorWizard');
+  if (!wizard) return;
+
+  const tabs = [...wizard.querySelectorAll('[data-contractor-step-tab]')];
+  const panels = [...wizard.querySelectorAll('[data-contractor-step-panel]')];
+  const showStep = (step) => {
+    tabs.forEach((tab) => {
+      const active = tab.dataset.contractorStepTab === String(step);
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    panels.forEach((panel) => {
+      const active = panel.dataset.contractorStepPanel === String(step);
+      panel.classList.toggle('active', active);
+      panel.hidden = !active;
+    });
+  };
+
+  const checkedCount = (list) => wizard.querySelectorAll(`[data-contractor-list="${list}"] input[type="checkbox"]:checked`).length;
+  const updateCount = (list) => {
+    const output = wizard.querySelector(`[data-contractor-count="${list}"]`);
+    if (output) output.textContent = String(checkedCount(list));
+  };
+  const validateStep = (step) => {
+    if (step === 1) {
+      const name = wizard.querySelector('#contractorName');
+      const valid = name.value.trim().length >= 2;
+      name.classList.toggle('is-invalid', !valid);
+      if (!valid) name.focus();
+      return valid;
+    }
+    const list = step === 2 ? 'points' : 'apartments';
+    const valid = checkedCount(list) > 0;
+    const error = wizard.querySelector(`[data-contractor-error="${list}"]`);
+    if (error) error.hidden = valid;
+    return valid;
+  };
+
+  tabs.forEach((tab) => tab.addEventListener('click', () => showStep(tab.dataset.contractorStepTab)));
+  wizard.querySelectorAll('[data-contractor-next]').forEach((button) => button.addEventListener('click', () => {
+    const currentStep = Number(button.closest('[data-contractor-step-panel]').dataset.contractorStepPanel);
+    if (validateStep(currentStep)) showStep(button.dataset.contractorNext);
+  }));
+  wizard.querySelectorAll('[data-contractor-back]').forEach((button) => button.addEventListener('click', () => showStep(button.dataset.contractorBack)));
+
+  wizard.querySelectorAll('[data-contractor-filter]').forEach((input) => input.addEventListener('input', () => {
+    const list = input.dataset.contractorFilter;
+    const query = input.value.trim().toLocaleLowerCase('ru');
+    wizard.querySelectorAll(`[data-contractor-list="${list}"] .contractor-choice-card`).forEach((card) => {
+      card.hidden = Boolean(query) && !card.dataset.contractorSearchText.includes(query);
+    });
+  }));
+  wizard.querySelectorAll('[data-contractor-select-visible]').forEach((button) => button.addEventListener('click', () => {
+    const list = button.dataset.contractorSelectVisible;
+    wizard.querySelectorAll(`[data-contractor-list="${list}"] .contractor-choice-card:not([hidden]) input[type="checkbox"]`).forEach((checkbox) => { checkbox.checked = true; });
+    updateCount(list);
+  }));
+  wizard.querySelectorAll('[data-contractor-clear]').forEach((button) => button.addEventListener('click', () => {
+    const list = button.dataset.contractorClear;
+    wizard.querySelectorAll(`[data-contractor-list="${list}"] input[type="checkbox"]`).forEach((checkbox) => { checkbox.checked = false; });
+    updateCount(list);
+  }));
+  wizard.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => checkbox.addEventListener('change', () => {
+    const list = checkbox.closest('[data-contractor-list]').dataset.contractorList;
+    updateCount(list);
+    const error = wizard.querySelector(`[data-contractor-error="${list}"]`);
+    if (error && checkedCount(list)) error.hidden = true;
+  }));
+  wizard.addEventListener('submit', (event) => {
+    if (!validateStep(1)) { event.preventDefault(); showStep(1); return; }
+    if (!validateStep(2)) { event.preventDefault(); showStep(2); return; }
+    if (!validateStep(3)) { event.preventDefault(); showStep(3); }
+  });
+  wizard.querySelector('#contractorName').addEventListener('input', (event) => event.target.classList.remove('is-invalid'));
+  updateCount('points');
+  updateCount('apartments');
+})();
+</script>
+{% endblock %}

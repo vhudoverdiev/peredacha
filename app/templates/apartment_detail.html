@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ apartment.detail_label() }}{% endblock %}
 {% block content %}
-<div class="apartment-detail-page">
-{% set status_labels = {'not_started': 'не выполнено', 'done': 'выполнено', 'finishers': 'чистовики', 'contractor': 'подрядчик', 'guarantee': 'гарантия', 'problem': 'проблема'} %}
-{% set status_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'guarantee': 'status-pill-primary', 'problem': 'status-pill-danger'} %}
+<div class="apartment-detail-page" data-ajax-pagination-page="apartment-history">
+{% set status_labels = {'not_started': 'не выполнено', 'done': 'выполнено', 'finishers': 'чистовики', 'contractor': 'подрядчик', 'guarantee': 'гарантия', 'concession': 'отступные', 'problem': 'проблема'} %}
+{% set status_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'guarantee': 'status-pill-primary', 'concession': 'status-pill-muted', 'problem': 'status-pill-danger'} %}
 {% set field_labels = {'status': 'Статус', 'comment': 'Комментарий', 'description': 'Текст замечания', 'responsible_id': 'Исполнитель', 'planned_date': 'Плановая дата', 'is_missing_in_latest_sync': 'Отсутствует в последней синхронизации'} %}
 
 <div class="page-head apartment-detail-head">
@@ -221,9 +221,9 @@
               {% if current_user.role != 'viewer' %}
               <div class="apartment-task-actions actions-cell" data-current-status="{{ task.status }}">
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started' if task.status == 'done' else 'done') }}" class="apartment-task-action-form status-action-form binary-status-toggle-form" data-status-action="{{ 'not_started' if task.status == 'done' else 'done' }}" data-binary-status-toggle data-is-done="{{ '1' if task.status == 'done' else '0' }}" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-done-label="Выполнено" data-not-done-label="Не выполнено"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm {{ 'btn-outline-secondary' if task.status == 'done' else 'btn-outline-success' }} apartment-task-action-btn" type="submit" data-binary-status-toggle-button><span data-binary-status-toggle-label>{{ 'Не выполнено' if task.status == 'done' else 'Выполнено' }}</span></button></form>
-                {% if task.status != 'finishers' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" class="apartment-task-action-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-action-btn" type="submit">Чистовики</button></form>{% endif %}
+                {% if task.status != 'finishers' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" class="apartment-task-action-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-action-btn task-stage-action-btn" type="submit">Чистовики</button></form>{% endif %}
                 {% if task.status != 'contractor' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" class="apartment-task-action-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning apartment-task-action-btn" type="submit">Подрядчик</button></form>{% endif %}
-                {% if task.status != 'guarantee' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" class="apartment-task-action-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-guarantee apartment-task-action-btn" type="submit">Гарантия</button></form>{% endif %}
+                {% if task.status != 'guarantee' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" class="apartment-task-action-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-action-btn task-stage-action-btn guarantee-gray-button" type="submit">Гарантия</button></form>{% endif %}
                 {% if task.status != 'problem' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="apartment-task-action-form apartment-task-action-form-problem problem-action-form problem-action-form-inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-danger problem-toggle-btn apartment-task-action-btn" type="button" data-problem-modal-title="Проблема">Проблема</button></form>{% endif %}
               </div>
               {% endif %}
@@ -265,7 +265,7 @@
       </div>
     </div>
 
-    <div class="card content-card">
+    <div class="card content-card" data-ajax-pagination-content data-ajax-items-selector=".timeline-item">
       <div class="card-body">
         <h2 class="section-title">История изменений по помещению</h2>
         <div class="timeline" data-apartment-history-list data-current-page="{{ history_page }}" {% if not history_entries %}hidden{% endif %}>
@@ -278,7 +278,7 @@
         </div>
         <div class="text-muted" data-apartment-history-empty {% if history_entries %}hidden{% endif %}>Истории изменений по помещению нет.</div>
         {% if history_pages > 1 %}
-        <nav class="mt-3" aria-label="История изменений по помещению">
+        <nav class="mt-3" aria-label="История изменений по помещению" data-ajax-pagination-nav>
           <ul class="pagination justify-content-center mb-0">
             <li class="page-item {% if history_page <= 1 %}disabled{% endif %}">
               <a class="page-link" href="{% if history_page > 1 %}{{ url_for('main.apartment_detail', apartment_id=apartment.id, back=request.args.get('back'), history_page=history_page - 1) }}{% else %}#{% endif %}">Назад</a>

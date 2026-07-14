@@ -490,9 +490,9 @@
   </script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v528-user-project-access">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v544-instant-remark-tabs">
 </head>
-<body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and mobile_version_under_development %} mobile-dev-flag{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
+<body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and current_user.role == 'verifier' %} verifier-layout{% endif %}{% if current_user.is_authenticated and mobile_version_under_development %} mobile-dev-flag{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <div class="mobile-standalone-boot-screen" aria-hidden="true">
   <div class="mobile-standalone-boot-screen__orbit" aria-hidden="true">
     <span class="mobile-standalone-boot-screen__ring mobile-standalone-boot-screen__ring--outer"></span>
@@ -677,26 +677,18 @@
   {% else %}
   {% set primary_mobile_shell = current_project and layout_mode.strip() == 'app' and request.endpoint not in ['main.account', 'main.site_settings'] %}
   {% set no_mobile_project = not primary_mobile_shell %}
-  {% set nav_count = 2 if no_mobile_project else (4 if current_user.role in ['admin', 'manager'] else 3) %}
-  <nav class="mobile-bottom-nav mobile-bottom-nav-root" aria-label="Основная навигация" style="--mobile-nav-count: {{ nav_count }}">
-    {% if no_mobile_project %}
-    <a class="mobile-nav-item {% if active == 'objects' %}active{% endif %}" href="{{ url_for('main.objects') }}">
-      <i class="bi bi-diagram-3"></i><span>Объекты</span>
+  {% set nav_count = 2 if report_only_role or no_mobile_project else (4 if current_user.role in ['admin', 'manager'] else 3) %}
+  <nav class="mobile-bottom-nav mobile-bottom-nav-root{% if report_only_role %} mobile-verifier-bottom-nav{% endif %}" aria-label="Основная навигация" style="--mobile-nav-count: {{ nav_count }}">
+    {% if report_only_role %}
+    <a class="mobile-nav-item {% if active == 'report' %}active{% endif %}" href="{{ url_for('main.work_report') }}">
+      <i class="bi bi-file-earmark-bar-graph"></i><span>Отчет</span>
     </a>
     <a class="mobile-nav-item {% if active == 'account' %}active{% endif %}" href="{{ url_for('main.account') }}">
       <i class="bi bi-person-circle"></i><span>Аккаунт</span>
     </a>
-    {% elif report_only_role %}
-    <a class="mobile-nav-item {% if active == 'report' %}active{% endif %}" href="{{ url_for('main.work_report') }}">
-      <i class="bi bi-file-earmark-bar-graph"></i><span>Отчет</span>
-    </a>
-    {% if not hide_documents_section %}
-    <a class="mobile-nav-item {% if layout_mode.strip() == 'documents' %}active{% endif %}" href="{{ url_for('main.documents') }}">
-      <i class="bi bi-files"></i><span>Документы</span>
-    </a>
-    {% endif %}
+    {% elif no_mobile_project %}
     <a class="mobile-nav-item {% if active == 'objects' %}active{% endif %}" href="{{ url_for('main.objects') }}">
-      <i class="bi bi-diagram-3"></i><span>Объект</span>
+      <i class="bi bi-diagram-3"></i><span>Объекты</span>
     </a>
     <a class="mobile-nav-item {% if active == 'account' %}active{% endif %}" href="{{ url_for('main.account') }}">
       <i class="bi bi-person-circle"></i><span>Аккаунт</span>
@@ -747,7 +739,7 @@
 {% elif request.endpoint in ['main.task_list', 'main.task_detail', 'main.task_new', 'main.task_recognition', 'main.remarks_excel_selection'] %}
   {% set mobile_title = 'Замечания' %}
   {% set mobile_active = 'remarks' %}
-{% elif request.endpoint in ['main.contractors_list', 'main.contractors_export', 'main.contractors_excel_selection'] %}
+{% elif request.endpoint in ['main.contractors_list', 'main.contractors_export', 'main.contractors_excel_selection', 'main.contractor_new'] %}
   {% set mobile_title = 'Подрядчики' %}
   {% set mobile_active = 'contractors' %}
 {% elif request.endpoint == 'main.avr' %}
@@ -890,7 +882,7 @@
       <a class="sidebar-link {% if remarks_active %}active{% endif %}" href="{{ url_for('main.task_list') }}">
         <i class="bi bi-card-checklist"></i><span>Замечания</span>
       </a>
-      <a class="sidebar-link {% if request.endpoint in ['main.contractors_list', 'main.contractors_export', 'main.contractors_excel_selection'] %}active{% endif %}" href="{{ url_for('main.contractors_list') }}">
+      <a class="sidebar-link {% if request.endpoint in ['main.contractors_list', 'main.contractors_export', 'main.contractors_excel_selection', 'main.contractor_new'] %}active{% endif %}" href="{{ url_for('main.contractors_list') }}">
         <i class="bi bi-person-gear"></i><span>Подрядчики</span>
       </a>
       <a class="sidebar-link {% if request.endpoint in ['main.apartments', 'main.apartment_detail'] %}active{% endif %}" href="{{ url_for('main.apartments') }}">
@@ -1063,6 +1055,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{{ url_for('static', filename='script.js') }}?v=v528-user-project-access"></script>
+<script src="{{ url_for('static', filename='script.js') }}?v=v543-users-autosave"></script>
 </body>
 </html>

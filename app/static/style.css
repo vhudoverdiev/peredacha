@@ -315,6 +315,154 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
 
 }
 
+/* Desktop users: compact project picker, autosave fields and aligned actions. */
+.users-page .users-role-option {
+  justify-content: center;
+  min-height: 2.65rem;
+  padding: .65rem .9rem;
+  border: 1px solid var(--crm-border-strong);
+  border-radius: .8rem;
+  background: #fff;
+  box-shadow: 0 5px 14px rgba(31, 52, 90, .04);
+}
+
+.users-page .users-role-option:hover {
+  border-color: #b8d68f;
+  background: #f8fced;
+  transform: none;
+}
+
+.users-page .users-role-check {
+  display: none;
+}
+
+.users-page .users-role-copy {
+  justify-content: center;
+  min-height: 1.35rem;
+}
+
+.users-page .users-role-option:has(.users-role-input:checked) {
+  border-color: #78bb24;
+  background: linear-gradient(180deg, #8dd62c 0%, #78bb24 100%);
+  box-shadow: 0 10px 22px rgba(120, 187, 36, .2);
+}
+
+.users-page .users-role-option:has(.users-role-input:checked) .users-role-copy strong {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+
+.users-name-autosave {
+  margin: 0;
+}
+
+.users-name-input-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.users-name-input {
+  width: 100%;
+  min-height: 2.25rem;
+  padding: .42rem 1.8rem .42rem .62rem;
+  border: 1px solid rgba(86, 93, 98, .13);
+  border-radius: .72rem;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  text-overflow: ellipsis;
+}
+
+.users-name-input:hover,
+.users-name-input:focus {
+  border-color: rgba(121, 191, 37, .52);
+  background: #fafff4;
+  box-shadow: 0 0 0 .18rem rgba(121, 191, 37, .1);
+  outline: 0;
+}
+
+.users-name-input-wrap > .bi {
+  position: absolute;
+  top: 50%;
+  right: .62rem;
+  color: #6daa20;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.users-name-autosave.is-saving,
+.users-access-dropdown.is-saving {
+  opacity: .65;
+}
+
+.users-name-autosave.is-saved .users-name-input,
+.users-access-dropdown.is-saved .users-access-summary {
+  border-color: #79bf25;
+  box-shadow: 0 0 0 .16rem rgba(121, 191, 37, .1);
+}
+
+.users-access-menu .users-access-projects {
+  padding: 0;
+}
+
+.users-access-menu .users-access-project-option {
+  min-height: 2.65rem;
+  padding: .55rem .65rem;
+  border: 1px solid transparent;
+  border-radius: .72rem;
+}
+
+.users-access-menu .users-access-project-option:has(input:checked) {
+  border-color: rgba(121, 191, 37, .25);
+  background: #f4faeb;
+}
+
+@media (min-width: 992px) {
+  body.app-body:has(.users-page) .users-table .users-col-login { width: 8%; }
+  body.app-body:has(.users-page) .users-table .users-col-name { width: 14%; }
+  body.app-body:has(.users-page) .users-table .users-col-role { width: 13%; }
+  body.app-body:has(.users-page) .users-table .users-col-project { width: 14%; }
+  body.app-body:has(.users-page) .users-table .users-col-password { width: 17%; }
+  body.app-body:has(.users-page) .users-table .users-col-captcha { width: 9%; }
+  body.app-body:has(.users-page) .users-table .users-col-created { width: 12%; }
+  body.app-body:has(.users-page) .users-table .users-col-actions { width: 13%; }
+
+  body.app-body:has(.users-page) .users-table .users-actions-heading,
+  body.app-body:has(.users-page) .users-table .users-actions-cell {
+    padding-right: .75rem !important;
+    padding-left: .75rem !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+  }
+
+  body.app-body:has(.users-page) .users-table .users-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  body.app-body:has(.users-page) .users-table .users-actions-cell > .text-muted {
+    display: inline-flex;
+    min-height: 2rem;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+[data-ajax-pagination-page].ajax-pagination-loading [data-ajax-pagination-content] {
+  opacity: .58;
+  pointer-events: none;
+  transition: opacity .14s ease;
+}
+
+[data-ajax-pagination-content] {
+  scroll-margin-top: 7.5rem;
+  transition: opacity .14s ease;
+}
+
 
 /* v185 true final override: account logout button is mobile-only. */
 .account-logout-form {
@@ -8397,6 +8545,10 @@ button.disabled,
   align-items: center;
   gap: .35rem;
   min-width: 176px;
+}
+.actions-cell[data-current-status]:not([data-current-status="done"]) > .binary-status-toggle-form {
+  display: inline-flex !important;
+  order: -20;
 }
 .actions-cell[data-current-status="done"] .status-action-form[data-status-action="not_started"],
 .actions-cell[data-current-status="finishers"] .status-action-form[data-status-action="not_started"],
@@ -46712,12 +46864,15 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .status-action-form[data-status-action="finishers"] .remarks-status-text,
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .status-action-form[data-status-action="contractor"] .remarks-status-text,
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .status-action-form[data-status-action="guarantee"] .remarks-status-text,
+  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .status-action-form[data-status-action="concession"] .remarks-status-text,
   html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .status-action-form[data-status-action="finishers"] .remarks-status-text,
   html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .status-action-form[data-status-action="contractor"] .remarks-status-text,
   html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .status-action-form[data-status-action="guarantee"] .remarks-status-text,
+  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .status-action-form[data-status-action="concession"] .remarks-status-text,
   html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .status-action-form[data-status-action="finishers"] .remarks-status-text,
   html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .status-action-form[data-status-action="contractor"] .remarks-status-text,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .status-action-form[data-status-action="guarantee"] .remarks-status-text {
+  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .status-action-form[data-status-action="guarantee"] .remarks-status-text,
+  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .status-action-form[data-status-action="concession"] .remarks-status-text {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -50452,6 +50607,93 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   }
 }
 
+/* Finishers and Guarantee use the same interaction model. Guarantee only
+   replaces the cyan palette with a neutral gray one. */
+html body.app-body .btn.task-stage-action-btn {
+  transition:
+    color .15s ease-in-out,
+    background-color .15s ease-in-out,
+    border-color .15s ease-in-out,
+    box-shadow .15s ease-in-out,
+    transform .15s ease-in-out !important;
+}
+
+html body.app-body .btn.task-stage-action-btn:hover,
+html body.app-body .btn.task-stage-action-btn:focus-visible {
+  transform: translateY(-1px) !important;
+}
+
+html body.app-body .btn.task-stage-action-btn:active {
+  transform: translateY(0) scale(.98) !important;
+}
+
+html.app-root body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table .actions-cell
+  form.status-action-form[data-status-action="guarantee"]
+  .btn.task-stage-action-btn.guarantee-gray-button,
+html.app-root body.app-body
+  :is(.task-detail-status-grid, .apartment-task-actions)
+  form[action*="/status/guarantee"]
+  .btn.task-stage-action-btn.guarantee-gray-button,
+html body.app-body form[action*="/status/guarantee"]
+  .btn.task-stage-action-btn.guarantee-gray-button {
+  border-color: #9ca3af !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #5f6875 !important;
+  -webkit-text-fill-color: #5f6875 !important;
+  box-shadow: none !important;
+}
+
+html.app-root body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table .actions-cell
+  form.status-action-form[data-status-action="guarantee"]
+  .btn.task-stage-action-btn.guarantee-gray-button:is(:hover, :focus-visible),
+html.app-root body.app-body
+  :is(.task-detail-status-grid, .apartment-task-actions)
+  form[action*="/status/guarantee"]
+  .btn.task-stage-action-btn.guarantee-gray-button:is(:hover, :focus-visible),
+html body.app-body form[action*="/status/guarantee"]
+  .btn.task-stage-action-btn.guarantee-gray-button:is(:hover, :focus-visible) {
+  border-color: #6b7280 !important;
+  background: #6b7280 !important;
+  background-color: #6b7280 !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  box-shadow: 0 10px 22px rgba(75, 85, 99, .18) !important;
+}
+
+html.app-root body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table .actions-cell
+  form.status-action-form[data-status-action="guarantee"]
+  .btn.task-stage-action-btn.guarantee-gray-button:is(:hover, :focus-visible) *,
+html.app-root body.app-body
+  :is(.task-detail-status-grid, .apartment-task-actions)
+  form[action*="/status/guarantee"]
+  .btn.task-stage-action-btn.guarantee-gray-button:is(:hover, :focus-visible) *,
+html body.app-body form[action*="/status/guarantee"]
+  .btn.task-stage-action-btn.guarantee-gray-button:is(:hover, :focus-visible) * {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+
+html.app-root body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table .actions-cell
+  form.status-action-form[data-status-action="guarantee"]
+  .btn.task-stage-action-btn.guarantee-gray-button:active,
+html.app-root body.app-body
+  :is(.task-detail-status-grid, .apartment-task-actions)
+  form[action*="/status/guarantee"]
+  .btn.task-stage-action-btn.guarantee-gray-button:active,
+html body.app-body form[action*="/status/guarantee"]
+  .btn.task-stage-action-btn.guarantee-gray-button:active {
+  border-color: #59616d !important;
+  background: #59616d !important;
+  background-color: #59616d !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+
 /* v376: anchor every mobile tab to the bottom edge of the dark header. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
@@ -50981,6 +51223,51 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     aspect-ratio: 1 / 1 !important;
     border-radius: .9rem !important;
     font-size: 1.08rem !important;
+  }
+}
+
+/* Mobile measurements expose only the ordered workflow and a direct return
+   to Remarks. Desktop retains the complete three-tab management interface. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page-head .glass-mobile-back-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    justify-self: start !important;
+    width: fit-content !important;
+    min-height: 2.58rem !important;
+    padding: .54rem .82rem !important;
+    gap: .42rem !important;
+    border-radius: .9rem !important;
+    color: #33412f !important;
+    font-size: .84rem !important;
+    font-weight: 850 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page-head .glass-head-actions {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page > .remarks-tabs .glass-tab-all,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page > .remarks-tabs .glass-tab-order {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page > .remarks-tabs .crm-tabs {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page > .remarks-tabs .glass-tab-ordered,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page > .remarks-tabs .glass-tab-ordered .nav-link {
+    display: flex !important;
+    width: 100% !important;
   }
 }
 
@@ -52526,7 +52813,22 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
 
 @media (min-width: 768px) {
   .mobile-apartments-pagination {
-    display: none;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: .65rem;
+    margin: 1rem 0 .25rem;
+  }
+
+  .mobile-apartments-pagination > span {
+    color: #667085;
+    font-size: .85rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .mobile-apartments-pagination .btn:last-child {
+    justify-self: end;
   }
 }
 
@@ -53594,7 +53896,8 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
 
 /* v497: mobile shortcut from remarks to the ordered measurements view. */
 .remarks-measurements-mobile-btn,
-.glass-mobile-ordered-summary {
+.glass-mobile-ordered-summary,
+.glass-mobile-back-btn {
   display: none;
 }
 
@@ -53606,6 +53909,21 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
     grid-template-columns: minmax(0, 1fr) !important;
     width: 100% !important;
     gap: .62rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head:not(.glass-page-head))
+    .remarks-page-head .remarks-page-actions:has(.remarks-measurements-mobile-btn):has(.remarks-page-primary-btn) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head:not(.glass-page-head))
+    .remarks-page-head .remarks-page-actions > :is(.remarks-measurements-mobile-btn, .remarks-page-primary-btn) {
+    grid-column: auto !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    margin: 0 !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -53844,6 +54162,24 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-order-row:hover {
+    background:
+      radial-gradient(circle at 94% 4%, rgba(141, 214, 44, .11), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, .998), rgba(248, 251, 245, .992)) !important;
+    box-shadow: 0 16px 34px rgba(31, 45, 61, .075) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-order-row:hover > td,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-order-row > td:hover {
+    --bs-table-bg-state: transparent !important;
+    --bs-table-hover-bg: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-order-row > td {
     display: grid !important;
     grid-template-columns: minmax(5.25rem, 31%) minmax(0, 1fr) !important;
@@ -53954,10 +54290,13 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table td:nth-child(2)::before {
-    content: "Квартира" !important;
-    margin-right: .42rem !important;
-    padding: 0 !important;
-    color: #6f7a69 !important;
+    content: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .glass-order-row > td.glass-request-column {
+    display: none !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -53983,6 +54322,62 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
     background: rgba(249, 252, 246, .94) !important;
     font-size: .82rem !important;
     line-height: 1.38 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    td:nth-child(4) > .js-glass-ordered-edit-form {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .js-glass-ordered-edit-form .glass-measure-items,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .js-glass-ordered-edit-form .glass-measure-item-row,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .js-glass-ordered-edit-form .glass-measure-item-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .js-glass-ordered-edit-form .glass-measure-item-row,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .js-glass-ordered-edit-form .glass-measure-item-card {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-areas: "type" "size" "comment" "qty" !important;
+    gap: .68rem !important;
+    overflow: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .js-glass-ordered-edit-form .glass-field,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .js-glass-ordered-edit-form :is(.form-control, .form-select, .developer-custom-select, .global-custom-select, .developer-select-button) {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .js-glass-ordered-edit-form .glass-measure-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    gap: .56rem !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -54180,10 +54575,42 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   }
 }
 
+/* Verifier mobile web: the sticky header already occupies space in the page
+   flow, so do not reserve its height a second time. Keep only dock clearance
+   below the report/account screens. */
+@media (max-width: 767.98px) {
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.verifier-layout .app-layout > .app-main {
+    min-height: auto !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.verifier-layout .app-layout > .app-main > .app-content {
+    padding-top: .5rem !important;
+    padding-bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .3rem) !important;
+  }
+
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.verifier-layout .page-head {
+    margin-top: 0 !important;
+    margin-bottom: .5rem !important;
+  }
+}
+
 /* v510: The duplicated upper paginator sits directly before the first card. */
 .page-pagination-top {
   margin-top: 0 !important;
   margin-bottom: 1rem !important;
+}
+
+/* Desktop lists use a single paginator below their content. Mobile keeps the
+   upper control so long card feeds remain convenient to navigate. */
+@media (min-width: 768px) {
+  body.app-body .page-pagination-top {
+    display: none !important;
+  }
 }
 
 /* v511: The issued-tasks return tab must be one visual surface. The shared
@@ -54231,7 +54658,8 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
 @media (min-width: 992px) {
   body.app-body:has(.users-page) .users-table {
     width: 100% !important;
-    min-width: 62rem !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     table-layout: fixed !important;
   }
 
@@ -54239,10 +54667,10 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   body.app-body:has(.users-page) .users-table .users-col-name { width: 13%; }
   body.app-body:has(.users-page) .users-table .users-col-role { width: 13%; }
   body.app-body:has(.users-page) .users-table .users-col-project { width: 15%; }
-  body.app-body:has(.users-page) .users-table .users-col-password { width: 18%; }
+  body.app-body:has(.users-page) .users-table .users-col-password { width: 17%; }
   body.app-body:has(.users-page) .users-table .users-col-captcha { width: 10%; }
   body.app-body:has(.users-page) .users-table .users-col-created { width: 13%; }
-  body.app-body:has(.users-page) .users-table .users-col-actions { width: 9%; }
+  body.app-body:has(.users-page) .users-table .users-col-actions { width: 10%; }
 
   body.app-body:has(.users-page) .users-table :is(th, td) {
     word-break: normal !important;
@@ -54271,6 +54699,24 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
 
   body.app-body:has(.users-page) .users-table .password-preview {
     min-width: 0 !important;
+  }
+
+  body.app-body:has(.users-page) .users-layout > .col-lg-8,
+  body.app-body:has(.users-page) .users-table-shell,
+  body.app-body:has(.users-page) .users-table-shell > .table-responsive {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.app-body:has(.users-page) .users-table .users-actions {
+    gap: .35rem !important;
+  }
+
+  body.app-body:has(.users-page) .users-table .users-action-btn {
+    min-width: 2rem !important;
+    width: 2rem !important;
+    height: 2rem !important;
+    padding: 0 !important;
   }
 }
 
@@ -54352,6 +54798,25 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
 .settings-standalone-layout,
 .settings-standalone-layout .documents-content {
   background: #ffffff !important;
+}
+
+/* Objects use one continuous canvas. Nested gradients restarted at each
+   container and produced visible horizontal bands around the card list. */
+body.app-body:has(.objects-page) {
+  --objects-page-surface: #f6f8fb;
+}
+
+body.app-body:has(.objects-page) :is(
+  .objects-layout,
+  .objects-content,
+  .crm-mobile-page-shell,
+  .objects-page,
+  .objects-mobile-hero,
+  .objects-grid
+) {
+  background: var(--objects-page-surface) !important;
+  background-color: var(--objects-page-surface) !important;
+  background-image: none !important;
 }
 
 .settings-standalone-layout .documents-content::before {
@@ -54501,4 +54966,463 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
     width: 100%;
   }
 
+}
+
+/* Mobile issued tasks: discard desktop column widths after the shared table
+   enhancer converts the table into cards. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-export-btn {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-head-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table colgroup,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table thead {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table tbody,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table
+    .assignment-issued-row > td {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    box-sizing: border-box !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table
+    .assignment-issued-row > td > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table
+    .assignment-issued-actions {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page > .remarks-tabs .crm-tabs {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* Desktop contractor creation wizard. */
+.contractor-create-page {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.contractor-create-head { margin-bottom: 1.25rem; }
+
+.contractor-create-back {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  margin-bottom: .6rem;
+  color: var(--crm-muted);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.contractor-create-back:hover { color: var(--crm-primary-dark); }
+
+.contractor-wizard {
+  overflow: hidden;
+  border: 1px solid var(--crm-border);
+  border-radius: var(--crm-radius);
+  background: var(--crm-surface);
+  box-shadow: var(--crm-shadow);
+}
+
+.contractor-wizard-tabs {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 70px minmax(180px, 1fr) 70px minmax(180px, 1fr);
+  align-items: center;
+  padding: 1.35rem 2rem;
+  border-bottom: 1px solid var(--crm-border);
+  background: linear-gradient(135deg, #fbfef7 0%, #f4f9ed 100%);
+}
+
+.contractor-wizard-tab {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  min-width: 0;
+  padding: .65rem .8rem;
+  border: 0;
+  border-radius: 1rem;
+  background: transparent;
+  color: var(--crm-muted);
+  text-align: left;
+  transition: background .18s ease, color .18s ease;
+}
+
+.contractor-wizard-tab:hover,
+.contractor-wizard-tab.active {
+  background: #fff;
+  color: var(--crm-title);
+  box-shadow: 0 8px 22px rgba(31, 52, 90, .07);
+}
+
+.contractor-wizard-tab-number {
+  display: grid;
+  flex: 0 0 2.35rem;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  border: 1px solid #d8e6c8;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--crm-muted);
+  font-weight: 800;
+}
+
+.contractor-wizard-tab.active .contractor-wizard-tab-number {
+  border-color: var(--crm-primary);
+  background: var(--crm-primary);
+  color: #fff;
+}
+
+.contractor-wizard-tab strong,
+.contractor-wizard-tab small { display: block; }
+.contractor-wizard-tab strong { font-size: .98rem; }
+.contractor-wizard-tab small { margin-top: .12rem; color: #7a846f; font-size: .78rem; }
+.contractor-wizard-connector { height: 2px; background: #dbe6cf; }
+
+.contractor-wizard-panel {
+  min-height: 440px;
+  padding: 2rem;
+}
+
+.contractor-wizard-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.contractor-wizard-panel-heading h2 {
+  margin: 0 0 .25rem;
+  color: var(--crm-title);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.contractor-wizard-panel-heading p { margin: 0; color: var(--crm-muted); }
+
+.contractor-wizard-panel-icon {
+  display: grid;
+  flex: 0 0 3.25rem;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border-radius: 1rem;
+  background: rgba(141, 214, 44, .15);
+  color: #66a91c;
+  font-size: 1.35rem;
+}
+
+.contractor-name-field { width: min(680px, 100%); margin: 2.75rem auto; }
+.contractor-name-field .form-label { color: var(--crm-title); font-weight: 800; }
+.contractor-name-field .form-control { min-height: 58px; border-color: #d6e8c2; border-radius: 1rem; }
+
+.contractor-choice-toolbar {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  margin-bottom: 1rem;
+}
+
+.contractor-choice-search { position: relative; flex: 1 1 360px; max-width: 520px; }
+.contractor-choice-search .bi {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 1rem;
+  color: #7a846f;
+  transform: translateY(-50%);
+}
+.contractor-choice-search .form-control { height: 44px; padding-left: 2.7rem; border-color: #dbe8ce; border-radius: .85rem; }
+
+.contractor-choice-counter {
+  margin-left: auto;
+  padding: .55rem .8rem;
+  border-radius: .8rem;
+  background: #f3f8ed;
+  color: var(--crm-muted);
+  white-space: nowrap;
+}
+.contractor-choice-counter strong { color: #5c9e16; }
+
+.contractor-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .8rem;
+  max-height: 390px;
+  padding: .15rem .25rem .4rem .1rem;
+  overflow-y: auto;
+}
+.contractor-apartment-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.contractor-choice-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  min-height: 82px;
+  padding: 1rem 2.6rem 1rem 1rem;
+  border: 1px solid var(--crm-border);
+  border-radius: 1rem;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.contractor-choice-card[hidden] { display: none !important; }
+.contractor-choice-card:hover { border-color: #bcd995; box-shadow: var(--crm-shadow-soft); }
+.contractor-choice-card:has(input:checked) {
+  border-color: var(--crm-primary);
+  background: linear-gradient(135deg, #fbfff6 0%, #f0f9e4 100%);
+  box-shadow: 0 9px 22px rgba(120, 187, 36, .12);
+}
+.contractor-choice-card > .form-check-input { position: absolute; top: 1rem; right: 1rem; margin: 0; }
+
+.contractor-choice-card-icon {
+  display: grid;
+  flex: 0 0 2.35rem;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  border-radius: .75rem;
+  background: #f2f7ec;
+  color: #6d9d32;
+}
+.contractor-choice-card-copy { min-width: 0; }
+.contractor-choice-card-copy strong,
+.contractor-choice-card-copy small { display: block; }
+.contractor-choice-card-copy strong {
+  overflow: hidden;
+  color: var(--crm-title);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.contractor-choice-card-copy small {
+  display: -webkit-box;
+  margin-top: .2rem;
+  overflow: hidden;
+  color: var(--crm-muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.contractor-choice-empty {
+  grid-column: 1 / -1;
+  padding: 2.5rem;
+  border: 1px dashed #d7e2cc;
+  border-radius: 1rem;
+  color: var(--crm-muted);
+  text-align: center;
+}
+
+.contractor-wizard-error { margin: .8rem 0 0; color: var(--crm-danger); font-weight: 700; }
+.contractor-wizard-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--crm-border);
+}
+.contractor-wizard-actions-end { justify-content: flex-end; }
+.contractor-wizard-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .55rem;
+  min-width: 160px;
+  min-height: 44px;
+}
+
+@media (max-width: 1100px) and (min-width: 768px) {
+  .contractor-wizard-tabs {
+    grid-template-columns: minmax(150px, 1fr) 30px minmax(150px, 1fr) 30px minmax(150px, 1fr);
+    padding-inline: 1rem;
+  }
+  .contractor-apartment-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Keep the Apartments filter stable while iOS opens and closes its keyboard.
+   A real 16px control font prevents Safari focus zoom, and the explicit font
+   shorthand keeps selected values and native option rows regular-weight. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .content-card:has(.apartments-filter-form),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-form {
+    overflow-anchor: none !important;
+    contain: layout style !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-form
+    :is(.form-control, select, .form-select, .mobile-native-select) {
+    width: 100% !important;
+    min-height: 3.16rem !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif !important;
+    font-size: 16px !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    font-variation-settings: "wght" 400 !important;
+    font-synthesis: none !important;
+    line-height: 1.25 !important;
+    text-shadow: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-form
+    :is(select, .form-select, .mobile-native-select) option {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    font-variation-settings: "wght" 400 !important;
+    font-synthesis: none !important;
+  }
+}
+
+/* Final select typography guard for both desktop and mobile. */
+html body.app-body select:not([multiple]),
+html body.app-body select:not([multiple]) option,
+html body.app-body .developer-custom-select .developer-select-button,
+html body.app-body .developer-custom-select .developer-select-value,
+html body.app-body .developer-select-menu-portal .developer-select-option {
+  font-style: normal !important;
+  font-weight: 400 !important;
+  font-variation-settings: "wght" 400 !important;
+  font-synthesis: none !important;
+  text-shadow: none !important;
+}
+
+/* Assignment search remains fixed while the iOS keyboard changes the visual
+   viewport; 16px prevents Safari's automatic focus zoom. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignments-page-head)
+    :is(.assignment-toolbar-grid, .assignment-search-card, .assignment-search-form) {
+    overflow-anchor: none !important;
+    contain: layout style !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignments-page-head) .assignment-search-form
+    input.form-control[type="text"] {
+    min-height: 3.16rem !important;
+    font-size: 16px !important;
+    line-height: 1.25 !important;
+    transform: none !important;
+    transition: none !important;
+    scroll-margin-top: calc(4rem + env(safe-area-inset-top)) !important;
+  }
+}
+
+/* Final desktop users override. Keep role tabs and the actions column stable
+   after the legacy users blocks above. */
+@media (min-width: 992px) {
+  body.app-body:has(.users-page) .users-role-option {
+    justify-content: center !important;
+    min-height: 2.65rem !important;
+    padding: .65rem .9rem !important;
+    border: 1px solid var(--crm-border-strong) !important;
+    border-radius: .8rem !important;
+    background: #fff !important;
+    box-shadow: 0 5px 14px rgba(31, 52, 90, .04) !important;
+    transform: none !important;
+  }
+
+  body.app-body:has(.users-page) .users-role-option:hover {
+    border-color: #b8d68f !important;
+    background: #f8fced !important;
+  }
+
+  body.app-body:has(.users-page) .users-role-check {
+    display: none !important;
+  }
+
+  body.app-body:has(.users-page) .users-role-copy {
+    justify-content: center !important;
+  }
+
+  body.app-body:has(.users-page) .users-role-option:has(.users-role-input:checked) {
+    border-color: #78bb24 !important;
+    background: linear-gradient(180deg, #8dd62c 0%, #78bb24 100%) !important;
+    box-shadow: 0 10px 22px rgba(120, 187, 36, .2) !important;
+  }
+
+  body.app-body:has(.users-page) .users-role-option:has(.users-role-input:checked) .users-role-copy strong {
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+  }
+
+  body.app-body:has(.users-page) .users-table .users-col-login { width: 8% !important; }
+  body.app-body:has(.users-page) .users-table .users-col-name { width: 14% !important; }
+  body.app-body:has(.users-page) .users-table .users-col-role { width: 13% !important; }
+  body.app-body:has(.users-page) .users-table .users-col-project { width: 14% !important; }
+  body.app-body:has(.users-page) .users-table .users-col-password { width: 17% !important; }
+  body.app-body:has(.users-page) .users-table .users-col-captcha { width: 9% !important; }
+  body.app-body:has(.users-page) .users-table .users-col-created { width: 12% !important; }
+  body.app-body:has(.users-page) .users-table .users-col-actions { width: 13% !important; }
+
+  body.app-body:has(.users-page) .users-table .users-actions-heading,
+  body.app-body:has(.users-page) .users-table .users-actions-cell {
+    padding-right: .75rem !important;
+    padding-left: .75rem !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+  }
+
+  body.app-body:has(.users-page) .users-table .users-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
 }

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Замеры{% endblock %}
 {% block content %}
-<div class="glass-page">
+<div class="glass-page" data-ajax-pagination-page="glass-measurements">
 <div class="page-head remarks-page-head glass-page-head">
+  <a class="btn btn-outline-secondary glass-mobile-back-btn" href="{{ url_for('main.task_list') }}"><i class="bi bi-arrow-left"></i><span>Назад</span></a>
   <div>
     <h1 class="page-title">Замеры</h1>
     <p class="page-subtitle"></p>
@@ -16,9 +17,9 @@
 
 <div class="remarks-tabs mb-3">
   <ul class="nav crm-tabs">
-    <li class="nav-item"><a class="nav-link {% if tab == 'all' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='all', q=q) }}">Все</a></li>
-    <li class="nav-item"><a class="nav-link {% if tab == 'order' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='order', q=q) }}">Заказать</a></li>
-    <li class="nav-item"><a class="nav-link {% if tab == 'ordered' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='ordered', q=q) }}">Заказано</a></li>
+    <li class="nav-item glass-tab-all"><a class="nav-link {% if tab == 'all' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='all', q=q) }}">Все</a></li>
+    <li class="nav-item glass-tab-order"><a class="nav-link {% if tab == 'order' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='order', q=q) }}">Заказать</a></li>
+    <li class="nav-item glass-tab-ordered"><a class="nav-link {% if tab == 'ordered' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='ordered', q=q) }}">Заказано</a></li>
   </ul>
 </div>
 
@@ -39,7 +40,7 @@
   </div>
 </div>
 
-<div class="card table-shell glass-table-shell" data-search-highlight="{{ q }}">
+<div class="card table-shell glass-table-shell" data-search-highlight="{{ q }}" data-ajax-pagination-content data-ajax-items-selector=".task-row-link">
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle task-table mb-0">
@@ -121,7 +122,7 @@
     </form>
   </div>
 </div>
-<div class="card table-shell glass-table-shell mb-3 glass-order-page-card">
+<div class="card table-shell glass-table-shell mb-3 glass-order-page-card" data-ajax-pagination-content data-ajax-items-selector=".glass-order-card">
   <div class="card-header glass-card-header glass-order-page-header">
     <div>
       <b>Заказать</b>
@@ -226,13 +227,13 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="scope" value="ordered">
 </form>
-<div class="card table-shell glass-table-shell js-bulk-selectable" data-bulk-label-one="позиция" data-bulk-label-few="позиции" data-bulk-label-many="позиций">
+<div class="card table-shell glass-table-shell js-bulk-selectable" data-bulk-label-one="позиция" data-bulk-label-few="позиции" data-bulk-label-many="позиций" data-ajax-pagination-content data-ajax-items-selector=".glass-order-row">
   <div class="card-header glass-card-header">
     <div>
       <b>Заказано</b>
       <div class="text-muted small glass-mobile-ordered-summary">
         <i class="bi bi-box-seam" aria-hidden="true"></i>
-        Позиций: {{ ordered_rows|length }}
+        Позиций: {{ active_total }}
       </div>
     </div>
   </div>
@@ -252,7 +253,7 @@
             <th>Размеры</th>
             <th>Дата заказа</th>
             <th>Статус</th>
-            <th>Заявка</th>
+            <th class="glass-request-column">Заявка</th>
             <th class="text-end glass-actions-col">Действия</th>
           </tr>
         </thead>
@@ -361,7 +362,7 @@
               </form>
               {% if measurement.status == 'replaced' and measurement.replaced_at %}<div class="small text-success mt-1">Поменяно: {{ measurement.replaced_at|ru_date }}</div>{% endif %}
             </td>
-            <td>
+            <td class="glass-request-column">
               {% if linked_request %}
                 <a href="{{ url_for('main.material_request_detail', request_id=linked_request.id) }}">{{ linked_request.title or ('Заявка №' ~ linked_request.id) }}</a>
               {% else %}
@@ -395,6 +396,20 @@
     {% endif %}
   </div>
 </div>
+{% endif %}
+
+{% if glass_pagination and glass_pagination.pages > 1 %}
+<nav class="mt-3" aria-label="Навигация по замерам" data-ajax-pagination-nav>
+  <ul class="pagination justify-content-center mb-0">
+    <li class="page-item {% if not glass_pagination.has_prev %}disabled{% endif %}">
+      <a class="page-link" href="{% if glass_pagination.has_prev %}{{ url_for('main.glass_measurements', **glass_prev_args) }}{% else %}#{% endif %}">Назад</a>
+    </li>
+    <li class="page-item disabled"><span class="page-link">Стр. {{ glass_pagination.page }} / {{ glass_pagination.pages }}</span></li>
+    <li class="page-item {% if not glass_pagination.has_next %}disabled{% endif %}">
+      <a class="page-link" href="{% if glass_pagination.has_next %}{{ url_for('main.glass_measurements', **glass_next_args) }}{% else %}#{% endif %}">Далее</a>
+    </li>
+  </ul>
+</nav>
 {% endif %}
 </div>
 

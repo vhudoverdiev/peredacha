@@ -43,6 +43,7 @@ STATUS_DONE = "done"
 STATUS_FINISHERS = "finishers"
 STATUS_CONTRACTOR = "contractor"
 STATUS_GUARANTEE = "guarantee"
+STATUS_CONCESSION = "concession"
 STATUS_PROBLEM = "problem"
 STATUS_REVIEW = "review"
 STATUS_POSTPONED = "postponed"
@@ -52,10 +53,11 @@ TASK_STATUSES = {
     STATUS_FINISHERS: {"label": "Чистовики", "class": "info"},
     STATUS_CONTRACTOR: {"label": "Подрядчик", "class": "warning"},
     STATUS_GUARANTEE: {"label": "Гарантия", "class": "primary"},
+    STATUS_CONCESSION: {"label": "Отступные", "class": "secondary"},
     STATUS_PROBLEM: {"label": "Проблема", "class": "danger"},
     STATUS_NOT_STARTED: {"label": "Не выполнено", "class": "secondary"},
 }
-DONE_STATUSES = {STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR, STATUS_GUARANTEE}
+DONE_STATUSES = {STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR, STATUS_GUARANTEE, STATUS_CONCESSION}
 
 PRIORITIES = ["low", "normal", "high", "critical"]
 
@@ -69,6 +71,18 @@ material_writeoff_tasks = db.Table(
     "material_writeoff_tasks",
     db.Column("writeoff_id", db.Integer, db.ForeignKey("material_writeoffs.id"), primary_key=True),
     db.Column("task_id", db.Integer, db.ForeignKey("tasks.id"), primary_key=True),
+)
+
+contractor_work_points = db.Table(
+    "contractor_work_points",
+    db.Column("contractor_id", db.Integer, db.ForeignKey("contractors.id", ondelete="CASCADE"), primary_key=True),
+    db.Column("work_point_id", db.Integer, db.ForeignKey("work_points.id", ondelete="CASCADE"), primary_key=True),
+)
+
+contractor_apartments = db.Table(
+    "contractor_apartments",
+    db.Column("contractor_id", db.Integer, db.ForeignKey("contractors.id", ondelete="CASCADE"), primary_key=True),
+    db.Column("apartment_id", db.Integer, db.ForeignKey("apartments.id", ondelete="CASCADE"), primary_key=True),
 )
 
 
@@ -190,9 +204,29 @@ class Project(TimestampMixin, db.Model):
     material_writeoffs = db.relationship("MaterialWriteOff", back_populates="project", cascade="all, delete-orphan")
     glass_measurements = db.relationship("GlassMeasurement", back_populates="project", cascade="all, delete-orphan")
     site_error_reports = db.relationship("SiteErrorReport", back_populates="project", cascade="all, delete-orphan")
+    contractors = db.relationship("Contractor", back_populates="project", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Project {self.name}>"
+
+
+class Contractor(TimestampMixin, db.Model):
+    __tablename__ = "contractors"
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False, index=True)
+    name = db.Column(db.String(180), nullable=False, index=True)
+
+    project = db.relationship("Project", back_populates="contractors")
+    work_points = db.relationship("WorkPoint", secondary=contractor_work_points, back_populates="contractors")
+    apartments = db.relationship("Apartment", secondary=contractor_apartments, back_populates="contractors")
+
+    __table_args__ = (
+        db.UniqueConstraint("project_id", "name", name="uq_contractor_project_name"),
+    )
+
+    def __repr__(self):
+        return f"<Contractor {self.name}>"
 
 
 class Apartment(TimestampMixin, db.Model):
@@ -232,6 +266,7 @@ class Apartment(TimestampMixin, db.Model):
 
     project = db.relationship("Project", back_populates="apartments")
     tasks = db.relationship("Task", back_populates="apartment", cascade="all, delete-orphan")
+    contractors = db.relationship("Contractor", secondary=contractor_apartments, back_populates="apartments")
 
     __table_args__ = (
         db.UniqueConstraint("project_id", "construction_number", "apartment_number", name="uq_apartment_identity"),
@@ -382,6 +417,7 @@ class WorkPoint(TimestampMixin, db.Model):
 
     categories = db.relationship("WorkCategory", secondary=category_workpoint, back_populates="work_points")
     tasks = db.relationship("Task", back_populates="work_point")
+    contractors = db.relationship("Contractor", secondary=contractor_work_points, back_populates="work_points")
 
     __table_args__ = (
         db.UniqueConstraint("point_number", "source_sheet_name", name="uq_workpoint_number_sheet"),
@@ -444,6 +480,15 @@ class Task(TimestampMixin, db.Model):
     glass_measurement = db.relationship("GlassMeasurement", back_populates="task", uselist=False, cascade="all, delete-orphan")
 
     def status_label(self) -> str:
+        if self.status == STATUS_GUARANTEE and self.apartment and self.work_point:
+            apartment_contractors = {contractor.id: contractor for contractor in self.apartment.contractors}
+            names = sorted({
+                contractor.name
+                for contractor in self.work_point.contractors
+                if contractor.id in apartment_contractors and contractor.name
+            }, key=str.lower)
+            if names:
+                return ", ".join(names)
         return TASK_STATUSES.get(self.status, {}).get("label", self.status)
 
     def status_class(self) -> str:

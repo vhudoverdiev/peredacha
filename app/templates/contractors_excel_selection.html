@@ -13,8 +13,10 @@
   <div class="d-flex gap-2 flex-wrap">
     <a class="btn btn-outline-secondary crm-reset-btn" href="{{ back_url }}" data-preserve-bulk-selection="1"><i class="bi bi-arrow-left me-2"></i>Назад</a>
     <form id="{{ form_id }}" class="d-none js-remark-export-form" method="get" action="{{ url_for(export_endpoint, **endpoint_args) }}">
-      {% for key, value in export_args.items() if key != 'category_id' %}
+      {% for key, values in export_args.items() if key != 'category_id' %}
+      {% for value in values %}
       <input type="hidden" name="{{ key }}" value="{{ value }}">
+      {% endfor %}
       {% endfor %}
     </form>
   </div>

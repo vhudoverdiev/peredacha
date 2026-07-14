@@ -24,17 +24,6 @@
           <div><dt>Роль</dt><dd>{{ ROLE_LABELS.get(current_user.role, current_user.role) }}</dd></div>
           <div><dt>Капча</dt><dd>{{ 'отключена' if current_user.captcha_disabled else 'включена' }}</dd></div>
         </dl>
-        {% if current_user.role == 'admin' %}
-        <form method="post" class="account-name-form">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="action" value="update_name">
-          <label class="form-label" for="accountFullName">Изменить имя</label>
-          <div class="account-name-row">
-            <input class="form-control" id="accountFullName" name="full_name" type="text" maxlength="160" value="{{ current_user.full_name or '' }}" required>
-            <button class="btn btn-primary" type="submit">Сохранить</button>
-          </div>
-        </form>
-        {% endif %}
         <form class="account-logout-form js-auth-safe-submit" method="post" action="{{ url_for('auth.logout') }}" data-loading-text="Выходим...">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn btn-danger account-logout-btn js-auth-submit-button" type="submit">

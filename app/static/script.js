@@ -673,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (select.closest('.developer-custom-select')) return;
       if (select.dataset.customSelectReady === '1') return;
 
-      if (useNativeMobileSelect && isMobileSelectUi && !select.matches('[data-force-custom-select]')) {
+      if (useNativeMobileSelect && isMobileSelectUi) {
         select.dataset.nativeSelect = '1';
         select.classList.add('mobile-native-select');
         return;
@@ -1388,6 +1388,7 @@ document.addEventListener('DOMContentLoaded', () => {
     toast.querySelector('.crm-toast-close')?.addEventListener('click', close);
     window.setTimeout(close, 4500);
   };
+  window.showCrmNotice = showCrmNotice;
 
   const moveDoneItemToBottom = () => {
     // Строки больше не переставляются сразу после изменения статуса.
@@ -2001,6 +2002,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const currentStatus = actionsCell.dataset.currentStatus || '';
       actionsCell.querySelectorAll('.status-action-form[data-status-action]').forEach(actionForm => {
         if (actionForm.matches('[data-binary-status-toggle]')) {
+          // «Чистовики», «Подрядчик», «Гарантия» и «Отступные» считаются завершёнными для
+          // статистики, но это отдельные статусы. В них зелёная кнопка
+          // «Выполнено» должна оставаться доступной.
+          syncBinaryStatusToggle(actionForm, currentStatus === 'done');
           actionForm.classList.remove('d-none');
           return;
         }
@@ -3550,6 +3555,232 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// Быстрая пагинация: сервер по-прежнему формирует обычную HTML-страницу,
+// поэтому ссылки работают и без JavaScript. В браузере меняем только список
+// и две панели навигации, сохраняя шапку, фильтры и обработчики карточек.
+(() => {
+  const pageCache = new Map();
+  let requestController = null;
+
+  const isCompatibleNode = (currentNode, nextNode) => {
+    if (!currentNode || !nextNode || currentNode.nodeType !== nextNode.nodeType) return false;
+    if (currentNode.nodeType !== Node.ELEMENT_NODE) return true;
+    return currentNode.tagName === nextNode.tagName;
+  };
+
+  const syncElementAttributes = (currentElement, nextElement) => {
+    Array.from(currentElement.attributes).forEach(attribute => {
+      if (!nextElement.hasAttribute(attribute.name)) currentElement.removeAttribute(attribute.name);
+    });
+    Array.from(nextElement.attributes).forEach(attribute => {
+      if (currentElement.getAttribute(attribute.name) !== attribute.value) {
+        currentElement.setAttribute(attribute.name, attribute.value);
+      }
+    });
+
+    if (currentElement instanceof HTMLInputElement && nextElement instanceof HTMLInputElement) {
+      currentElement.value = nextElement.value;
+      currentElement.checked = nextElement.checked;
+      currentElement.disabled = nextElement.disabled;
+    } else if (currentElement instanceof HTMLTextAreaElement && nextElement instanceof HTMLTextAreaElement) {
+      currentElement.value = nextElement.value;
+    }
+  };
+
+  const morphPaginationNode = (currentNode, nextNode) => {
+    if (!isCompatibleNode(currentNode, nextNode)) {
+      currentNode.replaceWith(nextNode.cloneNode(true));
+      return;
+    }
+    if (currentNode.nodeType === Node.TEXT_NODE || currentNode.nodeType === Node.COMMENT_NODE) {
+      if (currentNode.nodeValue !== nextNode.nodeValue) currentNode.nodeValue = nextNode.nodeValue;
+      return;
+    }
+
+    syncElementAttributes(currentNode, nextNode);
+    const currentChildren = Array.from(currentNode.childNodes);
+    const nextChildren = Array.from(nextNode.childNodes);
+    nextChildren.forEach((nextChild, index) => {
+      const currentChild = currentChildren[index];
+      if (!currentChild) {
+        currentNode.appendChild(nextChild.cloneNode(true));
+        return;
+      }
+      morphPaginationNode(currentChild, nextChild);
+    });
+    currentChildren.slice(nextChildren.length).forEach(extraChild => {
+      if (extraChild.nodeType === Node.ELEMENT_NODE) {
+        extraChild.hidden = true;
+        extraChild.setAttribute('data-ajax-pagination-spare', '1');
+      } else {
+        extraChild.remove();
+      }
+    });
+
+    if (currentNode instanceof HTMLSelectElement && nextNode instanceof HTMLSelectElement) {
+      currentNode.value = nextNode.value;
+    }
+  };
+
+  const fetchPageText = async (url, signal, useCache = true) => {
+    const cacheKey = url.toString();
+    if (useCache && pageCache.has(cacheKey)) return pageCache.get(cacheKey);
+    const response = await fetch(cacheKey, {
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CRM-Partial-Navigation': '1' },
+      signal,
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const text = await response.text();
+    if (useCache) pageCache.set(cacheKey, text);
+    return text;
+  };
+
+  const prefetchPaginationLinks = pageRoot => {
+    pageRoot.querySelectorAll('[data-ajax-pagination-nav] a[href]').forEach(link => {
+      const href = link.getAttribute('href') || '';
+      if (!href || href === '#') return;
+      const url = new URL(href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      fetchPageText(url).catch(() => {});
+    });
+  };
+
+  const updatePaginationPage = async (targetUrl, { push = true, scroll = true, useCache = true } = {}) => {
+    const currentRoot = document.querySelector('[data-ajax-pagination-page]');
+    if (!currentRoot) {
+      window.location.assign(targetUrl.toString());
+      return;
+    }
+    const pageKey = currentRoot.dataset.ajaxPaginationPage || '';
+    requestController?.abort();
+    requestController = new AbortController();
+    currentRoot.classList.add('ajax-pagination-loading');
+    currentRoot.setAttribute('aria-busy', 'true');
+
+    try {
+      const html = await fetchPageText(targetUrl, requestController.signal, useCache);
+      const nextDocument = new DOMParser().parseFromString(html, 'text/html');
+      const nextRoot = nextDocument.querySelector(`[data-ajax-pagination-page="${CSS.escape(pageKey)}"]`);
+      const currentContent = currentRoot.querySelector('[data-ajax-pagination-content]');
+      const nextContent = nextRoot?.querySelector('[data-ajax-pagination-content]');
+      if (!nextRoot || !currentContent || !nextContent) {
+        window.location.assign(targetUrl.toString());
+        return;
+      }
+
+      const itemsSelector = currentContent.dataset.ajaxItemsSelector || '';
+      if (itemsSelector) {
+        const availableSlots = currentContent.querySelectorAll(itemsSelector).length;
+        const requiredSlots = nextContent.querySelectorAll(itemsSelector).length;
+        if (requiredSlots > availableSlots) {
+          window.location.assign(targetUrl.toString());
+          return;
+        }
+      }
+
+      morphPaginationNode(currentContent, nextContent);
+
+      const currentHead = currentRoot.querySelector('[data-ajax-pagination-head]');
+      const nextHead = nextRoot.querySelector('[data-ajax-pagination-head]');
+      if (currentHead && nextHead) morphPaginationNode(currentHead, nextHead);
+
+      const currentTabs = currentRoot.querySelector('[data-ajax-pagination-tabs]');
+      const nextTabs = nextRoot.querySelector('[data-ajax-pagination-tabs]');
+      if (currentTabs && nextTabs) morphPaginationNode(currentTabs, nextTabs);
+
+      const currentSummary = currentRoot.querySelector('[data-ajax-pagination-summary]');
+      const nextSummary = nextRoot.querySelector('[data-ajax-pagination-summary]');
+      if (currentSummary && nextSummary) morphPaginationNode(currentSummary, nextSummary);
+
+      const currentFilterForms = Array.from(currentRoot.querySelectorAll('[data-ajax-pagination-form]'));
+      const nextFilterForms = Array.from(nextRoot.querySelectorAll('[data-ajax-pagination-form]'));
+      currentFilterForms.forEach((filterForm, index) => {
+        if (nextFilterForms[index]) morphPaginationNode(filterForm, nextFilterForms[index]);
+      });
+
+      const currentNavs = Array.from(currentRoot.querySelectorAll('[data-ajax-pagination-nav]'));
+      const nextNavs = Array.from(nextRoot.querySelectorAll('[data-ajax-pagination-nav]'));
+      currentNavs.forEach((nav, index) => {
+        if (nextNavs[index]) nav.replaceWith(nextNavs[index].cloneNode(true));
+        else nav.remove();
+      });
+
+      if (push) window.history.pushState({ ajaxPagination: true, pageKey }, '', targetUrl);
+      document.title = nextDocument.title || document.title;
+      currentRoot.classList.remove('ajax-pagination-loading');
+      currentRoot.removeAttribute('aria-busy');
+      if (scroll) currentContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.dispatchEvent(new CustomEvent('crm:ajax-pagination-updated', {
+        detail: { pageKey, url: targetUrl.toString(), content: currentContent },
+      }));
+      prefetchPaginationLinks(currentRoot);
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+      window.location.assign(targetUrl.toString());
+    } finally {
+      currentRoot.classList.remove('ajax-pagination-loading');
+      currentRoot.removeAttribute('aria-busy');
+    }
+  };
+
+  document.addEventListener('click', event => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest('[data-ajax-pagination-nav] a[href]');
+    if (!link || link.target || link.hasAttribute('download')) return;
+    const href = link.getAttribute('href') || '';
+    if (!href || href === '#') return;
+    const targetUrl = new URL(href, window.location.href);
+    if (targetUrl.origin !== window.location.origin) return;
+    event.preventDefault();
+    updatePaginationPage(targetUrl);
+  });
+
+  document.addEventListener('click', event => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest('[data-ajax-pagination-tabs] .remarks-tab-link[href]');
+    if (!link || link.target || link.hasAttribute('download')) return;
+    const href = link.getAttribute('href') || '';
+    if (!href || href === '#') return;
+    const targetUrl = new URL(href, window.location.href);
+    if (targetUrl.origin !== window.location.origin) return;
+
+    event.preventDefault();
+    const tabs = link.closest('[data-ajax-pagination-tabs]');
+    tabs?.querySelectorAll('.remarks-tab-link').forEach(tab => tab.classList.toggle('active', tab === link));
+    void updatePaginationPage(targetUrl, { push: true, scroll: false, useCache: false });
+  });
+
+  document.addEventListener('submit', event => {
+    const form = event.target.closest('form[data-ajax-pagination-form]');
+    if (!form || (form.method || 'get').toLowerCase() !== 'get') return;
+    const pageRoot = form.closest('[data-ajax-pagination-page]');
+    if (!pageRoot?.querySelector('[data-ajax-pagination-content]')) return;
+    event.preventDefault();
+
+    const targetUrl = new URL(form.action || window.location.href, window.location.href);
+    targetUrl.search = '';
+    const formData = new FormData(form);
+    formData.forEach((value, key) => {
+      const normalizedValue = String(value || '').trim();
+      if (normalizedValue) targetUrl.searchParams.append(key, normalizedValue);
+    });
+    void updatePaginationPage(targetUrl, { push: true, scroll: false, useCache: false });
+  });
+
+  window.addEventListener('popstate', () => {
+    if (!document.querySelector('[data-ajax-pagination-page]')) return;
+    updatePaginationPage(new URL(window.location.href), { push: false });
+  });
+
+  const start = () => {
+    const pageRoot = document.querySelector('[data-ajax-pagination-page]');
+    if (pageRoot) prefetchPaginationLinks(pageRoot);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+  else start();
+})();
+
 // Issued-day filters update only their own content. The fixed mobile header
 // and bottom navigation stay mounted, so changing Today/Tomorrow does not
 // replay the full-page entry animation or make the shell jump.
@@ -3637,11 +3868,43 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', () => {
   let mobileNavGesture = null;
 
+  const activateMobileNavLink = link => {
+    const nav = link?.closest?.('.mobile-bottom-nav');
+    if (!nav) return null;
+    const previousActive = nav.querySelector('.mobile-nav-item.active');
+    nav.querySelectorAll('.mobile-nav-item').forEach(item => {
+      item.classList.remove('active', 'is-navigation-pending', 'is-touching');
+      item.removeAttribute('aria-current');
+    });
+    link.classList.add('active', 'is-navigation-pending');
+    link.setAttribute('aria-current', 'page');
+    return previousActive;
+  };
+
+  const restoreMobileNavLink = gesture => {
+    const nav = gesture?.link?.closest?.('.mobile-bottom-nav');
+    if (!nav) return;
+    nav.querySelectorAll('.mobile-nav-item').forEach(item => {
+      item.classList.remove('active', 'is-navigation-pending', 'is-touching');
+      item.removeAttribute('aria-current');
+    });
+    if (gesture.previousActive) {
+      gesture.previousActive.classList.add('active');
+      gesture.previousActive.setAttribute('aria-current', 'page');
+    }
+  };
+
   document.addEventListener('pointerdown', event => {
     const link = event.target.closest('.mobile-bottom-nav .mobile-nav-item[href]');
-    if (!link || event.pointerType !== 'touch' || event.button !== 0) return;
+    if (!link || event.button !== 0) return;
+    const targetUrl = new URL(link.href, window.location.href);
+    const currentUrl = new URL(window.location.href);
+    if (targetUrl.href === currentUrl.href) return;
+    const previousActive = activateMobileNavLink(link);
+    if (event.pointerType !== 'touch') return;
     mobileNavGesture = {
       link,
+      previousActive,
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
@@ -3651,7 +3914,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { passive: true, capture: true });
 
   document.addEventListener('pointercancel', () => {
-    mobileNavGesture?.link?.classList.remove('is-touching');
+    restoreMobileNavLink(mobileNavGesture);
     mobileNavGesture = null;
   }, { passive: true, capture: true });
 
@@ -3662,18 +3925,29 @@ document.addEventListener('DOMContentLoaded', () => {
     gesture.link.classList.remove('is-touching');
     const moved = Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y);
     const heldFor = Date.now() - gesture.startedAt;
-    if (moved > 12 || heldFor > 700) return;
+    if (moved > 12 || heldFor > 700) {
+      restoreMobileNavLink(gesture);
+      return;
+    }
 
     const targetUrl = new URL(gesture.link.href, window.location.href);
     const currentUrl = new URL(window.location.href);
     if (targetUrl.href === currentUrl.href) return;
     event.preventDefault();
     event.stopPropagation();
-    gesture.link.classList.add('active', 'is-navigation-pending');
     gesture.link.dataset.touchNavigationCommitted = '1';
     rememberInstantMobileEntryForNextNavigation(targetUrl.href);
     window.location.assign(targetUrl.href);
   }, { passive: false, capture: true });
+
+  document.addEventListener('click', event => {
+    const link = event.target.closest('.mobile-bottom-nav .mobile-nav-item[href]');
+    if (!link || link.dataset.touchNavigationCommitted === '1') return;
+    const targetUrl = new URL(link.href, window.location.href);
+    if (targetUrl.href === window.location.href) return;
+    activateMobileNavLink(link);
+    rememberInstantMobileEntryForNextNavigation(targetUrl.href);
+  }, true);
 
   document.addEventListener('click', event => {
     const link = event.target.closest('.mobile-bottom-nav .mobile-nav-item[data-touch-navigation-committed="1"]');
@@ -6111,11 +6385,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-project-access-control]').forEach(control => {
-    const allRadio = control.querySelector('input[name="access_mode"][value="all"]');
-    const specificRadio = control.querySelector('input[name="access_mode"][value="specific"]');
     const projectInputs = [...control.querySelectorAll('input[name="project_ids"]')];
     const label = control.querySelector('[data-project-access-label]');
-    if (!allRadio && !specificRadio) return;
+    const autosaveForm = control.querySelector('.users-project-autosave');
+    if (!projectInputs.length) return;
 
     const projectCountLabel = count => {
       if (count === 1) return '1 объект';
@@ -6124,20 +6397,115 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const syncAccessControl = () => {
-      const allSelected = Boolean(allRadio?.checked);
-      projectInputs.forEach(input => {
-        input.disabled = allSelected;
-        input.closest('.users-access-project-option')?.classList.toggle('is-disabled', allSelected);
-      });
       if (label) {
         const selectedCount = projectInputs.filter(input => input.checked).length;
-        label.textContent = allSelected ? 'Все объекты' : projectCountLabel(selectedCount);
+        label.textContent = projectCountLabel(selectedCount);
       }
     };
 
-    allRadio?.addEventListener('change', syncAccessControl);
-    specificRadio?.addEventListener('change', syncAccessControl);
-    projectInputs.forEach(input => input.addEventListener('change', syncAccessControl));
+    let savedIds = new Set(projectInputs.filter(input => input.checked).map(input => input.value));
+    const restoreSavedProjects = () => {
+      projectInputs.forEach(input => { input.checked = savedIds.has(input.value); });
+      syncAccessControl();
+    };
+
+    projectInputs.forEach(input => input.addEventListener('change', async () => {
+      syncAccessControl();
+      if (!autosaveForm) return;
+      if (!projectInputs.some(projectInput => projectInput.checked)) {
+        restoreSavedProjects();
+        window.showCrmNotice?.('Выберите хотя бы один объект.', 'warning');
+        return;
+      }
+
+      const formData = new FormData(autosaveForm);
+      projectInputs.forEach(projectInput => { projectInput.disabled = true; });
+      control.classList.add('is-saving');
+      try {
+        const response = await fetch(autosaveForm.action, {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось сохранить доступ');
+        savedIds = new Set((data.project_ids || []).map(String));
+        restoreSavedProjects();
+        if (label && data.label) label.textContent = data.label;
+        control.classList.add('is-saved');
+        window.setTimeout(() => control.classList.remove('is-saved'), 900);
+      } catch (error) {
+        restoreSavedProjects();
+        window.showCrmNotice?.(error.message || 'Не удалось сохранить доступ к объектам', 'danger');
+      } finally {
+        projectInputs.forEach(projectInput => { projectInput.disabled = false; });
+        control.classList.remove('is-saving');
+      }
+    }));
     syncAccessControl();
+  });
+
+  document.querySelectorAll('.users-name-autosave').forEach(form => {
+    const input = form.querySelector('.users-name-input');
+    if (!input) return;
+    let savedValue = form.dataset.savedValue || '';
+    let saving = false;
+
+    const saveName = async () => {
+      const requestedValue = input.value.trim();
+      if (saving || requestedValue === savedValue) {
+        input.value = requestedValue;
+        return;
+      }
+      saving = true;
+      input.disabled = true;
+      form.classList.add('is-saving');
+      try {
+        const formData = new FormData(form);
+        formData.set('full_name', requestedValue);
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось сохранить имя');
+        savedValue = data.full_name ?? requestedValue;
+        form.dataset.savedValue = savedValue;
+        input.value = savedValue;
+        form.classList.add('is-saved');
+        window.setTimeout(() => form.classList.remove('is-saved'), 900);
+      } catch (error) {
+        input.value = savedValue;
+        window.showCrmNotice?.(error.message || 'Не удалось сохранить имя', 'danger');
+      } finally {
+        saving = false;
+        input.disabled = false;
+        form.classList.remove('is-saving');
+      }
+    };
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      input.blur();
+    });
+    input.addEventListener('blur', saveName);
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        input.blur();
+      } else if (event.key === 'Escape') {
+        input.value = savedValue;
+        input.blur();
+      }
+    });
   });
 });

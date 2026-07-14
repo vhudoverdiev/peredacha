@@ -36,6 +36,7 @@ from app import csrf, db
 from app.forms import CommentForm, ProjectForm, TaskEditForm, UploadExcelForm, UserForm, UserPasswordForm
 from app.models import (
     Apartment,
+    Contractor,
     MaterialRequest,
     MaterialRequestItem,
     MaterialWriteOff,
@@ -69,6 +70,8 @@ from app.models import (
     STATUS_NOT_STARTED,
     STATUS_FINISHERS,
     STATUS_CONTRACTOR,
+    STATUS_GUARANTEE,
+    STATUS_CONCESSION,
     DONE_STATUSES,
 )
 from app.permissions import can_change_task, can_export, can_manage_mapping, can_manage_sync, role_required
@@ -1267,25 +1270,40 @@ def _material_balance_rows(project_id: int) -> list[dict[str, object]]:
     for row in balances.values():
         row["balance"] = float(row["received"]) - float(row["spent"])
 
-    return sorted(balances.values(), key=lambda row: (str(row["name"]).lower(), str(row["unit"]).lower()))
+    active_balances = [row for row in balances.values() if abs(float(row["balance"])) > 0.000001]
+    return sorted(active_balances, key=lambda row: (str(row["name"]).lower(), str(row["unit"]).lower()))
 
 
 def _next_measurement_request_number(project_id: int) -> int:
     requests = (
         MaterialRequest.query
-        .with_entities(MaterialRequest.title)
         .filter(
             MaterialRequest.project_id == project_id,
             MaterialRequest.comment == MEASUREMENT_REQUEST_COMMENT,
         )
+        .order_by(MaterialRequest.id)
         .all()
     )
-    used_numbers = []
-    for row in requests:
-        match = MEASUREMENT_REQUEST_TITLE_PATTERN.fullmatch((row.title or "").strip())
+    used_numbers: set[int] = set()
+    legacy_requests = []
+    for material_request in requests:
+        match = MEASUREMENT_REQUEST_TITLE_PATTERN.fullmatch((material_request.title or "").strip())
         if match:
-            used_numbers.append(int(match.group(1)))
-    return max(len(requests), max(used_numbers, default=0)) + 1
+            number = int(match.group(1))
+            if number not in used_numbers:
+                used_numbers.add(number)
+            else:
+                legacy_requests.append(material_request)
+        else:
+            legacy_requests.append(material_request)
+    next_available = 1
+    for material_request in legacy_requests:
+        while next_available in used_numbers:
+            next_available += 1
+        material_request.title = f"Заявка из замеров №{next_available}"
+        used_numbers.add(next_available)
+        next_available += 1
+    return max(used_numbers, default=0) + 1
 
 
 def _measurement_ids_for_writeoff(writeoff_id: int) -> list[int]:
@@ -2627,11 +2645,99 @@ def contractors_list():
     return _task_list_response(contractor_page=True)
 
 
-def _premise_options_from_tasks(tasks: list[Task]) -> list[dict]:
+@bp.route("/contractors/new", methods=["GET", "POST"])
+@login_required
+def contractor_new():
+    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+        abort(403)
+    if _is_mobile_phone_request():
+        return redirect(url_for("main.contractors_list"))
+
+    project = selected_project()
+    if project is None:
+        flash("Сначала выберите объект.", "warning")
+        return redirect(url_for("main.objects"))
+
+    point_options = _contractor_point_options()
+    apartment_options = _contractor_apartment_options(project.id)
+    name = str(request.form.get("name") or "").strip()
+    selected_point_numbers = {
+        str(value).strip()
+        for value in request.form.getlist("work_points")
+        if str(value).strip()
+    }
+    selected_apartment_group_ids = {
+        str(value).strip()
+        for value in request.form.getlist("apartment_groups")
+        if str(value).strip()
+    }
+
+    if request.method == "POST":
+        errors = []
+        available_point_numbers = {option["number"] for option in point_options}
+        selected_point_numbers &= available_point_numbers
+        apartment_group_map = {str(option["id"]): option for option in apartment_options}
+        selected_apartment_group_ids &= set(apartment_group_map)
+
+        if len(name) < 2:
+            errors.append("Укажите наименование подрядчика.")
+        elif len(name) > 180:
+            errors.append("Наименование подрядчика не должно превышать 180 символов.")
+        elif Contractor.query.filter(
+            Contractor.project_id == project.id,
+            func.lower(Contractor.name) == name.lower(),
+        ).first():
+            errors.append("Подрядчик с таким наименованием уже создан на этом объекте.")
+        if not selected_point_numbers:
+            errors.append("Выберите хотя бы один пункт ответственности.")
+        if not selected_apartment_group_ids:
+            errors.append("Выберите хотя бы одну квартиру.")
+
+        if not errors:
+            work_points = (
+                WorkPoint.query.filter(WorkPoint.point_number.in_(selected_point_numbers))
+                .order_by(WorkPoint.point_number.asc(), WorkPoint.id.asc())
+                .all()
+            )
+            apartment_ids = {
+                apartment_id
+                for group_id in selected_apartment_group_ids
+                for apartment_id in apartment_group_map[group_id]["apartment_ids"]
+            }
+            apartments = (
+                Apartment.query.filter(
+                    Apartment.project_id == project.id,
+                    Apartment.id.in_(apartment_ids),
+                )
+                .order_by(Apartment.id.asc())
+                .all()
+            )
+            contractor = Contractor(project=project, name=name)
+            contractor.work_points = work_points
+            contractor.apartments = apartments
+            db.session.add(contractor)
+            db.session.commit()
+            flash(f"Подрядчик «{contractor.name}» создан.", "success")
+            return redirect(url_for("main.contractors_list"))
+
+        for error in errors:
+            flash(error, "warning")
+
+    return render_template(
+        "contractor_form.html",
+        project=project,
+        point_options=point_options,
+        apartment_options=apartment_options,
+        contractor_name=name,
+        selected_point_numbers=selected_point_numbers,
+        selected_apartment_group_ids=selected_apartment_group_ids,
+    )
+
+
+def _premise_options_from_apartments(apartments: list[Apartment]) -> list[dict]:
     premise_options = []
     seen_premise_ids = set()
-    for task in tasks:
-        apartment = task.apartment
+    for apartment in apartments:
         if not apartment or apartment.id in seen_premise_ids:
             continue
         seen_premise_ids.add(apartment.id)
@@ -2652,12 +2758,19 @@ def _premise_options_from_tasks(tasks: list[Task]) -> list[dict]:
     return premise_options
 
 
-def _excel_premise_storage_key(base_key: str, project_id: int, export_args: dict[str, str]) -> str:
-    normalized_args = {
-        str(key): str(value)
-        for key, value in sorted((export_args or {}).items())
-        if key not in {"page", "task_ids", "premise_ids"} and value not in {None, ""}
-    }
+def _premise_options_from_tasks(tasks: list[Task]) -> list[dict]:
+    return _premise_options_from_apartments([task.apartment for task in tasks if task.apartment])
+
+
+def _excel_premise_storage_key(base_key: str, project_id: int, export_args: dict[str, object]) -> str:
+    normalized_args = {}
+    for key, value in sorted((export_args or {}).items()):
+        if key in {"page", "task_ids", "premise_ids"}:
+            continue
+        values = value if isinstance(value, (list, tuple, set)) else [value]
+        cleaned_values = [str(item).strip() for item in values if item not in {None, ""} and str(item).strip()]
+        if cleaned_values:
+            normalized_args[str(key)] = cleaned_values
     signature = stable_hash([json.dumps(normalized_args, ensure_ascii=False, sort_keys=True, separators=(",", ":"))])[:16]
     return f"{base_key}:project:{project_id}:{signature}"
 
@@ -2673,7 +2786,7 @@ def contractors_excel_selection():
     ensure_default_categories()
     categories = WorkCategory.query.filter_by(is_active=True).order_by(WorkCategory.sort_order.asc()).all()
     all_cat = next((category for category in categories if (category.name or "").strip().lower() == "все"), None)
-    query_args = request.args.to_dict()
+    query_args = request.args.copy()
     query_args.pop("page", None)
     query_args.pop("task_ids", None)
     query_args["sort"] = "apartment"
@@ -2684,7 +2797,7 @@ def contractors_excel_selection():
         query.options(selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.glass_measurement))
         .all()
     )
-    export_args = {key: value for key, value in request.args.to_dict(flat=True).items() if key not in {"page", "task_ids", "premise_ids"}}
+    export_args = {key: values for key, values in request.args.lists() if key not in {"page", "task_ids", "premise_ids"}}
     back_url = url_for("main.contractors_list", **export_args)
     storage_key = _excel_premise_storage_key("contractors-premises", project.id, export_args)
     return render_template(
@@ -2713,7 +2826,7 @@ def remarks_excel_selection(category_id: int):
         return redirect(url_for("main.objects"))
     ensure_default_categories()
     category = db.session.get(WorkCategory, category_id) or abort(404)
-    query_args = request.args.to_dict()
+    query_args = request.args.copy()
     query_args.pop("page", None)
     query_args.pop("task_ids", None)
     query = build_task_query(query_args, category_id=category_id, project_id=project.id)
@@ -2723,8 +2836,8 @@ def remarks_excel_selection(category_id: int):
         query.options(selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.glass_measurement))
         .all()
     )
-    export_args = {key: value for key, value in request.args.to_dict(flat=True).items() if key not in {"page", "task_ids", "premise_ids"}}
-    export_args["category_id"] = category_id
+    export_args = {key: values for key, values in request.args.lists() if key not in {"page", "task_ids", "premise_ids"}}
+    export_args["category_id"] = [str(category_id)]
     back_url = url_for("main.task_list", **export_args)
     storage_key = _excel_premise_storage_key(f"remarks-{category_id}-premises", project.id, export_args)
     return render_template(
@@ -2753,7 +2866,7 @@ def contractors_export():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    query_args = request.args.to_dict()
+    query_args = request.args.copy()
     query_args["sort"] = "apartment"
     tasks = _export_tasks_from_request(query_args, project.id).all()
     point = request.args.get("point")
@@ -3233,7 +3346,7 @@ def assignments():
     else:
         query = _assignment_base_query(project.id, query_args).filter(Task.responsible_id.is_(None))
         page = request.args.get("page", 1, type=int)
-        per_page = 10 if _is_mobile_phone_request() else 80
+        per_page = 10 if _is_mobile_phone_request() else 20
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         tasks = pagination.items
         prev_args = {k: v for k, v in query_args.items() if v}
@@ -4113,6 +4226,8 @@ def glass_measurements():
     tab = (request.args.get("tab") or "all").strip()
     if tab not in {"all", "order", "ordered"}:
         tab = "all"
+    if _is_mobile_phone_request():
+        tab = "ordered"
     q = (request.args.get("q") or "").strip()
     point = (request.args.get("point") or "").strip()
     ordered_status = (request.args.get("ordered_status") or "").strip()
@@ -4136,6 +4251,39 @@ def glass_measurements():
         if ordered_status:
             ordered_rows = [row for row in ordered_rows if row["status"] == ordered_status]
         ordered_rows.sort(key=lambda row: _task_apartment_sort_value_no_done(row["task"]))
+
+    active_rows = rows if tab == "all" else order_rows if tab == "order" else ordered_rows
+    active_total = len(active_rows)
+    glass_pagination = None
+    glass_prev_args = {}
+    glass_next_args = {}
+    if not _is_mobile_phone_request():
+        per_page = 20
+        requested_page = max(request.args.get("page", 1, type=int), 1)
+        page_count = max((active_total + per_page - 1) // per_page, 1)
+        page = min(requested_page, page_count)
+        page_start = (page - 1) * per_page
+        page_rows = active_rows[page_start:page_start + per_page]
+        if tab == "all":
+            rows = page_rows
+        elif tab == "order":
+            order_rows = page_rows
+        else:
+            ordered_rows = page_rows
+        glass_pagination = {
+            "page": page,
+            "pages": page_count,
+            "has_prev": page > 1,
+            "has_next": page < page_count,
+        }
+        glass_prev_args = request.args.to_dict(flat=False)
+        glass_next_args = request.args.to_dict(flat=False)
+        glass_prev_args["tab"] = tab
+        glass_next_args["tab"] = tab
+        if page > 1:
+            glass_prev_args["page"] = page - 1
+        if page < page_count:
+            glass_next_args["page"] = page + 1
     return render_template(
         "glass_measurements.html",
         project=project,
@@ -4150,6 +4298,10 @@ def glass_measurements():
         glass_point_options=_glass_point_options(project.id),
         selected_point=point,
         ordered_status=ordered_status,
+        active_total=active_total,
+        glass_pagination=glass_pagination,
+        glass_prev_args=glass_prev_args,
+        glass_next_args=glass_next_args,
         today=date.today(),
     )
 
@@ -4780,6 +4932,7 @@ def material_balance_delete():
             db.session.delete(material_request)
     for writeoff in list(touched_writeoffs):
         if writeoff is not None and not writeoff.items:
+            measurement_ids = _measurement_ids_for_writeoff(writeoff.id)
             _record_simple_deletion(
                 "material_writeoff_delete_empty_after_balance",
                 "material_writeoff",
@@ -4787,8 +4940,13 @@ def material_balance_delete():
                 f"Списание #{writeoff.id}",
                 "Списание удалено автоматически после удаления всех строк баланса.",
                 project_id=project.id,
-                extra={"items": [_snapshot_model(item) for item in writeoff.items]},
+                extra={
+                    "items": [_snapshot_model(item) for item in writeoff.items],
+                    "task_ids": [task.id for task in writeoff.tasks],
+                    "measurement_ids": measurement_ids,
+                },
             )
+            _unlink_measurements_from_writeoff(writeoff.id)
             writeoff.tasks.clear()
             db.session.delete(writeoff)
 
@@ -5069,6 +5227,7 @@ def material_writeoff_delete(writeoff_id: int):
     if not _can_edit_materials():
         abort(403)
     writeoff = MaterialWriteOff.query.filter(MaterialWriteOff.id == writeoff_id, MaterialWriteOff.project_id == project.id).first() or abort(404)
+    measurement_ids = _measurement_ids_for_writeoff(writeoff.id)
     _record_simple_deletion(
         "material_writeoff_delete",
         "material_writeoff",
@@ -5079,8 +5238,10 @@ def material_writeoff_delete(writeoff_id: int):
         extra={
             "items": [_snapshot_model(item) for item in writeoff.items],
             "task_ids": [task.id for task in writeoff.tasks],
+            "measurement_ids": measurement_ids,
         },
     )
+    _unlink_measurements_from_writeoff(writeoff.id)
     writeoff.tasks.clear()
     db.session.delete(writeoff)
     db.session.commit()
@@ -5113,6 +5274,7 @@ def material_writeoffs_bulk_delete():
 
     writeoffs_to_delete = query.all()
     for writeoff in writeoffs_to_delete:
+        measurement_ids = _measurement_ids_for_writeoff(writeoff.id)
         _record_simple_deletion(
             "material_writeoff_delete",
             "material_writeoff",
@@ -5123,8 +5285,10 @@ def material_writeoffs_bulk_delete():
             extra={
                 "items": [_snapshot_model(item) for item in writeoff.items],
                 "task_ids": [task.id for task in writeoff.tasks],
+                "measurement_ids": measurement_ids,
             },
         )
+        _unlink_measurements_from_writeoff(writeoff.id)
         writeoff.tasks.clear()
         db.session.delete(writeoff)
     db.session.commit()
@@ -6164,31 +6328,44 @@ def _task_list_response(contractor_page: bool = False):
     if section_id and not contractor_page:
         category_id = section_id
 
-    query_args = request.args.to_dict()
+    query_args = request.args.copy()
     if contractor_page:
         # В разделе "Подрядчики" показываем ту же таблицу замечаний, но группируем/фильтруем по пунктам 10-22.
         # Не принудительно фильтруем по статусу "Подрядчик", иначе вкладка пустая до ручной разметки задач.
         query_args["sort"] = "apartment"
     query = build_task_query(query_args, category_id=category_id, project_id=project.id)
-    acceptance_status = request.args.get("acceptance_status")
-    if acceptance_status == "accepted":
-        query = query.filter(Apartment.is_app_mode.is_(True))
-    elif acceptance_status == "waiting":
-        query = query.filter(Apartment.is_app_mode.is_(False))
     if current_user.role in WORKER_ROLES:
         query = query.filter(Task.responsible_id == current_user.id)
     # Список помещений для выбора Excel строим по всему отфильтрованному набору,
     # а не только по текущей странице пагинации.
     is_mobile_request = _is_mobile_phone_request()
-    premise_source_tasks = [] if is_mobile_request else query.options(selectinload(Task.apartment)).all()
+    if is_mobile_request:
+        premise_options = []
+    else:
+        premise_ids = [
+            apartment_id
+            for (apartment_id,) in (
+                query.order_by(None)
+                .with_entities(Task.apartment_id)
+                .filter(Task.apartment_id.isnot(None))
+                .distinct()
+                .all()
+            )
+        ]
+        premise_apartments = (
+            Apartment.query.filter(Apartment.id.in_(premise_ids)).all()
+            if premise_ids
+            else []
+        )
+        premise_options = _premise_options_from_apartments(premise_apartments)
 
     page = request.args.get("page", 1, type=int)
-    per_page = 10 if is_mobile_request else 50
+    per_page = 10 if is_mobile_request else 20
     pagination = query.options(selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items)).paginate(page=page, per_page=per_page, error_out=False)
     active_category = next((category for category in categories if category.id == category_id), None)
 
-    prev_args = request.args.to_dict()
-    next_args = request.args.to_dict()
+    prev_args = request.args.to_dict(flat=False)
+    next_args = request.args.to_dict(flat=False)
     if pagination.has_prev:
         prev_args["page"] = pagination.prev_num
     if pagination.has_next:
@@ -6201,10 +6378,9 @@ def _task_list_response(contractor_page: bool = False):
         .filter(Apartment.project_id == project.id, Apartment.finishing_type.isnot(None))
         .all()
     ]
-    premise_options = _premise_options_from_tasks(premise_source_tasks)
     excel_export_args = {
         key: value
-        for key, value in request.args.to_dict(flat=True).items()
+        for key, value in request.args.to_dict(flat=False).items()
         if key not in {"page", "task_ids", "premise_ids"}
     }
     if not contractor_page and category_id:
@@ -6228,8 +6404,9 @@ def _task_list_response(contractor_page: bool = False):
         contractor_page=contractor_page,
         list_endpoint="main.contractors_list" if contractor_page else "main.task_list",
         contractor_points=_contractor_point_options() if contractor_page else [],
-        contractor_excel_selection_url=(url_for("main.contractors_excel_selection", **request.args.to_dict(flat=True)) if contractor_page else ""),
-        remarks_excel_selection_url=(url_for("main.remarks_excel_selection", category_id=category_id, **{key: value for key, value in request.args.to_dict(flat=True).items() if key not in {"category_id", "page", "task_ids", "premise_ids"}}) if (not contractor_page and category_id) else ""),
+        contractor_excel_selection_url=(url_for("main.contractors_excel_selection", **request.args.to_dict(flat=False)) if contractor_page else ""),
+        remarks_excel_selection_url=(url_for("main.remarks_excel_selection", category_id=category_id, **{key: value for key, value in request.args.to_dict(flat=False).items() if key not in {"category_id", "page", "task_ids", "premise_ids"}}) if (not contractor_page and category_id) else ""),
+        category_filter_args={key: value for key, value in request.args.to_dict(flat=False).items() if key not in {"category_id", "section_id", "page"}},
         premise_options=premise_options,
         premise_storage_key=premise_storage_key,
         page_title="Подрядчики" if contractor_page else "Замечания",
@@ -6691,6 +6868,35 @@ def _contractor_point_options() -> list[dict[str, str]]:
     return options
 
 
+def _contractor_apartment_options(project_id: int) -> list[dict]:
+    apartments = Apartment.query.filter(Apartment.project_id == project_id).all()
+    groups: dict[str, list[Apartment]] = {}
+    for apartment in apartments:
+        if not _is_visible_apartment_row(apartment):
+            continue
+        groups.setdefault(_apartment_group_key(apartment), []).append(apartment)
+
+    options = []
+    for group in groups.values():
+        representative = _pick_apartment_representative(group)
+        options.append({
+            "id": representative.id,
+            "apartment_ids": sorted(apartment.id for apartment in group),
+            "label": representative.full_label(),
+            "building": str(representative.building or "").strip(),
+            "entrance": str(representative.entrance or "").strip(),
+            "floor": str(representative.floor or "").strip(),
+            "finishing_type": str(representative.finishing_type or "").strip(),
+            "_sort_key": (
+                0 if (representative.premise_type or "apartment") == "apartment" else 1,
+                _apartment_number_sort_value(representative.apartment_number or representative.construction_number),
+                str(representative.building or "").strip().lower(),
+            ),
+        })
+    options.sort(key=lambda option: option["_sort_key"])
+    return options
+
+
 def _group_project_apartments(project_id: int, include_activity: bool = True) -> list[list[Apartment]]:
     load_options = [
         selectinload(Apartment.tasks).selectinload(Task.work_point),
@@ -6800,18 +7006,17 @@ def apartments():
         for key, value in request.args.items()
         if key != "page"
     )
+    per_page = 10 if is_mobile_request else 20
     mobile_page = 1
     mobile_total_pages = 1
     mobile_pagination_args = request.args.to_dict(flat=True)
     mobile_pagination_args.pop("page", None)
-    if is_mobile_request:
-        per_page = 10
-        try:
-            mobile_page = max(1, int(request.args.get("page", 1)))
-        except (TypeError, ValueError):
-            mobile_page = 1
+    try:
+        mobile_page = max(1, int(request.args.get("page", 1)))
+    except (TypeError, ValueError):
+        mobile_page = 1
 
-    if is_mobile_request and not has_active_filters:
+    if not has_active_filters:
         groups = _group_project_apartments(project.id, include_activity=False)
         groups.sort(key=lambda group: _apartment_number_sort_value(
             _pick_apartment_representative(group).display_number(fallback_to_id=False)
@@ -6845,11 +7050,10 @@ def apartments():
             project.id, request.args, source_rows=all_rows
         )
         total_count = len(rows)
-        if is_mobile_request:
-            mobile_total_pages = max(1, (total_count + per_page - 1) // per_page)
-            mobile_page = min(mobile_page, mobile_total_pages)
-            start = (mobile_page - 1) * per_page
-            rows = rows[start:start + per_page]
+        mobile_total_pages = max(1, (total_count + per_page - 1) // per_page)
+        mobile_page = min(mobile_page, mobile_total_pages)
+        start = (mobile_page - 1) * per_page
+        rows = rows[start:start + per_page]
         po_alert_count = sum(1 for row in all_rows if row.get("po_status") == PO_STATUS_TO_THROW)
     finishing_types = [
         x[0]
@@ -7592,6 +7796,9 @@ def work_report():
         return redirect(url_for("main.objects"))
     today = date.today()
     start = today - timedelta(days=55)
+    # В отчёт попадает только обычное «Выполнено». Завершающие статусы
+    # «Отступные», «Чистовики» и «Гарантия» намеренно не учитываются.
+    report_excluded_statuses = (STATUS_CONCESSION, STATUS_FINISHERS, STATUS_GUARANTEE)
     tasks = (
         Task.query.join(Apartment)
         .join(WorkPoint)
@@ -7599,6 +7806,7 @@ def work_report():
             Task.project_id == project.id,
             Task.is_done.is_(True),
             Task.status == STATUS_DONE,
+            Task.status.notin_(report_excluded_statuses),
             Task.completed_date.isnot(None),
             Task.completed_date >= start,
         )
@@ -7635,10 +7843,13 @@ def work_report_export():
         start = today - timedelta(days=55)
         end = today
         filename_prefix = f"{project.name}_отчет_весь период"
+    # Держим Excel-выгрузку синхронной с экраном отчёта.
+    report_excluded_statuses = (STATUS_CONCESSION, STATUS_FINISHERS, STATUS_GUARANTEE)
     base_query = Task.query.filter(
         Task.project_id == project.id,
         Task.is_done.is_(True),
         Task.status == STATUS_DONE,
+        Task.status.notin_(report_excluded_statuses),
         Task.completed_date.isnot(None),
         Task.completed_date >= start,
         Task.completed_date <= end + timedelta(days=1),
@@ -8107,7 +8318,7 @@ def export_tasks():
     if project is None:
         return redirect(url_for("main.objects"))
     category_id = request.args.get("category_id", type=int)
-    tasks = _export_tasks_from_request(request.args.to_dict(), project.id, category_id=category_id).all()
+    tasks = _export_tasks_from_request(request.args.copy(), project.id, category_id=category_id).all()
     path = export_tasks_to_excel(tasks, filename_prefix=project.name)
     return send_file(path, as_attachment=True, download_name=Path(path).name)
 
@@ -8121,7 +8332,7 @@ def export_category_tasks(category_id: int):
     if project is None:
         return redirect(url_for("main.objects"))
     category = db.session.get(WorkCategory, category_id) or abort(404)
-    tasks = _export_tasks_from_request(request.args.to_dict(), project.id, category_id=category_id).all()
+    tasks = _export_tasks_from_request(request.args.copy(), project.id, category_id=category_id).all()
     path = export_remark_tasks_excel(tasks, f"{project.name}_{category.name}", title=category.name)
     return send_file(path, as_attachment=True, download_name=Path(path).name)
 
@@ -8273,15 +8484,7 @@ def account():
 
     if request.method == "POST":
         action = (request.form.get("action") or "").strip()
-        if action == "update_name" and user.role == ROLE_ADMIN:
-            full_name = (request.form.get("full_name") or "").strip()
-            if len(full_name) < 2 or len(full_name) > 160:
-                flash("Имя должно содержать от 2 до 160 символов.", "danger")
-            else:
-                user.full_name = full_name
-                db.session.commit()
-                flash("Имя обновлено.", "success")
-        elif action == "start_2fa":
+        if action == "start_2fa":
             pending_secret = generate_totp_secret()
             session["account_2fa_pending_secret"] = pending_secret
             flash("Отсканируйте QR-код или введите ключ вручную, затем подтвердите кодом.", "info")
@@ -8336,18 +8539,13 @@ def users():
             flash("Пользователь с таким логином уже есть", "danger")
         else:
             project = selected_project()
-            access_mode = (request.form.get("access_mode") or "").strip()
-            if access_mode not in {"all", "specific"}:
-                access_mode = "all" if form.role.data in {ROLE_MANAGER, ROLE_VERIFIER} else "specific"
             requested_project_ids = {
                 value for value in request.form.getlist("project_ids") if str(value).isdigit()
             }
             valid_project_ids = {project.id for project in all_projects}
             project_ids = sorted({int(value) for value in requested_project_ids if int(value) in valid_project_ids})
-            if access_mode == "specific" and not project_ids and project:
-                project_ids = [project.id]
-            if access_mode == "specific" and not project_ids:
-                flash("Выберите хотя бы один объект или включите доступ ко всем объектам.", "danger")
+            if not project_ids:
+                flash("Выберите хотя бы один объект.", "danger")
                 users = User.query.order_by(User.created_at.desc()).all()
                 return render_template("users.html", users=users, form=form, project=project, all_projects=all_projects)
             user = User(
@@ -8356,7 +8554,7 @@ def users():
                 role=form.role.data,
                 is_active=True,
             )
-            user.set_project_access(project_ids, all_projects=access_mode == "all")
+            user.set_project_access(project_ids, all_projects=False)
             password = form.password.data
             user.set_password(password)
             db.session.add(user)
@@ -8373,27 +8571,15 @@ def users():
     return render_template("users.html", users=users, form=form, project=project, all_projects=all_projects)
 
 
-@bp.route("/users/<int:user_id>/name", methods=["POST"])
-@login_required
-@role_required(ROLE_ADMIN)
-def user_update_name(user_id: int):
-    user = db.session.get(User, user_id) or abort(404)
-    full_name = (request.form.get("full_name") or "").strip()
-    if len(full_name) < 2 or len(full_name) > 160:
-        flash("Имя должно содержать от 2 до 160 символов.", "danger")
-    else:
-        user.full_name = full_name
-        db.session.commit()
-        flash("Имя пользователя обновлено.", "success")
-    return redirect(url_for("main.users"))
-
-
 @bp.route("/users/<int:user_id>/projects", methods=["POST"])
 @login_required
 @role_required(ROLE_ADMIN)
 def user_update_projects(user_id: int):
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
     user = db.session.get(User, user_id) or abort(404)
     if user.role == ROLE_ADMIN:
+        if wants_json:
+            return jsonify(ok=False, message="Разработчику всегда доступны все объекты."), 400
         flash("Разработчику всегда доступны все объекты.", "info")
         return redirect(url_for("main.users"))
     all_projects = Project.query.with_entities(Project.id).all()
@@ -8402,13 +8588,39 @@ def user_update_projects(user_id: int):
         int(value) for value in request.form.getlist("project_ids") if str(value).isdigit()
     }
     project_ids = sorted(requested_ids & valid_project_ids)
-    access_all = (request.form.get("access_mode") or "").strip() == "all"
-    if not access_all and not project_ids:
-        flash("Выберите хотя бы один объект или включите доступ ко всем объектам.", "danger")
+    if not project_ids:
+        if wants_json:
+            return jsonify(ok=False, message="Выберите хотя бы один объект."), 400
+        flash("Выберите хотя бы один объект.", "danger")
         return redirect(url_for("main.users"))
-    user.set_project_access(project_ids, all_projects=access_all)
+    user.set_project_access(project_ids, all_projects=False)
     db.session.commit()
+    if wants_json:
+        count = len(project_ids)
+        label = "1 объект" if count == 1 else (f"{count} объекта" if 2 <= count <= 4 else f"{count} объектов")
+        return jsonify(ok=True, project_ids=project_ids, count=count, label=label, message="Доступ к объектам сохранён.")
     flash("Доступ к объектам обновлён.", "success")
+    return redirect(url_for("main.users"))
+
+
+@bp.route("/users/<int:user_id>/name", methods=["POST"])
+@login_required
+@role_required(ROLE_ADMIN)
+def user_update_name(user_id: int):
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    user = db.session.get(User, user_id) or abort(404)
+    _abort_if_user_outside_current_project(user)
+    full_name = str(request.form.get("full_name") or "").strip()
+    if len(full_name) > 160:
+        if wants_json:
+            return jsonify(ok=False, message="Имя не должно превышать 160 символов."), 400
+        flash("Имя не должно превышать 160 символов.", "danger")
+        return redirect(url_for("main.users"))
+    user.full_name = full_name or None
+    db.session.commit()
+    if wants_json:
+        return jsonify(ok=True, full_name=user.full_name or "", label=user.full_name or "—", message="Имя сохранено.")
+    flash("Имя пользователя обновлено.", "success")
     return redirect(url_for("main.users"))
 
 

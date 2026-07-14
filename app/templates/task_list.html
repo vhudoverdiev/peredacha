@@ -2,9 +2,10 @@
 {% block title %}{{ page_title or 'Замечания' }}{% endblock %}
 {% block content %}
 {% set is_dop = active_category and active_category.name == 'Доп.Соглашение' %}
-{% set status_pill_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'guarantee': 'status-pill-primary', 'problem': 'status-pill-danger'} %}
+{% set status_pill_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'guarantee': 'status-pill-primary', 'concession': 'status-pill-muted', 'problem': 'status-pill-danger'} %}
 {% set selected_finishing_groups = args.getlist('finishing_group') %}
-<div class="page-head remarks-page-head">
+<div data-ajax-pagination-page="remarks">
+<div class="page-head remarks-page-head" data-ajax-pagination-head>
   <div>
     <h1 class="page-title">{{ page_title or 'Замечания' }}</h1>
     <p class="page-subtitle">{{ page_subtitle or 'Перечень всех замечаний' }}</p>
@@ -14,8 +15,10 @@
     {% set bulk_delete_form_id = 'contractorBulkDeleteForm' if contractor_page else 'remarksBulkDeleteForm' %}
     {% set task_add_href = url_for('main.task_new', mode='manual', kind='single') if is_mobile_phone_request else url_for('main.task_new') %}
     <form id="{{ export_form_id }}" class="d-none js-remark-export-form" method="get" action="{{ url_for('main.contractors_export') if contractor_page else url_for('main.export_category_tasks', category_id=active_category_id) }}">
-      {% for key, value in args.items() if key not in ['page', 'task_ids'] %}
+      {% for key, values in args.lists() if key not in ['page', 'task_ids'] %}
+      {% for value in values %}
       <input type="hidden" name="{{ key }}" value="{{ value }}">
+      {% endfor %}
       {% endfor %}
     </form>
     {% if current_user.role != 'viewer' %}
@@ -44,6 +47,11 @@
       </button>
       {% endif %}
     {% else %}
+      {% if current_user.role in ['admin', 'manager'] and not is_mobile_phone_request %}
+      <a class="btn btn-success remarks-page-primary-btn" href="{{ url_for('main.contractor_new') }}">
+        <i class="bi bi-person-plus me-2"></i>Создать подрядчика
+      </a>
+      {% endif %}
       <a class="btn btn-outline-success remarks-excel-options-toggle remarks-page-secondary-btn" href="{{ contractor_excel_selection_url }}">
         <i class="bi bi-ui-checks-grid me-2"></i>Выбор для Excel
       </a>
@@ -55,17 +63,17 @@
 </div>
 
 {% if not contractor_page %}
-<div class="remarks-tabs mb-3">
+<div class="remarks-tabs mb-3" data-ajax-pagination-tabs>
   <ul class="nav crm-tabs">
   {% for category in categories if category.name == 'Все' %}
-    <li class="nav-item"><a class="nav-link remarks-tab-link remarks-tab-link-all {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id) }}" title="{{ category.name }}" aria-label="{{ category.name }}"><i class="bi bi-grid-3x3-gap remarks-tab-icon"></i><span class="remarks-tab-text">{{ category.name }}</span></a></li>
+    <li class="nav-item"><a class="nav-link remarks-tab-link remarks-tab-link-all {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id, **category_filter_args) }}" title="{{ category.name }}" aria-label="{{ category.name }}"><i class="bi bi-grid-3x3-gap remarks-tab-icon"></i><span class="remarks-tab-text">{{ category.name }}</span></a></li>
   {% endfor %}
   </ul>
   <ul class="nav crm-tabs justify-content-end">
   {% for category in categories if category.name != 'Все' %}
     {% set category_icon = 'bi-brush' if category.name == 'Маляры' else ('bi-tools' if category.name == 'Разнорабочие' else ('bi-window' if category.name == 'Витражники' else ('bi-file-earmark-text' if category.name == 'Доп.Соглашение' else 'bi-tag'))) %}
     {% set category_label = 'Доп соглашение' if category.name == 'Доп.Соглашение' else category.name %}
-    <li class="nav-item"><a class="nav-link remarks-tab-link remarks-tab-link-category {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id) }}" title="{{ category_label }}" data-category-label="{{ category_label }}" aria-label="{{ category_label }}"><i class="bi {{ category_icon }} remarks-tab-icon"></i><span class="remarks-tab-text">{{ category_label }}</span></a></li>
+    <li class="nav-item"><a class="nav-link remarks-tab-link remarks-tab-link-category {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id, **category_filter_args) }}" title="{{ category_label }}" data-category-label="{{ category_label }}" aria-label="{{ category_label }}"><i class="bi {{ category_icon }} remarks-tab-icon"></i><span class="remarks-tab-text">{{ category_label }}</span></a></li>
   {% endfor %}
   </ul>
 </div>
@@ -73,13 +81,13 @@
 
 <div class="card content-card mb-3 remarks-filter-card">
   <div class="card-body">
-    <form method="get" class="row g-2 align-items-end crm-filter-form remarks-filter-form">
+    <form method="get" class="row g-2 align-items-end crm-filter-form remarks-filter-form" data-ajax-pagination-form>
       {% if contractor_page %}
-      <div class="col-12 col-lg-5">
+      <div class="col-12 col-lg-3">
         <label class="form-label">Поиск</label>
         <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите текст или цифру">
       </div>
-      <div class="col-12 col-lg-4">
+      <div class="col-12 col-lg-2">
         <label class="form-label">Сортировка по пункту</label>
         <select class="form-select mobile-native-select" name="point">
           <option value="">Все пункты</option>
@@ -88,9 +96,49 @@
           {% endfor %}
         </select>
       </div>
+      <div class="col-12 col-lg-2">
+        <label class="form-label">Режим</label>
+        <select class="form-select mobile-native-select" name="acceptance_status">
+          <option value="">Все</option>
+          <option value="accepted" {% if args.get('acceptance_status') == 'accepted' %}selected{% endif %}>АПП</option>
+          <option value="waiting" {% if args.get('acceptance_status') == 'waiting' %}selected{% endif %}>Не принята</option>
+        </select>
+      </div>
+      <div class="col-12 col-lg-2">
+        <label class="form-label">Статус</label>
+        <select class="form-select mobile-native-select" name="status">
+          <option value="">Все</option>
+          <option value="not_started" {% if args.get('status') == 'not_started' %}selected{% endif %}>Не выполнено</option>
+          <option value="done" {% if args.get('status') == 'done' %}selected{% endif %}>Выполнено</option>
+          <option value="finishers" {% if args.get('status') == 'finishers' %}selected{% endif %}>Чистовики</option>
+          <option value="contractor" {% if args.get('status') == 'contractor' %}selected{% endif %}>Подрядчик</option>
+          <option value="guarantee" {% if args.get('status') == 'guarantee' %}selected{% endif %}>Гарантия</option>
+          <option value="concession" {% if args.get('status') == 'concession' %}selected{% endif %}>Отступные</option>
+          <option value="problem" {% if args.get('status') == 'problem' %}selected{% endif %}>Проблема</option>
+          <option value="deadline_expiring" {% if args.get('status') == 'deadline_expiring' %}selected{% endif %}>Срок истекает</option>
+          <option value="deadline_expired" {% if args.get('status') == 'deadline_expired' %}selected{% endif %}>Срок истёк</option>
+        </select>
+      </div>
       <div class="col-12 col-lg-3 filter-actions remarks-filter-actions contractor-filter-actions">
         <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
         <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for(list_endpoint) }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
+      </div>
+      <div class="col-12 remarks-filter-finishing-col">
+        <label class="form-label d-block">Отделка</label>
+        <div class="remarks-filter-checks">
+          <label class="form-check remarks-filter-check">
+            <input class="form-check-input" type="checkbox" name="finishing_group" value="white" {% if 'white' in selected_finishing_groups %}checked{% endif %}>
+            <span class="form-check-label">Белая</span>
+          </label>
+          <label class="form-check remarks-filter-check">
+            <input class="form-check-input" type="checkbox" name="finishing_group" value="clean" {% if 'clean' in selected_finishing_groups %}checked{% endif %}>
+            <span class="form-check-label">Чистовые</span>
+          </label>
+          <label class="form-check remarks-filter-check">
+            <input class="form-check-input" type="checkbox" name="finishing_group" value="none" {% if 'none' in selected_finishing_groups %}checked{% endif %}>
+            <span class="form-check-label">Без отделки</span>
+          </label>
+        </div>
       </div>
       {% else %}
       <input type="hidden" name="category_id" value="{{ active_category_id }}">
@@ -112,6 +160,7 @@
           <option value="">Все</option>
           <option value="not_started" {% if args.get('status') == 'not_started' %}selected{% endif %}>{{ 'Не занесен' if is_dop else 'Не выполнено' }}</option>
           <option value="done" {% if args.get('status') == 'done' %}selected{% endif %}>{{ 'Занесен' if is_dop else 'Выполнено' }}</option>
+          <option value="concession" {% if args.get('status') == 'concession' %}selected{% endif %}>Отступные</option>
           {% if not is_dop %}
           <option value="finishers" {% if args.get('status') == 'finishers' %}selected{% endif %}>Чистовики</option>
           <option value="contractor" {% if args.get('status') == 'contractor' %}selected{% endif %}>Подрядчик</option>
@@ -147,18 +196,20 @@
     </form>
   </div>
 </div>
-{% if args.get('q') %}
-<div class="search-result-summary mb-3">
-  {% if pagination.total %}
-    Найдено: <b>{{ pagination.total }}</b>
-  {% else %}
-    По поиску "{{ args.get('q') }}" ничего не найдено
+<div data-ajax-pagination-summary>
+  {% if args.get('q') %}
+  <div class="search-result-summary mb-3">
+    {% if pagination.total %}
+      Найдено: <b>{{ pagination.total }}</b>
+    {% else %}
+      По поиску "{{ args.get('q') }}" ничего не найдено
+    {% endif %}
+  </div>
   {% endif %}
 </div>
-{% endif %}
 
 {% if pagination and pagination.pages > 1 %}
-<nav class="page-pagination-top mb-3" aria-label="Навигация по замечаниям сверху">
+<nav class="page-pagination-top mb-3" aria-label="Навигация по замечаниям сверху" data-ajax-pagination-nav>
   <ul class="pagination justify-content-center mb-0">
     <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
       <a class="page-link" href="{% if pagination.has_prev %}{{ url_for(list_endpoint, **prev_args) }}{% else %}#{% endif %}">Назад</a>
@@ -171,7 +222,7 @@
 </nav>
 {% endif %}
 
-<div class="remarks-export-scope js-bulk-selectable js-remark-export-scope" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" data-export-form="#{{ export_form_id }}" {% if current_user.role != 'viewer' %}data-bulk-persist-form="#{{ bulk_delete_form_id }}"{% endif %} data-selection-storage="local" data-premise-storage-key="{{ premise_storage_key }}">
+<div class="remarks-export-scope js-bulk-selectable js-remark-export-scope" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" data-export-form="#{{ export_form_id }}" {% if current_user.role != 'viewer' %}data-bulk-persist-form="#{{ bulk_delete_form_id }}"{% endif %} data-selection-storage="local" data-premise-storage-key="{{ premise_storage_key }}" data-ajax-pagination-content data-ajax-items-selector=".task-row-link">
 
 <div class="card table-shell task-table-shell remarks-export-table-shell" data-search-query="{{ args.get('q', '')|e }}">
   <div class="bulk-actions-panel js-bulk-panel d-none remarks-export-bulk-panel">
@@ -198,6 +249,7 @@
         <tbody>
         {% for task in tasks %}
         {% set task_status_label = task.status_label() %}
+        {% set is_returnable_status = task.status in ['done', 'finishers', 'contractor', 'guarantee', 'concession'] %}
         {% if is_dop %}
           {% if task.status == 'done' %}{% set task_status_label = 'Занесен' %}{% elif task.status == 'not_started' %}{% set task_status_label = 'Не занесен' %}{% endif %}
         {% endif %}
@@ -235,14 +287,14 @@
           <td class="task-actions-cell" data-label="Действия">
             <div class="actions-cell" data-current-status="{{ task.status }}">
             {% if current_user.role != 'viewer' %}
-              <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started' if task.status == 'done' else 'done') }}" class="status-action-form binary-status-toggle-form" data-status-action="{{ 'not_started' if task.status == 'done' else 'done' }}" data-binary-status-toggle data-is-done="{{ '1' if task.status == 'done' else '0' }}" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-done-label="{{ 'Занесен' if is_dop else 'Выполнено' }}" data-not-done-label="{{ 'Не занесен' if is_dop else 'Не выполнено' }}">
+              <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started' if is_returnable_status else 'done') }}" class="status-action-form binary-status-toggle-form" data-status-action="{{ 'not_started' if is_returnable_status else 'done' }}" data-binary-status-toggle data-is-done="{{ '1' if is_returnable_status else '0' }}" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-done-label="{{ 'Занесен' if is_dop else 'Выполнено' }}" data-not-done-label="{{ 'Не занесен' if is_dop else 'Не выполнено' }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm {{ 'btn-outline-secondary' if task.status == 'done' else 'btn-outline-success' }}" type="submit" title="{{ ('Не занесен' if is_dop else 'Не выполнено') if task.status == 'done' else ('Занесен' if is_dop else 'Выполнено') }}" aria-label="{{ ('Не занесен' if is_dop else 'Не выполнено') if task.status == 'done' else ('Занесен' if is_dop else 'Выполнено') }}" data-binary-status-toggle-button><i class="bi {{ 'bi-arrow-counterclockwise' if task.status == 'done' else 'bi-check2-circle' }}" data-binary-status-toggle-icon></i></button>
+                <button class="btn btn-sm {{ 'btn-outline-secondary' if is_returnable_status else 'btn-outline-success' }}" type="submit" title="{{ ('Не занесен' if is_dop else 'Не выполнено') if is_returnable_status else ('Занесен' if is_dop else 'Выполнено') }}" aria-label="{{ ('Не занесен' if is_dop else 'Не выполнено') if is_returnable_status else ('Занесен' if is_dop else 'Выполнено') }}" data-binary-status-toggle-button><i class="bi {{ 'bi-arrow-counterclockwise' if is_returnable_status else 'bi-check2-circle' }}" data-binary-status-toggle-icon></i></button>
               </form>
               {% if not is_dop %}
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" class="status-action-form {% if task.status == 'finishers' %}d-none{% endif %}" data-status-action="finishers">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-info" title="Чистовики" aria-label="Чистовики">
+                <button class="btn btn-sm btn-outline-info task-stage-action-btn" title="Чистовики" aria-label="Чистовики">
                   <i class="bi bi-brush remarks-status-icon" aria-hidden="true"></i>
                   <span class="remarks-status-text">Ч</span>
                 </button>
@@ -256,11 +308,19 @@
               </form>
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" class="status-action-form {% if task.status == 'guarantee' %}d-none{% endif %}" data-status-action="guarantee">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-guarantee" title="Гарантия" aria-label="Гарантия">
+                <button class="btn btn-sm btn-outline-info task-stage-action-btn guarantee-gray-button" title="Гарантия" aria-label="Гарантия">
                   <i class="bi bi-shield-check remarks-status-icon" aria-hidden="true"></i>
                   <span class="remarks-status-text">Г</span>
                 </button>
               </form>
+              {% endif %}
+              <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='concession') }}" class="status-action-form {% if task.status == 'concession' %}d-none{% endif %}" data-status-action="concession">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-warning" title="Отступные" aria-label="Отступные">
+                  <span class="remarks-status-text">О</span>
+                </button>
+              </form>
+              {% if not is_dop %}
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="status-action-form problem-action-form problem-action-form-inline {% if task.status == 'problem' %}d-none{% endif %}" data-status-action="problem">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="btn btn-sm btn-outline-danger problem-toggle-btn" type="button" title="Проблема" aria-label="Проблема" data-problem-modal-title="Проблема"><i class="bi bi-exclamation-triangle"></i></button>
@@ -282,7 +342,7 @@
 </div>
 
 {% if pagination and pagination.pages > 1 %}
-<nav class="mt-3" aria-label="Навигация по замечаниям">
+<nav class="mt-3" aria-label="Навигация по замечаниям" data-ajax-pagination-nav>
   <ul class="pagination justify-content-center mb-0">
     <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
       <a class="page-link" href="{% if pagination.has_prev %}{{ url_for(list_endpoint, **prev_args) }}{% else %}#{% endif %}">Назад</a>
@@ -294,4 +354,5 @@
   </ul>
 </nav>
 {% endif %}
+</div>
 {% endblock %}
