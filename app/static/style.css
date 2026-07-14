@@ -53415,6 +53415,86 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   height: 100vh !important;
 }
 
+/* v493: login, captcha and 2FA share the auth shell. Lock that shell to the
+   visible mobile viewport so iOS cannot scroll it or reveal a root-colored
+   strip below the page. Keyboard mode already hides the brand and pins the
+   form to the top, so no document scrolling is needed for focused fields. */
+@media (max-width: 767.98px) {
+  html.auth-root:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    background: #f7faef !important;
+    background-color: #f7faef !important;
+  }
+
+  html.auth-root:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.auth-body {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    background: linear-gradient(180deg, #f9fbf5 0%, #f7faef 100%) !important;
+    background-color: #f7faef !important;
+  }
+
+  html.auth-root:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.auth-body .auth-shell {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    background: linear-gradient(180deg, #f9fbf5 0%, #f7faef 100%) !important;
+    background-color: #f7faef !important;
+  }
+}
+
+/* v494: the APP deadline value uses the same second-column alignment as the
+   inspection value above it instead of being pushed to the card's right edge. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-data-deadline-row > b {
+    justify-content: flex-start !important;
+  }
+}
+
+/* v495: five visible remark actions are wider than the legacy action column
+   and used to overflow left over the status padding. Give the controls enough
+   real column width and keep a visible gutter after the status pill. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+    .remarks-export-table-shell .task-table :is(.task-col-actions, th.task-col-actions, td.task-actions-cell) {
+    width: 15rem !important;
+    min-width: 15rem !important;
+    max-width: 15rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+    .remarks-export-table-shell .task-table td.task-actions-cell {
+    padding-left: .85rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+    .remarks-export-table-shell .task-table td.task-actions-cell > .actions-cell {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
 @media (hover: none) and (pointer: coarse) {
   html.mobile-orientation-settling,
   html.mobile-orientation-settling body {

@@ -8,7 +8,7 @@
       <h1 class="page-title">Несостыковки синхронизации</h1>
       <p class="page-subtitle">{{ log.started_at|msk_datetime }} · {{ log.source_name or log.source_type }}</p>
     </div>
-    <div class="sync-details-total"><span>В журнале</span><b>{{ log.missing_count }}</b></div>
+    <div class="sync-details-total"><span>В журнале</span><b>{{ details|length }}</b></div>
   </div>
 
   {% if not exact_snapshot %}

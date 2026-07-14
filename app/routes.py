@@ -105,6 +105,7 @@ from app.services.task_service import (
     detect_search_mode,
     get_setting,
     is_apartment_unsold,
+    looks_like_apartment_identifier,
     parse_multi_premise_search,
     parse_date,
     premise_matches_search,
@@ -8416,9 +8417,21 @@ def _sync_log_after_payload(log: SyncLog, project_id: int) -> tuple[dict, bool]:
     }, False
 
 
+def _sync_snapshot_premise_number(apartment: dict | None) -> str:
+    apartment = apartment or {}
+    premise_type = apartment.get("premise_type") or "apartment"
+    for candidate in (apartment.get("apartment_number"), apartment.get("construction_number")):
+        number = str(candidate or "").strip()
+        if not number:
+            continue
+        if premise_type == "commercial" or looks_like_apartment_identifier(number):
+            return number
+    return ""
+
+
 def _sync_snapshot_premise_label(apartment: dict | None) -> str:
     apartment = apartment or {}
-    number = str(apartment.get("apartment_number") or apartment.get("construction_number") or "—").strip()
+    number = _sync_snapshot_premise_number(apartment) or "—"
     if (apartment.get("premise_type") or "apartment") == "commercial":
         building = str(apartment.get("building") or "").strip()
         return f"Комм. {number}" + (f", корпус {building}" if building else "")
@@ -8486,6 +8499,8 @@ def sync_log_details(log_id: int):
             if point is not None and str(point.point_number or "") not in VISIBLE_WORK_POINT_NUMBERS:
                 continue
             apartment = apartments.get(int(item.get("apartment_id") or 0))
+            if not _sync_snapshot_premise_number(apartment):
+                continue
             details.append({
                 "premise": _sync_snapshot_premise_label(apartment),
                 "field": point.display_name if point else "Замечание",
@@ -8499,7 +8514,11 @@ def sync_log_details(log_id: int):
             })
     elif log.source_type == "transfer_excel":
         for apartment in apartments.values():
-            if apartment.get("is_unsold") or apartment.get("is_app_mode"):
+            if (
+                not _sync_snapshot_premise_number(apartment)
+                or apartment.get("is_unsold")
+                or apartment.get("is_app_mode")
+            ):
                 continue
             details.append({
                 "premise": _sync_snapshot_premise_label(apartment),

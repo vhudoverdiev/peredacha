@@ -9,7 +9,18 @@ from openpyxl import load_workbook
 
 from app import db
 from app.models import Apartment, Project, SyncLog
-from app.services.task_service import apply_app_deadline_logic, get_or_create_project, is_unsold_owner_name, normalize_apartment_number_cell, normalize_building_marker, normalize_finishing_type, normalize_number_cell, parse_date
+from app.services.task_service import (
+    apply_app_deadline_logic,
+    get_or_create_project,
+    is_service_premise_text,
+    is_unsold_owner_name,
+    looks_like_apartment_identifier,
+    normalize_apartment_number_cell,
+    normalize_building_marker,
+    normalize_finishing_type,
+    normalize_number_cell,
+    parse_date,
+)
 from app.services.sync_rollback import build_project_rollback_data
 from app.services.uid_service import normalize_text
 
@@ -131,8 +142,7 @@ def _is_orange_unsold_fill(cell: Any) -> bool:
 
 
 def _is_section_row(value: Any) -> bool:
-    text = str(value or "").strip().lower()
-    return bool(text and not normalize_number_cell(value) and ("подъезд" in text or "корпус" in text))
+    return is_service_premise_text(normalize_number_cell(value))
 
 
 def _parse_app_date(value: Any) -> date | None:
@@ -258,6 +268,8 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
                     continue
                 apartment_number = normalize_apartment_number_cell(raw_number)
                 if not apartment_number:
+                    continue
+                if not is_commercial_sheet and not looks_like_apartment_identifier(apartment_number):
                     continue
 
                 if is_commercial_sheet:
