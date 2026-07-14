@@ -52613,6 +52613,20 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 }
 
+/* v483: keep the standalone auth loader's full-width layout surface
+   transparent. A legacy high-specificity critical rule used to paint this
+   surface white for a few frames during the splash-to-login transition. */
+@media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.auth-body .app-launch-loader .site-page-loader-card {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
 /* v442: collapse all late standalone mobile nav overrides into one compact
    geometry so iPhone homescreen launch keeps the dock flush to the bottom
    without the oversized safe-area stack from older rules. */
@@ -52846,8 +52860,8 @@ body.app-body:has(.assignment-issued-filters)
   }
 }
 
-/* v462: ordinary mobile web uses one exact dock box on every page. Keeping
-   height and item rows explicit prevents font/safe-area reflow after paint. */
+/* v482: mobile web uses the bottom system area as part of one compact dock.
+   Do not add the iOS safe inset to its height or padding a second time. */
 @media (max-width: 767.98px) {
   html:not(.standalone-app) body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root,
   html:not(.standalone-app) body.app-body .mobile-bottom-nav {
@@ -52858,11 +52872,11 @@ body.app-body:has(.assignment-issued-filters)
     bottom: 0 !important;
     width: 100% !important;
     max-width: none !important;
-    height: calc(4.5rem + env(safe-area-inset-bottom)) !important;
-    min-height: calc(4.5rem + env(safe-area-inset-bottom)) !important;
-    max-height: calc(4.5rem + env(safe-area-inset-bottom)) !important;
+    height: 4.5rem !important;
+    min-height: 4.5rem !important;
+    max-height: 4.5rem !important;
     margin: 0 !important;
-    padding: .28rem max(.28rem, env(safe-area-inset-right)) calc(.18rem + env(safe-area-inset-bottom)) max(.28rem, env(safe-area-inset-left)) !important;
+    padding: .28rem max(.28rem, env(safe-area-inset-right)) .18rem max(.28rem, env(safe-area-inset-left)) !important;
     box-sizing: border-box !important;
     align-items: stretch !important;
     contain: layout paint !important;
