@@ -19,7 +19,7 @@
 
   <div class="card table-shell sync-log-card mb-4">
     <div class="card-body p-0 table-responsive">
-      <table class="table align-middle sync-details-table mb-0">
+      <table class="table align-middle sync-details-table sync-details-missing-table mb-0">
         <thead><tr><th>Помещение</th><th>Пункт / поле</th><th>Значение</th><th>Причина</th><th></th></tr></thead>
         <tbody>
         {% for item in details %}
@@ -44,7 +44,7 @@
   </div>
   <div class="card table-shell sync-log-card">
     <div class="card-body p-0 table-responsive">
-      <table class="table align-middle sync-details-table mb-0">
+      <table class="table align-middle sync-details-table sync-details-conflicts-table mb-0">
         <thead><tr><th>Помещение</th><th>Поле</th><th>Было</th><th>Стало</th><th>Решение</th></tr></thead>
         <tbody>
         {% for conflict in conflicts %}

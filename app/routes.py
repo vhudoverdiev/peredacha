@@ -3904,8 +3904,11 @@ def _task_search_blob(task: Task) -> str:
     return " ".join(str(part or "") for part in parts).lower().replace("ё", "е")
 
 
-def _all_project_tasks(project_id: int) -> list[Task]:
-    return (
+GLASS_WORK_POINT_NUMBERS = {"16", "17", "18", "19", "20"}
+
+
+def _all_project_tasks(project_id: int, point_numbers: set[str] | None = None) -> list[Task]:
+    query = (
         Task.query.options(
             selectinload(Task.apartment),
             selectinload(Task.work_point).selectinload(WorkPoint.categories),
@@ -3914,22 +3917,41 @@ def _all_project_tasks(project_id: int) -> list[Task]:
         .join(Apartment)
         .join(WorkPoint)
         .filter(Task.project_id == project_id)
-        .order_by(Apartment.premise_type.asc(), Apartment.building.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc(), Task.id.asc())
+    )
+    if point_numbers:
+        query = query.filter(WorkPoint.point_number.in_(sorted(point_numbers)))
+    return (
+        query.order_by(Apartment.premise_type.asc(), Apartment.building.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc(), Task.id.asc())
         .limit(3000)
         .all()
     )
 
 
 def _glass_tasks(project_id: int) -> list[Task]:
-    # В разделе «Замеры» показываем все замечания CRM,
-    # включая выполненные/вычеркнутые. Статус замера живет отдельно.
-    return _all_project_tasks(project_id)
+    # В «Замерах» работают только замечания по оконным пунктам 16–20.
+    # Основной статус задачи не влияет на статус замера.
+    return _all_project_tasks(project_id, point_numbers=GLASS_WORK_POINT_NUMBERS)
+
+
+def _glass_tasks_without_ordered_apartments(tasks: list[Task]) -> list[Task]:
+    ordered_apartment_keys = {
+        _apartment_group_key(task.apartment)
+        for task in tasks
+        if task.apartment is not None
+        and _measurement_status(task.glass_measurement) in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}
+    }
+    if not ordered_apartment_keys:
+        return tasks
+    return [
+        task for task in tasks
+        if task.apartment is not None and _apartment_group_key(task.apartment) not in ordered_apartment_keys
+    ]
 
 
 def _glass_point_options(project_id: int) -> list[dict[str, str]]:
     points = (
         WorkPoint.query.join(Task)
-        .filter(Task.project_id == project_id)
+        .filter(Task.project_id == project_id, WorkPoint.point_number.in_(sorted(GLASS_WORK_POINT_NUMBERS)))
         .distinct()
         .order_by(WorkPoint.point_number.asc(), WorkPoint.original_column_name.asc())
         .all()
@@ -4026,13 +4048,14 @@ def glass_measurements():
     if ordered_status not in {"", GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}:
         ordered_status = ""
     tasks = _glass_tasks(project.id)
+    available_tasks = _glass_tasks_without_ordered_apartments(tasks)
     rows = []
     order_rows = []
     ordered_rows = []
     if tab == "all":
-        rows = _filter_glass_rows(tasks, q=q, point=point)
+        rows = _filter_glass_rows(available_tasks, q=q, point=point)
     elif tab == "order":
-        order_rows = _filter_glass_rows(tasks, q=q, status=GLASS_STATUS_MEASURE_NEEDED)
+        order_rows = _filter_glass_rows(available_tasks, q=q, status=GLASS_STATUS_MEASURE_NEEDED)
         order_rows.sort(key=lambda row: _task_apartment_sort_value_no_done(row["task"]))
     elif tab == "ordered":
         ordered_rows = [
@@ -4275,10 +4298,12 @@ def glass_order_export():
         return redirect(url_for("main.objects"))
     scope = (request.args.get("scope") or "ordered").strip().lower()
     q = (request.args.get("q") or "").strip()
-    all_rows = _filter_glass_rows(_glass_tasks(project.id), q=q)
+    tasks = _glass_tasks(project.id)
     if scope == "order":
+        all_rows = _filter_glass_rows(_glass_tasks_without_ordered_apartments(tasks), q=q)
         rows = [row for row in all_rows if row["status"] == GLASS_STATUS_MEASURE_NEEDED]
     else:
+        all_rows = _filter_glass_rows(tasks, q=q)
         rows = [row for row in all_rows if row["status"] in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}]
     rows.sort(key=lambda row: _task_apartment_sort_value_no_done(row["task"]))
 

@@ -53284,10 +53284,14 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     width: 100%;
   }
 
-  .sync-log-details-page .sync-details-table th:nth-child(1) { width: 11rem; }
-  .sync-log-details-page .sync-details-table th:nth-child(2) { width: 18rem; }
-  .sync-log-details-page .sync-details-table th:nth-child(4) { width: 16rem; }
-  .sync-log-details-page .sync-details-table th:last-child { width: 7rem; }
+  .sync-log-details-page .sync-details-missing-table th:nth-child(1) { width: 11rem; }
+  .sync-log-details-page .sync-details-missing-table th:nth-child(2) { width: 18rem; }
+  .sync-log-details-page .sync-details-missing-table th:nth-child(4) { width: 20rem; }
+  .sync-log-details-page .sync-details-missing-table th:nth-child(5) { width: 9rem; }
+
+  .sync-log-details-page .sync-details-conflicts-table th:nth-child(1) { width: 11rem; }
+  .sync-log-details-page .sync-details-conflicts-table th:nth-child(2) { width: 18rem; }
+  .sync-log-details-page .sync-details-conflicts-table th:nth-child(5) { width: 14rem; }
 
   .sync-log-details-page .sync-details-value {
     white-space: normal;
@@ -53306,6 +53310,26 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     font-size: .8rem;
     font-weight: 750;
     white-space: nowrap;
+  }
+
+  .sync-log-details-page .sync-details-missing-table .sync-details-reason {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .sync-log-details-page .sync-details-missing-table td:last-child .btn {
+    width: 100%;
+    min-width: 6.75rem;
+    white-space: nowrap;
+  }
+
+  .sync-log-details-page .sync-details-conflicts-table .sync-details-decision {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
   }
 
   .sync-log-details-page .sync-details-decision-apply_new {
@@ -53342,6 +53366,53 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     color: #49611b;
     font-weight: 800;
   }
+}
+
+/* v489: the branded launch loader belongs to the mobile standalone flow.
+   Never let later standalone/loader rules revive it on a desktop viewport. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer .app-launch-loader,
+  html.desktop-like-pointer body .app-launch-loader,
+  html.desktop-like-pointer .site-page-loader.app-launch-loader {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* v491: quick assignment actions are a mobile-only control. Without a base
+   desktop guard their unstyled links appear above the regular toolbar. */
+.assignment-mobile-quick-actions {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .assignment-mobile-quick-actions,
+  body.app-body:not(.mobile-viewport):not(.adaptive-mobile-viewport):not(.touch-app-device)
+    .assignment-mobile-quick-actions {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
+/* v492: a transformed page-entry wrapper turns a fixed modal backdrop into a
+   content-sized rectangle. Keep the delete confirmation wrapper untransformed
+   so its backdrop is fixed to the viewport, as intended. */
+body.app-body:has(.confirm-modal-page) .crm-page-entry-surface {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
 }
 
 @media (hover: none) and (pointer: coarse) {
