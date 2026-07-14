@@ -175,18 +175,18 @@
       </div>
     </div>
 
-    <div class="card content-card mb-3">
+    <div class="card content-card mb-3" data-apartment-live-stats>
       <div class="card-body">
         <h2 class="section-title">Статистика</h2>
         <div class="apartment-big-progress">
-          <div class="apartment-progress-head"><span>Готовность</span><b>{{ row.percent }}%</b></div>
-          <div class="progress slim-progress"><div class="progress-bar" style="width: {{ row.percent }}%"></div></div>
+          <div class="apartment-progress-head"><span>Готовность</span><b data-apartment-stat-percent>{{ row.percent }}%</b></div>
+          <div class="progress slim-progress"><div class="progress-bar" data-apartment-stat-progress style="width: {{ row.percent }}%"></div></div>
         </div>
         <div class="apartment-summary-grid mt-3">
-          <div><span>Всего</span><b>{{ row.total }}</b></div>
-          <div><span>Выполнено</span><b>{{ row.done }}</b></div>
-          <div><span>Осталось</span><b>{{ row.left }}</b></div>
-          <div><span>Проблемы</span><b>{{ row.problem }}</b></div>
+          <div><span>Всего</span><b data-apartment-stat-total>{{ row.total }}</b></div>
+          <div><span>Выполнено</span><b data-apartment-stat-done>{{ row.done }}</b></div>
+          <div><span>Осталось</span><b data-apartment-stat-left>{{ row.left }}</b></div>
+          <div><span>Проблемы</span><b data-apartment-stat-problem>{{ row.problem }}</b></div>
         </div>
       </div>
     </div>
@@ -200,31 +200,37 @@
         <div class="apartment-task-list">
           {% for task in row.tasks %}
           {% set point_name = task.work_point.display_name | replace(task.work_point.point_number ~ '. ', '') | replace(task.work_point.point_number ~ '.', '') if task.work_point else 'Без пункта' %}
-          <div class="apartment-task-item task-row-link {% if task.is_done %}is-done{% endif %}" data-href="{{ url_for('main.task_detail', task_id=task.id, back=request.full_path) }}" data-open-on-click="1">
+          {% set is_returnable_status = task.status in ['done', 'finishers', 'contractor', 'guarantee', 'concession'] %}
+          <div class="apartment-task-item task-row-link {% if task.is_done %}is-done{% endif %}" data-href="{{ url_for('main.task_detail', task_id=task.id, back=request.full_path) }}" data-open-on-click="1" data-task-status="{{ task.status }}">
             <div class="apartment-task-head">
               <span class="apartment-task-point">{{ point_name }}</span>
               {% if current_user.role != 'viewer' %}
               <div class="apartment-task-status-desktop actions-cell" data-current-status="{{ task.status }}">
-                <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }}" data-status-pill>{{ status_labels.get(task.status, task.status) }}</span>
-                <form class="apartment-task-status-form status-action-form binary-status-toggle-form" method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started' if task.status == 'done' else 'done') }}" data-status-action="{{ 'not_started' if task.status == 'done' else 'done' }}" data-binary-status-toggle data-is-done="{{ '1' if task.status == 'done' else '0' }}" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-done-label="Выполнено" data-not-done-label="Не выполнено">
+                <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }}" data-status-pill>{{ task.status_label() }}</span>
+                <form class="apartment-task-status-form status-action-form binary-status-toggle-form" method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started' if is_returnable_status else 'done') }}" data-status-action="{{ 'not_started' if is_returnable_status else 'done' }}" data-binary-status-toggle data-is-done="{{ '1' if is_returnable_status else '0' }}" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-done-label="Выполнено" data-not-done-label="Не выполнено">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-sm {{ 'btn-outline-secondary' if task.status == 'done' else 'btn-outline-success' }} apartment-task-status-btn" type="submit" data-binary-status-toggle-button><span data-binary-status-toggle-label>{{ 'Не выполнено' if task.status == 'done' else 'Выполнено' }}</span></button>
+                  <button class="btn btn-sm {{ 'btn-outline-secondary' if is_returnable_status else 'btn-outline-success' }} apartment-task-status-btn" type="submit" data-binary-status-toggle-button><span data-binary-status-toggle-label>{{ 'Не выполнено' if is_returnable_status else 'Выполнено' }}</span></button>
                 </form>
+                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='concession') }}" class="apartment-task-status-form apartment-task-letter-form status-action-form {% if task.status == 'concession' %}d-none{% endif %}" data-status-action="concession"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-secondary apartment-task-letter-btn" type="submit" title="Отступные" aria-label="Отступные">О</button></form>
+                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" class="apartment-task-status-form apartment-task-letter-form status-action-form {% if task.status == 'guarantee' %}d-none{% endif %}" data-status-action="guarantee"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-letter-btn task-stage-action-btn guarantee-gray-button" type="submit" title="Гарантия" aria-label="Гарантия">Г</button></form>
+                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" class="apartment-task-status-form apartment-task-letter-form status-action-form {% if task.status == 'contractor' %}d-none{% endif %}" data-status-action="contractor"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning apartment-task-letter-btn" type="submit" title="Подрядчик" aria-label="Подрядчик">П</button></form>
+                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" class="apartment-task-status-form apartment-task-letter-form status-action-form {% if task.status == 'finishers' %}d-none{% endif %}" data-status-action="finishers"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-letter-btn task-stage-action-btn" type="submit" title="Чистовики" aria-label="Чистовики">Ч</button></form>
               </div>
               {% else %}
-              <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }} apartment-task-status-desktop" data-status-pill>{{ status_labels.get(task.status, task.status) }}</span>
+              <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }} apartment-task-status-desktop" data-status-pill>{{ task.status_label() }}</span>
               {% endif %}
             </div>
             <div class="apartment-task-text">{{ remark_text(task.description or task.source_cell_value or '—') }}</div>
             <div class="apartment-task-status-mobile">
-              <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }} apartment-task-status-current-mobile">{{ status_labels.get(task.status, task.status) }}</span>
+              <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }} apartment-task-status-current-mobile">{{ task.status_label() }}</span>
               {% if current_user.role != 'viewer' %}
               <div class="apartment-task-actions actions-cell" data-current-status="{{ task.status }}">
-                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started' if task.status == 'done' else 'done') }}" class="apartment-task-action-form status-action-form binary-status-toggle-form" data-status-action="{{ 'not_started' if task.status == 'done' else 'done' }}" data-binary-status-toggle data-is-done="{{ '1' if task.status == 'done' else '0' }}" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-done-label="Выполнено" data-not-done-label="Не выполнено"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm {{ 'btn-outline-secondary' if task.status == 'done' else 'btn-outline-success' }} apartment-task-action-btn" type="submit" data-binary-status-toggle-button><span data-binary-status-toggle-label>{{ 'Не выполнено' if task.status == 'done' else 'Выполнено' }}</span></button></form>
-                {% if task.status != 'finishers' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" class="apartment-task-action-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-action-btn task-stage-action-btn" type="submit">Чистовики</button></form>{% endif %}
-                {% if task.status != 'contractor' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" class="apartment-task-action-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning apartment-task-action-btn" type="submit">Подрядчик</button></form>{% endif %}
-                {% if task.status != 'guarantee' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" class="apartment-task-action-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-action-btn task-stage-action-btn guarantee-gray-button" type="submit">Гарантия</button></form>{% endif %}
-                {% if task.status != 'problem' %}<form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="apartment-task-action-form apartment-task-action-form-problem problem-action-form problem-action-form-inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-danger problem-toggle-btn apartment-task-action-btn" type="button" data-problem-modal-title="Проблема">Проблема</button></form>{% endif %}
+                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started' if is_returnable_status else 'done') }}" class="apartment-task-action-form status-action-form binary-status-toggle-form" data-status-action="{{ 'not_started' if is_returnable_status else 'done' }}" data-binary-status-toggle data-is-done="{{ '1' if is_returnable_status else '0' }}" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-done-label="Выполнено" data-not-done-label="Не выполнено"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm {{ 'btn-outline-secondary' if is_returnable_status else 'btn-outline-success' }} apartment-task-action-btn" type="submit" data-binary-status-toggle-button><span data-binary-status-toggle-label>{{ 'Не выполнено' if is_returnable_status else 'Выполнено' }}</span></button></form>
+                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" class="apartment-task-action-form status-action-form {% if task.status == 'finishers' %}d-none{% endif %}" data-status-action="finishers"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-action-btn task-stage-action-btn" type="submit">Чистовики</button></form>
+                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" class="apartment-task-action-form status-action-form {% if task.status == 'contractor' %}d-none{% endif %}" data-status-action="contractor"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning apartment-task-action-btn" type="submit">Подрядчик</button></form>
+                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" class="apartment-task-action-form status-action-form {% if task.status == 'guarantee' %}d-none{% endif %}" data-status-action="guarantee"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-action-btn task-stage-action-btn guarantee-gray-button" type="submit">Гарантия</button></form>
+                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='concession') }}" class="apartment-task-action-form status-action-form {% if task.status == 'concession' %}d-none{% endif %}" data-status-action="concession"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning apartment-task-action-btn" type="submit">Отступные</button></form>
+                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="apartment-task-action-form apartment-task-action-form-problem status-action-form problem-action-form problem-action-form-inline {% if task.status == 'problem' %}d-none{% endif %}" data-status-action="problem"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-danger problem-toggle-btn apartment-task-action-btn" type="button" data-problem-modal-title="Проблема">Проблема</button></form>
               </div>
               {% endif %}
             </div>
@@ -272,7 +278,7 @@
           {% for entry in history_entries %}
           <div class="timeline-item">
             <div class="small text-muted">{{ entry.timestamp }} · {{ entry.actor }}{% if entry.point_label %} · {{ entry.point_label }}{% endif %}</div>
-            <div>{{ entry.summary }}</div>
+            <div{% if entry.summary_class %} class="{{ entry.summary_class }}"{% endif %}>{{ entry.summary }}</div>
           </div>
           {% endfor %}
         </div>

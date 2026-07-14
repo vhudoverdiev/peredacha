@@ -364,7 +364,11 @@
             <td class="assignment-date-cell">{{ task.planned_date|ru_date if task.planned_date else '—' }}</td>
           </tr>
         {% else %}
-          <tr><td colspan="6" class="text-center text-muted py-5">{% if args.get('q') %}По поиску "{{ args.get('q') }}" ничего не найдено{% else %}Задач по этому поиску нет{% endif %}</td></tr>
+          <tr class="assignment-empty-row">
+            <td colspan="6" class="assignment-empty-cell">
+              <div class="assignment-empty-state">{% if args.get('q') %}По поиску "{{ args.get('q') }}" ничего не найдено{% else %}Задач по этому поиску нет{% endif %}</div>
+            </td>
+          </tr>
         {% endfor %}
         </tbody>
       </table>

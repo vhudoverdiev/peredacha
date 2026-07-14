@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Создать подрядчика{% endblock %}
+{% block title %}{{ contractor_form_title or 'Создать подрядчика' }}{% endblock %}
 {% block content %}
 <div class="contractor-create-page">
   <div class="page-head contractor-create-head">
     <div>
-      <a class="contractor-create-back" href="{{ url_for('main.contractors_list') }}">
-        <i class="bi bi-arrow-left"></i>Подрядчики
+      <a class="contractor-create-back" href="{{ url_for('main.contractor_directory') }}">
+        <i class="bi bi-arrow-left"></i>Список подрядчиков
       </a>
-      <h1 class="page-title">Создать подрядчика</h1>
+      <h1 class="page-title">{{ contractor_form_title or 'Создать подрядчика' }}</h1>
       <p class="page-subtitle">Настройте зоны ответственности подрядчика на объекте «{{ project.name }}».</p>
     </div>
   </div>
@@ -115,7 +115,7 @@
       <p class="contractor-wizard-error" data-contractor-error="apartments" hidden>Выберите хотя бы одну квартиру.</p>
       <div class="contractor-wizard-actions">
         <button class="btn btn-outline-secondary" type="button" data-contractor-back="2"><i class="bi bi-arrow-left"></i>Назад</button>
-        <button class="btn btn-primary" type="submit"><i class="bi bi-person-plus"></i>Создать подрядчика</button>
+        <button class="btn btn-primary" type="submit"><i class="bi {{ 'bi-pencil-square' if contractor else 'bi-person-plus' }}"></i>{{ contractor_submit_label or 'Создать подрядчика' }}</button>
       </div>
     </section>
   </form>

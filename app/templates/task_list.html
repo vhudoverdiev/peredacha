@@ -47,9 +47,9 @@
       </button>
       {% endif %}
     {% else %}
-      {% if current_user.role in ['admin', 'manager'] and not is_mobile_phone_request %}
-      <a class="btn btn-success remarks-page-primary-btn" href="{{ url_for('main.contractor_new') }}">
-        <i class="bi bi-person-plus me-2"></i>Создать подрядчика
+      {% if current_user.role in ['admin', 'manager'] %}
+      <a class="btn btn-success remarks-page-primary-btn contractor-directory-btn" href="{{ url_for('main.contractor_directory') }}">
+        <i class="bi bi-people me-2"></i>Список подрядчиков
       </a>
       {% endif %}
       <a class="btn btn-outline-success remarks-excel-options-toggle remarks-page-secondary-btn" href="{{ contractor_excel_selection_url }}">
@@ -81,18 +81,18 @@
 
 <div class="card content-card mb-3 remarks-filter-card">
   <div class="card-body">
-    <form method="get" class="row g-2 align-items-end crm-filter-form remarks-filter-form" data-ajax-pagination-form>
+    <form method="get" class="row g-2 align-items-end crm-filter-form remarks-filter-form{% if contractor_page %} contractor-filter-form{% endif %}" data-ajax-pagination-form>
       {% if contractor_page %}
       <div class="col-12 col-lg-3">
         <label class="form-label">Поиск</label>
         <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите текст или цифру">
       </div>
       <div class="col-12 col-lg-2">
-        <label class="form-label">Сортировка по пункту</label>
-        <select class="form-select mobile-native-select" name="point">
-          <option value="">Все пункты</option>
-          {% for point in contractor_points %}
-          <option value="{{ point.number }}" {% if args.get('point') == point.number %}selected{% endif %}>{{ point.label }}</option>
+        <label class="form-label">Сортировка по подрядчику</label>
+        <select class="form-select mobile-native-select" name="contractor_id">
+          <option value="">Все подрядчики</option>
+          {% for contractor in contractor_options %}
+          <option value="{{ contractor.id }}" {% if args.get('contractor_id') == contractor.id|string %}selected{% endif %}>{{ contractor.name }}</option>
           {% endfor %}
         </select>
       </div>
@@ -331,7 +331,7 @@
           </td>
         </tr>
         {% else %}
-        <tr class="remarks-empty-row"><td colspan="8" class="remarks-empty-cell text-center text-muted">Замечаний по этому фильтру нет</td></tr>
+        <tr class="remarks-empty-row"><td colspan="8" class="remarks-empty-cell"><div class="remarks-empty-state">Замечаний по этому фильтру нет</div></td></tr>
         {% endfor %}
         </tbody>
       </table>

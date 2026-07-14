@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Список подрядчиков{% endblock %}
+{% block content %}
+<div class="contractor-directory-page">
+  <div class="page-head contractor-directory-head">
+    <div>
+      <a class="contractor-create-back" href="{{ url_for('main.contractors_list') }}">
+        <i class="bi bi-arrow-left"></i>Подрядчики
+      </a>
+      <h1 class="page-title">Список подрядчиков</h1>
+      <p class="page-subtitle">Все подрядчики объекта «{{ project.name }}» с зонами ответственности.</p>
+    </div>
+    <div class="contractor-directory-actions">
+      {% if current_user.role in ['admin', 'manager'] %}
+      <a class="btn btn-success remarks-page-primary-btn" href="{{ url_for('main.contractor_new') }}">
+        <i class="bi bi-person-plus me-2"></i>Создать подрядчика
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if contractor_rows %}
+  <div class="contractor-directory-grid">
+    {% for row in contractor_rows %}
+    {% set contractor = row.contractor %}
+    <article class="contractor-directory-card">
+      <div class="contractor-directory-card-head">
+        <span class="contractor-directory-icon"><i class="bi bi-person-gear"></i></span>
+        <div>
+          <h2>{{ contractor.name }}</h2>
+          <p>{{ row.apartment_count }} {{ 'помещение' if row.apartment_count == 1 else 'помещений' }}</p>
+        </div>
+      </div>
+      <div class="contractor-directory-points">
+        {% for label in row.point_labels[:6] %}
+        <span>{{ label }}</span>
+        {% endfor %}
+        {% if row.point_labels|length > 6 %}
+        <span>+{{ row.point_labels|length - 6 }}</span>
+        {% endif %}
+      </div>
+      {% if current_user.role in ['admin', 'manager'] %}
+      <div class="contractor-directory-card-actions">
+        <a class="btn btn-outline-success" href="{{ url_for('main.contractor_edit', contractor_id=contractor.id) }}">
+          <i class="bi bi-pencil-square me-2"></i>Редактировать
+        </a>
+        <form method="post" action="{{ url_for('main.contractor_delete', contractor_id=contractor.id) }}" data-confirm="Удалить подрядчика «{{ contractor.name }}»?\n\nЭто действие нельзя отменить.">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline-danger" type="submit">
+            <i class="bi bi-trash me-2"></i>Удалить
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="contractor-directory-empty">
+    <span><i class="bi bi-person-plus"></i></span>
+    <h2>Подрядчиков пока нет</h2>
+    <p>Создайте первого подрядчика и выберите, за какие пункты и помещения он отвечает.</p>
+    {% if current_user.role in ['admin', 'manager'] %}
+    <a class="btn btn-success remarks-page-primary-btn" href="{{ url_for('main.contractor_new') }}">
+      <i class="bi bi-person-plus me-2"></i>Создать подрядчика
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

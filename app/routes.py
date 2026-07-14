@@ -181,7 +181,10 @@ SECTION_LOCK_CHOICES = [
         "key": "contractors",
         "label": "Подрядчики",
         "icon": "bi-person-gear",
-        "endpoints": {"main.contractors_list", "main.contractors_export"},
+        "endpoints": {
+            "main.contractors_list", "main.contractors_export", "main.contractors_excel_selection",
+            "main.contractor_directory", "main.contractor_new", "main.contractor_edit", "main.contractor_delete",
+        },
     },
     {
         "key": "apartments",
@@ -299,34 +302,19 @@ def _section_lock_choice_for_endpoint(endpoint: str | None):
 def _future_features():
     return [
         {
-            "icon": "bi-person-check",
-            "title": "Задачи станут удобнее",
-            "text": "Сотрудники смогут получать, принимать и закрывать задачи быстрее, а руководитель — видеть весь процесс без лишних действий.",
-        },
-        {
-            "icon": "bi-box-seam",
-            "title": "Отчёты по материалам",
-            "text": "По каждой задаче появится понятная отчётность: какие материалы были использованы, в каком объёме и кем.",
-        },
-        {
             "icon": "bi-file-earmark-text",
-            "title": "Документы в пару кликов",
+            "title": "Быстрое редактирование и генерация документов",
             "text": "АПП, дополнительные соглашения и другие формы можно будет быстро подготовить, отредактировать и отправить на подписание.",
         },
         {
-            "icon": "bi-phone",
-            "title": "Сильная мобильная версия",
-            "text": "Интерфейс будет аккуратно адаптирован под телефон, чтобы работать на объекте было удобно прямо с экрана смартфона.",
-        },
-        {
-            "icon": "bi-phone-vibrate",
-            "title": "Отдельное приложение",
-            "text": "Следующий шаг — не просто сайт, а полноценное мобильное приложение для быстрых уведомлений и работы в полях.",
-        },
-        {
             "icon": "bi-house-add",
-            "title": "Объекты с кладовками",
+            "title": "Добавление объектов с кладовками",
             "text": "Структура объектов станет шире: можно будет добавлять и вести кладовые помещения вместе с квартирами и коммерцией.",
+        },
+        {
+            "icon": "bi-box-seam",
+            "title": "Учёт затраченного материала",
+            "text": "По каждой задаче появится понятная отчётность: какие материалы были использованы, в каком объёме и кем.",
         },
     ]
 
@@ -515,6 +503,35 @@ def _split_glass_size_comment(value: str | None) -> tuple[str, str]:
     return text, ""
 
 
+def _compact_history_text(value: object) -> str:
+    return " ".join(str(value or "").split()).strip()
+
+
+def _manual_split_history_text(change: ChangeLog, task_text: str) -> str:
+    first_part = ""
+    second_part = ""
+    try:
+        payload = json.loads(str(change.new_value or ""))
+        if isinstance(payload, dict):
+            first_part = _compact_history_text(payload.get("first"))
+            second_part = _compact_history_text(payload.get("second"))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        pass
+
+    if not first_part and change.action == "manual_split":
+        first_part = _compact_history_text(change.old_value)
+    if not second_part:
+        second_part = _compact_history_text(change.new_value if change.action == "manual_split_created" else task_text)
+    if not second_part and task_text:
+        second_part = _compact_history_text(task_text)
+
+    if first_part and second_part:
+        return f"Замечание разделено на две части. 1 часть — «{first_part}». 2 часть — «{second_part}»."
+    if second_part:
+        return f"Замечание разделено на две части. 2 часть — «{second_part}»."
+    return "Замечание разделено на две части."
+
+
 def _build_change_history_entry(change: ChangeLog, task: Task | None = None, users_cache: dict[int, str] | None = None) -> dict[str, str]:
     users_cache = users_cache or {}
     field_name = change.field_name or ""
@@ -525,11 +542,16 @@ def _build_change_history_entry(change: ChangeLog, task: Task | None = None, use
     if task and task.work_point:
         point_label = task.work_point.display_name
     task_text = str(task.description or task.source_cell_value or "").strip() if task else ""
+    summary_class = ""
 
     if change.action == "status_change":
         if task_text:
             point_label = task_text
-        if not change.user and (change.old_value or "") not in DONE_STATUSES and (change.new_value or "") in DONE_STATUSES:
+        if (change.new_value or "") == "problem":
+            problem_text = str(task.comment or "").strip() if task else ""
+            summary = f"Проблема: «{problem_text}»." if problem_text else "Проблема."
+            summary_class = "timeline-summary-danger"
+        elif not change.user and (change.old_value or "") not in DONE_STATUSES and (change.new_value or "") in DONE_STATUSES:
             summary = f"Синхронизация отметила замечание выполненным и зачеркнула его: было «{old_value}», стало «{new_value}»."
         elif not change.user:
             summary = f"Синхронизация изменила статус замечания: было «{old_value}», стало «{new_value}»."
@@ -578,7 +600,7 @@ def _build_change_history_entry(change: ChangeLog, task: Task | None = None, use
             summary = (
                 f"Синхронизация изменила текст замечания: было «{old_value}», стало «{new_value}»."
                 if not change.user
-                else f"Текст замечания изменён: было «{old_value}», стало «{new_value}»."
+                else f"Замечание отредактировано. Было — «{old_value}». Стало — «{new_value}»."
             )
         else:
             field_label = {
@@ -625,6 +647,16 @@ def _build_change_history_entry(change: ChangeLog, task: Task | None = None, use
                 else f"Синхронизация изменила дату подписания АВР: была «{old_value}», стала «{new_value}»."
             )
         point_label = "Помещение"
+    elif change.action == "manual_created":
+        summary = f"Замечание добавлено вручную: «{str(change.new_value or '').strip() or 'без текста'}»."
+    elif change.action in {"manual_split", "manual_split_created"}:
+        summary = _manual_split_history_text(change, task_text)
+    elif change.action == "manual_assignment_created":
+        summary = f"Задача выдана вручную: «{str(change.new_value or '').strip() or 'без текста'}»."
+    elif change.action == "manual_act_created":
+        summary = f"Замечание добавлено вручную из акта: «{str(change.new_value or '').strip() or 'без текста'}»."
+    elif change.action == "pdf_recognition_created":
+        summary = f"Замечание добавлено после распознавания PDF: «{str(change.new_value or '').strip() or 'без текста'}»."
     elif change.action == "comment_added":
         summary = f"Добавлен новый комментарий: «{str(change.new_value or '').strip() or 'без текста'}»."
     elif change.action == "created_from_sync":
@@ -632,14 +664,31 @@ def _build_change_history_entry(change: ChangeLog, task: Task | None = None, use
     elif change.action == "missing_in_latest_sync":
         summary = "После синхронизации замечание пропало из последней загруженной таблицы."
     else:
-        summary = str(change.action or "Изменение")
+        summary = "В задаче выполнено системное изменение."
 
     return {
         "timestamp": format_ru_datetime(change.created_at),
         "actor": actor,
         "point_label": point_label,
         "summary": summary,
+        "summary_class": summary_class,
     }
+
+
+def _is_legacy_problem_comment_change(change: ChangeLog, task: Task | None) -> bool:
+    """Hide the old extra comment event that was written with Problem status."""
+    if not task or change.action != "field_update" or change.field_name != "comment":
+        return False
+    if not change.created_at:
+        return False
+    for related in task.changes:
+        if related.action != "status_change" or related.field_name != "status" or related.new_value != "problem":
+            continue
+        if related.user_id != change.user_id or not related.created_at:
+            continue
+        if abs((related.created_at - change.created_at).total_seconds()) <= 5:
+            return True
+    return False
 
 
 def _save_site_error(message: str, kind: str = "user", traceback_text: str | None = None, page_url: str | None = None) -> SiteErrorReport | None:
@@ -1326,6 +1375,117 @@ def _unlink_measurements_from_writeoff(writeoff_id: int) -> list[int]:
             synchronize_session=False,
         )
     return measurement_ids
+
+
+def _is_measurement_material_request(material_request: MaterialRequest | None) -> bool:
+    if material_request is None:
+        return False
+    title = (material_request.title or "").strip()
+    return material_request.comment == MEASUREMENT_REQUEST_COMMENT or bool(MEASUREMENT_REQUEST_TITLE_PATTERN.fullmatch(title))
+
+
+def _measurement_writeoffs_for_request(material_request: MaterialRequest | None) -> list[MaterialWriteOff]:
+    if material_request is None:
+        return []
+    item_ids = [item.id for item in material_request.items if item.id]
+    if not item_ids:
+        return []
+    measurements = (
+        GlassMeasurement.query.options(selectinload(GlassMeasurement.material_writeoff))
+        .filter(GlassMeasurement.material_request_item_id.in_(item_ids))
+        .all()
+    )
+    writeoffs = []
+    seen_ids: set[int] = set()
+    for measurement in measurements:
+        writeoff = measurement.material_writeoff
+        if writeoff is None or writeoff.id in seen_ids:
+            continue
+        seen_ids.add(writeoff.id)
+        writeoffs.append(writeoff)
+    return writeoffs
+
+
+def _delete_measurement_request_writeoffs(material_request: MaterialRequest, *, record: bool = True) -> list[int]:
+    writeoffs = _measurement_writeoffs_for_request(material_request)
+    deleted_ids: list[int] = []
+    for writeoff in writeoffs:
+        measurement_ids = _measurement_ids_for_writeoff(writeoff.id)
+        if record:
+            _record_simple_deletion(
+                "material_writeoff_delete",
+                "material_writeoff",
+                writeoff,
+                f"РЎРїРёСЃР°РЅРёРµ #{writeoff.id}",
+                f"РЈРґР°Р»РµРЅРѕ Р°РІС‚РѕСЃРїРёСЃР°РЅРёРµ РїРѕ Р·Р°СЏРІРєРµ РёР· Р·Р°РјРµСЂРѕРІ: {material_request.title or material_request.id}.",
+                project_id=material_request.project_id,
+                extra={
+                    "items": [_snapshot_model(item) for item in writeoff.items],
+                    "task_ids": [task.id for task in writeoff.tasks],
+                    "measurement_ids": measurement_ids,
+                },
+            )
+        _unlink_measurements_from_writeoff(writeoff.id)
+        writeoff.tasks.clear()
+        deleted_ids.append(writeoff.id)
+        db.session.delete(writeoff)
+    return deleted_ids
+
+
+def _measurement_request_groups(old_items: list[MaterialRequestItem]) -> list[dict[str, object]]:
+    old_item_ids = [item.id for item in old_items if item.id]
+    if not old_item_ids:
+        return []
+    linked_measurements = (
+        GlassMeasurement.query.options(selectinload(GlassMeasurement.material_writeoff))
+        .filter(GlassMeasurement.material_request_item_id.in_(old_item_ids))
+        .all()
+    )
+    linked_by_old_item_id = {measurement.material_request_item_id: measurement for measurement in linked_measurements}
+    groups: list[dict[str, object]] = []
+    current_group: dict[str, object] | None = None
+    for index, old_item in enumerate(old_items):
+        measurement = linked_by_old_item_id.get(old_item.id)
+        if measurement is not None:
+            current_group = {"measurement": measurement, "start": index, "end": index + 1}
+            groups.append(current_group)
+        elif current_group is not None:
+            current_group["end"] = index + 1
+    return groups
+
+
+def _sync_measurement_writeoffs_from_request_groups(
+    material_request: MaterialRequest,
+    groups: list[dict[str, object]],
+    new_items: list[MaterialRequestItem],
+) -> None:
+    if not groups:
+        return
+    for group in groups:
+        measurement = group.get("measurement")
+        if measurement is None:
+            continue
+        start = int(group.get("start") or 0)
+        end = int(group.get("end") or start + 1)
+        group_items = new_items[start:end]
+        if group_items:
+            measurement.material_request_item = group_items[0]
+        else:
+            measurement.material_request_item = None
+        writeoff = getattr(measurement, "material_writeoff", None)
+        if writeoff is None:
+            continue
+        writeoff.writeoff_date = material_request.request_date
+        writeoff.comment = f"{MEASUREMENT_WRITEOFF_COMMENT_PREFIX}: {material_request.title or material_request.id}"
+        writeoff.items.clear()
+        for item in group_items:
+            writeoff.items.append(
+                MaterialWriteOffItem(
+                    name=item.name,
+                    quantity=item.quantity,
+                    unit=item.unit,
+                )
+            )
 
 
 def _material_task_options(project_id: int, params=None) -> list[Task]:
@@ -2645,32 +2805,133 @@ def contractors_list():
     return _task_list_response(contractor_page=True)
 
 
+def _project_contractor(project_id: int, contractor_id: int | None) -> Contractor | None:
+    if not contractor_id:
+        return None
+    return Contractor.query.filter_by(id=contractor_id, project_id=project_id).first()
+
+
+def _filter_tasks_for_contractor(query, contractor: Contractor | None):
+    if contractor is None:
+        return query
+    work_point_ids = [point.id for point in contractor.work_points]
+    apartment_ids = [apartment.id for apartment in contractor.apartments]
+    if not work_point_ids or not apartment_ids:
+        return query.filter(False)
+    return query.filter(
+        Task.work_point_id.in_(work_point_ids),
+        Task.apartment_id.in_(apartment_ids),
+    )
+
+
+@bp.route("/contractors/directory")
+@login_required
+def contractor_directory():
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    contractors = (
+        Contractor.query
+        .options(selectinload(Contractor.work_points), selectinload(Contractor.apartments))
+        .filter_by(project_id=project.id)
+        .order_by(func.lower(Contractor.name).asc(), Contractor.id.asc())
+        .all()
+    )
+    contractor_rows = []
+    for contractor in contractors:
+        point_labels = sorted({
+            f"{point.point_number} — {point.display_name}"
+            for point in contractor.work_points
+        })
+        apartment_groups = {
+            _apartment_group_key(apartment)
+            for apartment in contractor.apartments
+            if _is_visible_apartment_row(apartment)
+        }
+        contractor_rows.append({
+            "contractor": contractor,
+            "point_labels": point_labels,
+            "apartment_count": len(apartment_groups),
+        })
+    return render_template(
+        "contractor_directory.html",
+        project=project,
+        contractor_rows=contractor_rows,
+    )
+
+
 @bp.route("/contractors/new", methods=["GET", "POST"])
 @login_required
 def contractor_new():
+    return _contractor_form_response()
+
+
+@bp.route("/contractors/<int:contractor_id>/edit", methods=["GET", "POST"])
+@login_required
+def contractor_edit(contractor_id: int):
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    contractor = _project_contractor(project.id, contractor_id) or abort(404)
+    return _contractor_form_response(contractor)
+
+
+@bp.route("/contractors/<int:contractor_id>/delete", methods=["POST"])
+@login_required
+def contractor_delete(contractor_id: int):
     if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
         abort(403)
-    if _is_mobile_phone_request():
-        return redirect(url_for("main.contractors_list"))
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    contractor = _project_contractor(project.id, contractor_id) or abort(404)
+    contractor_name = contractor.name
+    contractor.work_points = []
+    contractor.apartments = []
+    db.session.delete(contractor)
+    db.session.commit()
+    flash(f"Подрядчик «{contractor_name}» удалён.", "success")
+    return redirect(url_for("main.contractor_directory"))
 
+
+def _contractor_form_response(contractor: Contractor | None = None):
+    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+        abort(403)
     project = selected_project()
     if project is None:
         flash("Сначала выберите объект.", "warning")
         return redirect(url_for("main.objects"))
+    if contractor is not None and contractor.project_id != project.id:
+        abort(404)
 
     point_options = _contractor_point_options()
     apartment_options = _contractor_apartment_options(project.id)
-    name = str(request.form.get("name") or "").strip()
-    selected_point_numbers = {
-        str(value).strip()
-        for value in request.form.getlist("work_points")
-        if str(value).strip()
-    }
-    selected_apartment_group_ids = {
-        str(value).strip()
-        for value in request.form.getlist("apartment_groups")
-        if str(value).strip()
-    }
+    if request.method == "POST":
+        name = str(request.form.get("name") or "").strip()
+        selected_point_numbers = {
+            str(value).strip()
+            for value in request.form.getlist("work_points")
+            if str(value).strip()
+        }
+        selected_apartment_group_ids = {
+            str(value).strip()
+            for value in request.form.getlist("apartment_groups")
+            if str(value).strip()
+        }
+    else:
+        name = contractor.name if contractor else ""
+        selected_point_numbers = {
+            str(point.point_number).strip()
+            for point in (contractor.work_points if contractor else [])
+        }
+        contractor_apartment_ids = {
+            apartment.id for apartment in (contractor.apartments if contractor else [])
+        }
+        selected_apartment_group_ids = {
+            str(option["id"])
+            for option in apartment_options
+            if contractor_apartment_ids.intersection(option["apartment_ids"])
+        }
 
     if request.method == "POST":
         errors = []
@@ -2683,10 +2944,13 @@ def contractor_new():
             errors.append("Укажите наименование подрядчика.")
         elif len(name) > 180:
             errors.append("Наименование подрядчика не должно превышать 180 символов.")
-        elif Contractor.query.filter(
+        duplicate_query = Contractor.query.filter(
             Contractor.project_id == project.id,
             func.lower(Contractor.name) == name.lower(),
-        ).first():
+        )
+        if contractor is not None:
+            duplicate_query = duplicate_query.filter(Contractor.id != contractor.id)
+        if len(name) >= 2 and duplicate_query.first():
             errors.append("Подрядчик с таким наименованием уже создан на этом объекте.")
         if not selected_point_numbers:
             errors.append("Выберите хотя бы один пункт ответственности.")
@@ -2712,13 +2976,18 @@ def contractor_new():
                 .order_by(Apartment.id.asc())
                 .all()
             )
-            contractor = Contractor(project=project, name=name)
+            if contractor is None:
+                contractor = Contractor(project=project)
+                db.session.add(contractor)
+            contractor.name = name
             contractor.work_points = work_points
             contractor.apartments = apartments
-            db.session.add(contractor)
             db.session.commit()
-            flash(f"Подрядчик «{contractor.name}» создан.", "success")
-            return redirect(url_for("main.contractors_list"))
+            flash(
+                f"Подрядчик «{contractor.name}» {'обновлён' if request.endpoint == 'main.contractor_edit' else 'создан'}.",
+                "success",
+            )
+            return redirect(url_for("main.contractor_directory"))
 
         for error in errors:
             flash(error, "warning")
@@ -2731,6 +3000,9 @@ def contractor_new():
         contractor_name=name,
         selected_point_numbers=selected_point_numbers,
         selected_apartment_group_ids=selected_apartment_group_ids,
+        contractor=contractor,
+        contractor_form_title="Редактировать подрядчика" if contractor else "Создать подрядчика",
+        contractor_submit_label="Сохранить изменения" if contractor else "Создать подрядчика",
     )
 
 
@@ -2791,6 +3063,8 @@ def contractors_excel_selection():
     query_args.pop("task_ids", None)
     query_args["sort"] = "apartment"
     query = build_task_query(query_args, category_id=all_cat.id if all_cat else None, project_id=project.id)
+    selected_contractor = _project_contractor(project.id, request.args.get("contractor_id", type=int))
+    query = _filter_tasks_for_contractor(query, selected_contractor)
     if current_user.role in WORKER_ROLES:
         query = query.filter(Task.responsible_id == current_user.id)
     tasks = (
@@ -2868,10 +3142,10 @@ def contractors_export():
         return redirect(url_for("main.objects"))
     query_args = request.args.copy()
     query_args["sort"] = "apartment"
-    tasks = _export_tasks_from_request(query_args, project.id).all()
-    point = request.args.get("point")
-    point_label = CONTRACTOR_POINT_LABELS.get(point, "Все пункты") if point else "Все пункты"
-    path = export_remark_tasks_excel(tasks, f"{project.name}_Подрядчики", title=f"Подрядчики - {point_label}")
+    selected_contractor = _project_contractor(project.id, request.args.get("contractor_id", type=int))
+    tasks = _filter_tasks_for_contractor(_export_tasks_from_request(query_args, project.id), selected_contractor).all()
+    contractor_label = selected_contractor.name if selected_contractor else "Все подрядчики"
+    path = export_remark_tasks_excel(tasks, f"{project.name}_Подрядчики", title=f"Подрядчики - {contractor_label}")
     return send_file(path, as_attachment=True, download_name=Path(path).name)
 
 
@@ -3536,15 +3810,20 @@ def assignment_unassign(task_id: int):
 @bp.route("/assignments/<int:task_id>/delete-from-employee", methods=["POST"])
 @login_required
 def assignment_delete_from_employee(task_id: int):
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
     if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
         abort(403)
     project = selected_project()
     if project is None:
+        if wants_json:
+            return jsonify({"ok": False, "message": "Выберите объект"}), 400
         return redirect(url_for("main.objects"))
     task = db.session.get(Task, task_id) or abort(404)
     if task.project_id != project.id:
         abort(404)
     if not task.responsible_id:
+        if wants_json:
+            return jsonify({"ok": False, "message": "У задачи уже нет исполнителя"}), 400
         flash("У задачи уже нет исполнителя", "warning")
         return redirect(request.referrer or url_for("main.assignments", view="issued"))
 
@@ -3573,7 +3852,20 @@ def assignment_delete_from_employee(task_id: int):
     if old_date is not None:
         log_change(task, "field_update", "planned_date", old_date, None, user_id=current_user.id)
     db.session.commit()
-    flash("Задача удалена у сотрудника и снова доступна без исполнителя. Действие можно отменить в логах удалений.", "success")
+
+    message = "Задача удалена у сотрудника и снова доступна без исполнителя. Действие можно отменить в логах удалений."
+    if wants_json:
+        return jsonify({
+            "ok": True,
+            "task_id": task.id,
+            "responsible_id": None,
+            "responsible_name": None,
+            "planned_date": "—",
+            "planned_date_iso": "",
+            "removed": True,
+            "message": message,
+        })
+    flash(message, "success")
     return redirect(request.referrer or url_for("main.assignments", view="issued"))
 
 
@@ -4257,33 +4549,32 @@ def glass_measurements():
     glass_pagination = None
     glass_prev_args = {}
     glass_next_args = {}
-    if not _is_mobile_phone_request():
-        per_page = 20
-        requested_page = max(request.args.get("page", 1, type=int), 1)
-        page_count = max((active_total + per_page - 1) // per_page, 1)
-        page = min(requested_page, page_count)
-        page_start = (page - 1) * per_page
-        page_rows = active_rows[page_start:page_start + per_page]
-        if tab == "all":
-            rows = page_rows
-        elif tab == "order":
-            order_rows = page_rows
-        else:
-            ordered_rows = page_rows
-        glass_pagination = {
-            "page": page,
-            "pages": page_count,
-            "has_prev": page > 1,
-            "has_next": page < page_count,
-        }
-        glass_prev_args = request.args.to_dict(flat=False)
-        glass_next_args = request.args.to_dict(flat=False)
-        glass_prev_args["tab"] = tab
-        glass_next_args["tab"] = tab
-        if page > 1:
-            glass_prev_args["page"] = page - 1
-        if page < page_count:
-            glass_next_args["page"] = page + 1
+    per_page = 10 if _is_mobile_phone_request() else 20
+    requested_page = max(request.args.get("page", 1, type=int), 1)
+    page_count = max((active_total + per_page - 1) // per_page, 1)
+    page = min(requested_page, page_count)
+    page_start = (page - 1) * per_page
+    page_rows = active_rows[page_start:page_start + per_page]
+    if tab == "all":
+        rows = page_rows
+    elif tab == "order":
+        order_rows = page_rows
+    else:
+        ordered_rows = page_rows
+    glass_pagination = {
+        "page": page,
+        "pages": page_count,
+        "has_prev": page > 1,
+        "has_next": page < page_count,
+    }
+    glass_prev_args = request.args.to_dict(flat=False)
+    glass_next_args = request.args.to_dict(flat=False)
+    glass_prev_args["tab"] = tab
+    glass_next_args["tab"] = tab
+    if page > 1:
+        glass_prev_args["page"] = page - 1
+    if page < page_count:
+        glass_next_args["page"] = page + 1
     return render_template(
         "glass_measurements.html",
         project=project,
@@ -5042,6 +5333,7 @@ def material_request_update(request_id: int):
         flash("Добавьте хотя бы одну позицию материала", "warning")
         return redirect(url_for("main.material_request_detail", request_id=request_id))
     old_items = list(material_request.items)
+    measurement_request_groups = _measurement_request_groups(old_items) if _is_measurement_material_request(material_request) else []
     old_item_ids = [item.id for item in old_items if item.id]
     linked_measurements = (
         GlassMeasurement.query.filter(GlassMeasurement.material_request_item_id.in_(old_item_ids)).all()
@@ -5055,13 +5347,17 @@ def material_request_update(request_id: int):
     material_request.request_date = request_date
     material_request.comment = (request.form.get("comment") or material_request.comment or "").strip() or None
     material_request.items.clear()
+    new_items: list[MaterialRequestItem] = []
     for index, row in enumerate(rows):
         new_item = MaterialRequestItem(name=str(row["name"]), quantity=float(row["quantity"]), unit=str(row["unit"]))
         material_request.items.append(new_item)
+        new_items.append(new_item)
         if index < len(old_items):
             linked_measurement = linked_by_old_item_id.get(old_items[index].id)
             if linked_measurement is not None:
                 linked_measurement.material_request_item = new_item
+    if _is_measurement_material_request(material_request):
+        _sync_measurement_writeoffs_from_request_groups(material_request, measurement_request_groups, new_items)
     db.session.commit()
     flash("Заявка обновлена", "success")
     return redirect(url_for("main.material_request_detail", request_id=request_id))
@@ -5076,9 +5372,14 @@ def material_request_delete(request_id: int):
     if not _can_edit_materials():
         abort(403)
     material_request = (
-        MaterialRequest.query.filter(MaterialRequest.id == request_id, MaterialRequest.project_id == project.id).first()
+        MaterialRequest.query.options(selectinload(MaterialRequest.items))
+        .filter(MaterialRequest.id == request_id, MaterialRequest.project_id == project.id)
+        .first()
         or abort(404)
     )
+    deleted_writeoff_ids: list[int] = []
+    if _is_measurement_material_request(material_request):
+        deleted_writeoff_ids = _delete_measurement_request_writeoffs(material_request)
     item_ids = [item.id for item in material_request.items]
     if item_ids:
         GlassMeasurement.query.filter(GlassMeasurement.material_request_item_id.in_(item_ids)).update(
@@ -5092,7 +5393,10 @@ def material_request_delete(request_id: int):
         material_request.title or f"Заявка #{material_request.id}",
         f"Удалена заявка на материалы: {material_request.title or material_request.id}.",
         project_id=project.id,
-        extra={"items": [_snapshot_model(item) for item in material_request.items]},
+        extra={
+            "items": [_snapshot_model(item) for item in material_request.items],
+            "deleted_writeoff_ids": deleted_writeoff_ids,
+        },
     )
     db.session.delete(material_request)
     db.session.commit()
@@ -5124,6 +5428,10 @@ def material_requests_bulk_delete():
         query = query.filter(MaterialRequest.id.in_(selected_ids))
 
     requests_to_delete = query.all()
+    deleted_writeoffs_by_request: dict[int, list[int]] = {}
+    for material_request in requests_to_delete:
+        if _is_measurement_material_request(material_request):
+            deleted_writeoffs_by_request[material_request.id] = _delete_measurement_request_writeoffs(material_request)
     item_ids = [item.id for material_request in requests_to_delete for item in material_request.items if item.id]
     if item_ids:
         GlassMeasurement.query.filter(GlassMeasurement.material_request_item_id.in_(item_ids)).update(
@@ -5138,7 +5446,10 @@ def material_requests_bulk_delete():
             material_request.title or f"Заявка #{material_request.id}",
             f"Удалена заявка на материалы: {material_request.title or material_request.id}.",
             project_id=project.id,
-            extra={"items": [_snapshot_model(item) for item in material_request.items]},
+            extra={
+                "items": [_snapshot_model(item) for item in material_request.items],
+                "deleted_writeoff_ids": deleted_writeoffs_by_request.get(material_request.id, []),
+            },
         )
         db.session.delete(material_request)
     db.session.commit()
@@ -6329,11 +6640,26 @@ def _task_list_response(contractor_page: bool = False):
         category_id = section_id
 
     query_args = request.args.copy()
+    contractor_options = []
+    selected_contractor = None
     if contractor_page:
         # В разделе "Подрядчики" показываем ту же таблицу замечаний, но группируем/фильтруем по пунктам 10-22.
         # Не принудительно фильтруем по статусу "Подрядчик", иначе вкладка пустая до ручной разметки задач.
         query_args["sort"] = "apartment"
+        contractor_options = (
+            Contractor.query
+            .options(selectinload(Contractor.work_points), selectinload(Contractor.apartments))
+            .filter_by(project_id=project.id)
+            .order_by(func.lower(Contractor.name).asc(), Contractor.id.asc())
+            .all()
+        )
+        selected_contractor = next(
+            (contractor for contractor in contractor_options if contractor.id == request.args.get("contractor_id", type=int)),
+            None,
+        )
     query = build_task_query(query_args, category_id=category_id, project_id=project.id)
+    if contractor_page:
+        query = _filter_tasks_for_contractor(query, selected_contractor)
     if current_user.role in WORKER_ROLES:
         query = query.filter(Task.responsible_id == current_user.id)
     # Список помещений для выбора Excel строим по всему отфильтрованному набору,
@@ -6403,7 +6729,8 @@ def _task_list_response(contractor_page: bool = False):
         active_category=active_category,
         contractor_page=contractor_page,
         list_endpoint="main.contractors_list" if contractor_page else "main.task_list",
-        contractor_points=_contractor_point_options() if contractor_page else [],
+        contractor_options=contractor_options,
+        selected_contractor=selected_contractor,
         contractor_excel_selection_url=(url_for("main.contractors_excel_selection", **request.args.to_dict(flat=False)) if contractor_page else ""),
         remarks_excel_selection_url=(url_for("main.remarks_excel_selection", category_id=category_id, **{key: value for key, value in request.args.to_dict(flat=False).items() if key not in {"category_id", "page", "task_ids", "premise_ids"}}) if (not contractor_page and category_id) else ""),
         category_filter_args={key: value for key, value in request.args.to_dict(flat=False).items() if key not in {"category_id", "section_id", "page"}},
@@ -6991,6 +7318,36 @@ def _build_apartment_overview(apartment_or_group, include_activity: bool = True)
         "has_ordered_glass": bool(ordered_glass),
         "has_replaced_glass": bool(replaced_glass),
         "glass_status_label": glass_measurement_action_label(replaced_glass[0] if replaced_glass else (ordered_glass[0] if ordered_glass else None)),
+    }
+
+
+def _apartment_live_stats_for_task(task: Task) -> dict[str, int | float] | None:
+    if not task.apartment_id:
+        return None
+    apartment = db.session.get(Apartment, task.apartment_id)
+    if not apartment:
+        return None
+    group_key = _apartment_group_key(apartment)
+    apartments = (
+        Apartment.query.options(
+            selectinload(Apartment.tasks).selectinload(Task.work_point),
+            selectinload(Apartment.tasks).selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items),
+        )
+        .filter(Apartment.project_id == task.project_id)
+        .all()
+    )
+    group = [
+        item
+        for item in apartments
+        if _is_visible_apartment_row(item) and _apartment_group_key(item) == group_key
+    ] or [apartment]
+    overview = _build_apartment_overview(group, include_activity=False)
+    return {
+        "total": overview["total"],
+        "done": overview["done"],
+        "left": overview["left"],
+        "problem": overview["problem"],
+        "percent": overview["percent"],
     }
 
 
@@ -7761,6 +8118,7 @@ def apartment_detail(apartment_id: int):
     history_entries_all = [
         _build_change_history_entry(item["change"], task=item["task"], users_cache=users_cache)
         for item in overview["changes"]
+        if not _is_legacy_problem_comment_change(item["change"], item["task"])
     ]
     history_page = max(request.args.get("history_page", 1, type=int), 1)
     history_per_page = 12
@@ -8028,7 +8386,7 @@ def task_detail(task_id: int):
     edit_form.responsible_id.data = str(task.responsible_id or "")
     edit_form.planned_date.data = task.planned_date.isoformat() if task.planned_date else ""
     comment_form = CommentForm()
-    visible_changes = list(task.changes)
+    visible_changes = [change for change in task.changes if not _is_legacy_problem_comment_change(change, task)]
     users_cache: dict[int, str] = {}
     history_entries = [_build_change_history_entry(change, task=task, users_cache=users_cache) for change in visible_changes]
     other_open_tasks = (
@@ -8191,10 +8549,7 @@ def quick_status(task_id: int, status: str):
     if status == "problem":
         problem_comment = (request.form.get("problem_comment") or "").strip()
         if problem_comment:
-            old_comment = task.comment
             task.comment = problem_comment
-            if old_comment != problem_comment:
-                log_change(task, "field_update", "comment", old_comment, problem_comment)
     change_task_status(task, status, user_id=current_user.id)
     if request.form.get("sync_google_format") == "1":
         try:
@@ -8205,8 +8560,14 @@ def quick_status(task_id: int, status: str):
             flash(f"Статус сохранён, но зачёркивание в Google Sheets не применилось: {exc}", "warning")
             return redirect(request.referrer or url_for("main.task_list"))
     if wants_json:
-        history_change = next((change for change in reversed(task.changes) if change.action in {"status_change", "field_update"}), None)
+        history_change = (
+            ChangeLog.query
+            .filter_by(task_id=task.id, action="status_change", field_name="status")
+            .order_by(ChangeLog.id.desc())
+            .first()
+        )
         history_entry = _build_change_history_entry(history_change, task=task, users_cache={}) if history_change else None
+        apartment_stats = _apartment_live_stats_for_task(task)
         return jsonify(
             {
                 "ok": True,
@@ -8217,6 +8578,7 @@ def quick_status(task_id: int, status: str):
                 "is_done": task.is_done,
                 "message": f"Статус изменён: {TASK_STATUSES[status]['label']}",
                 "history_entry": history_entry,
+                "apartment_stats": apartment_stats,
             }
         )
     flash(f"Статус изменён: {TASK_STATUSES[status]['label']}", "success")
@@ -9167,7 +9529,8 @@ def split_task_remark(task_id: int):
     task.description = current_text
     task.manually_edited = True
     if previous_text != current_text:
-        log_change(task, "field_update", "description", previous_text, current_text, user_id=current_user.id)
+        split_payload = json.dumps({"first": current_text, "second": new_text}, ensure_ascii=False)
+        log_change(task, "manual_split", "description", previous_text, split_payload, user_id=current_user.id)
     change_task_status(task, current_status, user_id=current_user.id, commit=False)
 
     point_number = task.work_point.point_number if task.work_point and task.work_point.point_number else "22"

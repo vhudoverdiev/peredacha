@@ -315,6 +315,7 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
 
 }
 
+
 /* Desktop users: compact project picker, autosave fields and aligned actions. */
 .users-page .users-role-option {
   justify-content: center;
@@ -3637,6 +3638,17 @@ body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .
   border-radius: 50%;
   background: var(--crm-primary);
   box-shadow: 0 0 0 6px rgba(141, 214, 44, 0.12);
+}
+
+.timeline-summary-danger {
+  color: #c92f3f;
+  -webkit-text-fill-color: #c92f3f;
+  font-weight: 750;
+}
+
+.timeline-item:has(.timeline-summary-danger)::before {
+  background: #e34b55;
+  box-shadow: 0 0 0 6px rgba(227, 75, 85, .12);
 }
 
 .status-pill {
@@ -8552,7 +8564,9 @@ button.disabled,
 }
 .actions-cell[data-current-status="done"] .status-action-form[data-status-action="not_started"],
 .actions-cell[data-current-status="finishers"] .status-action-form[data-status-action="not_started"],
-.actions-cell[data-current-status="contractor"] .status-action-form[data-status-action="not_started"] {
+.actions-cell[data-current-status="contractor"] .status-action-form[data-status-action="not_started"],
+.actions-cell[data-current-status="guarantee"] .status-action-form[data-status-action="not_started"],
+.actions-cell[data-current-status="concession"] .status-action-form[data-status-action="not_started"] {
   order: -10;
 }
 .inspection-note-form .btn {
@@ -50694,6 +50708,16 @@ html body.app-body form[action*="/status/guarantee"]
   -webkit-text-fill-color: #fff !important;
 }
 
+/* Remarks tabs update their table in place. Keep the existing list fully
+   opaque while the next category is fetched so no legacy pale-green loading
+   frame appears after a category button is pressed. */
+body.app-body:has(.remarks-page-head)
+  [data-ajax-pagination-page].ajax-pagination-loading
+  [data-ajax-pagination-content] {
+  opacity: 1 !important;
+  transition: none !important;
+}
+
 /* v376: anchor every mobile tab to the bottom edge of the dark header. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body {
@@ -53451,6 +53475,24 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     line-height: 1.1 !important;
     white-space: nowrap !important;
   }
+
+  body.app-body .apartment-detail-page .apartment-task-status-desktop .apartment-task-letter-form {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  body.app-body .apartment-detail-page .apartment-task-status-desktop .apartment-task-letter-btn.btn-sm {
+    width: 2.25rem !important;
+    min-width: 2.25rem !important;
+    height: 2.15rem !important;
+    min-height: 2.15rem !important;
+    padding: 0 !important;
+    border-radius: .7rem !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+  }
 }
 
 /* v486: keep the desktop apartment filters readable. The Bootstrap column
@@ -55043,6 +55085,242 @@ body.app-body:has(.objects-page) :is(
   }
 }
 
+/* Issued assignments: aligned card/table after employee removal actions. */
+body.app-body:has(.assignment-issued-filters) .assignment-issued-layout,
+body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-cards {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 1rem !important;
+  align-items: start !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-card {
+  overflow: hidden !important;
+  border: 1px solid rgba(124, 179, 66, .22) !important;
+  border-radius: 1.1rem !important;
+  background: #fff !important;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, .07) !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 1rem !important;
+  padding: .95rem 1.1rem !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(124, 179, 66, .18) !important;
+  background: linear-gradient(135deg, #fbfef7, #ffffff) !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-user {
+  display: flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  gap: .75rem !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-user > span {
+  flex: 0 0 42px !important;
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: .85rem !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-user b,
+body.app-body:has(.assignment-issued-filters) .assignment-issued-user small {
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-head-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex: 0 0 auto !important;
+  gap: .6rem !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-table-wrap {
+  width: 100% !important;
+  overflow-x: auto !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-table {
+  width: 100% !important;
+  min-width: 920px !important;
+  table-layout: fixed !important;
+  margin: 0 !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-table col.assignment-issued-col-room { width: 124px !important; }
+body.app-body:has(.assignment-issued-filters) .assignment-issued-table col.assignment-issued-col-task { width: auto !important; }
+body.app-body:has(.assignment-issued-filters) .assignment-issued-table col.assignment-issued-col-date { width: 150px !important; }
+body.app-body:has(.assignment-issued-filters) .assignment-issued-table col.assignment-issued-col-status { width: 166px !important; }
+body.app-body:has(.assignment-issued-filters) .assignment-issued-table col.assignment-issued-col-actions { width: 156px !important; }
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-table th,
+body.app-body:has(.assignment-issued-filters) .assignment-issued-table td {
+  vertical-align: middle !important;
+  padding: .82rem .9rem !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-table thead th {
+  font-size: .74rem !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .035em !important;
+  color: #667085 !important;
+  background: #f3f9ed !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-table .task-text,
+body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-task-open-link {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  color: #182230 !important;
+  font-weight: 800 !important;
+  line-height: 1.38 !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-date-cell > span,
+body.app-body:has(.assignment-issued-filters) .assignment-issued-date-cell > small {
+  display: block !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-actions-cell {
+  text-align: right !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: .45rem !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-actions form {
+  display: contents !important;
+  margin: 0 !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-actions .btn,
+body.app-body:has(.assignment-issued-filters) .assignment-issued-actions button {
+  flex: 0 0 38px !important;
+  width: 38px !important;
+  min-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  border-radius: .75rem !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-actions .assignment-change-assignee-btn {
+  width: auto !important;
+  min-width: 96px !important;
+  padding: 0 .7rem !important;
+  gap: .35rem !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-actions .assignment-delete-employee-task-btn {
+  background: #fff5f5 !important;
+  border-color: #fecdca !important;
+  color: #d92d20 !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-actions .assignment-delete-employee-task-btn:hover,
+body.app-body:has(.assignment-issued-filters) .assignment-issued-actions .assignment-delete-employee-task-btn:focus-visible {
+  background: #d92d20 !important;
+  border-color: #d92d20 !important;
+  color: #fff !important;
+}
+
+body.app-body:has(.assignment-issued-filters) .assignment-issued-row-unassigned td {
+  opacity: .68 !important;
+}
+
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-card {
+    border-radius: 1rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-head {
+    padding: .85rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table {
+    min-width: 0 !important;
+    display: block !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table tbody {
+    display: grid !important;
+    gap: .75rem !important;
+    padding: .75rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .55rem !important;
+    padding: .85rem !important;
+    border: 1px solid rgba(124, 179, 66, .18) !important;
+    border-radius: .95rem !important;
+    background: #fff !important;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, .06) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td {
+    display: grid !important;
+    grid-template-columns: 5.2rem minmax(0, 1fr) !important;
+    gap: .65rem !important;
+    align-items: center !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-row > td:nth-child(2) {
+    grid-template-columns: 1fr !important;
+    align-items: start !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-actions {
+    justify-content: stretch !important;
+    width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-actions .btn,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-actions button {
+    flex: 1 1 0 !important;
+    width: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-actions .assignment-change-assignee-btn {
+    min-width: 0 !important;
+  }
+}
+
 /* Desktop contractor creation wizard. */
 .contractor-create-page {
   width: min(1180px, 100%);
@@ -55341,6 +55619,102 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
   text-shadow: none !important;
 }
 
+/* v558: Apartments mobile filters use custom select text, because native mobile
+   selects can ignore font-weight and render the selected value bold. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-form .developer-custom-select,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-form .global-custom-select {
+    width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-form .developer-custom-select > select.developer-native-select {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-form .developer-custom-select > .developer-select-button {
+    display: flex !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .developer-select-menu-portal {
+    display: grid !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .developer-select-menu-portal[hidden] {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-form .developer-select-button,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-form .developer-select-value,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .developer-select-menu-portal .developer-select-option {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif !important;
+    font-size: 16px !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    font-variation-settings: "wght" 400 !important;
+    font-synthesis: none !important;
+    line-height: 1.25 !important;
+    color: #1f2937 !important;
+    -webkit-text-fill-color: #1f2937 !important;
+    text-shadow: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .po-notification-widget {
+    bottom: calc(3.05rem + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* v560: verifier mobile report had oversized clearances above the Excel button
+   and below the last report card; keep both roughly three times smaller. */
+@media (max-width: 767.98px) {
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.verifier-layout:has(.work-report-page) .app-layout > .app-main > .app-content {
+    padding-top: .16rem !important;
+    padding-bottom: calc((var(--ref-mobile-nav-height, 4.5rem) / 3) + .1rem) !important;
+  }
+
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-page {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head {
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-page .report-grid {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+}
+
 /* Assignment search remains fixed while the iOS keyboard changes the visual
    viewport; 16px prevents Safari's automatic focus zoom. */
 @media (max-width: 767.98px) {
@@ -55424,5 +55798,523 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
     justify-content: center !important;
     width: 100% !important;
     margin: 0 !important;
+  }
+}
+
+/* Final desktop status/action gutter. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+    .remarks-export-table-shell .task-table :is(.task-col-actions, th.task-col-actions, td.task-actions-cell) {
+    width: 16.5rem !important;
+    min-width: 16.5rem !important;
+    max-width: 16.5rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+    .remarks-export-table-shell .task-table td.task-actions-cell > .actions-cell {
+    width: calc(100% - .75rem) !important;
+    margin-left: .75rem !important;
+  }
+}
+
+/* Measurements order cards: inline remark editing must expand the card rather
+   than opening an absolutely positioned panel that is clipped by the shell. */
+.glass-page .glass-order-card .inline-editor-anchor.inline-editing-host {
+  flex-wrap: wrap !important;
+}
+
+.glass-page .glass-order-card .inline-editor-anchor.inline-editing-host .inline-editor-floating {
+  position: static !important;
+  inset: auto !important;
+  flex: 1 0 100% !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin-top: .5rem !important;
+  z-index: auto !important;
+}
+
+.glass-page .glass-order-card .inline-editor-anchor.inline-editing-host .inline-editor-floating textarea.form-control {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 7rem !important;
+}
+
+/* Restore the desktop contractors filter after the global nowrap rule. */
+@media (min-width: 992px) {
+  html.desktop-like-pointer body.app-body .contractor-filter-form {
+    display: grid !important;
+    grid-template-columns:
+      minmax(17rem, 3fr)
+      minmax(12rem, 2fr)
+      minmax(10rem, 1.6fr)
+      minmax(10rem, 1.6fr)
+      auto !important;
+    align-items: end !important;
+    gap: .75rem !important;
+    margin: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > [class*="col-"] {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+    flex: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .contractor-filter-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: .55rem !important;
+    white-space: nowrap !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .remarks-filter-finishing-col {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .contractor-create-desktop-btn {
+    display: none !important;
+  }
+}
+
+/* Contractors directory. */
+.contractor-directory-page {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.contractor-directory-head {
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.contractor-directory-actions {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+}
+
+.contractor-directory-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.contractor-directory-card,
+.contractor-directory-empty {
+  border: 1px solid var(--crm-border);
+  border-radius: var(--crm-radius);
+  background: var(--crm-surface);
+  box-shadow: var(--crm-shadow-soft);
+}
+
+.contractor-directory-card {
+  display: flex;
+  min-height: 230px;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.contractor-directory-card-head {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+}
+
+.contractor-directory-icon,
+.contractor-directory-empty > span {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 3rem;
+  place-items: center;
+  border-radius: 1rem;
+  background: rgba(141, 214, 44, .14);
+  color: #66a91c;
+  font-size: 1.25rem;
+}
+
+.contractor-directory-card h2,
+.contractor-directory-empty h2 {
+  margin: 0;
+  color: var(--crm-title);
+  font-size: 1.2rem;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.contractor-directory-card p,
+.contractor-directory-empty p {
+  margin: .2rem 0 0;
+  color: var(--crm-muted);
+}
+
+.contractor-directory-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+
+.contractor-directory-points span {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  padding: .42rem .6rem;
+  border: 1px solid #dce9ce;
+  border-radius: 999px;
+  background: #f7fbf2;
+  color: #425033;
+  font-size: .85rem;
+  font-weight: 750;
+}
+
+.contractor-directory-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+  margin-top: auto;
+}
+
+.contractor-directory-card-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border-radius: .8rem;
+  font-weight: 800;
+}
+
+.contractor-directory-empty {
+  display: grid;
+  min-height: 360px;
+  place-items: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.contractor-directory-empty > span {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 900px) {
+  .contractor-directory-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .contractor-directory-head {
+    align-items: stretch;
+  }
+
+  .contractor-directory-actions,
+  .contractor-directory-card-actions {
+    width: 100%;
+  }
+
+  .contractor-directory-actions .btn,
+  .contractor-directory-card-actions .btn,
+  .contractor-directory-card-actions form {
+    width: 100%;
+  }
+
+  .contractor-directory-card {
+    min-height: 0;
+    padding: 1rem;
+  }
+}
+
+/* Empty states in mobile task tables should read like compact cards, not broken rows. */
+.assignment-empty-cell,
+.remarks-empty-cell {
+  padding: 2rem 1rem !important;
+  text-align: center !important;
+  color: var(--crm-muted) !important;
+}
+
+.assignment-empty-state,
+.remarks-empty-state {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: .85rem 1.25rem;
+  border: 1px solid rgba(214, 226, 204, .95);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, .9);
+  color: #4d5649;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-shadow: 0 10px 24px rgba(31, 45, 61, .05);
+}
+
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .assignment-empty-row,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .remarks-empty-row {
+    display: block !important;
+    width: 100% !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .assignment-empty-cell,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .remarks-empty-cell {
+    display: block !important;
+    width: 100% !important;
+    padding: 1.1rem !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .assignment-empty-state,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .remarks-empty-state {
+    display: flex !important;
+    width: min(100%, 22rem) !important;
+    min-height: 4.2rem !important;
+    margin: 0 auto !important;
+    padding: .9rem 1rem !important;
+    font-size: 1rem !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+  }
+}
+
+/* Mobile measurements: ordered list only, compact header and stable inline edit. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page-head {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: .65rem !important;
+    margin: .35rem 0 .8rem !important;
+    padding: 0 .1rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-mobile-back-btn {
+    display: inline-flex !important;
+    width: auto !important;
+    min-width: 6.25rem !important;
+    min-height: 2.55rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .42rem !important;
+    padding: .52rem .9rem !important;
+    border-radius: .9rem !important;
+    font-weight: 850 !important;
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page-head .page-title,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page-head .page-subtitle,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-head-actions,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page > .remarks-tabs {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-order-row.glass-order-editing {
+    overflow: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-order-row.glass-order-editing > td:nth-child(4) {
+    order: 4 !important;
+    padding: .78rem !important;
+    border: 1px solid rgba(141, 214, 44, .22) !important;
+    border-radius: 1rem !important;
+    background: rgba(249, 252, 246, .98) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-order-row.glass-order-editing > td:nth-child(4)::before {
+    align-self: start !important;
+    padding-top: .2rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-order-row.glass-order-editing .js-glass-ordered-edit-form {
+    display: grid !important;
+    grid-column: 2 !important;
+    position: static !important;
+    inset: auto !important;
+    margin: 0 !important;
+  }
+}
+
+/* Auth screen: keep the login background one solid tone to the very bottom. */
+html.auth-root,
+body.auth-body,
+body.auth-body .auth-shell {
+  background: #f8fbf3 !important;
+  background-color: #f8fbf3 !important;
+}
+
+body.auth-body::before,
+body.auth-body::after,
+body.auth-body .auth-shell::before,
+body.auth-body .auth-shell::after {
+  background: none !important;
+  box-shadow: none !important;
+}
+
+body.auth-body .auth-footer,
+body.auth-body .auth-shell .auth-footer {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 767.98px) {
+  html.auth-root:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device),
+  html.auth-root:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.auth-body,
+  html.auth-root:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.auth-body .auth-shell {
+    background: #f8fbf3 !important;
+    background-color: #f8fbf3 !important;
+  }
+}
+
+/* Mobile task detail: reduce the empty space below the related remarks card. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.task-detail-page) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-bottom: calc((var(--ref-mobile-nav-height, 4.5rem) / 3) + .28rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.task-detail-page) .task-detail-related-card {
+    margin-bottom: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.task-detail-page) .task-detail-related-card .card-body {
+    padding-bottom: .32rem !important;
+  }
+}
+
+/* Desktop remarks category buttons: show a clear label above icon-only tabs. */
+html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs {
+  overflow: visible !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .crm-tabs,
+html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .nav-item {
+  overflow: visible !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category {
+  position: relative !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category::after {
+  content: attr(data-category-label);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + .55rem);
+  z-index: 50;
+  width: max-content;
+  max-width: 14rem;
+  padding: .42rem .68rem;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: .72rem;
+  background: rgba(17, 24, 39, .96);
+  color: #ffffff;
+  font-size: .78rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: .01em;
+  text-align: center;
+  white-space: normal;
+  box-shadow: 0 14px 30px rgba(17, 24, 39, .22);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(.18rem) scale(.98);
+  transition: opacity .16s ease, transform .16s ease;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + .27rem);
+  z-index: 51;
+  width: .58rem;
+  height: .58rem;
+  background: rgba(17, 24, 39, .96);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(.18rem) rotate(45deg);
+  transition: opacity .16s ease, transform .16s ease;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category:hover::after,
+html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category:hover::before,
+html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category:focus-visible::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) rotate(45deg);
+}
+
+/* Mobile remarks status pill: keep "Не выполнено" as one clean capsule. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head)
+    .remarks-export-table-shell .task-table.mobile-card-table .task-status-cell {
+    align-items: center !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head)
+    .remarks-export-table-shell .task-table.mobile-card-table .task-status-cell .status-pill {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 8.9rem !important;
+    max-width: 100% !important;
+    min-height: 2.35rem !important;
+    padding: .48rem .92rem !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    line-height: 1.12 !important;
+    text-align: center !important;
+    border-radius: 999px !important;
+    transform: none !important;
+  }
+}
+
+/* v561: mobile remarks edit/split buttons belong under the remark text,
+   not under the left "Замечание" label column. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head)
+    .remarks-export-table-shell .task-table.mobile-card-table .task-text .task-text-tools {
+    grid-column: 2 !important;
+    justify-self: start !important;
+    align-self: start !important;
+    margin-top: .34rem !important;
   }
 }

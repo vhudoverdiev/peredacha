@@ -662,9 +662,10 @@ document.addEventListener('DOMContentLoaded', () => {
       'select[data-no-custom-select]',
       '.flatpickr-monthDropdown-months'
     ].join(',');
-    // Mobile now uses the same custom select UI as desktop for visual consistency.
     // Native controls are more stable on touch devices: constructing a portal
     // during first paint caused the filter row to reflow and visibly flicker.
+    // Apartments filters explicitly opt into the custom UI on mobile too:
+    // several mobile browsers ignore CSS font-weight on native selected values.
     const useNativeMobileSelect = true;
     const isMobileSelectUi = document.documentElement.matches('.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device');
 
@@ -673,7 +674,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (select.closest('.developer-custom-select')) return;
       if (select.dataset.customSelectReady === '1') return;
 
-      if (useNativeMobileSelect && isMobileSelectUi) {
+      const forceCustomSelectOnMobile = select.hasAttribute('data-force-custom-select')
+        || Boolean(select.closest('.apartments-filter-form'));
+      if (forceCustomSelectOnMobile) {
+        delete select.dataset.nativeSelect;
+        select.classList.remove('mobile-native-select');
+      }
+
+      if (useNativeMobileSelect && isMobileSelectUi && !forceCustomSelectOnMobile) {
         select.dataset.nativeSelect = '1';
         select.classList.add('mobile-native-select');
         return;
@@ -696,7 +704,13 @@ document.addEventListener('DOMContentLoaded', () => {
     scope.querySelectorAll('.js-developer-custom-select').forEach(selectShell => {
       const select = selectShell.querySelector('select');
       if (!select) return;
-      if (isMobileSelectUi) {
+      const forceCustomSelectOnMobile = select.hasAttribute('data-force-custom-select')
+        || Boolean(select.closest('.apartments-filter-form'));
+      if (forceCustomSelectOnMobile) {
+        delete select.dataset.nativeSelect;
+        select.classList.remove('mobile-native-select');
+      }
+      if (isMobileSelectUi && !forceCustomSelectOnMobile) {
         select.classList.add('mobile-native-select');
         select.tabIndex = 0;
         select.removeAttribute('aria-hidden');
@@ -1957,6 +1971,7 @@ document.addEventListener('DOMContentLoaded', () => {
     meta.textContent = [entry.timestamp, entry.actor, entry.point_label].filter(Boolean).join(' · ');
     const summary = document.createElement('div');
     summary.textContent = entry.summary || '';
+    if (entry.summary_class) summary.className = entry.summary_class;
     item.append(meta, summary);
     list.prepend(item);
     list.hidden = false;
@@ -1998,14 +2013,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const syncStatusActionVisibility = (root = document) => {
+    const returnableStatuses = new Set(['done', 'finishers', 'contractor', 'guarantee', 'concession']);
     root.querySelectorAll('.actions-cell[data-current-status]').forEach(actionsCell => {
       const currentStatus = actionsCell.dataset.currentStatus || '';
       actionsCell.querySelectorAll('.status-action-form[data-status-action]').forEach(actionForm => {
         if (actionForm.matches('[data-binary-status-toggle]')) {
-          // «Чистовики», «Подрядчик», «Гарантия» и «Отступные» считаются завершёнными для
-          // статистики, но это отдельные статусы. В них зелёная кнопка
-          // «Выполнено» должна оставаться доступной.
-          syncBinaryStatusToggle(actionForm, currentStatus === 'done');
+          // Из любого завершающего статуса возвращаем замечание в «Не выполнено».
+          syncBinaryStatusToggle(actionForm, returnableStatuses.has(currentStatus));
           actionForm.classList.remove('d-none');
           return;
         }
@@ -2018,7 +2032,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  const syncApartmentLiveStats = (serverStats = null) => {
+    const stats = document.querySelector('[data-apartment-live-stats]');
+    if (!stats) return;
+    const hasServerStats = serverStats && typeof serverStats === 'object';
+    const items = hasServerStats ? [] : Array.from(document.querySelectorAll('.apartment-task-list .apartment-task-item'));
+    const total = hasServerStats ? Number(serverStats.total || 0) : items.length;
+    const done = hasServerStats ? Number(serverStats.done || 0) : items.filter(item => item.classList.contains('is-done')).length;
+    const problem = hasServerStats
+      ? Number(serverStats.problem || 0)
+      : items.filter(item => {
+          if (item.dataset.taskStatus) return item.dataset.taskStatus === 'problem';
+          return Array.from(item.querySelectorAll('.actions-cell[data-current-status]')).some(cell => cell.dataset.currentStatus === 'problem');
+        }).length;
+    const left = hasServerStats ? Number(serverStats.left || 0) : Math.max(total - done, 0);
+    const percent = hasServerStats ? Number(serverStats.percent || 0) : (total ? Math.round((done / total) * 1000) / 10 : 0);
+    const percentText = `${percent.toFixed(1)}%`;
+    const setText = (selector, value) => {
+      const node = stats.querySelector(selector);
+      if (node) node.textContent = value;
+    };
+
+    setText('[data-apartment-stat-percent]', percentText);
+    setText('[data-apartment-stat-total]', total);
+    setText('[data-apartment-stat-done]', done);
+    setText('[data-apartment-stat-left]', left);
+    setText('[data-apartment-stat-problem]', problem);
+
+    const progress = stats.querySelector('[data-apartment-stat-progress]');
+    if (progress) {
+      progress.style.width = percentText;
+      progress.setAttribute('aria-valuenow', String(percent));
+    }
+  };
+
   syncStatusActionVisibility();
+  syncApartmentLiveStats();
 
   document.querySelectorAll('form[action*="/status/"]').forEach(form => {
     form.addEventListener('click', event => {
@@ -2122,7 +2171,11 @@ document.addEventListener('DOMContentLoaded', () => {
         actionCells.forEach(cell => {
           cell.dataset.currentStatus = data.status || '';
         });
+        if (row?.classList.contains('apartment-task-item')) {
+          row.dataset.taskStatus = data.status || '';
+        }
         syncStatusActionVisibility(row || document);
+        syncApartmentLiveStats(data.apartment_stats);
 
         const submittedProblemInput = form.querySelector('input[name="problem_comment"]');
         if (submittedProblemInput) submittedProblemInput.remove();
@@ -2230,6 +2283,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ].filter(Boolean).join(' · ');
             const summary = document.createElement('div');
             summary.textContent = data.history_entry.summary || '';
+            if (data.history_entry.summary_class) summary.className = data.history_entry.summary_class;
             item.append(meta, summary);
             historyList.prepend(item);
             historyList.hidden = false;
@@ -3456,6 +3510,64 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(form);
     form.submit();
   };
+
+  document.querySelectorAll('.assignment-delete-employee-form').forEach(form => {
+    form.addEventListener('submit', async event => {
+      if (form.dataset.assignmentNativeSubmit === '1') return;
+      event.preventDefault();
+      const button = event.submitter || form.querySelector('.assignment-delete-employee-task-btn');
+      if (button?.dataset.pending === '1') return;
+
+      const confirmed = await showCrmConfirm({
+        title: 'Удалить задачу у сотрудника',
+        message: button?.dataset.confirm || form.dataset.confirm || 'Удалить эту задачу у сотрудника?',
+        okText: 'Удалить',
+        danger: true,
+      });
+      if (!confirmed) return;
+
+      if (!window.fetch) {
+        form.dataset.assignmentNativeSubmit = '1';
+        form.submit();
+        return;
+      }
+
+      const previousDisabled = Boolean(button?.disabled);
+      if (button) {
+        button.dataset.pending = '1';
+        button.disabled = true;
+      }
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const isJson = (response.headers.get('content-type') || '').includes('application/json');
+        if (!isJson) {
+          form.dataset.assignmentNativeSubmit = '1';
+          form.submit();
+          return;
+        }
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) {
+          throw new Error(data.message || 'Не удалось удалить задачу у сотрудника');
+        }
+        const row = form.closest('.assignment-issued-row');
+        if (row) refreshIssuedCountsAfterRemoval(row);
+        showCrmNotice(data.message || 'Задача удалена у сотрудника', 'success');
+      } catch (error) {
+        showCrmNotice(error.message || 'Не удалось удалить задачу у сотрудника', 'danger');
+        if (button) button.disabled = previousDisabled;
+      } finally {
+        if (button) delete button.dataset.pending;
+      }
+    });
+  });
 
   document.addEventListener('click', async event => {
     const button = event.target.closest('.js-assignment-unassign-direct');
@@ -4896,6 +5008,7 @@ document.addEventListener('DOMContentLoaded', () => {
           view?.classList.remove('d-none');
           form.classList.add('d-none');
           form.hidden = true;
+          savedRow?.classList.remove('glass-order-editing');
         }
         showCrmNotice(data.message || 'Размеры перенесены в заказ', 'success');
       } catch (error) {
@@ -4916,6 +5029,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const form = row?.querySelector('.js-glass-ordered-edit-form');
       const view = row?.querySelector('.js-glass-ordered-size-view');
       if (!form) return;
+      row?.classList.add('glass-order-editing');
       view?.classList.add('d-none');
       form.classList.remove('d-none');
       form.hidden = false;
@@ -4931,6 +5045,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const view = row?.querySelector('.js-glass-ordered-size-view');
       form?.classList.add('d-none');
       if (form) form.hidden = true;
+      row?.classList.remove('glass-order-editing');
       view?.classList.remove('d-none');
     });
   });
