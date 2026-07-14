@@ -104,6 +104,9 @@ class Config:
     PERMANENT_SESSION_LIFETIME = int(os.getenv("PERMANENT_SESSION_LIFETIME", str(60 * 60 * 8)))
     PREFERRED_URL_SCHEME = "https" if SESSION_COOKIE_SECURE else "http"
     FORCE_HSTS = _bool_env("FORCE_HSTS", False)
+    WEBAUTHN_RP_ID = os.getenv("WEBAUTHN_RP_ID", "").strip()
+    WEBAUTHN_RP_NAME = os.getenv("WEBAUTHN_RP_NAME", "Передача").strip() or "Передача"
+    WEBAUTHN_ORIGIN = os.getenv("WEBAUTHN_ORIGIN", "").strip().rstrip("/")
 
     @staticmethod
     def init_app(app):

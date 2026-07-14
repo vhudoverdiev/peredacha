@@ -438,16 +438,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    document.documentElement.classList.add('mobile-orientation-settling');
-    document.body.classList.add('mobile-orientation-settling');
+    // Keep the current page visible while iOS settles the portrait viewport.
+    // The landscape-only orientation guard is controlled directly by CSS, so
+    // a second full-screen settling cover only causes a blank dark flash when
+    // the phone returns to portrait.
+    handleMobileViewportChange();
     window.clearTimeout(orientationSettleTimer);
     orientationSettleTimer = window.setTimeout(() => {
       handleMobileViewportChange();
       syncMobileOrientationLockState();
-      window.requestAnimationFrame(() => {
-        document.documentElement.classList.remove('mobile-orientation-settling');
-        document.body.classList.remove('mobile-orientation-settling');
-      });
     }, 360);
   }, { passive: true });
 
@@ -1390,6 +1389,184 @@ document.addEventListener('DOMContentLoaded', () => {
     window.setTimeout(close, 4500);
   };
 
+  const passkeyBase64urlToBuffer = value => {
+    const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+    const binary = window.atob(padded);
+    return Uint8Array.from(binary, char => char.charCodeAt(0)).buffer;
+  };
+
+  const passkeyBufferToBase64url = value => {
+    if (!value) return null;
+    const bytes = new Uint8Array(value);
+    let binary = '';
+    bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+    return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  };
+
+  const preparePasskeyCreationOptions = options => {
+    const publicKey = { ...options };
+    publicKey.challenge = passkeyBase64urlToBuffer(publicKey.challenge);
+    publicKey.user = { ...publicKey.user, id: passkeyBase64urlToBuffer(publicKey.user.id) };
+    publicKey.excludeCredentials = (publicKey.excludeCredentials || []).map(item => ({
+      ...item,
+      id: passkeyBase64urlToBuffer(item.id),
+    }));
+    return publicKey;
+  };
+
+  const preparePasskeyRequestOptions = options => {
+    const publicKey = { ...options };
+    publicKey.challenge = passkeyBase64urlToBuffer(publicKey.challenge);
+    publicKey.allowCredentials = (publicKey.allowCredentials || []).map(item => ({
+      ...item,
+      id: passkeyBase64urlToBuffer(item.id),
+    }));
+    return publicKey;
+  };
+
+  const passkeyCredentialPayload = credential => {
+    const response = credential.response;
+    const payload = {
+      id: credential.id,
+      rawId: passkeyBufferToBase64url(credential.rawId),
+      type: credential.type,
+      authenticatorAttachment: credential.authenticatorAttachment || null,
+      clientExtensionResults: credential.getClientExtensionResults?.() || {},
+      response: {
+        clientDataJSON: passkeyBufferToBase64url(response.clientDataJSON),
+      },
+    };
+    if (response.attestationObject) {
+      payload.response.attestationObject = passkeyBufferToBase64url(response.attestationObject);
+      payload.response.transports = response.getTransports?.() || [];
+    } else {
+      payload.response.authenticatorData = passkeyBufferToBase64url(response.authenticatorData);
+      payload.response.signature = passkeyBufferToBase64url(response.signature);
+      payload.response.userHandle = passkeyBufferToBase64url(response.userHandle);
+    }
+    return payload;
+  };
+
+  const passkeyJsonRequest = async (url, body = {}) => {
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': getCsrfToken(),
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.message || 'Не удалось выполнить вход по Face ID');
+    }
+    return data;
+  };
+
+  const passkeySupported = Boolean(window.PublicKeyCredential && navigator.credentials);
+  const passkeyRegisterRoot = document.querySelector('[data-passkey-register]');
+  if (passkeyRegisterRoot) {
+    const registerButton = passkeyRegisterRoot.querySelector('[data-passkey-register-button]');
+    const supportNote = passkeyRegisterRoot.querySelector('[data-passkey-support-note]');
+    const checkPlatformSupport = window.PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable;
+
+    Promise.resolve(passkeySupported && checkPlatformSupport
+      ? checkPlatformSupport.call(window.PublicKeyCredential)
+      : false)
+      .then(available => {
+        if (registerButton) registerButton.disabled = !available;
+        if (supportNote) {
+          supportNote.textContent = available
+            ? 'Устройство поддерживает защищённый вход по Face ID / passkey.'
+            : 'На этом устройстве Face ID / passkey недоступен. Откройте CRM в актуальном Safari по HTTPS.';
+          supportNote.classList.toggle('is-supported', Boolean(available));
+        }
+      });
+
+    registerButton?.addEventListener('click', async () => {
+      registerButton.disabled = true;
+      const originalHtml = registerButton.innerHTML;
+      registerButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Подтвердите Face ID';
+      try {
+        const optionsData = await passkeyJsonRequest(passkeyRegisterRoot.dataset.passkeyOptionsUrl);
+        const credential = await navigator.credentials.create({
+          publicKey: preparePasskeyCreationOptions(optionsData.publicKey),
+        });
+        if (!credential) throw new Error('Создание passkey отменено');
+        const result = await passkeyJsonRequest(passkeyRegisterRoot.dataset.passkeyVerifyUrl, {
+          credential: passkeyCredentialPayload(credential),
+          name: 'Face ID / Passkey',
+        });
+        showCrmNotice(result.message || 'Вход по Face ID подключён.', 'success');
+        window.setTimeout(() => window.location.reload(), 450);
+      } catch (error) {
+        if (error?.name !== 'NotAllowedError') {
+          showCrmNotice(error.message || 'Не удалось подключить Face ID', 'danger');
+        }
+        registerButton.disabled = false;
+        registerButton.innerHTML = originalHtml;
+      }
+    });
+  }
+
+  const passkeyLoginRoot = document.querySelector('[data-passkey-login]');
+  if (passkeyLoginRoot && passkeySupported) {
+    const loginButton = passkeyLoginRoot.querySelector('[data-passkey-login-button]');
+    const nextUrl = new URLSearchParams(window.location.search).get('next') || '';
+    let conditionalController = null;
+
+    const finishPasskeyLogin = async credential => {
+      if (!credential) return;
+      const result = await passkeyJsonRequest(passkeyLoginRoot.dataset.passkeyVerifyUrl, {
+        credential: passkeyCredentialPayload(credential),
+      });
+      window.location.assign(result.redirect || '/');
+    };
+
+    const requestPasskey = async (mediation = 'optional', signal = undefined) => {
+      const optionsData = await passkeyJsonRequest(passkeyLoginRoot.dataset.passkeyOptionsUrl, { next: nextUrl });
+      return navigator.credentials.get({
+        publicKey: preparePasskeyRequestOptions(optionsData.publicKey),
+        mediation,
+        signal,
+      });
+    };
+
+    if (loginButton) loginButton.hidden = false;
+    loginButton?.addEventListener('click', async () => {
+      conditionalController?.abort();
+      loginButton.disabled = true;
+      try {
+        await finishPasskeyLogin(await requestPasskey('optional'));
+      } catch (error) {
+        if (error?.name !== 'NotAllowedError' && error?.name !== 'AbortError') {
+          showCrmNotice(error.message || 'Не удалось войти по Face ID', 'danger');
+        }
+      } finally {
+        loginButton.disabled = false;
+      }
+    });
+
+    const conditionalAvailable = window.PublicKeyCredential.isConditionalMediationAvailable;
+    if (conditionalAvailable) {
+      conditionalAvailable.call(window.PublicKeyCredential).then(available => {
+        if (!available) return;
+        conditionalController = new AbortController();
+        requestPasskey('conditional', conditionalController.signal)
+          .then(finishPasskeyLogin)
+          .catch(error => {
+            if (error?.name !== 'NotAllowedError' && error?.name !== 'AbortError') {
+              console.warn('Conditional passkey login failed', error);
+            }
+          });
+      });
+    }
+  }
+
   const moveDoneItemToBottom = () => {
     // Строки больше не переставляются сразу после изменения статуса.
     // Серверная сортировка применится только после обновления страницы/таблицы.
@@ -1963,10 +2140,48 @@ document.addEventListener('DOMContentLoaded', () => {
     if (emptyNode) emptyNode.hidden = true;
   };
 
+  const syncBinaryStatusToggle = (form, isDone) => {
+    if (!form?.matches?.('[data-binary-status-toggle]')) return;
+    const done = Boolean(isDone);
+    const button = form.querySelector('[data-binary-status-toggle-button]');
+    const icon = form.querySelector('[data-binary-status-toggle-icon]');
+    const labelNode = form.querySelector('[data-binary-status-toggle-label]');
+    const label = done
+      ? (form.dataset.notDoneLabel || 'Не выполнено')
+      : (form.dataset.doneLabel || 'Выполнено');
+
+    form.action = done
+      ? (form.dataset.notStartedUrl || form.action)
+      : (form.dataset.doneUrl || form.action);
+    form.dataset.statusAction = done ? 'not_started' : 'done';
+    form.dataset.isDone = done ? '1' : '0';
+    form.classList.remove('d-none');
+
+    if (button) {
+      button.classList.toggle('btn-outline-success', !done);
+      button.classList.toggle('btn-outline-secondary', done);
+      button.title = label;
+      button.setAttribute('aria-label', label);
+    }
+    if (icon) {
+      icon.classList.toggle('bi-check2-circle', !done);
+      icon.classList.toggle('bi-arrow-counterclockwise', done);
+    }
+    if (labelNode) labelNode.textContent = label;
+  };
+
+  document.querySelectorAll('[data-binary-status-toggle]').forEach(form => {
+    syncBinaryStatusToggle(form, form.dataset.isDone === '1');
+  });
+
   const syncStatusActionVisibility = (root = document) => {
     root.querySelectorAll('.actions-cell[data-current-status]').forEach(actionsCell => {
       const currentStatus = actionsCell.dataset.currentStatus || '';
       actionsCell.querySelectorAll('.status-action-form[data-status-action]').forEach(actionForm => {
+        if (actionForm.matches('[data-binary-status-toggle]')) {
+          actionForm.classList.remove('d-none');
+          return;
+        }
         const action = actionForm.dataset.statusAction || '';
         let shouldHide = action === currentStatus;
         if (action === 'done') shouldHide = currentStatus !== 'not_started';
@@ -2066,9 +2281,13 @@ document.addEventListener('DOMContentLoaded', () => {
           // и иметь возможность быстро вернуть действие обратно.
         }
 
-        if (form.dataset.apartmentStatusToggle !== undefined) {
-          form.action = data.is_done ? (form.dataset.notStartedUrl || form.action) : (form.dataset.doneUrl || form.action);
+        const binaryToggleRoot = row || document;
+        if (binaryToggleRoot.matches?.('[data-binary-status-toggle]')) {
+          syncBinaryStatusToggle(binaryToggleRoot, Boolean(data.is_done));
         }
+        binaryToggleRoot.querySelectorAll?.('[data-binary-status-toggle]').forEach(toggleForm => {
+          syncBinaryStatusToggle(toggleForm, Boolean(data.is_done));
+        });
 
         const actionCells = [];
         if (row?.matches?.('.actions-cell')) actionCells.push(row);
@@ -2224,6 +2443,55 @@ document.addEventListener('DOMContentLoaded', () => {
       wrapper.dataset.state = show ? 'visible' : 'hidden';
       text.textContent = show ? wrapper.dataset.visible : wrapper.dataset.hidden;
       if (icon) icon.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+    });
+  });
+
+  document.querySelectorAll('.users-captcha-form').forEach(form => {
+    const input = form.querySelector('.users-captcha-input');
+    const valueField = form.querySelector('[data-captcha-disabled-value]');
+    const status = form.querySelector('.users-captcha-toggle small');
+    if (!input || !valueField) return;
+
+    let savedChecked = input.checked;
+    const syncView = checked => {
+      input.checked = checked;
+      valueField.value = checked ? '0' : '1';
+      if (status) status.textContent = checked ? 'Вкл.' : 'Откл.';
+    };
+
+    input.addEventListener('change', async () => {
+      const requestedChecked = input.checked;
+      syncView(requestedChecked);
+      input.disabled = true;
+      form.classList.add('is-saving');
+
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) {
+          throw new Error(data.message || 'Не удалось сохранить настройку капчи');
+        }
+
+        savedChecked = data.captcha_disabled === undefined
+          ? requestedChecked
+          : !data.captcha_disabled;
+        syncView(savedChecked);
+        showCrmNotice(data.message || 'Настройка капчи сохранена.', 'success');
+      } catch (error) {
+        syncView(savedChecked);
+        showCrmNotice(error.message || 'Не удалось сохранить настройку капчи', 'danger');
+      } finally {
+        input.disabled = false;
+        form.classList.remove('is-saving');
+      }
     });
   });
 

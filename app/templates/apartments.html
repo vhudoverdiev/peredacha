@@ -70,6 +70,18 @@
   <div class="text-muted">Найдено квартир / помещений: <b>{{ total_count }}</b></div>
 </div>
 
+{% if mobile_total_pages > 1 %}
+<nav class="mobile-apartments-pagination page-pagination-top apartments-pagination-top" aria-label="Страницы квартир сверху">
+  {% if mobile_page > 1 %}
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.apartments', page=mobile_page - 1, **mobile_pagination_args) }}"><i class="bi bi-chevron-left"></i> Назад</a>
+  {% else %}<span></span>{% endif %}
+  <span>{{ mobile_page }} / {{ mobile_total_pages }}</span>
+  {% if mobile_page < mobile_total_pages %}
+  <a class="btn btn-primary" href="{{ url_for('main.apartments', page=mobile_page + 1, **mobile_pagination_args) }}">Далее <i class="bi bi-chevron-right"></i></a>
+  {% else %}<span></span>{% endif %}
+</nav>
+{% endif %}
+
 <div class="apartments-grid">
   {% for row in rows %}
   {% set apartment = row.apartment %}

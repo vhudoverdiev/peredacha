@@ -315,6 +315,7 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
 
 }
 
+
 /* v185 true final override: account logout button is mobile-only. */
 .account-logout-form {
   display: none !important;
@@ -50815,6 +50816,9 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     justify-content: flex-start !important;
     padding: .04rem 0 .76rem !important;
     margin-bottom: .18rem !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -53204,6 +53208,187 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   }
 }
 
+/* v514: keep the mobile login signature at the very bottom of the viewport. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.auth-body .auth-shell .auth-footer {
+    position: fixed !important;
+    top: auto !important;
+    bottom: .3rem !important;
+    margin: 0 !important;
+    transform: translateX(-50%) !important;
+  }
+}
+
+/* v516: Face ID / passkey enrollment and passwordless login. */
+.login-passkey-button {
+  min-height: 3rem;
+  margin-top: .72rem;
+  border-color: rgba(121, 191, 37, .62) !important;
+  color: #355f10 !important;
+  font-weight: 850 !important;
+  background: linear-gradient(180deg, #fbfef7, #f2f9e8) !important;
+}
+
+/* v517: worker roles use the same mobile shell as the main CRM. */
+.worker-layout .worker-topbar-title {
+  display: flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+}
+
+.worker-layout .worker-topbar-title > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 850;
+}
+
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .mobile-worker-project-topbar {
+    grid-template-columns: 2.9rem minmax(0, 1fr) 2.9rem !important;
+    gap: .32rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .mobile-worker-project-label {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 .25rem !important;
+    text-align: center !important;
+    pointer-events: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .mobile-worker-project-label .mobile-shell-project-name {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.worker-page-minimal) .app-layout.worker-layout {
+    min-height: auto !important;
+    margin-top: 0 !important;
+    padding-top: calc(var(--mobile-project-topbar-height-final) + .32rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.worker-page-minimal) .worker-layout .app-main {
+    min-height: auto !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.worker-page-minimal) .worker-layout .app-content {
+    min-height: auto !important;
+    padding: .3rem .75rem calc(4.5rem + var(--ios-safe-bottom) + .55rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .mobile-worker-bottom-nav {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.worker-page-minimal) .worker-day-head {
+    margin-top: 0 !important;
+  }
+}
+
+.login-passkey-button:hover,
+.login-passkey-button:focus-visible {
+  border-color: #6aa81f !important;
+  color: #ffffff !important;
+  background: linear-gradient(180deg, #79bf25, #6aa81f) !important;
+  box-shadow: 0 10px 22px rgba(121, 191, 37, .22) !important;
+}
+
+.account-passkey-card {
+  grid-column: 1 / -1;
+}
+
+.account-passkey-support {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.35rem;
+  margin: .15rem 0 .85rem;
+  padding: .55rem .78rem;
+  border: 1px solid rgba(86, 93, 98, .13);
+  border-radius: .9rem;
+  color: #667085;
+  background: #f7f8f6;
+  font-size: .84rem;
+  font-weight: 750;
+}
+
+.account-passkey-support.is-supported {
+  border-color: rgba(121, 191, 37, .28);
+  color: #416f17;
+  background: #f4faea;
+}
+
+.account-passkey-add {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3rem;
+}
+
+.account-passkey-list {
+  display: grid;
+  gap: .65rem;
+  margin-top: 1rem;
+}
+
+.account-passkey-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+  padding: .82rem .9rem;
+  border: 1px solid rgba(121, 191, 37, .18);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, #ffffff, #f9fcf5);
+}
+
+.account-passkey-item > div {
+  display: grid;
+  min-width: 0;
+  gap: .18rem;
+}
+
+.account-passkey-item strong {
+  color: #111827;
+}
+
+.account-passkey-item small {
+  color: #667085;
+}
+
+@media (max-width: 767.98px) {
+  .account-passkey-card {
+    grid-column: auto;
+  }
+
+  .account-passkey-support {
+    display: flex;
+    width: 100%;
+  }
+}
+
 /* v487: visually separate the task status pill from the first action button. */
 @media (min-width: 768px) {
   html.desktop-like-pointer body.app-body:has(.remarks-page-head)
@@ -53495,30 +53680,717 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   }
 }
 
-@media (hover: none) and (pointer: coarse) {
-  html.mobile-orientation-settling,
-  html.mobile-orientation-settling body {
+/* v496: the landscape orientation guard is selected directly by its media
+   query. Keep the application visible while iOS settles back to portrait;
+   an additional timed cover caused a blank dark screen after rotation. */
+
+/* v497: mobile shortcut from remarks to the ordered measurements view. */
+.remarks-measurements-mobile-btn,
+.glass-mobile-ordered-summary {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head:not(.glass-page-head))
+    .remarks-page-head .remarks-page-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    gap: .62rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head:not(.glass-page-head))
+    .remarks-measurements-mobile-btn {
+    order: -1 !important;
+    display: grid !important;
+    grid-template-columns: 2.36rem minmax(0, 1fr) 1.5rem !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-height: 3.56rem !important;
+    padding: .58rem .82rem !important;
+    gap: .68rem !important;
+    border: 1px solid rgba(141, 214, 44, .34) !important;
+    border-radius: 1.16rem !important;
+    background:
+      radial-gradient(circle at 88% 12%, rgba(141, 214, 44, .15), transparent 34%),
+      linear-gradient(180deg, rgba(255, 255, 255, .995), rgba(246, 251, 239, .99)) !important;
+    color: #263322 !important;
+    -webkit-text-fill-color: #263322 !important;
+    font-size: .98rem !important;
+    font-weight: 900 !important;
+    line-height: 1.2 !important;
+    text-align: left !important;
+    text-decoration: none !important;
+    box-shadow: 0 14px 28px rgba(71, 104, 45, .09) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head:not(.glass-page-head))
+    .remarks-measurements-mobile-btn > .bi-rulers {
+    display: inline-grid !important;
+    place-items: center !important;
+    width: 2.36rem !important;
+    height: 2.36rem !important;
+    margin: 0 !important;
+    border-radius: .84rem !important;
+    background: linear-gradient(145deg, #9be145, #78bf25) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    font-size: 1.08rem !important;
+    box-shadow: 0 9px 18px rgba(120, 191, 37, .22) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head:not(.glass-page-head))
+    .remarks-measurements-mobile-arrow {
+    justify-self: end !important;
+    margin: 0 !important;
+    color: #78b929 !important;
+    -webkit-text-fill-color: #78b929 !important;
+    font-size: .94rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head:not(.glass-page-head))
+    .remarks-measurements-mobile-btn:active {
+    transform: scale(.985) !important;
+  }
+
+  /* Ordered measurements: preserve the desktop table, but present each row as
+     a purpose-built mobile card with clear sections and touch-sized actions. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page-head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: .64rem !important;
+    margin-bottom: .82rem !important;
+    padding: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page .glass-page-head > :not(.remarks-page-actions) {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page-head .glass-head-actions,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page-head .glass-head-actions .btn {
+    width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page > .remarks-tabs {
+    display: block !important;
+    margin-bottom: .82rem !important;
+    padding: .3rem !important;
+    border: 1px solid rgba(214, 226, 204, .96) !important;
+    border-radius: 1.16rem !important;
+    background: rgba(255, 255, 255, .82) !important;
+    box-shadow: 0 12px 26px rgba(31, 45, 61, .06) !important;
+    overflow: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page > .remarks-tabs .crm-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: .26rem !important;
+    padding: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page > .remarks-tabs .nav-link {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-height: 2.76rem !important;
+    padding: .56rem .28rem !important;
+    border: 0 !important;
+    border-radius: .88rem !important;
+    color: #667063 !important;
+    -webkit-text-fill-color: #667063 !important;
+    font-size: .81rem !important;
+    font-weight: 850 !important;
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-page > .remarks-tabs .nav-link.active {
+    background: linear-gradient(180deg, #98df3f, #7bc324) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    box-shadow: 0 9px 18px rgba(123, 195, 36, .24) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-filter-form {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: .72rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-filter-form .glass-filter-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: .56rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-table-shell {
+    border: 0 !important;
+    border-radius: 1.42rem !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-card-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: .62rem !important;
+    padding: .1rem .14rem !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-card-header b {
+    color: #1d291b !important;
+    font-size: 1.08rem !important;
+    font-weight: 950 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-mobile-ordered-summary {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: .38rem !important;
+    margin-top: .22rem !important;
+    color: #778173 !important;
+    font-size: .76rem !important;
+    font-weight: 750 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-request-panel {
+    margin-bottom: .68rem !important;
+    padding: .78rem !important;
+    border: 1px solid rgba(141, 214, 44, .26) !important;
+    border-radius: 1.12rem !important;
+    background: linear-gradient(180deg, #fbfef7, #f2f9e9) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table-responsive {
+    overflow: visible !important;
+    border-radius: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table tbody {
+    display: grid !important;
+    width: 100% !important;
+    gap: .86rem !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-order-row {
+    position: relative !important;
+    display: grid !important;
+    width: 100% !important;
+    padding: .98rem !important;
+    gap: .76rem !important;
+    border: 1px solid rgba(211, 226, 199, .98) !important;
+    border-radius: 1.38rem !important;
+    background:
+      radial-gradient(circle at 94% 4%, rgba(141, 214, 44, .11), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, .998), rgba(248, 251, 245, .992)) !important;
+    box-shadow: 0 16px 34px rgba(31, 45, 61, .075) !important;
     overflow: hidden !important;
   }
 
-  html.mobile-orientation-settling body > :not(.portrait-orientation-guard) {
-    visibility: hidden !important;
-    pointer-events: none !important;
-  }
-
-  html.mobile-orientation-settling .portrait-orientation-guard {
-    position: fixed !important;
-    z-index: 2147483647 !important;
-    inset: 0 !important;
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-order-row > td {
     display: grid !important;
-    place-items: center !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-    background: #111820 !important;
+    grid-template-columns: minmax(5.25rem, 31%) minmax(0, 1fr) !important;
+    grid-column: 1 / -1 !important;
+    justify-self: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 0 0 .7rem !important;
+    gap: .68rem !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(218, 229, 209, .86) !important;
+    background: transparent !important;
+    text-align: left !important;
   }
 
-  html.mobile-orientation-settling:not(.mobile-landscape-locked)
-    .portrait-orientation-guard-card {
-    visibility: hidden !important;
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .glass-order-row > td > * {
+    grid-column: 2 !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .glass-order-row .inline-editor-anchor {
+    display: grid !important;
+    grid-template-columns: 2.46rem 2.46rem minmax(0, 1fr) !important;
+    justify-content: start !important;
+    align-items: center !important;
+    gap: .42rem !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .glass-order-row .inline-editor-anchor > .inline-text {
+    grid-column: 1 / -1 !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-order-row > td:last-child {
+    padding-bottom: 0 !important;
+    border-bottom: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-order-row > td::before {
+    align-self: start !important;
+    padding-top: .16rem !important;
+    color: #778273 !important;
+    font-size: .71rem !important;
+    font-weight: 900 !important;
+    letter-spacing: .025em !important;
+    line-height: 1.25 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .glass-order-row > td.glass-select-col {
+    position: absolute !important;
+    z-index: 2 !important;
+    top: .88rem !important;
+    right: .88rem !important;
+    grid-column: auto !important;
+    justify-self: auto !important;
+    display: block !important;
+    width: 1.35rem !important;
+    min-width: 1.35rem !important;
+    max-width: 1.35rem !important;
+    height: 1.35rem !important;
+    padding: 0 !important;
+    border: 0 !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    overflow: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table
+    .glass-order-row > td.glass-select-col::before {
+    content: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table td:nth-child(2) {
+    grid-column: 1 / -1 !important;
+    justify-self: start !important;
+    display: flex !important;
+    align-items: center !important;
+    width: fit-content !important;
+    min-width: 3.1rem !important;
+    max-width: calc(100% - 2.4rem) !important;
+    min-height: 2.12rem !important;
+    padding: .42rem .72rem !important;
+    border: 1px solid rgba(141, 214, 44, .24) !important;
+    border-radius: .78rem !important;
+    background: rgba(141, 214, 44, .1) !important;
+    color: #315820 !important;
+    font-size: .92rem !important;
+    font-weight: 950 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table td:nth-child(2)::before {
+    content: "Квартира" !important;
+    margin-right: .42rem !important;
+    padding: 0 !important;
+    color: #6f7a69 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table td:nth-child(3) .inline-text {
+    color: #1e281d !important;
+    font-size: .94rem !important;
+    font-weight: 760 !important;
+    line-height: 1.42 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-ordered-size-view {
+    gap: .48rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-ordered-size-line-readable {
+    gap: .28rem !important;
+    padding: .7rem .76rem !important;
+    border: 1px solid rgba(141, 214, 44, .18) !important;
+    border-radius: .88rem !important;
+    background: rgba(249, 252, 246, .94) !important;
+    font-size: .82rem !important;
+    line-height: 1.38 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-status-button-form {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: .42rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-status-choice {
+    width: 100% !important;
+    min-height: 2.56rem !important;
+    padding: .48rem .38rem !important;
+    font-size: .76rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table td:nth-child(7) a {
+    color: #4f8319 !important;
+    font-weight: 850 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-row-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    gap: .48rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-row-actions .btn,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-row-actions form {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.7rem !important;
+    margin: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-table.mobile-card-table .glass-row-actions form .btn {
+    height: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-empty-state {
+    padding: 2.2rem 1.1rem !important;
+    border: 1px solid rgba(211, 226, 199, .96) !important;
+    border-radius: 1.38rem !important;
+    background:
+      radial-gradient(circle at 50% 8%, rgba(141, 214, 44, .12), transparent 32%),
+      linear-gradient(180deg, #fff, #f8fbf5) !important;
+    box-shadow: 0 16px 34px rgba(31, 45, 61, .07) !important;
+  }
+}
+
+/* v503: apartment filter selects use neutral black text, and the PO shortcut
+   sits below the filter actions without covering the reset button. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-form
+    :is(select, option, .form-select, .developer-select-button, .developer-select-value, .developer-select-option),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .developer-select-menu-portal .developer-select-option {
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .po-notification-widget {
+    bottom: calc(4.35rem + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* v504: Subtle side gutters for mobile object and account cards. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.objects-page) .objects-page .objects-grid,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.account-page) .account-page .account-grid {
+    width: calc(100% - 1.25rem) !important;
+    max-width: calc(100% - 1.25rem) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.objects-page) .objects-page .object-card,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.account-page) .account-page .account-card {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* v505: Keep mobile page content geometrically stable during navigation.
+   Form controls are enhanced after the first paint, so disable scroll
+   anchoring and any inherited entry transform on the page-level blocks. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.app-main, .app-content, .objects-content, .documents-content, .documents-standalone-content),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-mobile-page-shell {
+    overflow-anchor: none !important;
+    scroll-behavior: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-mobile-page-shell,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-mobile-page-shell > :not(.crm-toast-stack) {
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+    animation: none !important;
+    transition: none !important;
+    will-change: auto !important;
+  }
+}
+
+/* v506: Restore category labels above the compact Remarks icon buttons.
+   The final active-state rule used to suppress the tooltip pseudo-element. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    .remarks-tab-link-category:is(:hover, :focus-visible, :active)::after {
+    content: attr(data-category-label) !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: translateX(-50%) translateY(0) !important;
+    background: rgba(31, 39, 48, .96) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+}
+
+/* v507: The compact one-remark form fits between the fixed mobile bars.
+   Keep that screen stationary and use regular-weight text in its picker. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device):has(body.app-body .task-single-form),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.task-single-form) {
+    width: 100% !important;
+    height: var(--app-height, 100dvh) !important;
+    min-height: var(--app-height, 100dvh) !important;
+    max-height: var(--app-height, 100dvh) !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.task-single-form)
+    :is(.app-layout, .app-main, .app-content, .crm-mobile-page-shell) {
+    max-height: 100% !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    scroll-behavior: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.task-single-form) .task-single-form
+    :is(select, option, .form-select, .mobile-native-select, .developer-select-button, .developer-select-value, .developer-select-option) {
+    font-weight: 400 !important;
+  }
+}
+
+/* v508: Use one compact clearance below the final mobile card everywhere.
+   The dock already owns the system bottom area, so reserving the safe inset
+   again left a large empty strip at the end of task and apartment pages. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:not(:has(.task-single-form))
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .62rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-mobile-page-shell {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-mobile-page-shell > :last-child:not(.crm-toast-stack) {
+    margin-bottom: 0 !important;
+  }
+}
+
+/* v510: The duplicated upper paginator sits directly before the first card. */
+.page-pagination-top {
+  margin-top: 0 !important;
+  margin-bottom: 1rem !important;
+}
+
+/* v511: The issued-tasks return tab must be one visual surface. The shared
+   desktop tab wrapper otherwise leaves a second border behind the mobile card. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs {
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs .assignment-subtab:first-child {
+    box-sizing: border-box !important;
+    border-color: rgba(178, 211, 143, .62) !important;
+    background:
+      radial-gradient(circle at 88% 18%, rgba(141, 214, 44, .12), transparent 34%),
+      linear-gradient(180deg, #ffffff 0%, #f7fbed 100%) !important;
+    background-clip: border-box !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .apartments-pagination-top {
+    margin-top: 0 !important;
+    margin-bottom: .82rem !important;
+  }
+}
+
+/* v513: readable desktop wrapping in the users table. */
+@media (min-width: 992px) {
+  body.app-body:has(.users-page) .users-table {
+    width: 100% !important;
+    min-width: 62rem !important;
+    table-layout: fixed !important;
+  }
+
+  body.app-body:has(.users-page) .users-table .users-col-login { width: 9%; }
+  body.app-body:has(.users-page) .users-table .users-col-name { width: 13%; }
+  body.app-body:has(.users-page) .users-table .users-col-role { width: 13%; }
+  body.app-body:has(.users-page) .users-table .users-col-project { width: 15%; }
+  body.app-body:has(.users-page) .users-table .users-col-password { width: 18%; }
+  body.app-body:has(.users-page) .users-table .users-col-captcha { width: 10%; }
+  body.app-body:has(.users-page) .users-table .users-col-created { width: 13%; }
+  body.app-body:has(.users-page) .users-table .users-col-actions { width: 9%; }
+
+  body.app-body:has(.users-page) .users-table :is(th, td) {
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    hyphens: none !important;
+  }
+
+  body.app-body:has(.users-page) .users-table :is(
+    .users-login-cell,
+    .users-password-cell,
+    .users-captcha-cell,
+    .users-actions-cell
+  ) {
+    white-space: nowrap !important;
+  }
+
+  body.app-body:has(.users-page) .users-table :is(
+    .users-name-cell,
+    .users-role-cell,
+    .users-project-cell,
+    .users-created-cell
+  ) {
+    white-space: normal !important;
+    line-height: 1.35 !important;
+  }
+
+  body.app-body:has(.users-page) .users-table .password-preview {
+    min-width: 0 !important;
+  }
+}
+
+/* v521: Final worker mobile shell. Reserve the fixed developer-style header
+   exactly once and keep only the dock clearance below the final card. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.mobile-worker-project-topbar) .app-layout.worker-layout {
+    min-height: auto !important;
+    margin-top: 0 !important;
+    padding-top: calc(3.75rem + var(--ios-safe-top, 0px)) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.mobile-worker-project-topbar) .app-layout.worker-layout > .app-main {
+    min-height: auto !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.mobile-worker-project-topbar) .app-layout.worker-layout > .app-main > .app-content {
+    min-height: auto !important;
+    padding-top: .5rem !important;
+    padding-bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .62rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.worker-page-minimal) .worker-page-minimal,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.worker-page-minimal) .worker-task-list-minimal {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.worker-page-minimal) .worker-task-list-minimal > :last-child {
+    margin-bottom: 0 !important;
   }
 }

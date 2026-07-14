@@ -87,6 +87,40 @@
         {% endif %}
       </div>
     </article>
+
+    <article class="card content-card account-card account-passkey-card" data-passkey-register data-passkey-options-url="{{ url_for('auth.passkey_registration_options') }}" data-passkey-verify-url="{{ url_for('auth.passkey_registration_verify') }}">
+      <div class="card-body">
+        <div class="account-card-title">
+          <span><i class="bi bi-person-bounding-box"></i></span>
+          <div>
+            <h2>Вход по Face ID</h2>
+          </div>
+        </div>
+        <p class="account-security-text">Привяжите passkey этого устройства. После этого Safari сможет входить в CRM по Face ID без пароля и капчи.</p>
+
+        <div class="account-passkey-support" data-passkey-support-note>Проверяем поддержку Face ID…</div>
+        <button class="btn btn-primary account-passkey-add" type="button" data-passkey-register-button disabled>
+          <i class="bi bi-plus-circle me-2"></i>Подключить Face ID
+        </button>
+
+        {% if current_user.passkeys %}
+        <div class="account-passkey-list">
+          {% for passkey in current_user.passkeys %}
+          <div class="account-passkey-item">
+            <div>
+              <strong>{{ passkey.name }}</strong>
+              <small>Добавлен {{ passkey.created_at|ru_date }}{% if passkey.last_used_at %} · использован {{ passkey.last_used_at|ru_date }}{% endif %}</small>
+            </div>
+            <form method="post" action="{{ url_for('auth.passkey_delete', credential_id=passkey.id) }}" onsubmit="return confirm('Отключить вход по Face ID для этого устройства?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Удалить passkey"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </article>
   </div>
 </section>
 {% endblock %}

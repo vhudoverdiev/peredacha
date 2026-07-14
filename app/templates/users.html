@@ -38,6 +38,16 @@
       <div class="card table-shell users-table-shell">
         <div class="card-body p-0 table-responsive">
           <table class="table align-middle users-table">
+            <colgroup>
+              <col class="users-col-login">
+              <col class="users-col-name">
+              <col class="users-col-role">
+              <col class="users-col-project">
+              <col class="users-col-password">
+              <col class="users-col-captcha">
+              <col class="users-col-created">
+              <col class="users-col-actions">
+            </colgroup>
             <thead>
               <tr>
                 <th>Логин</th>
@@ -53,29 +63,30 @@
             <tbody>
             {% for user in users %}
               <tr>
-                <td>{{ user.username }}</td>
-                <td>{{ user.full_name or '' }}</td>
-                <td>{{ ROLE_LABELS.get(user.role, user.role) }}</td>
-                <td>{{ 'Все' if user.role == 'admin' or not user.project else user.project.name }}</td>
-                <td>
+                <td class="users-login-cell">{{ user.username }}</td>
+                <td class="users-name-cell">{{ user.full_name or '' }}</td>
+                <td class="users-role-cell">{{ ROLE_LABELS.get(user.role, user.role) }}</td>
+                <td class="users-project-cell">{{ 'Все' if user.role == 'admin' or not user.project else user.project.name }}</td>
+                <td class="users-password-cell">
                   <div class="password-preview" data-hidden="••••••••" data-visible="{{ user.password_plain or 'Пароль не сохранён' }}" data-state="hidden">
                     <span>••••••••</span>
                     <button class="password-preview-toggle" type="button" aria-label="Показать пароль"><i class="bi bi-eye"></i></button>
                   </div>
                 </td>
-                <td>
+                <td class="users-captcha-cell">
                   <form method="post" action="{{ url_for('main.user_toggle_captcha', user_id=user.id) }}" class="users-captcha-form">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="captcha_disabled" value="{{ '1' if user.captcha_disabled else '0' }}" data-captcha-disabled-value>
                     <label class="users-captcha-toggle" title="Включить или отключить капчу для этого пользователя">
-                      <input class="users-captcha-input" type="checkbox" {% if not user.captcha_disabled %}checked{% endif %} onchange="this.form.querySelector('[data-captcha-disabled-value]').value = this.checked ? '0' : '1'; this.form.submit()">
+                      <input class="users-captcha-input" type="checkbox" {% if not user.captcha_disabled %}checked{% endif %}>
                       <span></span>
                       <small>{{ 'Откл.' if user.captcha_disabled else 'Вкл.' }}</small>
                     </label>
+                    <noscript><button class="btn btn-sm btn-primary mt-2" type="submit">Сохранить</button></noscript>
                   </form>
                 </td>
-                <td>{{ user.created_at|ru_date }}</td>
-                <td class="text-end">
+                <td class="users-created-cell">{{ user.created_at|ru_date }}</td>
+                <td class="text-end users-actions-cell">
                   {% if user.id != current_user.id %}
                   <div class="d-inline-flex gap-2 users-actions">
                     <a class="btn btn-sm users-action-btn users-action-btn-password" href="{{ url_for('main.user_set_password_page', user_id=user.id) }}" title="Сменить пароль" aria-label="Сменить пароль">

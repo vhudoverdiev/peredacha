@@ -25,6 +25,11 @@
     </form>
     {% endif %}
     {% if not contractor_page %}
+      <a class="btn remarks-measurements-mobile-btn" href="{{ url_for('main.glass_measurements', tab='ordered') }}">
+        <i class="bi bi-rulers me-2" aria-hidden="true"></i>
+        <span>Замеры</span>
+        <i class="bi bi-chevron-right remarks-measurements-mobile-arrow" aria-hidden="true"></i>
+      </a>
       {% if current_user.role != 'viewer' %}
       <a class="btn btn-success remarks-page-primary-btn" href="{{ task_add_href }}" title="Добавить замечание" aria-label="Добавить замечание">
         <i class="bi bi-plus-lg me-2"></i>Добавить
@@ -59,7 +64,8 @@
   <ul class="nav crm-tabs justify-content-end">
   {% for category in categories if category.name != 'Все' %}
     {% set category_icon = 'bi-brush' if category.name == 'Маляры' else ('bi-tools' if category.name == 'Разнорабочие' else ('bi-window' if category.name == 'Витражники' else ('bi-file-earmark-text' if category.name == 'Доп.Соглашение' else 'bi-tag'))) %}
-    <li class="nav-item"><a class="nav-link remarks-tab-link remarks-tab-link-category {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id) }}" title="{{ category.name }}" aria-label="{{ category.name }}"><i class="bi {{ category_icon }} remarks-tab-icon"></i><span class="remarks-tab-text">{{ category.name }}</span></a></li>
+    {% set category_label = 'Доп соглашение' if category.name == 'Доп.Соглашение' else category.name %}
+    <li class="nav-item"><a class="nav-link remarks-tab-link remarks-tab-link-category {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id) }}" title="{{ category_label }}" data-category-label="{{ category_label }}" aria-label="{{ category_label }}"><i class="bi {{ category_icon }} remarks-tab-icon"></i><span class="remarks-tab-text">{{ category_label }}</span></a></li>
   {% endfor %}
   </ul>
 </div>
@@ -151,6 +157,20 @@
 </div>
 {% endif %}
 
+{% if pagination and pagination.pages > 1 %}
+<nav class="page-pagination-top mb-3" aria-label="Навигация по замечаниям сверху">
+  <ul class="pagination justify-content-center mb-0">
+    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+      <a class="page-link" href="{% if pagination.has_prev %}{{ url_for(list_endpoint, **prev_args) }}{% else %}#{% endif %}">Назад</a>
+    </li>
+    <li class="page-item disabled"><span class="page-link">Стр. {{ pagination.page }} / {{ pagination.pages }}</span></li>
+    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+      <a class="page-link" href="{% if pagination.has_next %}{{ url_for(list_endpoint, **next_args) }}{% else %}#{% endif %}">Далее</a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+
 <div class="remarks-export-scope js-bulk-selectable js-remark-export-scope" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" data-export-form="#{{ export_form_id }}" {% if current_user.role != 'viewer' %}data-bulk-persist-form="#{{ bulk_delete_form_id }}"{% endif %} data-selection-storage="local" data-premise-storage-key="{{ premise_storage_key }}">
 
 <div class="card table-shell task-table-shell remarks-export-table-shell" data-search-query="{{ args.get('q', '')|e }}">
@@ -215,9 +235,9 @@
           <td class="task-actions-cell" data-label="Действия">
             <div class="actions-cell" data-current-status="{{ task.status }}">
             {% if current_user.role != 'viewer' %}
-              <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" class="status-action-form {% if task.status != 'not_started' %}d-none{% endif %}" data-status-action="done">
+              <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started' if task.status == 'done' else 'done') }}" class="status-action-form binary-status-toggle-form" data-status-action="{{ 'not_started' if task.status == 'done' else 'done' }}" data-binary-status-toggle data-is-done="{{ '1' if task.status == 'done' else '0' }}" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-done-label="{{ 'Занесен' if is_dop else 'Выполнено' }}" data-not-done-label="{{ 'Не занесен' if is_dop else 'Не выполнено' }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-success" title="{{ 'Занесен' if is_dop else 'Выполнено' }}" aria-label="{{ 'Занесен' if is_dop else 'Выполнено' }}"><i class="bi bi-check2-circle"></i></button>
+                <button class="btn btn-sm {{ 'btn-outline-secondary' if task.status == 'done' else 'btn-outline-success' }}" type="submit" title="{{ ('Не занесен' if is_dop else 'Не выполнено') if task.status == 'done' else ('Занесен' if is_dop else 'Выполнено') }}" aria-label="{{ ('Не занесен' if is_dop else 'Не выполнено') if task.status == 'done' else ('Занесен' if is_dop else 'Выполнено') }}" data-binary-status-toggle-button><i class="bi {{ 'bi-arrow-counterclockwise' if task.status == 'done' else 'bi-check2-circle' }}" data-binary-status-toggle-icon></i></button>
               </form>
               {% if not is_dop %}
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" class="status-action-form {% if task.status == 'finishers' %}d-none{% endif %}" data-status-action="finishers">
@@ -246,10 +266,6 @@
                 <button class="btn btn-sm btn-outline-danger problem-toggle-btn" type="button" title="Проблема" aria-label="Проблема" data-problem-modal-title="Проблема"><i class="bi bi-exclamation-triangle"></i></button>
               </form>
               {% endif %}
-              <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" class="status-action-form {% if task.status != 'done' %}d-none{% endif %}" data-status-action="not_started">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-secondary" title="{{ 'Не занесен' if is_dop else 'Не выполнено' }}" aria-label="{{ 'Не занесен' if is_dop else 'Не выполнено' }}"><i class="bi bi-arrow-counterclockwise"></i></button>
-              </form>
             {% endif %}
             </div>
           </td>

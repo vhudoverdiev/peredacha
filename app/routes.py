@@ -62,6 +62,7 @@ from app.models import (
     ROLE_VIEWER,
     ROLE_LABELS,
     WORKER_ROLES,
+    ALL_PROJECTS_ROLES,
     STATUS_DONE,
     STATUS_NOT_STARTED,
     STATUS_FINISHERS,
@@ -859,12 +860,15 @@ CONTRACTOR_POINT_LABELS = {
 
 @bp.app_context_processor
 def inject_globals():
-    project_id = current_user.project_id if current_user.is_authenticated and current_user.project_id else session.get("current_project_id")
+    has_all_projects = current_user.is_authenticated and current_user.role in ALL_PROJECTS_ROLES
+    project_id = session.get("current_project_id") if has_all_projects else (
+        current_user.project_id if current_user.is_authenticated and current_user.project_id else session.get("current_project_id")
+    )
     current_project = db.session.get(Project, project_id) if project_id else None
     mobile_switch_projects = []
     if current_user.is_authenticated:
         projects_query = Project.query.order_by(Project.name.asc(), Project.id.asc())
-        if current_user.project_id:
+        if current_user.project_id and not has_all_projects:
             projects_query = projects_query.filter(Project.id == current_user.project_id)
         mobile_switch_projects = projects_query.all()
     new_site_errors_count = 0
@@ -901,7 +905,7 @@ def inject_globals():
 def selected_project() -> Project | None:
     # Если пользователь привязан к конкретному объекту, нельзя подменить объект
     # через session/current_project_id или прямую ссылку.
-    if current_user.is_authenticated and current_user.project_id:
+    if current_user.is_authenticated and current_user.project_id and current_user.role not in ALL_PROJECTS_ROLES:
         project = db.session.get(Project, current_user.project_id)
         if project:
             session["current_project_id"] = project.id
@@ -932,7 +936,7 @@ def _safe_redirect(target: str | None, fallback_endpoint: str = "main.dashboard"
 def _project_access_allowed(project: Project | None) -> bool:
     if project is None:
         return False
-    if current_user.role == ROLE_ADMIN:
+    if current_user.role in ALL_PROJECTS_ROLES:
         return True
     return not current_user.project_id or current_user.project_id == project.id
 
@@ -1305,7 +1309,7 @@ def project_stats(project: Project) -> dict[str, int]:
 @login_required
 def objects():
     projects_query = Project.query.order_by(Project.created_at.desc())
-    if current_user.project_id:
+    if current_user.project_id and current_user.role not in ALL_PROJECTS_ROLES:
         projects_query = projects_query.filter(Project.id == current_user.project_id)
     projects = projects_query.all()
     changed = False
@@ -1541,7 +1545,9 @@ def _mobile_phone_home_endpoint() -> str:
         return "main.my_tasks"
     if current_user.role == ROLE_VERIFIER:
         return "main.work_report"
-    project_id = current_user.project_id if current_user.is_authenticated and current_user.project_id else session.get("current_project_id")
+    project_id = session.get("current_project_id") if current_user.role in ALL_PROJECTS_ROLES else (
+        current_user.project_id if current_user.is_authenticated and current_user.project_id else session.get("current_project_id")
+    )
     return "main.dashboard" if project_id else "main.objects"
 
 
@@ -1570,6 +1576,17 @@ def _mobile_phone_allowed_endpoints() -> set[str]:
         "main.remarks_excel_selection",
         "main.export_category_tasks",
         "main.export_category_tasks_pdf",
+        "main.glass_measurements",
+        "main.glass_need_measure",
+        "main.glass_measurement_save",
+        "main.glass_measurement_return_to_all",
+        "main.glass_status_update",
+        "main.glass_order_export",
+        "main.glass_create_material_request",
+        "main.glass_measurements_delete",
+        "main.glass_order",
+        "main.glass_manual_task_new",
+        "main.material_request_detail",
         "main.apartments",
         "main.apartments_export",
         "main.apartment_detail",
@@ -8278,6 +8295,12 @@ def user_toggle_captcha(user_id: int):
     _abort_if_user_outside_current_project(user)
     user.captcha_disabled = request.form.get("captcha_disabled") == "1"
     db.session.commit()
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify(
+            ok=True,
+            captcha_disabled=user.captcha_disabled,
+            message="Настройка капчи сохранена.",
+        )
     flash("Настройка капчи для пользователя обновлена.", "success")
     return redirect(url_for("main.users"))
 

@@ -16,6 +16,7 @@ ROLE_GLAZIER = "glazier"
 ROLE_VERIFIER = "verifier"
 ROLE_VIEWER = "viewer"
 WORKER_ROLES = {ROLE_EXECUTOR, ROLE_PAINTER, ROLE_HANDYMAN, ROLE_GLAZIER}
+ALL_PROJECTS_ROLES = {ROLE_ADMIN, ROLE_MANAGER, ROLE_VERIFIER}
 ROLE_LABELS = {
     ROLE_ADMIN: "Разработчик",
     ROLE_MANAGER: "Инженер",
@@ -99,12 +100,18 @@ class User(UserMixin, TimestampMixin, db.Model):
     assigned_tasks = db.relationship("Task", back_populates="responsible", foreign_keys="Task.responsible_id")
     project = db.relationship("Project")
     site_error_reports = db.relationship("SiteErrorReport", back_populates="user")
+    passkeys = db.relationship(
+        "WebAuthnCredential",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="WebAuthnCredential.created_at.desc()",
+    )
 
     @property
     def projects(self):
         if self.project_id:
             return [self.project] if self.project else []
-        if self.role == ROLE_ADMIN:
+        if self.role in ALL_PROJECTS_ROLES:
             return Project.query.order_by(Project.created_at.desc()).all()
         return []
 
@@ -124,6 +131,23 @@ class User(UserMixin, TimestampMixin, db.Model):
 
     def __repr__(self):
         return f"<User {self.username}>"
+
+
+class WebAuthnCredential(TimestampMixin, db.Model):
+    __tablename__ = "webauthn_credentials"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    credential_id = db.Column(db.String(1024), unique=True, nullable=False, index=True)
+    public_key = db.Column(db.LargeBinary, nullable=False)
+    sign_count = db.Column(db.Integer, default=0, nullable=False)
+    transports = db.Column(db.Text, nullable=True)
+    device_type = db.Column(db.String(40), nullable=True)
+    backed_up = db.Column(db.Boolean, default=False, nullable=False)
+    name = db.Column(db.String(120), default="Face ID / Passkey", nullable=False)
+    last_used_at = db.Column(db.DateTime, nullable=True)
+
+    user = db.relationship("User", back_populates="passkeys")
 
 
 class Project(TimestampMixin, db.Model):

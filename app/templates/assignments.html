@@ -259,6 +259,16 @@
   </div>
 </div>
 
+{% if pagination and pagination.pages > 1 %}
+<nav class="page-pagination-top mb-3" aria-label="Навигация по задачам сверху">
+  <ul class="pagination justify-content-center mb-0">
+    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}"><a class="page-link" href="{% if pagination.has_prev %}{{ url_for('main.assignments', **prev_args) }}{% else %}#{% endif %}">Назад</a></li>
+    <li class="page-item disabled"><span class="page-link">Стр. {{ pagination.page }} / {{ pagination.pages }}</span></li>
+    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}"><a class="page-link" href="{% if pagination.has_next %}{{ url_for('main.assignments', **next_args) }}{% else %}#{% endif %}">Далее</a></li>
+  </ul>
+</nav>
+{% endif %}
+
 <form method="post" action="{{ url_for('main.assignments') }}" class="card table-shell task-table-shell assignment-shell assignment-contractor-shell js-bulk-selectable" data-selection-key="assignments-{{ project.id }}-{{ args.get('q', '') }}" data-search-highlight="{{ args.get('q', '') }}" data-bulk-label-one="задача" data-bulk-label-few="задачи" data-bulk-label-many="задач">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="card-body border-bottom assignment-issue-panel assignment-issue-panel-restored">
