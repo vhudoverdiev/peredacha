@@ -165,10 +165,16 @@ def create_app(config_class=Config):
                 db.session.commit()
             if "users" in inspector.get_table_names():
                 user_columns = {column["name"] for column in inspector.get_columns("users")}
+                added_project_access_mode = False
                 if "password_plain" not in user_columns:
                     db.session.execute(text("ALTER TABLE users ADD COLUMN password_plain VARCHAR(255)"))
                 if "project_id" not in user_columns:
                     db.session.execute(text("ALTER TABLE users ADD COLUMN project_id INTEGER"))
+                if "all_projects_access" not in user_columns:
+                    db.session.execute(text("ALTER TABLE users ADD COLUMN all_projects_access BOOLEAN NOT NULL DEFAULT 0"))
+                    added_project_access_mode = True
+                if "project_access_ids_json" not in user_columns:
+                    db.session.execute(text("ALTER TABLE users ADD COLUMN project_access_ids_json TEXT"))
                 if "failed_login_count" not in user_columns:
                     db.session.execute(text("ALTER TABLE users ADD COLUMN failed_login_count INTEGER NOT NULL DEFAULT 0"))
                 if "locked_until" not in user_columns:
@@ -187,6 +193,8 @@ def create_app(config_class=Config):
                     db.session.execute(text("ALTER TABLE users ADD COLUMN two_factor_secret VARCHAR(64)"))
                 if "two_factor_confirmed_at" not in user_columns:
                     db.session.execute(text("ALTER TABLE users ADD COLUMN two_factor_confirmed_at DATETIME"))
+                if added_project_access_mode:
+                    db.session.execute(text("UPDATE users SET all_projects_access = 1 WHERE project_id IS NULL OR role IN ('admin', 'manager', 'verifier')"))
                 # Больше не держим пароли в открытом виде в БД.
                 db.session.execute(text("UPDATE users SET password_plain = NULL WHERE password_plain IS NOT NULL"))
                 db.session.commit()
@@ -262,6 +270,8 @@ def create_app(config_class=Config):
                     db.session.execute(text("ALTER TABLE glass_measurements ADD COLUMN replaced_at DATE"))
                 if "material_request_item_id" not in glass_columns:
                     db.session.execute(text("ALTER TABLE glass_measurements ADD COLUMN material_request_item_id INTEGER"))
+                if "material_writeoff_id" not in glass_columns:
+                    db.session.execute(text("ALTER TABLE glass_measurements ADD COLUMN material_writeoff_id INTEGER"))
                 db.session.execute(text("UPDATE glass_measurements SET status = 'measure_needed' WHERE status = 'not_ordered'"))
                 db.session.execute(text("UPDATE glass_measurements SET apartment_id = (SELECT apartment_id FROM tasks WHERE tasks.id = glass_measurements.task_id) WHERE apartment_id IS NULL"))
                 db.session.commit()

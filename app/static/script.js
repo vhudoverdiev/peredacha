@@ -1389,184 +1389,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.setTimeout(close, 4500);
   };
 
-  const passkeyBase64urlToBuffer = value => {
-    const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
-    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
-    const binary = window.atob(padded);
-    return Uint8Array.from(binary, char => char.charCodeAt(0)).buffer;
-  };
-
-  const passkeyBufferToBase64url = value => {
-    if (!value) return null;
-    const bytes = new Uint8Array(value);
-    let binary = '';
-    bytes.forEach(byte => { binary += String.fromCharCode(byte); });
-    return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-  };
-
-  const preparePasskeyCreationOptions = options => {
-    const publicKey = { ...options };
-    publicKey.challenge = passkeyBase64urlToBuffer(publicKey.challenge);
-    publicKey.user = { ...publicKey.user, id: passkeyBase64urlToBuffer(publicKey.user.id) };
-    publicKey.excludeCredentials = (publicKey.excludeCredentials || []).map(item => ({
-      ...item,
-      id: passkeyBase64urlToBuffer(item.id),
-    }));
-    return publicKey;
-  };
-
-  const preparePasskeyRequestOptions = options => {
-    const publicKey = { ...options };
-    publicKey.challenge = passkeyBase64urlToBuffer(publicKey.challenge);
-    publicKey.allowCredentials = (publicKey.allowCredentials || []).map(item => ({
-      ...item,
-      id: passkeyBase64urlToBuffer(item.id),
-    }));
-    return publicKey;
-  };
-
-  const passkeyCredentialPayload = credential => {
-    const response = credential.response;
-    const payload = {
-      id: credential.id,
-      rawId: passkeyBufferToBase64url(credential.rawId),
-      type: credential.type,
-      authenticatorAttachment: credential.authenticatorAttachment || null,
-      clientExtensionResults: credential.getClientExtensionResults?.() || {},
-      response: {
-        clientDataJSON: passkeyBufferToBase64url(response.clientDataJSON),
-      },
-    };
-    if (response.attestationObject) {
-      payload.response.attestationObject = passkeyBufferToBase64url(response.attestationObject);
-      payload.response.transports = response.getTransports?.() || [];
-    } else {
-      payload.response.authenticatorData = passkeyBufferToBase64url(response.authenticatorData);
-      payload.response.signature = passkeyBufferToBase64url(response.signature);
-      payload.response.userHandle = passkeyBufferToBase64url(response.userHandle);
-    }
-    return payload;
-  };
-
-  const passkeyJsonRequest = async (url, body = {}) => {
-    const response = await fetch(url, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRFToken': getCsrfToken(),
-      },
-      body: JSON.stringify(body),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || data.ok === false) {
-      throw new Error(data.message || 'Не удалось выполнить вход по Face ID');
-    }
-    return data;
-  };
-
-  const passkeySupported = Boolean(window.PublicKeyCredential && navigator.credentials);
-  const passkeyRegisterRoot = document.querySelector('[data-passkey-register]');
-  if (passkeyRegisterRoot) {
-    const registerButton = passkeyRegisterRoot.querySelector('[data-passkey-register-button]');
-    const supportNote = passkeyRegisterRoot.querySelector('[data-passkey-support-note]');
-    const checkPlatformSupport = window.PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable;
-
-    Promise.resolve(passkeySupported && checkPlatformSupport
-      ? checkPlatformSupport.call(window.PublicKeyCredential)
-      : false)
-      .then(available => {
-        if (registerButton) registerButton.disabled = !available;
-        if (supportNote) {
-          supportNote.textContent = available
-            ? 'Устройство поддерживает защищённый вход по Face ID / passkey.'
-            : 'На этом устройстве Face ID / passkey недоступен. Откройте CRM в актуальном Safari по HTTPS.';
-          supportNote.classList.toggle('is-supported', Boolean(available));
-        }
-      });
-
-    registerButton?.addEventListener('click', async () => {
-      registerButton.disabled = true;
-      const originalHtml = registerButton.innerHTML;
-      registerButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Подтвердите Face ID';
-      try {
-        const optionsData = await passkeyJsonRequest(passkeyRegisterRoot.dataset.passkeyOptionsUrl);
-        const credential = await navigator.credentials.create({
-          publicKey: preparePasskeyCreationOptions(optionsData.publicKey),
-        });
-        if (!credential) throw new Error('Создание passkey отменено');
-        const result = await passkeyJsonRequest(passkeyRegisterRoot.dataset.passkeyVerifyUrl, {
-          credential: passkeyCredentialPayload(credential),
-          name: 'Face ID / Passkey',
-        });
-        showCrmNotice(result.message || 'Вход по Face ID подключён.', 'success');
-        window.setTimeout(() => window.location.reload(), 450);
-      } catch (error) {
-        if (error?.name !== 'NotAllowedError') {
-          showCrmNotice(error.message || 'Не удалось подключить Face ID', 'danger');
-        }
-        registerButton.disabled = false;
-        registerButton.innerHTML = originalHtml;
-      }
-    });
-  }
-
-  const passkeyLoginRoot = document.querySelector('[data-passkey-login]');
-  if (passkeyLoginRoot && passkeySupported) {
-    const loginButton = passkeyLoginRoot.querySelector('[data-passkey-login-button]');
-    const nextUrl = new URLSearchParams(window.location.search).get('next') || '';
-    let conditionalController = null;
-
-    const finishPasskeyLogin = async credential => {
-      if (!credential) return;
-      const result = await passkeyJsonRequest(passkeyLoginRoot.dataset.passkeyVerifyUrl, {
-        credential: passkeyCredentialPayload(credential),
-      });
-      window.location.assign(result.redirect || '/');
-    };
-
-    const requestPasskey = async (mediation = 'optional', signal = undefined) => {
-      const optionsData = await passkeyJsonRequest(passkeyLoginRoot.dataset.passkeyOptionsUrl, { next: nextUrl });
-      return navigator.credentials.get({
-        publicKey: preparePasskeyRequestOptions(optionsData.publicKey),
-        mediation,
-        signal,
-      });
-    };
-
-    if (loginButton) loginButton.hidden = false;
-    loginButton?.addEventListener('click', async () => {
-      conditionalController?.abort();
-      loginButton.disabled = true;
-      try {
-        await finishPasskeyLogin(await requestPasskey('optional'));
-      } catch (error) {
-        if (error?.name !== 'NotAllowedError' && error?.name !== 'AbortError') {
-          showCrmNotice(error.message || 'Не удалось войти по Face ID', 'danger');
-        }
-      } finally {
-        loginButton.disabled = false;
-      }
-    });
-
-    const conditionalAvailable = window.PublicKeyCredential.isConditionalMediationAvailable;
-    if (conditionalAvailable) {
-      conditionalAvailable.call(window.PublicKeyCredential).then(available => {
-        if (!available) return;
-        conditionalController = new AbortController();
-        requestPasskey('conditional', conditionalController.signal)
-          .then(finishPasskeyLogin)
-          .catch(error => {
-            if (error?.name !== 'NotAllowedError' && error?.name !== 'AbortError') {
-              console.warn('Conditional passkey login failed', error);
-            }
-          });
-      });
-    }
-  }
-
   const moveDoneItemToBottom = () => {
     // Строки больше не переставляются сразу после изменения статуса.
     // Серверная сортировка применится только после обновления страницы/таблицы.
@@ -6285,4 +6107,37 @@ document.addEventListener('DOMContentLoaded', () => {
       setExpanded(hashedItem, true);
     }
   }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-project-access-control]').forEach(control => {
+    const allRadio = control.querySelector('input[name="access_mode"][value="all"]');
+    const specificRadio = control.querySelector('input[name="access_mode"][value="specific"]');
+    const projectInputs = [...control.querySelectorAll('input[name="project_ids"]')];
+    const label = control.querySelector('[data-project-access-label]');
+    if (!allRadio && !specificRadio) return;
+
+    const projectCountLabel = count => {
+      if (count === 1) return '1 объект';
+      if (count >= 2 && count <= 4) return `${count} объекта`;
+      return `${count} объектов`;
+    };
+
+    const syncAccessControl = () => {
+      const allSelected = Boolean(allRadio?.checked);
+      projectInputs.forEach(input => {
+        input.disabled = allSelected;
+        input.closest('.users-access-project-option')?.classList.toggle('is-disabled', allSelected);
+      });
+      if (label) {
+        const selectedCount = projectInputs.filter(input => input.checked).length;
+        label.textContent = allSelected ? 'Все объекты' : projectCountLabel(selectedCount);
+      }
+    };
+
+    allRadio?.addEventListener('change', syncAccessControl);
+    specificRadio?.addEventListener('change', syncAccessControl);
+    projectInputs.forEach(input => input.addEventListener('change', syncAccessControl));
+    syncAccessControl();
+  });
 });

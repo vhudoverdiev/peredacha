@@ -29,6 +29,25 @@
                 {% endfor %}
               </div>
             </fieldset>
+            <div class="dropdown users-access-dropdown users-create-access-dropdown mb-3" data-project-access-control>
+              <button class="btn btn-outline-secondary dropdown-toggle users-access-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                <i class="bi bi-buildings me-2"></i><span data-project-access-label>Доступ к объектам</span>
+              </button>
+              <div class="dropdown-menu users-access-menu p-3">
+                <div class="users-access-mode">
+                  <label><input type="radio" name="access_mode" value="all"> <span>Все объекты</span></label>
+                  <label><input type="radio" name="access_mode" value="specific" checked> <span>Выбрать объекты</span></label>
+                </div>
+                <div class="users-access-projects" data-project-access-list>
+                  {% for access_project in all_projects %}
+                  <label class="users-access-project-option">
+                    <input type="checkbox" name="project_ids" value="{{ access_project.id }}" {% if project and project.id == access_project.id %}checked{% endif %}>
+                    <span>{{ access_project.name }}</span>
+                  </label>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
             {{ form.submit(class="btn btn-primary users-submit-btn") }}
           </form>
         </div>
@@ -64,9 +83,54 @@
             {% for user in users %}
               <tr>
                 <td class="users-login-cell">{{ user.username }}</td>
-                <td class="users-name-cell">{{ user.full_name or '' }}</td>
+                <td class="users-name-cell">
+                  <div class="dropdown users-inline-dropdown">
+                    <button class="users-inline-edit" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Изменить имя">
+                      <span>{{ user.full_name or '—' }}</span><i class="bi bi-pencil"></i>
+                    </button>
+                    <div class="dropdown-menu users-inline-menu p-3">
+                      <form method="post" action="{{ url_for('main.user_update_name', user_id=user.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <label class="form-label" for="user-name-{{ user.id }}">Имя пользователя</label>
+                        <input class="form-control" id="user-name-{{ user.id }}" name="full_name" type="text" maxlength="160" value="{{ user.full_name or '' }}" required>
+                        <button class="btn btn-primary w-100 mt-2" type="submit">Сохранить</button>
+                      </form>
+                    </div>
+                  </div>
+                </td>
                 <td class="users-role-cell">{{ ROLE_LABELS.get(user.role, user.role) }}</td>
-                <td class="users-project-cell">{{ 'Все' if user.role == 'admin' or not user.project else user.project.name }}</td>
+                <td class="users-project-cell">
+                  {% set access_ids = user.project_access_ids %}
+                  <div class="dropdown users-access-dropdown" data-project-access-control>
+                    <button class="users-access-summary" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" {% if user.role == 'admin' %}disabled{% endif %}>
+                      <i class="bi bi-buildings"></i>
+                      <span data-project-access-label>
+                        {% if user.can_access_all_projects %}Все объекты{% elif access_ids|length == 1 %}1 объект{% else %}{{ access_ids|length }} объекта{% endif %}
+                      </span>
+                      {% if user.role != 'admin' %}<i class="bi bi-chevron-down"></i>{% endif %}
+                    </button>
+                    {% if user.role != 'admin' %}
+                    <div class="dropdown-menu users-access-menu p-3">
+                      <form method="post" action="{{ url_for('main.user_update_projects', user_id=user.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="users-access-mode">
+                          <label><input type="radio" name="access_mode" value="all" {% if user.can_access_all_projects %}checked{% endif %}> <span>Все объекты</span></label>
+                          <label><input type="radio" name="access_mode" value="specific" {% if not user.can_access_all_projects %}checked{% endif %}> <span>Выбрать объекты</span></label>
+                        </div>
+                        <div class="users-access-projects" data-project-access-list>
+                          {% for access_project in all_projects %}
+                          <label class="users-access-project-option">
+                            <input type="checkbox" name="project_ids" value="{{ access_project.id }}" {% if access_project.id in access_ids %}checked{% endif %}>
+                            <span>{{ access_project.name }}</span>
+                          </label>
+                          {% endfor %}
+                        </div>
+                        <button class="btn btn-primary w-100 mt-2" type="submit">Сохранить доступ</button>
+                      </form>
+                    </div>
+                    {% endif %}
+                  </div>
+                </td>
                 <td class="users-password-cell">
                   <div class="password-preview" data-hidden="••••••••" data-visible="{{ user.password_plain or 'Пароль не сохранён' }}" data-state="hidden">
                     <span>••••••••</span>

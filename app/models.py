@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
+import json
 import re
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -16,7 +17,7 @@ ROLE_GLAZIER = "glazier"
 ROLE_VERIFIER = "verifier"
 ROLE_VIEWER = "viewer"
 WORKER_ROLES = {ROLE_EXECUTOR, ROLE_PAINTER, ROLE_HANDYMAN, ROLE_GLAZIER}
-ALL_PROJECTS_ROLES = {ROLE_ADMIN, ROLE_MANAGER, ROLE_VERIFIER}
+ALL_PROJECTS_ROLES = {ROLE_ADMIN}
 ROLE_LABELS = {
     ROLE_ADMIN: "Разработчик",
     ROLE_MANAGER: "Инженер",
@@ -87,6 +88,8 @@ class User(UserMixin, TimestampMixin, db.Model):
     role = db.Column(db.String(30), default=ROLE_VIEWER, nullable=False, index=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=True, index=True)
+    all_projects_access = db.Column(db.Boolean, default=False, nullable=False)
+    project_access_ids_json = db.Column(db.Text, nullable=True)
     failed_login_count = db.Column(db.Integer, default=0, nullable=False)
     locked_until = db.Column(db.DateTime, nullable=True)
     last_login_at = db.Column(db.DateTime, nullable=True)
@@ -100,20 +103,53 @@ class User(UserMixin, TimestampMixin, db.Model):
     assigned_tasks = db.relationship("Task", back_populates="responsible", foreign_keys="Task.responsible_id")
     project = db.relationship("Project")
     site_error_reports = db.relationship("SiteErrorReport", back_populates="user")
-    passkeys = db.relationship(
-        "WebAuthnCredential",
-        back_populates="user",
-        cascade="all, delete-orphan",
-        order_by="WebAuthnCredential.created_at.desc()",
-    )
 
     @property
     def projects(self):
-        if self.project_id:
-            return [self.project] if self.project else []
-        if self.role in ALL_PROJECTS_ROLES:
+        if self.can_access_all_projects:
             return Project.query.order_by(Project.created_at.desc()).all()
-        return []
+        project_ids = self.project_access_ids
+        if not project_ids:
+            return []
+        return Project.query.filter(Project.id.in_(project_ids)).order_by(Project.created_at.desc()).all()
+
+    @property
+    def can_access_all_projects(self) -> bool:
+        return self.role == ROLE_ADMIN or bool(self.all_projects_access)
+
+    @property
+    def project_access_ids(self) -> set[int]:
+        values: set[int] = set()
+        try:
+            raw_values = json.loads(self.project_access_ids_json or "[]")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            raw_values = []
+        if isinstance(raw_values, list):
+            for value in raw_values:
+                try:
+                    values.add(int(value))
+                except (TypeError, ValueError):
+                    continue
+        if self.project_id:
+            values.add(int(self.project_id))
+        return values
+
+    def can_access_project(self, project_or_id) -> bool:
+        if self.can_access_all_projects:
+            return True
+        project_id = getattr(project_or_id, "id", project_or_id)
+        try:
+            return int(project_id) in self.project_access_ids
+        except (TypeError, ValueError):
+            return False
+
+    def set_project_access(self, project_ids=None, *, all_projects: bool = False) -> None:
+        if self.role == ROLE_ADMIN:
+            all_projects = True
+        normalized_ids = sorted({int(value) for value in (project_ids or []) if value is not None})
+        self.all_projects_access = bool(all_projects)
+        self.project_access_ids_json = json.dumps([] if all_projects else normalized_ids)
+        self.project_id = normalized_ids[0] if not all_projects and len(normalized_ids) == 1 else None
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -131,23 +167,6 @@ class User(UserMixin, TimestampMixin, db.Model):
 
     def __repr__(self):
         return f"<User {self.username}>"
-
-
-class WebAuthnCredential(TimestampMixin, db.Model):
-    __tablename__ = "webauthn_credentials"
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    credential_id = db.Column(db.String(1024), unique=True, nullable=False, index=True)
-    public_key = db.Column(db.LargeBinary, nullable=False)
-    sign_count = db.Column(db.Integer, default=0, nullable=False)
-    transports = db.Column(db.Text, nullable=True)
-    device_type = db.Column(db.String(40), nullable=True)
-    backed_up = db.Column(db.Boolean, default=False, nullable=False)
-    name = db.Column(db.String(120), default="Face ID / Passkey", nullable=False)
-    last_used_at = db.Column(db.DateTime, nullable=True)
-
-    user = db.relationship("User", back_populates="passkeys")
 
 
 class Project(TimestampMixin, db.Model):
@@ -503,11 +522,13 @@ class GlassMeasurement(TimestampMixin, db.Model):
     ordered_at = db.Column(db.Date, nullable=True, index=True)
     replaced_at = db.Column(db.Date, nullable=True, index=True)
     material_request_item_id = db.Column(db.Integer, db.ForeignKey("material_request_items.id"), nullable=True, index=True)
+    material_writeoff_id = db.Column(db.Integer, db.ForeignKey("material_writeoffs.id"), nullable=True, index=True)
 
     project = db.relationship("Project", back_populates="glass_measurements")
     task = db.relationship("Task", back_populates="glass_measurement")
     apartment = db.relationship("Apartment")
     material_request_item = db.relationship("MaterialRequestItem")
+    material_writeoff = db.relationship("MaterialWriteOff")
     items = db.relationship("GlassMeasurementItem", back_populates="measurement", cascade="all, delete-orphan", order_by="GlassMeasurementItem.id")
 
     @property

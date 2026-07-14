@@ -1,31 +1,11 @@
-from datetime import datetime
-import binascii
-import json
-import time
 from urllib.parse import urlparse
 
-from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
-from sqlalchemy.exc import IntegrityError
-from webauthn import (
-    generate_authentication_options,
-    generate_registration_options,
-    options_to_json,
-    verify_authentication_response,
-    verify_registration_response,
-)
-from webauthn.helpers import base64url_to_bytes, bytes_to_base64url
-from webauthn.helpers.exceptions import InvalidAuthenticationResponse, WebAuthnException
-from webauthn.helpers.structs import (
-    AuthenticatorAttachment,
-    AuthenticatorSelectionCriteria,
-    ResidentKeyRequirement,
-    UserVerificationRequirement,
-)
 
 from app import db
 from app.forms import LoginCaptchaForm, LoginForm, LoginTwoFactorForm
-from app.models import ROLE_VERIFIER, SiteErrorReport, User, WebAuthnCredential, WORKER_ROLES
+from app.models import ROLE_VERIFIER, SiteErrorReport, User, WORKER_ROLES
 from app.services.task_service import get_setting
 from app.security import (
     clear_captcha,
@@ -43,44 +23,6 @@ from app.two_factor import verify_totp
 bp = Blueprint("auth", __name__)
 
 
-def _passkey_rp_id() -> str:
-    configured = (current_app.config.get("WEBAUTHN_RP_ID") or "").strip().lower()
-    return configured or request.host.split(":", 1)[0].strip().lower()
-
-
-def _passkey_origin() -> str:
-    configured = (current_app.config.get("WEBAUTHN_ORIGIN") or "").strip().rstrip("/")
-    if configured:
-        return configured
-    forwarded_proto = (request.headers.get("X-Forwarded-Proto") or "").split(",", 1)[0].strip().lower()
-    scheme = forwarded_proto if forwarded_proto in {"http", "https"} else request.scheme
-    return f"{scheme}://{request.host}"
-
-
-def _passkey_options_json(options) -> dict:
-    return json.loads(options_to_json(options))
-
-
-def _canonical_credential_id(value: str | None) -> str:
-    return bytes_to_base64url(base64url_to_bytes(str(value or "")))
-
-
-def _passkey_challenge(session_key: str) -> bytes | None:
-    encoded = session.pop(session_key, None)
-    issued_at = float(session.pop(f"{session_key}_issued_at", 0) or 0)
-    if not encoded or not issued_at or time.time() - issued_at > 300:
-        return None
-    try:
-        return base64url_to_bytes(encoded)
-    except (TypeError, ValueError):
-        return None
-
-
-def _store_passkey_challenge(session_key: str, challenge: bytes) -> None:
-    session[session_key] = bytes_to_base64url(challenge)
-    session[f"{session_key}_issued_at"] = time.time()
-
-
 def _is_safe_next(target: str | None) -> bool:
     if not target:
         return False
@@ -94,8 +36,6 @@ def _clear_pending_login() -> None:
     session.pop("pending_login_next", None)
     session.pop("pending_login_2fa", None)
     session.pop("pending_login_2fa_verified", None)
-    session.pop("passkey_auth_challenge", None)
-    session.pop("passkey_auth_challenge_issued_at", None)
 
 
 def _render_login(form: LoginForm):
@@ -160,148 +100,6 @@ def _redirect_after_login(user: User, next_url: str | None = None):
             return redirect(url_for("main.objects"))
         return redirect(url_for("main.work_report"))
     return redirect(url_for("main.dashboard"))
-
-
-@bp.route("/passkeys/register/options", methods=["POST"])
-@login_required
-def passkey_registration_options():
-    user = db.session.get(User, current_user.id) or abort(404)
-    options = generate_registration_options(
-        rp_id=_passkey_rp_id(),
-        rp_name=current_app.config.get("WEBAUTHN_RP_NAME") or "Передача",
-        user_id=f"user:{user.id}".encode("utf-8"),
-        user_name=user.username,
-        user_display_name=user.full_name or user.username,
-        authenticator_selection=AuthenticatorSelectionCriteria(
-            authenticator_attachment=AuthenticatorAttachment.PLATFORM,
-            resident_key=ResidentKeyRequirement.REQUIRED,
-            require_resident_key=True,
-            user_verification=UserVerificationRequirement.REQUIRED,
-        ),
-    )
-    _store_passkey_challenge("passkey_registration_challenge", options.challenge)
-    return jsonify(ok=True, publicKey=_passkey_options_json(options))
-
-
-@bp.route("/passkeys/register/verify", methods=["POST"])
-@login_required
-def passkey_registration_verify():
-    user = db.session.get(User, current_user.id) or abort(404)
-    challenge = _passkey_challenge("passkey_registration_challenge")
-    payload = request.get_json(silent=True) or {}
-    credential = payload.get("credential") or {}
-    if challenge is None:
-        return jsonify(ok=False, message="Время привязки истекло. Запустите Face ID ещё раз."), 400
-
-    try:
-        verification = verify_registration_response(
-            credential=credential,
-            expected_challenge=challenge,
-            expected_rp_id=_passkey_rp_id(),
-            expected_origin=_passkey_origin(),
-            require_user_verification=True,
-        )
-        credential_id = bytes_to_base64url(verification.credential_id)
-        response_payload = credential.get("response") or {}
-        transports = [
-            value for value in (response_payload.get("transports") or [])
-            if value in {"internal", "hybrid", "usb", "nfc", "ble", "cable", "smart-card"}
-        ]
-        record = WebAuthnCredential(
-            user_id=user.id,
-            credential_id=credential_id,
-            public_key=verification.credential_public_key,
-            sign_count=int(verification.sign_count or 0),
-            transports=json.dumps(transports, ensure_ascii=False),
-            device_type=getattr(verification.credential_device_type, "value", str(verification.credential_device_type or "")),
-            backed_up=bool(verification.credential_backed_up),
-            name=(payload.get("name") or "Face ID / Passkey")[:120],
-        )
-        db.session.add(record)
-        db.session.commit()
-    except WebAuthnException:
-        return jsonify(ok=False, message="Safari не подтвердил привязку Face ID."), 400
-    except IntegrityError:
-        db.session.rollback()
-        return jsonify(ok=False, message="Этот passkey уже привязан к аккаунту."), 409
-    except (TypeError, ValueError, binascii.Error):
-        db.session.rollback()
-        return jsonify(ok=False, message="Получен некорректный ответ Face ID."), 400
-
-    security_event("passkey_registered", f"Passkey подключён для {user.username}", user_id=user.id)
-    return jsonify(ok=True, message="Вход по Face ID подключён.")
-
-
-@bp.route("/passkeys/<int:credential_id>/delete", methods=["POST"])
-@login_required
-def passkey_delete(credential_id: int):
-    record = WebAuthnCredential.query.filter_by(id=credential_id, user_id=current_user.id).first_or_404()
-    db.session.delete(record)
-    db.session.commit()
-    security_event("passkey_deleted", f"Passkey удалён для {current_user.username}", user_id=current_user.id)
-    flash("Вход по Face ID отключён для выбранного устройства.", "success")
-    return redirect(url_for("main.account"))
-
-
-@bp.route("/passkeys/authenticate/options", methods=["POST"])
-def passkey_authentication_options():
-    if current_user.is_authenticated:
-        return jsonify(ok=False, message="Вы уже вошли в систему."), 400
-    if hit_rate_limit("passkey-options-ip", 60, 300):
-        return jsonify(ok=False, message="Слишком много запросов. Попробуйте позже."), 429
-
-    options = generate_authentication_options(
-        rp_id=_passkey_rp_id(),
-        user_verification=UserVerificationRequirement.REQUIRED,
-    )
-    _store_passkey_challenge("passkey_auth_challenge", options.challenge)
-    next_url = (request.get_json(silent=True) or {}).get("next")
-    session["pending_login_next"] = next_url if _is_safe_next(next_url) else ""
-    session["pending_login_remember"] = True
-    return jsonify(ok=True, publicKey=_passkey_options_json(options))
-
-
-@bp.route("/passkeys/authenticate/verify", methods=["POST"])
-def passkey_authentication_verify():
-    if current_user.is_authenticated:
-        return jsonify(ok=False, message="Вы уже вошли в систему."), 400
-    if hit_rate_limit("passkey-verify-ip", 30, 300):
-        return jsonify(ok=False, message="Слишком много попыток. Попробуйте позже."), 429
-
-    challenge = _passkey_challenge("passkey_auth_challenge")
-    payload = request.get_json(silent=True) or {}
-    credential = payload.get("credential") or {}
-    if challenge is None:
-        return jsonify(ok=False, message="Время входа истекло. Запустите Face ID ещё раз."), 400
-
-    try:
-        credential_id = _canonical_credential_id(credential.get("id"))
-        record = WebAuthnCredential.query.filter_by(credential_id=credential_id).first()
-        user = record.user if record else None
-        if record is None or user is None or not user.is_active or is_account_locked(user):
-            raise InvalidAuthenticationResponse("Credential is not available")
-
-        verification = verify_authentication_response(
-            credential=credential,
-            expected_challenge=challenge,
-            expected_rp_id=_passkey_rp_id(),
-            expected_origin=_passkey_origin(),
-            credential_public_key=record.public_key,
-            credential_current_sign_count=int(record.sign_count or 0),
-            require_user_verification=True,
-        )
-        record.sign_count = int(verification.new_sign_count or 0)
-        record.last_used_at = datetime.utcnow()
-        db.session.commit()
-    except (WebAuthnException, TypeError, ValueError, binascii.Error):
-        db.session.rollback()
-        security_event("passkey_login_failed", "Неуспешная попытка входа по passkey", severity="warning")
-        return jsonify(ok=False, message="Не удалось подтвердить вход по Face ID."), 401
-
-    session["pending_login_user_id"] = int(user.id)
-    response = _complete_pending_login(user)
-    security_event("passkey_login_success", f"Вход по passkey {user.username}", user_id=user.id)
-    return jsonify(ok=True, redirect=response.location or url_for("main.dashboard"))
 
 
 @bp.route("/login", methods=["GET", "POST"])

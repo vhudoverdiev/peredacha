@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Вход в систему{% endblock %}
 {% block content %}
-<div class="login-wrap" data-passkey-login data-passkey-options-url="{{ url_for('auth.passkey_authentication_options') }}" data-passkey-verify-url="{{ url_for('auth.passkey_authentication_verify') }}">
+<div class="login-wrap">
   <div class="card login-card shadow-sm">
     <div class="login-card-glow" aria-hidden="true"></div>
     <div class="card-body p-4">
@@ -14,7 +14,7 @@
           {{ form.username.label(class="form-label") }}
           <div class="login-input-wrap">
             <i class="bi bi-person"></i>
-            {{ form.username(class="form-control", autocomplete="username webauthn", placeholder="Введите логин") }}
+            {{ form.username(class="form-control", autocomplete="username", placeholder="Введите логин") }}
           </div>
         </div>
         <div class="mb-3 login-field">
@@ -29,9 +29,6 @@
           <div class="form-check">{{ form.remember(class="form-check-input") }} {{ form.remember.label(class="form-check-label") }}</div>
         </div>
         {{ form.submit(class="btn btn-primary w-100 login-submit") }}
-        <button class="btn btn-outline-primary w-100 login-passkey-button" type="button" data-passkey-login-button hidden>
-          <i class="bi bi-person-bounding-box me-2"></i>Войти по Face ID
-        </button>
         <button class="btn btn-outline-primary w-100 login-register-button" type="button" data-bs-toggle="modal" data-bs-target="#registrationRequestModal">
           <i class="bi bi-person-plus me-2"></i>
         </button>

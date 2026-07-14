@@ -29,6 +29,9 @@ EXCEL_DOWNLOAD_BORDER = Border(
     top=Side(style="thin", color="000000"),
     bottom=Side(style="thin", color="000000"),
 )
+MEASUREMENT_REQUEST_COMMENT = "Заявка создана из раздела «Замеры»"
+MEASUREMENT_REQUEST_TITLE_PATTERN = re.compile(r"^Заявка из замеров №(\d+)$")
+MEASUREMENT_WRITEOFF_COMMENT_PREFIX = "Автоматическое списание из замеров"
 from app import csrf, db
 from app.forms import CommentForm, ProjectForm, TaskEditForm, UploadExcelForm, UserForm, UserPasswordForm
 from app.models import (
@@ -62,7 +65,6 @@ from app.models import (
     ROLE_VIEWER,
     ROLE_LABELS,
     WORKER_ROLES,
-    ALL_PROJECTS_ROLES,
     STATUS_DONE,
     STATUS_NOT_STARTED,
     STATUS_FINISHERS,
@@ -860,17 +862,17 @@ CONTRACTOR_POINT_LABELS = {
 
 @bp.app_context_processor
 def inject_globals():
-    has_all_projects = current_user.is_authenticated and current_user.role in ALL_PROJECTS_ROLES
+    has_all_projects = current_user.is_authenticated and current_user.can_access_all_projects
     project_id = session.get("current_project_id") if has_all_projects else (
         current_user.project_id if current_user.is_authenticated and current_user.project_id else session.get("current_project_id")
     )
     current_project = db.session.get(Project, project_id) if project_id else None
+    if current_project and current_user.is_authenticated and not current_user.can_access_project(current_project):
+        current_project = None
     mobile_switch_projects = []
     if current_user.is_authenticated:
         projects_query = Project.query.order_by(Project.name.asc(), Project.id.asc())
-        if current_user.project_id and not has_all_projects:
-            projects_query = projects_query.filter(Project.id == current_user.project_id)
-        mobile_switch_projects = projects_query.all()
+        mobile_switch_projects = [project for project in projects_query.all() if current_user.can_access_project(project)]
     new_site_errors_count = 0
     if current_user.is_authenticated and current_user.role == ROLE_ADMIN:
         error_query = SiteErrorReport.query.filter(SiteErrorReport.status == "new")
@@ -905,20 +907,19 @@ def inject_globals():
 def selected_project() -> Project | None:
     # Если пользователь привязан к конкретному объекту, нельзя подменить объект
     # через session/current_project_id или прямую ссылку.
-    if current_user.is_authenticated and current_user.project_id and current_user.role not in ALL_PROJECTS_ROLES:
-        project = db.session.get(Project, current_user.project_id)
-        if project:
-            session["current_project_id"] = project.id
-            return project
-        session.pop("current_project_id", None)
-        return None
-
     project_id = session.get("current_project_id")
     if project_id:
         project = db.session.get(Project, project_id)
-        if project:
+        if project and (not current_user.is_authenticated or current_user.can_access_project(project)):
             return project
         session.pop("current_project_id", None)
+    if current_user.is_authenticated and not current_user.can_access_all_projects:
+        project_ids = current_user.project_access_ids
+        if len(project_ids) == 1:
+            project = db.session.get(Project, next(iter(project_ids)))
+            if project:
+                session["current_project_id"] = project.id
+                return project
     return None
 
 
@@ -936,9 +937,7 @@ def _safe_redirect(target: str | None, fallback_endpoint: str = "main.dashboard"
 def _project_access_allowed(project: Project | None) -> bool:
     if project is None:
         return False
-    if current_user.role in ALL_PROJECTS_ROLES:
-        return True
-    return not current_user.project_id or current_user.project_id == project.id
+    return current_user.can_access_project(project)
 
 
 def _abort_if_project_forbidden(project: Project | None) -> Project:
@@ -950,14 +949,16 @@ def _abort_if_project_forbidden(project: Project | None) -> Project:
 def _user_can_work_in_project(user: User | None, project: Project | None) -> bool:
     if not user or not project or not user.is_active:
         return False
-    return user.role in WORKER_ROLES and (user.project_id is None or user.project_id == project.id)
+    return user.role in WORKER_ROLES and user.can_access_project(project)
 
 
 def _abort_if_user_outside_current_project(user: User | None, project: Project | None = None) -> User:
     project = project or selected_project()
     if user is None:
         abort(404)
-    if project and user.project_id is not None and user.project_id != project.id:
+    if current_user.role == ROLE_ADMIN:
+        return user
+    if project and not user.can_access_project(project):
         abort(404)
     return user
 
@@ -1269,6 +1270,46 @@ def _material_balance_rows(project_id: int) -> list[dict[str, object]]:
     return sorted(balances.values(), key=lambda row: (str(row["name"]).lower(), str(row["unit"]).lower()))
 
 
+def _next_measurement_request_number(project_id: int) -> int:
+    requests = (
+        MaterialRequest.query
+        .with_entities(MaterialRequest.title)
+        .filter(
+            MaterialRequest.project_id == project_id,
+            MaterialRequest.comment == MEASUREMENT_REQUEST_COMMENT,
+        )
+        .all()
+    )
+    used_numbers = []
+    for row in requests:
+        match = MEASUREMENT_REQUEST_TITLE_PATTERN.fullmatch((row.title or "").strip())
+        if match:
+            used_numbers.append(int(match.group(1)))
+    return max(len(requests), max(used_numbers, default=0)) + 1
+
+
+def _measurement_ids_for_writeoff(writeoff_id: int) -> list[int]:
+    return [
+        row.id
+        for row in (
+            GlassMeasurement.query
+            .with_entities(GlassMeasurement.id)
+            .filter(GlassMeasurement.material_writeoff_id == writeoff_id)
+            .all()
+        )
+    ]
+
+
+def _unlink_measurements_from_writeoff(writeoff_id: int) -> list[int]:
+    measurement_ids = _measurement_ids_for_writeoff(writeoff_id)
+    if measurement_ids:
+        GlassMeasurement.query.filter(GlassMeasurement.id.in_(measurement_ids)).update(
+            {"material_writeoff_id": None},
+            synchronize_session=False,
+        )
+    return measurement_ids
+
+
 def _material_task_options(project_id: int, params=None) -> list[Task]:
     # Отдельно нормализуем параметры: раньше фильтр/сортировка в списании материала
     # мог работать нестабильно из-за ImmutableMultiDict и пустых значений.
@@ -1309,9 +1350,7 @@ def project_stats(project: Project) -> dict[str, int]:
 @login_required
 def objects():
     projects_query = Project.query.order_by(Project.created_at.desc())
-    if current_user.project_id and current_user.role not in ALL_PROJECTS_ROLES:
-        projects_query = projects_query.filter(Project.id == current_user.project_id)
-    projects = projects_query.all()
+    projects = [project for project in projects_query.all() if current_user.can_access_project(project)]
     changed = False
     for project in projects:
         if project.name == "100 Квартал 7 очередь":
@@ -1545,7 +1584,7 @@ def _mobile_phone_home_endpoint() -> str:
         return "main.my_tasks"
     if current_user.role == ROLE_VERIFIER:
         return "main.work_report"
-    project_id = session.get("current_project_id") if current_user.role in ALL_PROJECTS_ROLES else (
+    project_id = session.get("current_project_id") if current_user.can_access_all_projects else (
         current_user.project_id if current_user.is_authenticated and current_user.project_id else session.get("current_project_id")
     )
     return "main.dashboard" if project_id else "main.objects"
@@ -2323,6 +2362,9 @@ def _restore_glass_measurement_from_snapshot(snapshot: dict) -> tuple[bool, str]
     if snapshot.get("material_request_item_id") and not db.session.get(MaterialRequestItem, int(snapshot.get("material_request_item_id"))):
         snapshot = dict(snapshot)
         snapshot["material_request_item_id"] = None
+    if snapshot.get("material_writeoff_id") and not db.session.get(MaterialWriteOff, int(snapshot.get("material_writeoff_id"))):
+        snapshot = dict(snapshot)
+        snapshot["material_writeoff_id"] = None
     measurement = _restore_model_from_snapshot(
         GlassMeasurement,
         snapshot,
@@ -2400,7 +2442,7 @@ def _restore_material_writeoff_from_snapshot(snapshot: dict) -> tuple[bool, str]
     if snapshot.get("author_id") and not db.session.get(User, int(snapshot.get("author_id"))):
         snapshot = dict(snapshot)
         snapshot["author_id"] = None
-    writeoff = _restore_model_from_snapshot(MaterialWriteOff, snapshot, skip={"items", "task_ids"})
+    writeoff = _restore_model_from_snapshot(MaterialWriteOff, snapshot, skip={"items", "task_ids", "measurement_ids"})
     _restore_children_from_snapshots(
         MaterialWriteOffItem,
         snapshot.get("items") or [],
@@ -2410,6 +2452,10 @@ def _restore_material_writeoff_from_snapshot(snapshot: dict) -> tuple[bool, str]
         task = db.session.get(Task, int(task_id)) if task_id else None
         if task and task.project_id == writeoff.project_id and task not in writeoff.tasks:
             writeoff.tasks.append(task)
+    for measurement_id in snapshot.get("measurement_ids") or []:
+        measurement = db.session.get(GlassMeasurement, int(measurement_id)) if measurement_id else None
+        if measurement and measurement.project_id == writeoff.project_id:
+            measurement.material_writeoff = writeoff
     return True, "Списание материалов восстановлено."
 
 
@@ -2764,11 +2810,18 @@ def _export_tasks_from_request(query_args: dict, project_id: int, category_id: i
     return build_task_query(query_args, category_id=category_id, project_id=project_id).options(*export_options)
 
 
+def _active_users_for_project(project_id: int | None = None, roles=None) -> list[User]:
+    query = User.query.filter(User.is_active.is_(True))
+    if roles:
+        query = query.filter(User.role.in_(roles))
+    users = query.order_by(User.full_name.asc().nullslast(), User.username.asc()).all()
+    if project_id is None:
+        return users
+    return [user for user in users if user.can_access_project(project_id)]
+
+
 def _executor_users(project_id: int | None = None) -> list[User]:
-    query = User.query.filter(User.is_active.is_(True), User.role.in_(WORKER_ROLES))
-    if project_id:
-        query = query.filter((User.project_id == project_id) | (User.project_id.is_(None)))
-    return query.order_by(User.full_name.asc().nullslast(), User.username.asc()).all()
+    return _active_users_for_project(project_id, WORKER_ROLES)
 
 
 ASSIGNMENT_ROLE_CATEGORY_NAMES = {
@@ -4415,6 +4468,7 @@ def glass_create_material_request():
             selectinload(GlassMeasurement.task).selectinload(Task.apartment),
             selectinload(GlassMeasurement.items),
             selectinload(GlassMeasurement.material_request_item).selectinload(MaterialRequestItem.request),
+            selectinload(GlassMeasurement.material_writeoff),
         )
         .filter(GlassMeasurement.project_id == project.id, GlassMeasurement.id.in_(selected_ids))
         .all()
@@ -4422,7 +4476,7 @@ def glass_create_material_request():
     if len(measurements) != len(set(selected_ids)):
         flash("Часть выбранных стеклопакетов не найдена", "warning")
         return redirect(url_for("main.glass_measurements", tab="ordered"))
-    already_requested = [m for m in measurements if m.material_request_item_id]
+    already_requested = [m for m in measurements if m.material_request_item_id or m.material_writeoff_id]
     if already_requested:
         flash("Выбранные стеклопакеты уже внесены в заявку. Повторную заявку создать нельзя", "warning")
         return redirect(url_for("main.glass_measurements", tab="ordered"))
@@ -4430,39 +4484,50 @@ def glass_create_material_request():
     if without_size:
         flash("У выбранных позиций должен быть указан хотя бы один размер", "warning")
         return redirect(url_for("main.glass_measurements", tab="ordered"))
-    title_parts = []
+    request_number = _next_measurement_request_number(project.id)
     material_request = MaterialRequest(
         project_id=project.id,
         author_id=current_user.id,
         request_date=date.today(),
-        title="",
-        comment="Заявка создана из раздела «Замеры»",
+        title=f"Заявка из замеров №{request_number}",
+        comment=MEASUREMENT_REQUEST_COMMENT,
     )
+    db.session.add(material_request)
     for measurement in measurements:
         task = measurement.task
         apt = task.apartment.label() if task and task.apartment else ""
         first_item_for_measurement = None
+        writeoff = MaterialWriteOff(
+            project_id=project.id,
+            author_id=current_user.id,
+            writeoff_date=date.today(),
+            comment=f"{MEASUREMENT_WRITEOFF_COMMENT_PREFIX}: {material_request.title}",
+        )
+        if task is not None:
+            writeoff.tasks.append(task)
         for item_row in _glass_item_rows(measurement):
             title = str(item_row.get("title_label") or "").strip()
-            if title:
-                title_parts.append(title)
+            item_name = f"{title} {apt}".strip()
+            quantity = item_row.get("quantity") or 1
             request_item = MaterialRequestItem(
-                name=f"{title} {apt}".strip(),
-                quantity=item_row.get("quantity") or 1,
+                name=item_name,
+                quantity=quantity,
                 unit="шт",
             )
             material_request.items.append(request_item)
+            writeoff.items.append(MaterialWriteOffItem(
+                name=item_name,
+                quantity=quantity,
+                unit="шт",
+            ))
             if first_item_for_measurement is None:
                 first_item_for_measurement = request_item
         if first_item_for_measurement is not None:
             measurement.material_request_item = first_item_for_measurement
-    title_sizes = ", ".join(title_parts[:4])
-    if len(title_parts) > 4:
-        title_sizes += f" и ещё {len(title_parts) - 4}"
-    material_request.title = f"Заявка: {title_sizes}".strip() or "Заявка из замеров"
-    db.session.add(material_request)
+            measurement.material_writeoff = writeoff
+            db.session.add(writeoff)
     db.session.commit()
-    flash("Заявка на стеклопакеты создана", "success")
+    flash("Заявка создана, материалы автоматически списаны по связанным замечаниям", "success")
     return redirect(url_for("main.material_request_detail", request_id=material_request.id))
 
 
@@ -6128,11 +6193,7 @@ def _task_list_response(contractor_page: bool = False):
         prev_args["page"] = pagination.prev_num
     if pagination.has_next:
         next_args["page"] = pagination.next_num
-    users = (
-        User.query.filter(User.is_active.is_(True), (User.project_id == project.id) | (User.project_id.is_(None)))
-        .order_by(User.full_name.asc())
-        .all()
-    )
+    users = _active_users_for_project(project.id)
     points = WorkPoint.query.filter_by(is_active=True).order_by(WorkPoint.point_number.asc()).all()
     finishing_types = [
         x[0]
@@ -7751,7 +7812,7 @@ def task_detail(task_id: int):
     edit_form = TaskEditForm(obj=task)
     edit_form.responsible_id.choices = [("", "Не назначен")] + [
         (str(u.id), u.full_name or u.username)
-        for u in User.query.filter(User.is_active.is_(True), (User.project_id == project.id) | (User.project_id.is_(None))).order_by(User.full_name.asc()).all()
+        for u in _active_users_for_project(project.id)
     ]
     edit_form.responsible_id.data = str(task.responsible_id or "")
     edit_form.planned_date.data = task.planned_date.isoformat() if task.planned_date else ""
@@ -7821,7 +7882,7 @@ def update_task(task_id: int):
     form = TaskEditForm()
     form.responsible_id.choices = [("", "Не назначен")] + [
         (str(u.id), u.full_name or u.username)
-        for u in User.query.filter(User.is_active.is_(True), (User.project_id == project.id) | (User.project_id.is_(None))).order_by(User.full_name.asc()).all()
+        for u in _active_users_for_project(project.id)
     ]
     if form.validate_on_submit():
         fields = {
@@ -8212,7 +8273,15 @@ def account():
 
     if request.method == "POST":
         action = (request.form.get("action") or "").strip()
-        if action == "start_2fa":
+        if action == "update_name" and user.role == ROLE_ADMIN:
+            full_name = (request.form.get("full_name") or "").strip()
+            if len(full_name) < 2 or len(full_name) > 160:
+                flash("Имя должно содержать от 2 до 160 символов.", "danger")
+            else:
+                user.full_name = full_name
+                db.session.commit()
+                flash("Имя обновлено.", "success")
+        elif action == "start_2fa":
             pending_secret = generate_totp_secret()
             session["account_2fa_pending_secret"] = pending_secret
             flash("Отсканируйте QR-код или введите ключ вручную, затем подтвердите кодом.", "info")
@@ -8260,19 +8329,34 @@ def account():
 @role_required(ROLE_ADMIN)
 def users():
     form = UserForm()
+    all_projects = Project.query.order_by(Project.name.asc(), Project.id.asc()).all()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data.strip()).first()
         if user:
             flash("Пользователь с таким логином уже есть", "danger")
         else:
             project = selected_project()
+            access_mode = (request.form.get("access_mode") or "").strip()
+            if access_mode not in {"all", "specific"}:
+                access_mode = "all" if form.role.data in {ROLE_MANAGER, ROLE_VERIFIER} else "specific"
+            requested_project_ids = {
+                value for value in request.form.getlist("project_ids") if str(value).isdigit()
+            }
+            valid_project_ids = {project.id for project in all_projects}
+            project_ids = sorted({int(value) for value in requested_project_ids if int(value) in valid_project_ids})
+            if access_mode == "specific" and not project_ids and project:
+                project_ids = [project.id]
+            if access_mode == "specific" and not project_ids:
+                flash("Выберите хотя бы один объект или включите доступ ко всем объектам.", "danger")
+                users = User.query.order_by(User.created_at.desc()).all()
+                return render_template("users.html", users=users, form=form, project=project, all_projects=all_projects)
             user = User(
                 username=form.username.data.strip(),
                 full_name=form.full_name.data.strip() if form.full_name.data else None,
                 role=form.role.data,
                 is_active=True,
-                project_id=project.id if project and form.role.data != ROLE_ADMIN else None,
             )
+            user.set_project_access(project_ids, all_projects=access_mode == "all")
             password = form.password.data
             user.set_password(password)
             db.session.add(user)
@@ -8280,11 +8364,52 @@ def users():
             flash("Поздравляем, пользователь создан.", "success")
             return redirect(url_for("main.users"))
     project = selected_project()
-    query = User.query
+    users = User.query.order_by(User.created_at.desc()).all()
     if project:
-        query = query.filter((User.project_id == project.id) | (User.project_id.is_(None)))
-    users = query.order_by(User.created_at.desc()).all()
-    return render_template("users.html", users=users, form=form, project=project)
+        users = [
+            user for user in users
+            if user.role in {ROLE_ADMIN, ROLE_MANAGER, ROLE_VERIFIER} or user.can_access_project(project)
+        ]
+    return render_template("users.html", users=users, form=form, project=project, all_projects=all_projects)
+
+
+@bp.route("/users/<int:user_id>/name", methods=["POST"])
+@login_required
+@role_required(ROLE_ADMIN)
+def user_update_name(user_id: int):
+    user = db.session.get(User, user_id) or abort(404)
+    full_name = (request.form.get("full_name") or "").strip()
+    if len(full_name) < 2 or len(full_name) > 160:
+        flash("Имя должно содержать от 2 до 160 символов.", "danger")
+    else:
+        user.full_name = full_name
+        db.session.commit()
+        flash("Имя пользователя обновлено.", "success")
+    return redirect(url_for("main.users"))
+
+
+@bp.route("/users/<int:user_id>/projects", methods=["POST"])
+@login_required
+@role_required(ROLE_ADMIN)
+def user_update_projects(user_id: int):
+    user = db.session.get(User, user_id) or abort(404)
+    if user.role == ROLE_ADMIN:
+        flash("Разработчику всегда доступны все объекты.", "info")
+        return redirect(url_for("main.users"))
+    all_projects = Project.query.with_entities(Project.id).all()
+    valid_project_ids = {project_id for (project_id,) in all_projects}
+    requested_ids = {
+        int(value) for value in request.form.getlist("project_ids") if str(value).isdigit()
+    }
+    project_ids = sorted(requested_ids & valid_project_ids)
+    access_all = (request.form.get("access_mode") or "").strip() == "all"
+    if not access_all and not project_ids:
+        flash("Выберите хотя бы один объект или включите доступ ко всем объектам.", "danger")
+        return redirect(url_for("main.users"))
+    user.set_project_access(project_ids, all_projects=access_all)
+    db.session.commit()
+    flash("Доступ к объектам обновлён.", "success")
+    return redirect(url_for("main.users"))
 
 
 @bp.route("/users/<int:user_id>/captcha", methods=["POST"])
@@ -8366,7 +8491,7 @@ def user_delete(user_id: int):
         user.full_name or user.username,
         f"Удалён аккаунт пользователя: {user.full_name or user.username}.",
         project_id=project.id if project else None,
-        extra={"project_ids": [user.project_id] if user.project_id else []},
+        extra={"project_ids": sorted(user.project_access_ids), "all_projects": user.can_access_all_projects},
     )
     db.session.delete(user)
     db.session.commit()
