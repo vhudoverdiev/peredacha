@@ -453,6 +453,145 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
   }
 }
 
+/* v569: Contractors directory/wizard polish. */
+.contractor-create-back,
+.contractor-create-back:hover,
+.contractor-create-back:focus {
+  color: #111827 !important;
+}
+
+.contractor-directory-card-actions .contractor-directory-edit-btn,
+.contractor-directory-card-actions .contractor-directory-edit-btn:hover,
+.contractor-directory-card-actions .contractor-directory-edit-btn:focus,
+.contractor-select-visible-btn,
+.contractor-select-visible-btn:hover,
+.contractor-select-visible-btn:focus {
+  border-color: var(--crm-primary-dark, #78bb24) !important;
+  background: linear-gradient(180deg, var(--crm-primary, #8dd62c), var(--crm-primary-dark, #78bb24)) !important;
+  color: #ffffff !important;
+  box-shadow: 0 14px 28px rgba(120, 187, 36, .22) !important;
+}
+
+.contractor-directory-card-actions .contractor-directory-edit-btn *,
+.contractor-select-visible-btn * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.contractor-directory-card-actions .contractor-directory-delete-btn,
+.contractor-directory-card-actions .contractor-directory-delete-btn:hover,
+.contractor-directory-card-actions .contractor-directory-delete-btn:focus {
+  border-color: #dc3545 !important;
+  background: #dc3545 !important;
+  color: #ffffff !important;
+  box-shadow: 0 14px 28px rgba(220, 53, 69, .16) !important;
+}
+
+.contractor-directory-card-actions .contractor-directory-delete-btn * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.contractor-directory-points span {
+  border-color: rgba(141, 214, 44, .42) !important;
+  background: rgba(141, 214, 44, .12) !important;
+  color: #24510f !important;
+}
+
+.contractor-wizard-tab-number,
+.contractor-wizard-tab.active .contractor-wizard-tab-number {
+  border-color: var(--crm-primary, #8dd62c) !important;
+}
+
+.contractor-wizard-tab.active .contractor-wizard-tab-number {
+  background: var(--crm-primary, #8dd62c) !important;
+  color: #ffffff !important;
+}
+
+.contractor-wizard-actions .btn[data-contractor-back] {
+  color: #111827 !important;
+}
+
+.contractor-wizard-actions .btn[data-contractor-back] * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* v570 final cascade guard: all gray Guarantee buttons use black content. */
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button,
+html body.app-body .apartment-task-status-desktop.actions-cell .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button,
+html body.app-body .apartment-task-actions .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button *,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button i,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button .bi,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button .bi::before,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button *,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button i,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button .bi,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button .bi::before,
+html body.app-body .apartment-task-status-desktop.actions-cell .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button *,
+html body.app-body .apartment-task-actions .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* v571: ordered glass edit form must not inherit done-task strike-through. */
+html body.app-body .glass-page .js-glass-ordered-edit-form,
+html body.app-body .glass-page .js-glass-ordered-edit-form *,
+html body.app-body .glass-page .js-glass-ordered-edit-form :is(input, textarea, select, button, .btn, .form-control, .form-select),
+html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-actions,
+html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-actions *,
+html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-item-row,
+html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-item-card,
+html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-item-row *,
+html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-item-card * {
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+}
+
+/* v570: guarantee action buttons stay gray, but the "Г" / icon must be black. */
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button,
+html body.app-body .apartment-task-status-desktop.actions-cell .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button,
+html body.app-body .apartment-task-actions .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button *,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button i,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button .bi,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button .bi::before,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button *,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button i,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button .bi,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button .bi::before,
+html body.app-body .apartment-task-status-desktop.actions-cell .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button *,
+html body.app-body .apartment-task-actions .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* v570 final cascade guard: all gray Guarantee buttons use black content. */
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button,
+html body.app-body .apartment-task-status-desktop.actions-cell .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button,
+html body.app-body .apartment-task-actions .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button *,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button i,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button .bi,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button .bi::before,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button *,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button i,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button .bi,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button .bi::before,
+html body.app-body .apartment-task-status-desktop.actions-cell .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button *,
+html body.app-body .apartment-task-actions .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
 [data-ajax-pagination-page].ajax-pagination-loading [data-ajax-pagination-content] {
   opacity: .58;
   pointer-events: none;
@@ -15791,7 +15930,7 @@ body:has(.documents-standalone-layout)::-webkit-scrollbar,
     padding: 1rem;
   }
   .assignment-change-assignee-actions {
-    flex-direction: column-reverse;
+    flex-direction: column;
   }
   .assignment-change-assignee-actions .btn {
     width: 100%;
@@ -55683,13 +55822,13 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
   }
 }
 
-/* v560: verifier mobile report had oversized clearances above the Excel button
+/* v562: verifier mobile report had oversized clearances above the Excel button
    and below the last report card; keep both roughly three times smaller. */
 @media (max-width: 767.98px) {
   html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body.verifier-layout:has(.work-report-page) .app-layout > .app-main > .app-content {
-    padding-top: .16rem !important;
-    padding-bottom: calc((var(--ref-mobile-nav-height, 4.5rem) / 3) + .1rem) !important;
+    padding-top: .12rem !important;
+    padding-bottom: calc((var(--ref-mobile-nav-height, 4.5rem) / 3) + .08rem) !important;
   }
 
   html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -55700,12 +55839,29 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
 
   html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head {
-    display: none !important;
-    height: 0 !important;
+    display: block !important;
     min-height: 0 !important;
-    margin: 0 !important;
+    margin: 0 0 .42rem !important;
     padding: 0 !important;
     overflow: hidden !important;
+  }
+
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head > div:first-child {
+    display: none !important;
+  }
+
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head > div:last-child {
+    display: flex !important;
+    width: 100% !important;
+    gap: 0 !important;
+  }
+
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-export-all-btn {
+    width: 100% !important;
+    margin: 0 !important;
   }
 
   html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -56274,6 +56430,18 @@ html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .r
   transform: translateX(-50%) translateY(0) rotate(45deg);
 }
 
+/* Material request detail: keep the edit button icon white over the green button. */
+body.app-body .material-detail-actions .js-material-request-edit,
+body.app-body .material-detail-actions .js-material-request-edit *,
+body.app-body .material-detail-actions .js-material-request-edit i,
+body.app-body .material-detail-actions .js-material-request-edit .bi,
+body.app-body .material-detail-actions .js-material-request-edit .bi::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
 /* Mobile remarks status pill: keep "Не выполнено" as one clean capsule. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -56317,4 +56485,612 @@ html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .r
     align-self: start !important;
     margin-top: .34rem !important;
   }
+}
+
+/* v563: mobile empty states for Remarks and Assignments should be full-width
+   readable cards, not clipped table cells or tiny floating buttons. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.remarks-empty-row, .assignment-empty-row) {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.remarks-empty-cell, .assignment-empty-cell) {
+    box-sizing: border-box !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: .65rem .72rem !important;
+    border: 0 !important;
+    background: transparent !important;
+    text-align: center !important;
+    white-space: normal !important;
+    overflow: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.remarks-empty-cell, .assignment-empty-cell)::before {
+    display: none !important;
+    content: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.remarks-empty-state, .assignment-empty-state),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) [data-ajax-pagination-summary] .search-result-summary {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 4.25rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto !important;
+    padding: .95rem 1rem !important;
+    border: 1px solid rgba(214, 226, 204, .95) !important;
+    border-radius: 1.05rem !important;
+    background: rgba(255, 255, 255, .94) !important;
+    color: #172033 !important;
+    font-size: clamp(.94rem, 4.1vw, 1.04rem) !important;
+    font-weight: 760 !important;
+    line-height: 1.25 !important;
+    text-align: center !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+    box-shadow: 0 12px 26px rgba(31, 45, 61, .06) !important;
+    transform: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.remarks-page-head) [data-ajax-pagination-summary] {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: .7rem 0 0 !important;
+    padding: 0 .72rem !important;
+  }
+}
+
+/* v566: rebuild issued-to-employees remark cards on mobile web. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-card {
+    overflow: hidden !important;
+    border: 1px solid rgba(141, 214, 44, .18) !important;
+    border-radius: 1.35rem !important;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(141, 214, 44, .10), transparent 32%),
+      linear-gradient(180deg, rgba(251, 254, 247, .98), rgba(255, 255, 255, .96)) !important;
+    box-shadow: 0 16px 34px rgba(31, 45, 61, .08) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table-wrap {
+    overflow: visible !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table colgroup,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table thead {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table tbody {
+    display: grid !important;
+    width: 100% !important;
+    gap: .95rem !important;
+    padding: .9rem !important;
+    background: transparent !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .76rem !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 1rem !important;
+    border: 1px solid rgba(214, 226, 204, .95) !important;
+    border-radius: 1.18rem !important;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(141, 214, 44, .07), transparent 42%),
+      #ffffff !important;
+    box-shadow: 0 14px 30px rgba(31, 45, 61, .075) !important;
+    overflow: hidden !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row.done-task {
+    background:
+      radial-gradient(circle at 50% 0%, rgba(141, 214, 44, .10), transparent 42%),
+      #f8fff1 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td {
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    text-align: center !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td::before {
+    display: none !important;
+    content: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(1) {
+    order: 1 !important;
+    justify-content: center !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-room-pill {
+    display: inline-flex !important;
+    width: auto !important;
+    max-width: 100% !important;
+    min-height: 2.35rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .42rem !important;
+    padding: .5rem .85rem !important;
+    border: 1px solid rgba(141, 214, 44, .22) !important;
+    border-radius: 999px !important;
+    background: linear-gradient(180deg, #f5fde9, #ffffff) !important;
+    color: #1f2a1d !important;
+    font-size: 1rem !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    box-shadow: 0 8px 18px rgba(141, 214, 44, .10) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(2) {
+    order: 2 !important;
+    justify-content: stretch !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-task-text,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-task-open-link {
+    display: block !important;
+    width: 100% !important;
+    color: #172033 !important;
+    font-size: clamp(1.05rem, 4.8vw, 1.18rem) !important;
+    font-weight: 850 !important;
+    line-height: 1.34 !important;
+    text-align: left !important;
+    text-decoration: none !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(3) {
+    order: 3 !important;
+    justify-content: center !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-date-cell > span {
+    display: inline-flex !important;
+    min-height: 2.25rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .42rem .85rem !important;
+    border-radius: 999px !important;
+    background: #f8faf5 !important;
+    color: #1f2a1d !important;
+    font-size: .98rem !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(4) {
+    order: 4 !important;
+    justify-content: center !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-status-toggle {
+    display: inline-flex !important;
+    min-height: 2.22rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .42rem .9rem !important;
+    border-radius: 999px !important;
+    font-size: .95rem !important;
+    font-weight: 850 !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(5) {
+    order: 5 !important;
+    justify-content: stretch !important;
+    padding-top: .1rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, .86fr) minmax(0, 1.28fr) minmax(0, .86fr) !important;
+    gap: .58rem !important;
+    width: 100% !important;
+    align-items: stretch !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-date-action-form,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-delete-employee-form {
+    display: contents !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-actions .btn,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-actions button {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 3.25rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .42rem !important;
+    margin: 0 !important;
+    padding: .58rem .68rem !important;
+    border-radius: 1rem !important;
+    font-size: .95rem !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    box-shadow: 0 10px 20px rgba(31, 45, 61, .07) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-change-assignee-btn {
+    min-width: 0 !important;
+    background: linear-gradient(180deg, #f5fde9, #ffffff) !important;
+    border-color: rgba(141, 214, 44, .28) !important;
+    color: #172033 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-delete-employee-task-btn {
+    background: linear-gradient(180deg, #fff6f7, #ffffff) !important;
+    border-color: rgba(239, 68, 68, .24) !important;
+    color: #111827 !important;
+  }
+}
+
+/* v567: desktop Contractors filter — keep finishing checkboxes on the same
+   line as search/selects/actions, matching the Remarks filter layout. */
+@media (min-width: 992px) {
+  html.desktop-like-pointer body.app-body .contractor-filter-form {
+    display: grid !important;
+    grid-template-columns:
+      minmax(18rem, 2.2fr)
+      minmax(13rem, 1.45fr)
+      minmax(10rem, 1.15fr)
+      minmax(10rem, 1.15fr)
+      minmax(20rem, 1.8fr)
+      auto !important;
+    align-items: end !important;
+    gap: .75rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > [class*="col-"] {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+    flex: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .remarks-filter-finishing-col {
+    grid-column: auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form
+    > .remarks-filter-finishing-col .remarks-filter-checks {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: .58rem !important;
+    min-height: 3.05rem !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form
+    > .remarks-filter-finishing-col .remarks-filter-check {
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .contractor-filter-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: .55rem !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* v568: apartment detail desktop actions should match the Remarks action
+   buttons: compact square buttons, same order and colors, with Problem last. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .apartment-detail-page .apartment-task-head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: flex-start !important;
+    gap: .9rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page .apartment-task-status-desktop.actions-cell {
+    display: flex !important;
+    width: auto !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex: 0 0 auto !important;
+    flex-wrap: nowrap !important;
+    gap: .42rem !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .status-pill {
+    flex: 0 0 auto !important;
+    margin: 0 .28rem 0 0 !important;
+    white-space: nowrap !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .apartment-task-status-form,
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .apartment-task-letter-form {
+    display: inline-flex !important;
+    width: auto !important;
+    min-width: 0 !important;
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .btn.btn-sm {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    width: 2.2rem !important;
+    min-width: 2.2rem !important;
+    max-width: 2.2rem !important;
+    height: 2.2rem !important;
+    min-height: 2.2rem !important;
+    max-height: 2.2rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: .72rem !important;
+    font-size: .92rem !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    box-shadow: 0 10px 20px rgba(31, 45, 61, .06) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .binary-status-toggle-form .btn-outline-success {
+    border-color: #63bc18 !important;
+    background: linear-gradient(180deg, #70cd1d, #59ad12) !important;
+    color: #ffffff !important;
+    box-shadow: 0 12px 22px rgba(99, 188, 24, .22) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .binary-status-toggle-form .btn-outline-success *,
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .problem-action-form .problem-toggle-btn * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .binary-status-toggle-form .btn-outline-secondary {
+    border-color: rgba(207, 216, 200, .95) !important;
+    background: #ffffff !important;
+    color: #1f2937 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .remarks-status-icon {
+    display: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .remarks-status-text {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .status-action-form[data-status-action="finishers"] .btn {
+    border-color: #15b8e8 !important;
+    background: #effbff !important;
+    color: #0f172a !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .status-action-form[data-status-action="contractor"] .btn {
+    border-color: #f0a800 !important;
+    background: #fff8e6 !important;
+    color: #0f172a !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .status-action-form[data-status-action="guarantee"] .btn {
+    border-color: #cfd8c8 !important;
+    background: #f5f8f2 !important;
+    color: #6b7280 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .status-action-form[data-status-action="concession"] .btn {
+    border-color: #f0a800 !important;
+    background: #fffaf0 !important;
+    color: #0f172a !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartment-detail-page
+    .apartment-task-status-desktop.actions-cell .problem-action-form .problem-toggle-btn {
+    border-color: #e24d55 !important;
+    background: linear-gradient(180deg, #f05a61, #dc4149) !important;
+    color: #ffffff !important;
+    box-shadow: 0 12px 22px rgba(224, 65, 73, .20) !important;
+  }
+}
+
+/* v569 final cascade guard: Contractors directory/wizard polish. */
+.contractor-create-back,
+.contractor-create-back:hover,
+.contractor-create-back:focus {
+  color: #111827 !important;
+}
+
+.contractor-directory-card-actions .contractor-directory-edit-btn,
+.contractor-directory-card-actions .contractor-directory-edit-btn:hover,
+.contractor-directory-card-actions .contractor-directory-edit-btn:focus,
+.contractor-select-visible-btn,
+.contractor-select-visible-btn:hover,
+.contractor-select-visible-btn:focus {
+  border-color: var(--crm-primary-dark, #78bb24) !important;
+  background: linear-gradient(180deg, var(--crm-primary, #8dd62c), var(--crm-primary-dark, #78bb24)) !important;
+  color: #ffffff !important;
+  box-shadow: 0 14px 28px rgba(120, 187, 36, .22) !important;
+}
+
+.contractor-directory-card-actions .contractor-directory-edit-btn *,
+.contractor-select-visible-btn * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.contractor-directory-card-actions .contractor-directory-delete-btn,
+.contractor-directory-card-actions .contractor-directory-delete-btn:hover,
+.contractor-directory-card-actions .contractor-directory-delete-btn:focus {
+  border-color: #dc3545 !important;
+  background: #dc3545 !important;
+  color: #ffffff !important;
+  box-shadow: 0 14px 28px rgba(220, 53, 69, .16) !important;
+}
+
+.contractor-directory-card-actions .contractor-directory-delete-btn * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.contractor-directory-points span {
+  border-color: rgba(141, 214, 44, .42) !important;
+  background: rgba(141, 214, 44, .12) !important;
+  color: #24510f !important;
+}
+
+.contractor-wizard-tab-number,
+.contractor-wizard-tab.active .contractor-wizard-tab-number {
+  border-color: var(--crm-primary, #8dd62c) !important;
+}
+
+.contractor-wizard-tab.active .contractor-wizard-tab-number {
+  background: var(--crm-primary, #8dd62c) !important;
+  color: #ffffff !important;
+}
+
+.contractor-wizard-actions .btn[data-contractor-back],
+.contractor-wizard-actions .btn[data-contractor-back]:hover,
+.contractor-wizard-actions .btn[data-contractor-back]:focus {
+  color: #111827 !important;
+}
+
+.contractor-wizard-actions .btn[data-contractor-back] * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* v570 final cascade guard: all gray Guarantee buttons use black content. */
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button,
+html body.app-body .apartment-task-status-desktop.actions-cell .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button,
+html body.app-body .apartment-task-actions .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button *,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button i,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button .bi,
+html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button .bi::before,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button *,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button i,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button .bi,
+html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button .bi::before,
+html body.app-body .apartment-task-status-desktop.actions-cell .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button *,
+html body.app-body .apartment-task-actions .status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* v571: ordered glass edit form must not inherit done-task strike-through. */
+html body.app-body .glass-page .js-glass-ordered-edit-form,
+html body.app-body .glass-page .js-glass-ordered-edit-form *,
+html body.app-body .glass-page .js-glass-ordered-edit-form :is(input, textarea, select, button, .btn, .form-control, .form-select),
+html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-actions,
+html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-actions *,
+html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-item-row,
+html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-item-card,
+html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-item-row *,
+html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-item-card * {
+  text-decoration: none !important;
+  text-decoration-line: none !important;
 }

@@ -8,7 +8,6 @@
         <i class="bi bi-arrow-left"></i>Список подрядчиков
       </a>
       <h1 class="page-title">{{ contractor_form_title or 'Создать подрядчика' }}</h1>
-      <p class="page-subtitle">Настройте зоны ответственности подрядчика на объекте «{{ project.name }}».</p>
     </div>
   </div>
 
@@ -42,7 +41,7 @@
       </div>
       <div class="contractor-name-field">
         <label class="form-label" for="contractorName">Наименование подрядчика</label>
-        <input class="form-control form-control-lg" id="contractorName" name="name" type="text" value="{{ contractor_name }}" maxlength="180" autocomplete="organization" placeholder="Например, ООО «Строй Сервис»" required>
+        <input class="form-control form-control-lg" id="contractorName" name="name" type="text" value="{{ contractor_name }}" maxlength="180" autocomplete="organization" required>
         <div class="invalid-feedback">Укажите наименование подрядчика.</div>
       </div>
       <div class="contractor-wizard-actions contractor-wizard-actions-end">
@@ -96,14 +95,14 @@
           <i class="bi bi-search"></i>
           <input class="form-control" type="search" placeholder="Найти квартиру, корпус или отделку" data-contractor-filter="apartments">
         </label>
-        <button class="btn btn-sm btn-outline-success" type="button" data-contractor-select-visible="apartments">Выбрать показанные</button>
+        <button class="btn btn-sm btn-success contractor-select-visible-btn" type="button" data-contractor-select-visible="apartments">Выбрать показанные</button>
         <button class="btn btn-sm btn-outline-secondary" type="button" data-contractor-clear="apartments">Снять выбор</button>
         <span class="contractor-choice-counter"><strong data-contractor-count="apartments">0</strong> выбрано</span>
       </div>
       <div class="contractor-choice-grid contractor-apartment-grid" data-contractor-list="apartments">
         {% for apartment in apartment_options %}
         {% set apartment_meta = [apartment.building and 'Корпус ' ~ apartment.building, apartment.entrance and 'Подъезд ' ~ apartment.entrance, apartment.floor and 'Этаж ' ~ apartment.floor, apartment.finishing_type]|select|join(' · ') %}
-        <label class="contractor-choice-card contractor-apartment-card" data-contractor-search-text="{{ (apartment.label ~ ' ' ~ apartment_meta)|lower }}">
+        <label class="contractor-choice-card contractor-apartment-card" data-contractor-search-text="{{ (apartment.label ~ ' ' ~ apartment_meta)|lower }}" data-contractor-apartment-number="{{ apartment.number }}">
           <input class="form-check-input" type="checkbox" name="apartment_groups" value="{{ apartment.id }}" {% if apartment.id|string in selected_apartment_group_ids %}checked{% endif %}>
           <span class="contractor-choice-card-icon"><i class="bi bi-door-open"></i></span>
           <span class="contractor-choice-card-copy"><strong>{{ apartment.label }}</strong><small>{{ apartment_meta or 'Объект ' ~ project.name }}</small></span>
@@ -168,10 +167,25 @@
   }));
   wizard.querySelectorAll('[data-contractor-back]').forEach((button) => button.addEventListener('click', () => showStep(button.dataset.contractorBack)));
 
+  const parseApartmentRange = (value) => {
+    const match = value.trim().match(/^(\d+)\s*[-–—]\s*(\d+)$/);
+    if (!match) return null;
+    const start = Number(match[1]);
+    const end = Number(match[2]);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+    return [Math.min(start, end), Math.max(start, end)];
+  };
+
   wizard.querySelectorAll('[data-contractor-filter]').forEach((input) => input.addEventListener('input', () => {
     const list = input.dataset.contractorFilter;
     const query = input.value.trim().toLocaleLowerCase('ru');
+    const apartmentRange = list === 'apartments' ? parseApartmentRange(query) : null;
     wizard.querySelectorAll(`[data-contractor-list="${list}"] .contractor-choice-card`).forEach((card) => {
+      if (apartmentRange) {
+        const number = Number(card.dataset.contractorApartmentNumber || '');
+        card.hidden = !Number.isFinite(number) || number < apartmentRange[0] || number > apartmentRange[1];
+        return;
+      }
       card.hidden = Boolean(query) && !card.dataset.contractorSearchText.includes(query);
     });
   }));
@@ -191,6 +205,34 @@
     const error = wizard.querySelector(`[data-contractor-error="${list}"]`);
     if (error && checkedCount(list)) error.hidden = true;
   }));
+
+  let lastApartmentCard = null;
+  const visibleApartmentCards = () => [...wizard.querySelectorAll('[data-contractor-list="apartments"] .contractor-choice-card:not([hidden])')];
+  wizard.querySelectorAll('[data-contractor-list="apartments"] .contractor-choice-card').forEach((card) => {
+    card.addEventListener('click', (event) => {
+      const checkbox = card.querySelector('input[type="checkbox"]');
+      if (!checkbox) return;
+      if (event.shiftKey && lastApartmentCard && lastApartmentCard !== card) {
+        event.preventDefault();
+        const cards = visibleApartmentCards();
+        const from = cards.indexOf(lastApartmentCard);
+        const to = cards.indexOf(card);
+        if (from !== -1 && to !== -1) {
+          const nextState = !checkbox.checked;
+          cards.slice(Math.min(from, to), Math.max(from, to) + 1).forEach((item) => {
+            const itemCheckbox = item.querySelector('input[type="checkbox"]');
+            if (itemCheckbox) itemCheckbox.checked = nextState;
+          });
+          updateCount('apartments');
+          const error = wizard.querySelector('[data-contractor-error="apartments"]');
+          if (error && checkedCount('apartments')) error.hidden = true;
+        }
+        return;
+      }
+      lastApartmentCard = card;
+    });
+  });
+
   wizard.addEventListener('submit', (event) => {
     if (!validateStep(1)) { event.preventDefault(); showStep(1); return; }
     if (!validateStep(2)) { event.preventDefault(); showStep(2); return; }

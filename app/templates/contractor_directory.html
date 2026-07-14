@@ -8,7 +8,6 @@
         <i class="bi bi-arrow-left"></i>Подрядчики
       </a>
       <h1 class="page-title">Список подрядчиков</h1>
-      <p class="page-subtitle">Все подрядчики объекта «{{ project.name }}» с зонами ответственности.</p>
     </div>
     <div class="contractor-directory-actions">
       {% if current_user.role in ['admin', 'manager'] %}
@@ -41,12 +40,12 @@
       </div>
       {% if current_user.role in ['admin', 'manager'] %}
       <div class="contractor-directory-card-actions">
-        <a class="btn btn-outline-success" href="{{ url_for('main.contractor_edit', contractor_id=contractor.id) }}">
+        <a class="btn btn-success remarks-page-primary-btn contractor-directory-edit-btn" href="{{ url_for('main.contractor_edit', contractor_id=contractor.id) }}">
           <i class="bi bi-pencil-square me-2"></i>Редактировать
         </a>
         <form method="post" action="{{ url_for('main.contractor_delete', contractor_id=contractor.id) }}" data-confirm="Удалить подрядчика «{{ contractor.name }}»?\n\nЭто действие нельзя отменить.">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn btn-outline-danger" type="submit">
+          <button class="btn btn-danger contractor-directory-delete-btn" type="submit">
             <i class="bi bi-trash me-2"></i>Удалить
           </button>
         </form>

@@ -1540,8 +1540,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <h2 id="assignment-confirm-title" class="js-assignment-confirm-title">Подтвердите действие</h2>
           <p id="assignment-confirm-text" class="js-assignment-confirm-text">Подтвердите действие</p>
           <div class="modal-actions">
-            <button class="btn btn-outline-secondary js-assignment-confirm-cancel" type="button">Отмена</button>
             <button class="btn btn-danger js-assignment-confirm-ok" type="button">Подтвердить</button>
+            <button class="btn btn-outline-secondary js-assignment-confirm-cancel" type="button">Отмена</button>
           </div>
         </div>`;
       document.body.appendChild(modal);
@@ -3511,62 +3511,62 @@ document.addEventListener('DOMContentLoaded', () => {
     form.submit();
   };
 
-  document.querySelectorAll('.assignment-delete-employee-form').forEach(form => {
-    form.addEventListener('submit', async event => {
-      if (form.dataset.assignmentNativeSubmit === '1') return;
-      event.preventDefault();
-      const button = event.submitter || form.querySelector('.assignment-delete-employee-task-btn');
-      if (button?.dataset.pending === '1') return;
+  document.addEventListener('submit', async event => {
+    const form = event.target.closest?.('.assignment-delete-employee-form');
+    if (!form || event.target !== form) return;
+    if (form.dataset.assignmentNativeSubmit === '1') return;
+    event.preventDefault();
+    const button = event.submitter || form.querySelector('.assignment-delete-employee-task-btn');
+    if (button?.dataset.pending === '1') return;
 
-      const confirmed = await showCrmConfirm({
-        title: 'Удалить задачу у сотрудника',
-        message: button?.dataset.confirm || form.dataset.confirm || 'Удалить эту задачу у сотрудника?',
-        okText: 'Удалить',
-        danger: true,
+    const confirmed = await showCrmConfirm({
+      title: 'Удалить задачу у сотрудника',
+      message: button?.dataset.confirm || form.dataset.confirm || 'Удалить эту задачу у сотрудника?',
+      okText: 'Удалить',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    if (!window.fetch) {
+      form.dataset.assignmentNativeSubmit = '1';
+      form.submit();
+      return;
+    }
+
+    const previousDisabled = Boolean(button?.disabled);
+    if (button) {
+      button.dataset.pending = '1';
+      button.disabled = true;
+    }
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        credentials: 'same-origin',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json',
+        },
       });
-      if (!confirmed) return;
-
-      if (!window.fetch) {
+      const isJson = (response.headers.get('content-type') || '').includes('application/json');
+      if (!isJson) {
         form.dataset.assignmentNativeSubmit = '1';
         form.submit();
         return;
       }
-
-      const previousDisabled = Boolean(button?.disabled);
-      if (button) {
-        button.dataset.pending = '1';
-        button.disabled = true;
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.ok === false) {
+        throw new Error(data.message || 'Не удалось удалить задачу у сотрудника');
       }
-      try {
-        const response = await fetch(form.action, {
-          method: 'POST',
-          body: new FormData(form),
-          credentials: 'same-origin',
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json',
-          },
-        });
-        const isJson = (response.headers.get('content-type') || '').includes('application/json');
-        if (!isJson) {
-          form.dataset.assignmentNativeSubmit = '1';
-          form.submit();
-          return;
-        }
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || data.ok === false) {
-          throw new Error(data.message || 'Не удалось удалить задачу у сотрудника');
-        }
-        const row = form.closest('.assignment-issued-row');
-        if (row) refreshIssuedCountsAfterRemoval(row);
-        showCrmNotice(data.message || 'Задача удалена у сотрудника', 'success');
-      } catch (error) {
-        showCrmNotice(error.message || 'Не удалось удалить задачу у сотрудника', 'danger');
-        if (button) button.disabled = previousDisabled;
-      } finally {
-        if (button) delete button.dataset.pending;
-      }
-    });
+      const row = form.closest('.assignment-issued-row');
+      if (row) refreshIssuedCountsAfterRemoval(row);
+      showCrmNotice(data.message || 'Задача удалена у сотрудника', 'success');
+    } catch (error) {
+      showCrmNotice(error.message || 'Не удалось удалить задачу у сотрудника', 'danger');
+      if (button) button.disabled = previousDisabled;
+    } finally {
+      if (button) delete button.dataset.pending;
+    }
   });
 
   document.addEventListener('click', async event => {
@@ -4656,8 +4656,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <h2>Подтвердите действие</h2>
         <p class="js-crm-confirm-text">Удалить запись?</p>
         <div class="modal-actions">
-          <button class="btn btn-outline-secondary js-crm-confirm-cancel" type="button">Отмена</button>
           <button class="btn btn-danger js-crm-confirm-ok" type="button">Удалить</button>
+          <button class="btn btn-outline-secondary js-crm-confirm-cancel" type="button">Отмена</button>
         </div>
       </div>`;
     document.body.appendChild(modal);

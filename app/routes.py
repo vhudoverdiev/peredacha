@@ -2840,7 +2840,7 @@ def contractor_directory():
     contractor_rows = []
     for contractor in contractors:
         point_labels = sorted({
-            f"{point.point_number} — {point.display_name}"
+            CONTRACTOR_POINT_LABELS.get(str(point.point_number).strip(), point.display_name)
             for point in contractor.work_points
         })
         apartment_groups = {
@@ -3145,7 +3145,11 @@ def contractors_export():
     selected_contractor = _project_contractor(project.id, request.args.get("contractor_id", type=int))
     tasks = _filter_tasks_for_contractor(_export_tasks_from_request(query_args, project.id), selected_contractor).all()
     contractor_label = selected_contractor.name if selected_contractor else "Все подрядчики"
-    path = export_remark_tasks_excel(tasks, f"{project.name}_Подрядчики", title=f"Подрядчики - {contractor_label}")
+    filename_prefix = f"{project.name}_Подрядчики"
+    if selected_contractor:
+        filename_prefix = f"{filename_prefix}_{selected_contractor.name}"
+    title = f"Подрядчик: {contractor_label}" if selected_contractor else contractor_label
+    path = export_remark_tasks_excel(tasks, filename_prefix, title=title)
     return send_file(path, as_attachment=True, download_name=Path(path).name)
 
 
@@ -7214,6 +7218,7 @@ def _contractor_apartment_options(project_id: int) -> list[dict]:
             "entrance": str(representative.entrance or "").strip(),
             "floor": str(representative.floor or "").strip(),
             "finishing_type": str(representative.finishing_type or "").strip(),
+            "number": re.sub(r"\D+", "", str(representative.apartment_number or representative.construction_number or "").strip()),
             "_sort_key": (
                 0 if (representative.premise_type or "apartment") == "apartment" else 1,
                 _apartment_number_sort_value(representative.apartment_number or representative.construction_number),

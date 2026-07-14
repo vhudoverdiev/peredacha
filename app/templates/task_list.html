@@ -119,10 +119,6 @@
           <option value="deadline_expired" {% if args.get('status') == 'deadline_expired' %}selected{% endif %}>Срок истёк</option>
         </select>
       </div>
-      <div class="col-12 col-lg-3 filter-actions remarks-filter-actions contractor-filter-actions">
-        <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
-        <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for(list_endpoint) }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
-      </div>
       <div class="col-12 remarks-filter-finishing-col">
         <label class="form-label d-block">Отделка</label>
         <div class="remarks-filter-checks">
@@ -139,6 +135,10 @@
             <span class="form-check-label">Без отделки</span>
           </label>
         </div>
+      </div>
+      <div class="col-12 col-lg-3 filter-actions remarks-filter-actions contractor-filter-actions">
+        <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
+        <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for(list_endpoint) }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
       </div>
       {% else %}
       <input type="hidden" name="category_id" value="{{ active_category_id }}">

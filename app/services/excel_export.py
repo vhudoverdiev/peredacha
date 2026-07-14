@@ -346,6 +346,34 @@ def export_simple_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title
     return path
 
 
+def _style_remark_export_title(ws, column_count: int) -> None:
+    if column_count <= 0:
+        return
+    if column_count > 1:
+        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=column_count)
+    ws.row_dimensions[1].height = 32
+    title_cell = ws.cell(row=1, column=1)
+    title_cell.font = Font(bold=True, size=14, color="111827")
+    title_cell.fill = REPORT_HEADER_FILL
+    title_cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    for col_idx in range(1, column_count + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.border = THIN_BORDER
+        if col_idx > 1:
+            cell.fill = REPORT_HEADER_FILL
+
+    ws.row_dimensions[2].height = 32
+    for cell in ws[2]:
+        cell.font = Font(bold=True, color="111827")
+        cell.fill = HEADER_FILL
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = THIN_BORDER
+
+    ws.freeze_panes = "A3"
+    if ws.max_row >= 2 and ws.max_column >= 1:
+        ws.auto_filter.ref = f"A2:{get_column_letter(ws.max_column)}{ws.max_row}"
+
+
 def export_remark_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title: str = "Замечания") -> Path:
     tasks = list(tasks)
     path = build_export_path(filename_prefix)
@@ -355,6 +383,9 @@ def export_remark_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title
     ws_open.title = "Не выполненные"
     ws_done = wb.create_sheet("Выполненные")
     headers = ["Помещение", "Отделка", "Замечания"]
+    if title:
+        ws_open.append([title])
+        ws_done.append([title])
     ws_open.append(headers)
     ws_done.append(headers)
 
@@ -370,6 +401,8 @@ def export_remark_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title
 
     for ws in (ws_open, ws_done):
         apply_worksheet_style(ws, [24, 24, 120])
+        if title:
+            _style_remark_export_title(ws, len(headers))
     wb.save(path)
     return path
 
