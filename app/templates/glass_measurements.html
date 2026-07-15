@@ -3,16 +3,13 @@
 {% block content %}
 <div class="glass-page" data-ajax-pagination-page="glass-measurements">
 <div class="page-head remarks-page-head glass-page-head">
-  <a class="btn btn-outline-secondary glass-mobile-back-btn" href="{{ url_for('main.task_list') }}"><i class="bi bi-arrow-left"></i><span>Назад</span></a>
+  <a class="btn btn-outline-secondary glass-mobile-back-btn" href="{{ url_for('main.task_list') }}">
+    <span aria-hidden="true">←</span><span>Назад</span>
+  </a>
   <div>
     <h1 class="page-title">Замеры</h1>
     <p class="page-subtitle"></p>
   </div>
-  {% if current_user.role != 'viewer' %}
-  <div class="glass-head-actions">
-    <button class="btn btn-primary js-glass-manual-open" type="button"><i class="bi bi-plus-lg me-2"></i>Добавить</button>
-  </div>
-  {% endif %}
 </div>
 
 <div class="remarks-tabs mb-3">
@@ -22,20 +19,6 @@
     <li class="nav-item glass-tab-ordered"><a class="nav-link {% if tab == 'ordered' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='ordered', q=q) }}">Заказано</a></li>
   </ul>
 </div>
-
-{% if glass_pagination and glass_pagination.pages > 1 %}
-<nav class="mt-3 glass-pagination glass-pagination-top" aria-label="РќР°РІРёРіР°С†РёСЏ РїРѕ Р·Р°РјРµСЂР°Рј" data-ajax-pagination-nav>
-  <ul class="pagination justify-content-center mb-0">
-    <li class="page-item {% if not glass_pagination.has_prev %}disabled{% endif %}">
-      <a class="page-link" href="{% if glass_pagination.has_prev %}{{ url_for('main.glass_measurements', **glass_prev_args) }}{% else %}#{% endif %}">РќР°Р·Р°Рґ</a>
-    </li>
-    <li class="page-item disabled"><span class="page-link">РЎС‚СЂ. {{ glass_pagination.page }} / {{ glass_pagination.pages }}</span></li>
-    <li class="page-item {% if not glass_pagination.has_next %}disabled{% endif %}">
-      <a class="page-link" href="{% if glass_pagination.has_next %}{{ url_for('main.glass_measurements', **glass_next_args) }}{% else %}#{% endif %}">Р”Р°Р»РµРµ</a>
-    </li>
-  </ul>
-</nav>
-{% endif %}
 
 {% if tab == 'all' %}
 <div class="card content-card mb-3">
@@ -251,6 +234,19 @@
       </div>
     </div>
   </div>
+  {% if glass_pagination and glass_pagination.pages > 1 %}
+  <nav class="glass-pagination glass-pagination-top glass-ordered-pagination-top" aria-label="Навигация по замерам" data-ajax-pagination-nav>
+    <ul class="pagination justify-content-center mb-0">
+      <li class="page-item {% if not glass_pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{% if glass_pagination.has_prev %}{{ url_for('main.glass_measurements', **glass_prev_args) }}{% else %}#{% endif %}">Назад</a>
+      </li>
+      <li class="page-item disabled"><span class="page-link">Стр. {{ glass_pagination.page }} / {{ glass_pagination.pages }}</span></li>
+      <li class="page-item {% if not glass_pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{% if glass_pagination.has_next %}{{ url_for('main.glass_measurements', **glass_next_args) }}{% else %}#{% endif %}">Далее</a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
   <div class="bulk-actions-panel js-bulk-panel d-none glass-request-panel">
     <div class="bulk-actions-count">Выбрано: <b class="js-bulk-count">0</b> <span class="js-bulk-label">позиций</span></div>
     <button class="btn btn-success btn-sm js-glass-bulk-action js-bulk-submit d-none" type="submit" form="glass-bulk-request-form" disabled><i class="bi bi-box-arrow-in-right me-2"></i>Перенести в заявку</button>
@@ -413,7 +409,7 @@
 {% endif %}
 
 {% if glass_pagination and glass_pagination.pages > 1 %}
-<nav class="mt-3" aria-label="Навигация по замерам" data-ajax-pagination-nav>
+<nav class="mt-3 glass-pagination glass-pagination-bottom" aria-label="Навигация по замерам" data-ajax-pagination-nav>
   <ul class="pagination justify-content-center mb-0">
     <li class="page-item {% if not glass_pagination.has_prev %}disabled{% endif %}">
       <a class="page-link" href="{% if glass_pagination.has_prev %}{{ url_for('main.glass_measurements', **glass_prev_args) }}{% else %}#{% endif %}">Назад</a>

@@ -58,7 +58,7 @@ if (mobileRootNavigation && isTouchAppDevice() && mobileRootNavigation.parentEle
 
 const getDesktopReferenceWidth = () => DESKTOP_REFERENCE_WIDTH;
 const getDesktopStageScale = () => Math.min(1, getViewportWidth() / DESKTOP_REFERENCE_WIDTH);
-const shouldAllowAdaptiveMobileViewport = () => true;
+const shouldAllowAdaptiveMobileViewport = () => false;
 const isAdaptiveMobileViewport = () => shouldAllowAdaptiveMobileViewport() && !isTouchAppDevice() && getViewportWidth() <= DESKTOP_TO_MOBILE_VIEWPORT_WIDTH;
 const isTouchMobileViewport = () => isPhoneTouchDevice() || isTabletTouchDevice();
 const isMobileViewport = () => isTouchMobileViewport() || isAdaptiveMobileViewport();
@@ -119,6 +119,7 @@ const applyTouchViewportProfile = () => {
 };
 const normalizeConfirmText = (text) => (text || '').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
 let desktopViewportSyncUnlocked = document.readyState === 'complete';
+let lastCustomSelectViewportMode = null;
 
 try {
   if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
@@ -675,7 +676,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (select.dataset.customSelectReady === '1') return;
 
       const forceCustomSelectOnMobile = select.hasAttribute('data-force-custom-select')
-        || Boolean(select.closest('.apartments-filter-form'));
+        || Boolean(select.closest('.apartments-filter-form'))
+        || Boolean(select.closest('.contractor-filter-form'));
       if (forceCustomSelectOnMobile) {
         delete select.dataset.nativeSelect;
         select.classList.remove('mobile-native-select');
@@ -705,7 +707,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const select = selectShell.querySelector('select');
       if (!select) return;
       const forceCustomSelectOnMobile = select.hasAttribute('data-force-custom-select')
-        || Boolean(select.closest('.apartments-filter-form'));
+        || Boolean(select.closest('.apartments-filter-form'))
+        || Boolean(select.closest('.contractor-filter-form'));
       if (forceCustomSelectOnMobile) {
         delete select.dataset.nativeSelect;
         select.classList.remove('mobile-native-select');
@@ -894,8 +897,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  const refreshCustomSelectViewportMode = (scope = document) => {
+    const currentMode = document.documentElement.matches('.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device') ? 'mobile' : 'desktop';
+    if (lastCustomSelectViewportMode === currentMode && scope === document) return;
+    lastCustomSelectViewportMode = currentMode;
+
+    document.querySelectorAll('.js-developer-custom-select').forEach(selectShell => {
+      const select = selectShell.querySelector('select');
+      if (!select) return;
+      const forceCustomSelectOnMobile = select.hasAttribute('data-force-custom-select')
+        || Boolean(select.closest('.apartments-filter-form'))
+        || Boolean(select.closest('.contractor-filter-form'));
+
+      if (currentMode === 'mobile' && !forceCustomSelectOnMobile) {
+        select.classList.add('mobile-native-select');
+        select.classList.remove('developer-native-select');
+        select.tabIndex = 0;
+        select.removeAttribute('aria-hidden');
+        selectShell.querySelectorAll('.developer-select-button').forEach(button => button.remove());
+        selectShell.classList.remove('is-open');
+        return;
+      }
+    });
+
+    initDeveloperCustomSelects(scope);
+  };
+
   initDeveloperCustomSelects();
+  refreshCustomSelectViewportMode();
   finishCustomSelectBoot();
+  window.addEventListener('resize', () => refreshCustomSelectViewportMode(), { passive: true });
 
   document.addEventListener('click', event => {
     if (event.target.closest('.js-developer-custom-select') || event.target.closest('.developer-select-menu-portal')) return;
@@ -915,7 +946,7 @@ document.addEventListener('DOMContentLoaded', () => {
       mutation.addedNodes.forEach(node => {
         if (node.nodeType !== 1) return;
         if (node.matches?.('select, .js-developer-custom-select') || node.querySelector?.('select, .js-developer-custom-select')) {
-          initDeveloperCustomSelects(node.matches?.('select') ? node.parentElement || document : node);
+          refreshCustomSelectViewportMode(node.matches?.('select') ? node.parentElement || document : node);
         }
       });
     });
@@ -2585,7 +2616,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const normalizedQuery = params.toString();
     return `crm-bulk-selection:auto:${window.location.pathname}:${normalizedQuery}:scope-${scopeIndex}`;
   };
-  const bulkStorage = (scope) => scope.dataset.selectionStorage === 'local' ? window.localStorage : window.sessionStorage;
+  const bulkStorage = (scope) => scope.dataset.selectionStorage === 'session' ? window.sessionStorage : window.localStorage;
   const removeStorageKey = (storage, key) => {
     try { storage.removeItem(key); } catch (error) {}
   };

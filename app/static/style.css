@@ -54176,6 +54176,19 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   display: none;
 }
 
+.glass-ordered-pagination-top {
+  padding: .9rem 1rem 0;
+}
+
+.glass-mobile-back-btn {
+  gap: .38rem;
+}
+
+.glass-mobile-back-btn > span:first-child {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.remarks-page-head:not(.glass-page-head))
@@ -55912,7 +55925,7 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.apartments-page) .po-notification-widget {
-    bottom: calc(3.05rem + env(safe-area-inset-bottom)) !important;
+    bottom: calc(5.35rem + env(safe-area-inset-bottom)) !important;
   }
 }
 
@@ -56361,6 +56374,118 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
 
 /* Mobile measurements: ordered list only, compact header and stable inline edit. */
 @media (max-width: 767.98px) {
+  .glass-page .glass-page-head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: .65rem !important;
+    margin: .35rem 0 .8rem !important;
+    padding: 0 !important;
+  }
+
+  .glass-page .glass-mobile-back-btn {
+    display: inline-flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.55rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .34rem !important;
+    padding: .52rem .9rem !important;
+    border-radius: .9rem !important;
+    font-size: .92rem !important;
+    font-weight: 850 !important;
+    white-space: nowrap !important;
+  }
+
+  .glass-page .glass-mobile-back-btn > i,
+  .glass-page .glass-mobile-back-btn > span {
+    display: inline-flex !important;
+    align-items: center !important;
+    line-height: 1 !important;
+  }
+
+  .glass-page .glass-mobile-back-btn > span:first-child {
+    font-size: 1rem !important;
+  }
+
+  .glass-page .glass-page-head .page-title,
+  .glass-page .glass-page-head .page-subtitle,
+  .glass-page .glass-head-actions,
+  .glass-page > .remarks-tabs,
+  .glass-page .js-glass-manual-open {
+    display: none !important;
+  }
+
+  .glass-page .glass-ordered-table.mobile-card-table .glass-order-row.glass-order-editing {
+    overflow: visible !important;
+  }
+
+  .glass-page .glass-ordered-table.mobile-card-table .glass-order-row.glass-order-editing > td:nth-child(4) {
+    order: 4 !important;
+    padding: .78rem !important;
+    border: 1px solid rgba(141, 214, 44, .22) !important;
+    border-radius: 1rem !important;
+    background: rgba(249, 252, 246, .98) !important;
+  }
+
+  .glass-page .glass-ordered-table.mobile-card-table .glass-order-row.glass-order-editing > td:nth-child(4)::before {
+    align-self: start !important;
+    padding-top: .2rem !important;
+  }
+
+  .glass-page .glass-ordered-table.mobile-card-table .glass-order-row.glass-order-editing .js-glass-ordered-edit-form {
+    display: grid !important;
+    grid-column: 2 !important;
+    position: static !important;
+    inset: auto !important;
+    margin: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    z-index: 1 !important;
+  }
+
+  .glass-page .glass-pagination {
+    margin: 0 0 .82rem !important;
+  }
+
+  .glass-page .glass-ordered-pagination-top {
+    padding: 0 1rem .78rem !important;
+    margin: 0 !important;
+  }
+
+  .glass-page .glass-pagination .pagination {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+    gap: .52rem !important;
+    align-items: center !important;
+  }
+
+  .glass-page .glass-pagination .page-item {
+    min-width: 0 !important;
+  }
+
+  .glass-page .glass-pagination .page-link {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 2.6rem !important;
+    width: 100% !important;
+    padding: .58rem .72rem !important;
+    border-radius: .92rem !important;
+    font-size: .84rem !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+  }
+
+  .glass-page .glass-pagination .page-item.disabled .page-link {
+    opacity: 1 !important;
+  }
+
+  .glass-page .glass-pagination .page-item.disabled:first-child .page-link,
+  .glass-page .glass-pagination .page-item.disabled:last-child .page-link {
+    opacity: .55 !important;
+  }
+
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.glass-page) .glass-page-head {
     display: grid !important;
@@ -56452,6 +56577,12 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-ordered-pagination-top {
+    padding: 0 1rem .78rem !important;
+    margin: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.glass-page) .glass-pagination .pagination {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
@@ -56488,6 +56619,17 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.glass-page) .glass-pagination .page-item.disabled:last-child .page-link {
     opacity: .55 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-mobile-back-btn {
+    gap: .34rem !important;
+    font-size: .92rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-page) .glass-mobile-back-btn > span:first-child {
+    font-size: 1rem !important;
   }
 }
 
