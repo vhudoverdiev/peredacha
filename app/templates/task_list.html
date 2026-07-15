@@ -314,13 +314,13 @@
                 </button>
               </form>
               {% endif %}
+              {% if not is_dop %}
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='concession') }}" class="status-action-form {% if task.status == 'concession' %}d-none{% endif %}" data-status-action="concession">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="btn btn-sm btn-outline-warning" title="Отступные" aria-label="Отступные">
                   <span class="remarks-status-text">О</span>
                 </button>
               </form>
-              {% if not is_dop %}
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="status-action-form problem-action-form problem-action-form-inline {% if task.status == 'problem' %}d-none{% endif %}" data-status-action="problem">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="btn btn-sm btn-outline-danger problem-toggle-btn" type="button" title="Проблема" aria-label="Проблема" data-problem-modal-title="Проблема"><i class="bi bi-exclamation-triangle"></i></button>

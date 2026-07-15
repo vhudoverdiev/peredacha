@@ -102,6 +102,7 @@ from app.services.mapping_service import ensure_default_categories, update_categ
 from app.services.pdf_recognition import is_no_remark_text, recognize_pdf_act
 from app.services.transfer_import import _is_app_mode, _parse_app_date, inspect_transfer_workbook, sync_transfer_statistics
 from app.services.task_service import (
+    DOP_AGREEMENT_POINT_NUMBERS,
     MAIN_WORK_POINT_NUMBERS,
     VISIBLE_WORK_POINT_NUMBERS,
     build_task_query,
@@ -132,6 +133,15 @@ from app.security import hit_rate_limit, security_event, validate_upload
 from app.two_factor import generate_totp_secret, provisioning_uri, qr_svg_data_uri, verify_totp
 
 bp = Blueprint("main", __name__)
+
+
+@bp.route("/service-worker.js")
+def service_worker():
+    response = current_app.send_static_file("service-worker.js")
+    response.headers["Content-Type"] = "application/javascript; charset=utf-8"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response
 
 
 TRUE_SETTING_VALUES = {"1", "true", "yes", "on", "да", "checked"}
@@ -1499,11 +1509,15 @@ def _material_task_options(project_id: int, params=None) -> list[Task]:
     normalized.pop("status", None)
     normalized.setdefault("sort", "apartment")
     query = build_task_query(normalized, project_id=project_id)
+    dop_only = str(normalized.get("dop_only") or "").strip() == "1"
     acceptance_status = normalized.get("acceptance_status")
     if acceptance_status == "accepted":
         query = query.filter(Apartment.is_app_mode.is_(True))
     elif acceptance_status == "waiting":
         query = query.filter(Apartment.is_app_mode.is_(False))
+    if dop_only:
+        query = query.filter(Task.work_point.has(WorkPoint.point_number.in_(DOP_AGREEMENT_POINT_NUMBERS)))
+    query = query.filter(~Task.material_writeoffs.any())
     return (
         query.options(selectinload(Task.apartment), selectinload(Task.work_point))
         .limit(500)
@@ -8170,6 +8184,7 @@ def work_report():
             Task.is_done.is_(True),
             Task.status == STATUS_DONE,
             Task.status.notin_(report_excluded_statuses),
+            WorkPoint.point_number.notin_(DOP_AGREEMENT_POINT_NUMBERS),
             Task.completed_date.isnot(None),
             Task.completed_date >= start,
         )
@@ -8213,6 +8228,7 @@ def work_report_export():
         Task.is_done.is_(True),
         Task.status == STATUS_DONE,
         Task.status.notin_(report_excluded_statuses),
+        Task.work_point.has(WorkPoint.point_number.notin_(DOP_AGREEMENT_POINT_NUMBERS)),
         Task.completed_date.isnot(None),
         Task.completed_date >= start,
         Task.completed_date <= end + timedelta(days=1),

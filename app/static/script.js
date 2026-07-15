@@ -2776,7 +2776,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  document.querySelectorAll('.js-bulk-selectable').forEach(scope => {
+  const initBulkSelectableScope = (scope) => {
+    if (!(scope instanceof HTMLElement)) return;
     const checks = Array.from(scope.querySelectorAll('.js-bulk-check'));
     const storedSelection = readBulkSelection(scope);
     if (bulkStorageKey(scope)) {
@@ -2797,7 +2798,7 @@ document.addEventListener('DOMContentLoaded', () => {
       syncBulkPersistedInputs(scope);
     }
     const setAll = (checked) => {
-      checks.filter(isBulkCheckAvailable).forEach(check => {
+      Array.from(scope.querySelectorAll('.js-bulk-check')).filter(isBulkCheckAvailable).forEach(check => {
         check.checked = checked;
         if (scope.__bulkSelectedIds instanceof Set) {
           const taskId = String(check.value || '');
@@ -2812,24 +2813,31 @@ document.addEventListener('DOMContentLoaded', () => {
       syncBulkScope(scope);
     };
 
-    scope.querySelector('.js-bulk-master')?.addEventListener('change', event => {
-      setAll(event.currentTarget.checked);
-    });
+    const master = scope.querySelector('.js-bulk-master');
+    if (master && master.dataset.bulkBound !== '1') {
+      master.addEventListener('change', event => {
+        setAll(event.currentTarget.checked);
+      });
+      master.dataset.bulkBound = '1';
+    }
 
     scope.querySelectorAll('.js-bulk-clear').forEach(button => {
+      if (button.dataset.bulkBound === '1') return;
       button.addEventListener('click', () => {
         if (scope.__bulkSelectedIds instanceof Set) {
           scope.__bulkSelectedIds.clear();
-          checks.forEach(check => { check.checked = false; });
+          Array.from(scope.querySelectorAll('.js-bulk-check')).forEach(check => { check.checked = false; });
           writeBulkSelection(scope);
           syncBulkScope(scope);
           return;
         }
         setAll(false);
       });
+      button.dataset.bulkBound = '1';
     });
 
     checks.forEach(check => {
+      if (check.dataset.bulkBound === '1') return;
       check.addEventListener('click', event => event.stopPropagation());
       check.addEventListener('change', () => {
         if (scope.__bulkSelectedIds instanceof Set) {
@@ -2842,14 +2850,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         syncBulkScope(scope);
       });
+      check.dataset.bulkBound = '1';
     });
 
     scope.querySelectorAll('.js-bulk-row').forEach(row => {
+      if (row.dataset.bulkBound === '1') return;
       let openTimer = null;
       row.addEventListener('click', event => {
         if (event.target.closest('a, button, input, textarea, select, label, [role="button"]')) return;
         if (scope.dataset.bulkRowClick === 'open') {
-          const hasActiveSelection = checks.some(check => check.checked && !check.disabled);
+          const hasActiveSelection = Array.from(scope.querySelectorAll('.js-bulk-check')).some(check => check.checked && !check.disabled);
           if (hasActiveSelection) {
             const checkbox = row.querySelector('.js-bulk-check');
             if (!checkbox || checkbox.disabled) return;
@@ -2888,9 +2898,15 @@ document.addEventListener('DOMContentLoaded', () => {
           row.querySelector('.js-row-delete-action')?.click();
         }
       });
+      row.dataset.bulkBound = '1';
     });
 
     syncBulkScope(scope);
+  };
+
+  document.querySelectorAll('.js-bulk-selectable').forEach(initBulkSelectableScope);
+  document.addEventListener('crm:ajax-pagination-updated', event => {
+    (event.detail?.content || document).querySelectorAll?.('.js-bulk-selectable').forEach(initBulkSelectableScope);
   });
 
   document.querySelectorAll('.js-remark-export-scope').forEach(scope => {
@@ -3673,6 +3689,19 @@ document.addEventListener('DOMContentLoaded', () => {
 (() => {
   const pageCache = new Map();
   let requestController = null;
+  let offlineFallbackNoticeAt = 0;
+  const offlineFallbackMessage = window.__CRM_OFFLINE_MESSAGE__ || 'Не удается обновить. Показана сохраненная версия.';
+  const showOfflineFallbackNotice = () => {
+    const now = Date.now();
+    if (now - offlineFallbackNoticeAt < 4000) return;
+    offlineFallbackNoticeAt = now;
+    if (typeof window.crmShowOfflineFallback === 'function') {
+      window.crmShowOfflineFallback();
+    }
+    if (typeof showCrmNotice === 'function') {
+      showCrmNotice(offlineFallbackMessage, 'warning');
+    }
+  };
 
   const isCompatibleNode = (currentNode, nextNode) => {
     if (!currentNode || !nextNode || currentNode.nodeType !== nextNode.nodeType) return false;
@@ -3743,6 +3772,11 @@ document.addEventListener('DOMContentLoaded', () => {
       signal,
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (response.headers.get('X-CRM-Offline-Fallback') === '1') {
+      showOfflineFallbackNotice();
+    } else if (typeof window.crmHideOfflineFallback === 'function' && navigator.onLine) {
+      window.crmHideOfflineFallback();
+    }
     const text = await response.text();
     if (useCache) pageCache.set(cacheKey, text);
     return text;
@@ -4148,6 +4182,9 @@ document.addEventListener('DOMContentLoaded', () => {
     syncResponsiveTableCards();
   };
   window.addEventListener('resize', syncResponsiveTablesOnModeChange, { passive: true });
+  document.addEventListener('crm:ajax-pagination-updated', event => {
+    syncResponsiveTableCards(event.detail?.content || document);
+  });
 
   // Карточка замечания/подрядчика открывается двойным нажатием по строке.
 });
@@ -5021,34 +5058,43 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   };
-  document.querySelectorAll('.js-glass-save-form').forEach(bindGlassSaveForm);
+  const initGlassOrderedEditScope = scope => {
+    const root = scope && typeof scope.querySelectorAll === 'function' ? scope : document;
 
-  document.querySelectorAll('.js-glass-ordered-edit-toggle').forEach(button => {
-    button.addEventListener('click', () => {
-      const row = button.closest('.glass-order-row');
-      const form = row?.querySelector('.js-glass-ordered-edit-form');
-      const view = row?.querySelector('.js-glass-ordered-size-view');
-      if (!form) return;
-      row?.classList.add('glass-order-editing');
-      view?.classList.add('d-none');
-      form.classList.remove('d-none');
-      form.hidden = false;
-      const firstInput = form.querySelector('input, select, textarea');
-      firstInput?.focus();
-    });
-  });
+    root.querySelectorAll('.js-glass-save-form').forEach(bindGlassSaveForm);
 
-  document.querySelectorAll('.js-glass-ordered-edit-cancel').forEach(button => {
-    button.addEventListener('click', () => {
-      const form = button.closest('.js-glass-ordered-edit-form');
-      const row = form?.closest('.glass-order-row');
-      const view = row?.querySelector('.js-glass-ordered-size-view');
-      form?.classList.add('d-none');
-      if (form) form.hidden = true;
-      row?.classList.remove('glass-order-editing');
-      view?.classList.remove('d-none');
+    root.querySelectorAll('.js-glass-ordered-edit-toggle').forEach(button => {
+      if (button.dataset.glassOrderedEditBound === '1') return;
+      button.dataset.glassOrderedEditBound = '1';
+      button.addEventListener('click', () => {
+        const row = button.closest('.glass-order-row');
+        const form = row?.querySelector('.js-glass-ordered-edit-form');
+        const view = row?.querySelector('.js-glass-ordered-size-view');
+        if (!form) return;
+        row?.classList.add('glass-order-editing');
+        view?.classList.add('d-none');
+        form.classList.remove('d-none');
+        form.hidden = false;
+        const firstInput = form.querySelector('input, select, textarea');
+        firstInput?.focus();
+      });
     });
-  });
+
+    root.querySelectorAll('.js-glass-ordered-edit-cancel').forEach(button => {
+      if (button.dataset.glassOrderedEditCancelBound === '1') return;
+      button.dataset.glassOrderedEditCancelBound = '1';
+      button.addEventListener('click', () => {
+        const form = button.closest('.js-glass-ordered-edit-form');
+        const row = form?.closest('.glass-order-row');
+        const view = row?.querySelector('.js-glass-ordered-size-view');
+        form?.classList.add('d-none');
+        if (form) form.hidden = true;
+        row?.classList.remove('glass-order-editing');
+        view?.classList.remove('d-none');
+      });
+    });
+  };
+  initGlassOrderedEditScope(document);
 
   const bindGlassStatusForm = form => {
     if (!form || form.dataset.glassStatusBound === '1') return;
@@ -5126,7 +5172,19 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   };
-  document.querySelectorAll('.js-glass-status-form').forEach(bindGlassStatusForm);
+  const initGlassPageScope = scope => {
+    const root = scope && typeof scope.querySelectorAll === 'function' ? scope : document;
+    root.querySelectorAll('.js-glass-need-measure-form').forEach(bindGlassNeedMeasureForm);
+    root.querySelectorAll('.glass-all-row-actions').forEach(bindGlassAllRowActions);
+    root.querySelectorAll('.js-glass-return-form').forEach(bindGlassReturnForm);
+    root.querySelectorAll('.js-glass-status-form').forEach(bindGlassStatusForm);
+    initGlassOrderedEditScope(root);
+  };
+  initGlassPageScope(document);
+
+  document.addEventListener('crm:ajax-pagination-updated', event => {
+    initGlassPageScope(event.detail?.content || document);
+  });
 
   const glassManualModalElement = document.getElementById('glassManualTaskModal');
   const glassManualOpen = document.querySelector('.js-glass-manual-open');

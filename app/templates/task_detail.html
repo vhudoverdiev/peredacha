@@ -116,6 +116,13 @@
     <div class="card content-card task-detail-related-card">
       <div class="card-body">
         <h2 class="section-title">Еще задачи по помещению</h2>
+        {% if task.apartment %}
+        <div class="task-detail-related-head">
+          <a class="btn btn-sm btn-outline-secondary task-detail-apartment-link" href="{{ url_for('main.apartment_detail', apartment_id=task.apartment.id, back=request.full_path) }}">
+            <i class="bi bi-building me-1" aria-hidden="true"></i>РљР°СЂС‚РѕС‡РєР° РєРІР°СЂС‚РёСЂС‹
+          </a>
+        </div>
+        {% endif %}
         {% if other_open_tasks %}
         <div class="related-task-list">
           {% for other in other_open_tasks %}

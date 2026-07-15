@@ -162,6 +162,10 @@
         <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите цифру или текст">
       </div>
       <div class="col-12 col-lg-4 filter-actions">
+        <label class="materials-filter-toggle-btn">
+          <input class="materials-filter-toggle-input" type="checkbox" name="dop_only" value="1" {% if args.get('dop_only') == '1' %}checked{% endif %}>
+          <span>Р”РѕРї. СЃРѕРіР»Р°С€РµРЅРёРµ</span>
+        </label>
         <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
         <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.materials', tab='writeoff') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
       </div>
