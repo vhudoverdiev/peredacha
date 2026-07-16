@@ -9,6 +9,7 @@ import re
 import traceback
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import urlparse
 from sqlalchemy import or_, and_
 from werkzeug.exceptions import HTTPException
@@ -5231,6 +5232,8 @@ def materials():
         .all()
     )
     writeoffs.sort(key=_writeoff_sort_value)
+    if active_tab == "history":
+        writeoffs = [_material_writeoff_history_view(writeoff) for writeoff in writeoffs]
     writeoff_tasks = _material_task_options(project.id, request.args) if active_tab == "writeoff" else []
     low_stock_count = sum(1 for row in balance_rows if 0 < float(row.get("balance") or 0) <= 5)
     return render_template(
@@ -5242,6 +5245,8 @@ def materials():
         balance_options=balance_options,
         writeoffs=writeoffs,
         writeoff_tasks=writeoff_tasks,
+        material_writeoff_premise_text=_material_writeoff_premise_text,
+        material_writeoff_remark_lines=_material_writeoff_remark_lines,
         low_stock_count=low_stock_count,
         can_edit_materials=_can_edit_materials(),
         args=request.args,
@@ -5772,12 +5777,17 @@ def material_expense_export():
     for writeoff in writeoffs:
         material_lines = [f"{item.name} — {fmt_quantity(item.quantity)} {item.unit}" for item in writeoff.items]
         tasks = list(writeoff.tasks)
+        manual_lines = _material_writeoff_remark_lines(writeoff) if not tasks else []
         if not tasks:
             tasks = [None]
         start_row = ws.max_row + 1
-        for task in tasks:
+        for index, task in enumerate(tasks):
             premise = _excel_premise_label(task.apartment) if task and task.apartment else ""
+            if not premise and not task:
+                premise = _material_writeoff_premise_text(writeoff)
             remark = (task.description or task.source_cell_value or "").strip() if task else ""
+            if not remark and not task and manual_lines:
+                remark = manual_lines[index] if index < len(manual_lines) else manual_lines[0]
             ws.append([
                 writeoff.writeoff_date.strftime("%d.%m.%Y") if writeoff.writeoff_date else "",
                 premise or "—",
@@ -6897,6 +6907,60 @@ def _writeoff_sort_value(writeoff: MaterialWriteOff):
         _task_apartment_sort_value(best_task),
         -int(writeoff.writeoff_date.toordinal() if writeoff.writeoff_date else 0),
         -int(writeoff.id or 0),
+    )
+
+
+def _material_writeoff_manual_comment(writeoff: MaterialWriteOff) -> str:
+    comment = (writeoff.comment or "").strip()
+    if not comment:
+        return ""
+    if comment == "auto_distributed":
+        return ""
+    if comment.startswith(f"{MEASUREMENT_WRITEOFF_COMMENT_PREFIX}:"):
+        return ""
+    return comment
+
+
+def _material_writeoff_premise_text(writeoff: MaterialWriteOff) -> str:
+    labels: list[str] = []
+    for task in list(writeoff.tasks or []):
+        if task.apartment:
+            label = task.apartment.label()
+            if label and label not in labels:
+                labels.append(label)
+    if labels:
+        return ", ".join(labels)
+    return "Ручное списание" if _material_writeoff_manual_comment(writeoff) else "—"
+
+
+def _material_writeoff_remark_lines(writeoff: MaterialWriteOff) -> list[str]:
+    lines = [
+        (task.description or task.source_cell_value or "").strip()
+        for task in list(writeoff.tasks or [])
+        if (task.description or task.source_cell_value or "").strip()
+    ]
+    if lines:
+        return lines
+    manual_comment = _material_writeoff_manual_comment(writeoff)
+    return [manual_comment] if manual_comment else []
+
+
+def _material_writeoff_history_view(writeoff: MaterialWriteOff):
+    manual_comment = _material_writeoff_manual_comment(writeoff)
+    if list(writeoff.tasks or []) or not manual_comment:
+        return writeoff
+    pseudo_apartment = SimpleNamespace(label=lambda: "Ручное списание")
+    pseudo_task = SimpleNamespace(
+        apartment=pseudo_apartment,
+        description=manual_comment,
+        source_cell_value=manual_comment,
+    )
+    return SimpleNamespace(
+        id=writeoff.id,
+        writeoff_date=writeoff.writeoff_date,
+        items=writeoff.items,
+        tasks=[pseudo_task],
+        comment=writeoff.comment,
     )
 
 

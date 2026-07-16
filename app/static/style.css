@@ -22,6 +22,72 @@
   --crm-radius: 1.35rem;
 }
 
+/* v586: critical icon contrast guard. Keep icons white inside filled action
+   buttons, including the remark split scissors button. */
+html body.app-body .inline-split-btn,
+html body.app-body .inline-split-btn:hover,
+html body.app-body .inline-split-btn:focus,
+html body.app-body .inline-split-btn:focus-visible {
+  background: linear-gradient(180deg, #79bf25 0%, #6aa81f 100%) !important;
+  border-color: #6aa81f !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(121, 191, 37, .22) !important;
+}
+
+html body.app-body :is(
+  .btn-primary,
+  .btn-success,
+  .btn-danger,
+  .btn-warning,
+  .dashboard-btn-primary,
+  .crm-search-btn,
+  .material-pick-style-btn,
+  .materials-filter-icon-btn,
+  .inline-split-btn,
+  .assignment-change-assignee-btn,
+  .assignment-delete-employee-task-btn,
+  .assignment-issued-export-btn,
+  .task-detail-excel-link,
+  .report-error-btn,
+  .report-error-floating
+):not(.btn-outline-secondary):not(.guarantee-gray-button) :is(i, .bi, .bi::before, svg, svg *) {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html body.app-body .inline-split-btn i,
+html body.app-body .inline-split-btn .bi,
+html body.app-body .inline-split-btn .bi::before,
+html body.app-body .btn-primary i,
+html body.app-body .btn-primary .bi,
+html body.app-body .btn-primary .bi::before,
+html body.app-body .btn-success i,
+html body.app-body .btn-success .bi,
+html body.app-body .btn-success .bi::before,
+html body.app-body .btn-danger i,
+html body.app-body .btn-danger .bi,
+html body.app-body .btn-danger .bi::before,
+html body.app-body .crm-search-btn i,
+html body.app-body .crm-search-btn .bi,
+html body.app-body .crm-search-btn .bi::before,
+html body.app-body .material-pick-style-btn i,
+html body.app-body .material-pick-style-btn .bi,
+html body.app-body .material-pick-style-btn .bi::before,
+html body.app-body .assignment-change-assignee-btn i,
+html body.app-body .assignment-change-assignee-btn .bi,
+html body.app-body .assignment-change-assignee-btn .bi::before,
+html body.app-body .assignment-delete-employee-task-btn i,
+html body.app-body .assignment-delete-employee-task-btn .bi,
+html body.app-body .assignment-delete-employee-task-btn .bi::before {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
 /* v189: apartment inspection date UI, glass cleanup, button icon contrast */
 .apartment-inspection-date-form {
   display: grid;
@@ -57922,6 +57988,63 @@ html body.app-body .materials-writeoff-balance-card {
 html body.app-body .material-writeoff-form .materials-writeoff-balance-card {
   opacity: 1 !important;
   transform: none !important;
+}
+
+/* v585: filled action buttons keep their icons white even when older button
+   rules try to paint nested Bootstrap icons black. */
+html body.app-body .inline-split-btn,
+html body.app-body .inline-split-btn:hover,
+html body.app-body .inline-split-btn:focus,
+html body.app-body .inline-split-btn:focus-visible {
+  background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
+}
+
+html body.app-body :is(
+  .btn-primary,
+  .btn-success,
+  .btn-danger,
+  .btn-warning,
+  .dashboard-btn-primary,
+  .crm-search-btn,
+  .material-pick-style-btn,
+  .materials-filter-icon-btn,
+  .inline-split-btn,
+  .assignment-change-assignee-btn,
+  .assignment-delete-employee-task-btn,
+  .assignment-issued-export-btn,
+  .task-detail-excel-link,
+  .report-error-btn,
+  .report-error-floating
+):not(.btn-outline-secondary):not(.guarantee-gray-button) :is(i, .bi, .bi::before, svg, svg *) {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html body.app-body :is(
+  .btn-primary,
+  .btn-success,
+  .btn-danger,
+  .btn-warning,
+  .dashboard-btn-primary,
+  .crm-search-btn,
+  .material-pick-style-btn,
+  .materials-filter-icon-btn,
+  .inline-split-btn,
+  .assignment-change-assignee-btn,
+  .assignment-delete-employee-task-btn,
+  .assignment-issued-export-btn,
+  .task-detail-excel-link,
+  .report-error-btn,
+  .report-error-floating
+):not(.btn-outline-secondary):not(.guarantee-gray-button) :is(i, .bi)::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 /* v581: EOF guard for task detail related statuses and dark Excel action. */

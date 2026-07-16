@@ -1,5 +1,5 @@
-const STATIC_CACHE = 'peredacha-static-v2';
-const PAGE_CACHE = 'peredacha-pages-v2';
+const STATIC_CACHE = 'peredacha-static-v3';
+const PAGE_CACHE = 'peredacha-pages-v3';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -132,14 +132,16 @@ function isHtmlRequest(request) {
 
 async function handleStaticRequest(request) {
   const cache = await caches.open(STATIC_CACHE);
-  const cached = await cache.match(request, { ignoreSearch: true });
+  const url = new URL(request.url);
+  const isVersionedAsset = /\.(?:css|js)$/i.test(url.pathname);
+  const cached = await cache.match(request, { ignoreSearch: !isVersionedAsset });
   const fetchPromise = fetch(request)
     .then(response => {
       if (response && response.ok) cache.put(request, response.clone()).catch(() => {});
       return response;
     })
     .catch(() => cached);
-  return cached || fetchPromise;
+  return isVersionedAsset ? fetchPromise : (cached || fetchPromise);
 }
 
 async function handleHtmlRequest(request) {
