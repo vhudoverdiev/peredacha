@@ -3818,8 +3818,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const lineBlock = useExisting ? originalBlock : originalBlock.cloneNode(true);
       lineBlock.classList.add('material-line-quantity');
+      lineBlock.classList.add('material-line-quantity-simple');
       if (!useExisting) {
-        lineBlock.classList.add('material-line-quantity-simple');
         lineBlock.classList.add('d-none');
         const lineInput = lineBlock.querySelector('.js-writeoff-quantity-input');
         if (lineInput) {
@@ -3867,6 +3867,61 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     selectWrap.dataset.materialLinesReady = '1';
     bindWriteoffLine(firstLine);
+  });
+
+  document.querySelectorAll('.js-material-manual-form').forEach(form => {
+    if (form.dataset.manualAjaxBound === '1') return;
+    form.dataset.manualAjaxBound = '1';
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const button = event.submitter || form.querySelector('button[type="submit"]');
+      const previousHtml = button?.innerHTML || '';
+      if (button) button.disabled = true;
+      try {
+        const response = await fetch(form.action || window.location.href, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось добавить ручное списание');
+        const currentDate = form.querySelector('input[name="writeoff_date"]')?.value || '';
+        const taskInput = form.querySelector('textarea[name="task_name"]');
+        if (taskInput) taskInput.value = '';
+        const premiseInput = form.querySelector('input[name="premise_text"]');
+        if (premiseInput) premiseInput.value = '';
+        const lines = Array.from(form.querySelectorAll('.js-material-line'));
+        lines.slice(1).forEach(line => line.remove());
+        const firstLine = form.querySelector('.js-material-line');
+        if (firstLine) {
+          const select = firstLine.querySelector('.js-writeoff-material-select');
+          const quantity = firstLine.querySelector('.js-writeoff-quantity-input');
+          if (select) {
+            select.value = '';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          if (quantity) {
+            quantity.value = '';
+            quantity.classList.remove('is-invalid');
+          }
+          firstLine.querySelector('.js-material-line-remove')?.classList.add('d-none');
+        }
+        const dateInput = form.querySelector('input[name="writeoff_date"]');
+        if (dateInput && currentDate) dateInput.value = currentDate;
+        showCrmNotice(data.message || 'Ручное списание добавлено', 'success');
+      } catch (error) {
+        showCrmNotice(error.message || 'Не удалось добавить ручное списание', 'danger');
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = previousHtml;
+        }
+      }
+    });
   });
 });
 

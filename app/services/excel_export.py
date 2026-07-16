@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from copy import copy
 from datetime import datetime
@@ -458,10 +458,18 @@ def _quoted_strike_rich_text(text: str) -> CellRichText | None:
 
 
 def _clean_report_remark(value: object) -> str:
+    return _normalize_report_export_text(value)
+
+
+def _normalize_report_export_text(value: object) -> str:
     text = "" if value is None else str(value).strip()
     text = re.sub(r"^\s*-\s*", "", text)
-    text = re.sub(r"\s*\((?:лб|чистовики|подрядчик)\)\s*$", "", text, flags=re.IGNORECASE)
-    return text.strip()
+    text = re.sub(r"\(\s*лб\s*\)", "", text, flags=re.IGNORECASE)
+    text = text.replace('"', "")
+    text = re.sub(r"\s{2,}", " ", text).strip(" -\u2013\u2014")
+    if not text:
+        return ""
+    return text[:1].upper() + text[1:]
 
 
 def export_report_tasks_excel(tasks: Iterable[Task], filename_prefix: str) -> Path:

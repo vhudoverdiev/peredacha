@@ -205,6 +205,7 @@
                     <div class="d-flex align-items-start gap-2">
                       <span class="inline-text js-highlight-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
                       {% if current_user.role != 'viewer' %}
+                      <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
                       <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
                       {% endif %}
                     </div>
@@ -335,7 +336,7 @@
 
 {% elif active_tab == 'task' %}
 <div class="manual-writeoff-shell">
-  <form method="post" action="{{ url_for('main.material_manual_task_new') }}" class="card content-card material-form-card material-manual-card materials-animated-card js-multi-material-form">
+  <form method="post" action="{{ url_for('main.material_manual_task_new') }}" class="card content-card material-form-card material-manual-card materials-animated-card js-multi-material-form js-material-manual-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="card-body">
       <div class="material-manual-head">
@@ -347,6 +348,10 @@
         <div class="manual-task-field">
           <label class="form-label">Наименование</label>
           <textarea class="form-control" name="task_name" rows="4" required placeholder="Например: Исправлена установка уплотнительных резинок остекления"></textarea>
+        </div>
+        <div>
+          <label class="form-label">№ квартиры</label>
+          <input class="form-control" type="text" name="premise_text" placeholder="Например: кв 3">
         </div>
         <div>
           <label class="form-label">Дата</label>

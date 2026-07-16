@@ -146,6 +146,7 @@ def service_worker():
     return response
 
 
+MANUAL_WRITEOFF_COMMENT_PREFIX = "__manual_writeoff__:"
 TRUE_SETTING_VALUES = {"1", "true", "yes", "on", "да", "checked"}
 
 
@@ -6722,15 +6723,28 @@ def material_manual_task_new():
         abort(403)
 
     balance_options = _balance_options(project.id)
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+
+    def fail(message: str, status_code: int = 400):
+        if wants_json:
+            return jsonify({"ok": False, "message": message}), status_code
+        flash(message, "danger")
+        return None
+
     if request.method == "POST":
         task_name = (request.form.get("task_name") or "").strip()
+        premise_text = (request.form.get("premise_text") or "").strip()
         try:
             rows = _read_balance_writeoff_rows(project.id)
         except ValueError as exc:
-            flash(str(exc), "danger")
+            failed_response = fail(str(exc))
+            if failed_response is not None:
+                return failed_response
             rows = None
         if not task_name:
-            flash("Введите перечень работ", "warning")
+            failed_response = fail("Введите наименование")
+            if failed_response is not None:
+                return failed_response
         elif rows is None:
             pass
         else:
@@ -6738,14 +6752,17 @@ def material_manual_task_new():
                 project_id=project.id,
                 author_id=current_user.id,
                 writeoff_date=parse_date(request.form.get("writeoff_date")) or date.today(),
-                comment=task_name,
+                comment=_build_manual_writeoff_comment(task_name, premise_text),
             )
             for row in rows:
                 writeoff.items.append(MaterialWriteOffItem(name=str(row["name"]), quantity=float(row["quantity"]), unit=str(row["unit"])))
             db.session.add(writeoff)
             db.session.commit()
-            flash("Задача добавлена в расход материалов", "success")
-            return redirect(url_for("main.materials", tab="history"))
+            message = "Ручное списание добавлено"
+            if wants_json:
+                return jsonify({"ok": True, "message": message, "writeoff_id": writeoff.id})
+            flash(message, "success")
+            return redirect(url_for("main.materials", tab="task"))
 
     return render_template("material_task_form.html", project=project, balance_options=balance_options, today=date.today())
 
@@ -6934,7 +6951,40 @@ def _material_writeoff_manual_comment(writeoff: MaterialWriteOff) -> str:
         return ""
     if comment.startswith(f"{MEASUREMENT_WRITEOFF_COMMENT_PREFIX}:"):
         return ""
+    payload = _manual_writeoff_comment_payload(comment)
+    if payload:
+        return str(payload.get("text") or "").strip()
     return comment
+
+
+def _manual_writeoff_comment_payload(comment: str | None) -> dict[str, str] | None:
+    text = (comment or "").strip()
+    if not text.startswith(MANUAL_WRITEOFF_COMMENT_PREFIX):
+        return None
+    try:
+        payload = json.loads(text[len(MANUAL_WRITEOFF_COMMENT_PREFIX):])
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return {str(key): str(value or "").strip() for key, value in payload.items()}
+
+
+def _build_manual_writeoff_comment(task_name: str, premise: str) -> str:
+    task_name = str(task_name or "").strip()
+    premise = " ".join(str(premise or "").split())
+    if not premise:
+        return task_name
+    return MANUAL_WRITEOFF_COMMENT_PREFIX + json.dumps(
+        {"text": task_name, "premise": premise},
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+
+
+def _material_writeoff_manual_premise(writeoff: MaterialWriteOff) -> str:
+    payload = _manual_writeoff_comment_payload(writeoff.comment)
+    return str(payload.get("premise") or "").strip() if payload else ""
 
 
 def _material_writeoff_premise_text(writeoff: MaterialWriteOff) -> str:
@@ -6946,6 +6996,9 @@ def _material_writeoff_premise_text(writeoff: MaterialWriteOff) -> str:
                 labels.append(label)
     if labels:
         return ", ".join(labels)
+    manual_premise = _material_writeoff_manual_premise(writeoff)
+    if manual_premise:
+        return manual_premise
     return "Ручное списание" if _material_writeoff_manual_comment(writeoff) else "—"
 
 
@@ -6965,7 +7018,8 @@ def _material_writeoff_history_view(writeoff: MaterialWriteOff):
     manual_comment = _material_writeoff_manual_comment(writeoff)
     if list(writeoff.tasks or []) or not manual_comment:
         return writeoff
-    pseudo_apartment = SimpleNamespace(label=lambda: "Ручное списание")
+    premise = _material_writeoff_manual_premise(writeoff) or "Ручное списание"
+    pseudo_apartment = SimpleNamespace(label=lambda: premise)
     pseudo_task = SimpleNamespace(
         apartment=pseudo_apartment,
         description=manual_comment,
@@ -8436,7 +8490,7 @@ def work_report_export():
     )
     task_count, last_updated = base_query.with_entities(func.count(Task.id), func.max(Task.updated_at)).one()
     cache_stamp = last_updated.strftime("%Y%m%d%H%M%S") if last_updated else "empty"
-    cache_key = f"count-{task_count}_updated-{cache_stamp}"
+    cache_key = f"report-v2_count-{task_count}_updated-{cache_stamp}"
     path = build_export_path(filename_prefix, cache_key=cache_key)
     download_name = f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
     if path.exists():
@@ -9775,3 +9829,4 @@ def split_task_remark(task_id: int):
             "new_text": new_task.description or new_task.source_cell_value or "",
         }
     )
+

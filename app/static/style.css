@@ -57071,56 +57071,21 @@ html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .r
 }
 
 html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category::after {
-  content: attr(data-category-label);
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + .55rem);
-  z-index: 50;
-  width: max-content;
-  max-width: 14rem;
-  padding: .42rem .68rem;
-  border: 1px solid rgba(255, 255, 255, .14);
-  border-radius: .72rem;
-  background: rgba(17, 24, 39, .96);
-  color: #ffffff;
-  font-size: .78rem;
-  font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: .01em;
-  text-align: center;
-  white-space: normal;
-  box-shadow: 0 14px 30px rgba(17, 24, 39, .22);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-50%) translateY(.18rem) scale(.98);
-  transition: opacity .16s ease, transform .16s ease;
+  content: none !important;
+  display: none !important;
 }
 
 html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + .27rem);
-  z-index: 51;
-  width: .58rem;
-  height: .58rem;
-  background: rgba(17, 24, 39, .96);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-50%) translateY(.18rem) rotate(45deg);
-  transition: opacity .16s ease, transform .16s ease;
+  content: none !important;
+  display: none !important;
 }
 
 html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category:hover::after,
-html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category:focus-visible::after {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0) scale(1);
-}
-
+html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category:focus-visible::after,
 html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category:hover::before,
 html.desktop-like-pointer body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category:focus-visible::before {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0) rotate(45deg);
+  opacity: 0 !important;
+  transform: none !important;
 }
 
 /* Material request detail: keep the edit button icon white over the green button. */
