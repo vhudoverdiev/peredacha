@@ -3563,6 +3563,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!form || event.target !== form) return;
     if (form.dataset.assignmentNativeSubmit === '1') return;
     event.preventDefault();
+    event.stopImmediatePropagation();
     const button = event.submitter || form.querySelector('.assignment-delete-employee-task-btn');
     if (button?.dataset.pending === '1') return;
 
@@ -3769,10 +3770,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const originalSelect = form.querySelector('.js-writeoff-material-select');
     let originalBlock = form.querySelector('.js-writeoff-quantity-block');
     const fallbackInput = form.querySelector('.js-writeoff-quantity-input, input[name="quantity"]');
+    let fallbackQuantityWrap = null;
+    let builtQuantityBlockFromFallback = false;
     if (!originalSelect) return;
+    const originalSelectShell = originalSelect.closest('.js-developer-custom-select');
     if (!originalBlock && fallbackInput) {
       const sourceWrap = fallbackInput.parentElement;
       if (sourceWrap) {
+        fallbackQuantityWrap = sourceWrap;
+        builtQuantityBlockFromFallback = true;
         originalBlock = document.createElement('div');
         originalBlock.className = 'js-writeoff-quantity-block';
         const label = sourceWrap.querySelector('.form-label');
@@ -3791,9 +3797,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     if (!originalBlock) return;
-    const selectWrap = originalSelect.parentElement;
-    const quantityWrap = form.querySelector('.js-writeoff-quantity-block')?.parentElement || fallbackInput?.parentElement || originalBlock.parentElement;
-    if (!selectWrap || !quantityWrap || selectWrap.dataset.materialLinesReady === '1') return;
+    const selectWrap = originalSelectShell?.parentElement || originalSelect.parentElement;
+    if (!selectWrap || selectWrap.dataset.materialLinesReady === '1') return;
 
     const createLine = () => {
       const line = document.createElement('div');
@@ -3802,6 +3807,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const lineSelect = originalSelect.cloneNode(true);
       lineSelect.value = '';
       lineSelect.required = true;
+      lineSelect.classList.remove('developer-native-select', 'mobile-native-select');
+      delete lineSelect.dataset.customSelectReady;
+      delete lineSelect.dataset.nativeSelect;
+      lineSelect.removeAttribute('aria-hidden');
+      lineSelect.removeAttribute('tabindex');
 
       const lineBlock = originalBlock.cloneNode(true);
       lineBlock.classList.add('material-line-quantity');
@@ -3844,11 +3854,18 @@ document.addEventListener('DOMContentLoaded', () => {
       label.textContent = 'Материалы';
     }
 
-    originalSelect.remove();
-    originalBlock.remove();
+    selectWrap.classList.add('material-lines-field');
+    if (originalSelectShell) {
+      originalSelectShell.remove();
+    } else {
+      originalSelect.remove();
+    }
+    if (originalBlock.isConnected) {
+      originalBlock.remove();
+    }
     selectWrap.append(container, addBtn);
-    if (quantityWrap !== selectWrap) {
-      quantityWrap.remove();
+    if (builtQuantityBlockFromFallback && fallbackQuantityWrap && fallbackQuantityWrap !== selectWrap) {
+      fallbackQuantityWrap.remove();
     }
     selectWrap.dataset.materialLinesReady = '1';
     bindWriteoffLine(firstLine);
@@ -4535,6 +4552,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateGlassBulkAction();
 
   document.querySelectorAll('.js-writeoff-material-select').forEach(select => {
+    if (select.closest('.js-material-line')) return;
     const form = select.closest('form');
     const block = form?.querySelector('.js-writeoff-quantity-block');
     const input = block?.querySelector('.js-writeoff-quantity-input');
@@ -4876,6 +4894,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('submit', event => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
+    if (form.classList.contains('assignment-delete-employee-form')) return;
     const submitter = event.submitter;
     const confirmText = normalizeConfirmText(submitter?.dataset?.confirmResolved || submitter?.dataset?.confirm || form.dataset.confirm);
     if (!confirmText || form.dataset.confirmed === '1') return;
@@ -6853,4 +6872,26 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const isDesktopWeb = window.matchMedia?.('(hover: hover) and (pointer: fine)').matches
+    && !window.matchMedia?.('(display-mode: standalone)').matches
+    && !window.navigator.standalone;
+  if (!isDesktopWeb) return;
+
+  const removeDesktopHoverTitles = root => {
+    root.querySelectorAll?.('.remarks-tab-link-category[title], .materials-filter-icon-btn[title]').forEach(el => {
+      el.removeAttribute('title');
+    });
+  };
+
+  removeDesktopHoverTitles(document);
+  new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType === Node.ELEMENT_NODE) removeDesktopHoverTitles(node);
+      });
+    });
+  }).observe(document.body, { childList: true, subtree: true });
 });

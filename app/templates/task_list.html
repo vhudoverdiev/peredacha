@@ -73,7 +73,7 @@
   {% for category in categories if category.name != 'Все' %}
     {% set category_icon = 'bi-brush' if category.name == 'Маляры' else ('bi-tools' if category.name == 'Разнорабочие' else ('bi-window' if category.name == 'Витражники' else ('bi-file-earmark-text' if category.name == 'Доп.Соглашение' else 'bi-tag'))) %}
     {% set category_label = 'Доп соглашение' if category.name == 'Доп.Соглашение' else category.name %}
-    <li class="nav-item"><a class="nav-link remarks-tab-link remarks-tab-link-category {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id, **category_filter_args) }}" title="{{ category_label }}" data-category-label="{{ category_label }}" aria-label="{{ category_label }}"><i class="bi {{ category_icon }} remarks-tab-icon"></i><span class="remarks-tab-text">{{ category_label }}</span></a></li>
+    <li class="nav-item"><a class="nav-link remarks-tab-link remarks-tab-link-category {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id, **category_filter_args) }}" data-category-label="{{ category_label }}" aria-label="{{ category_label }}"><i class="bi {{ category_icon }} remarks-tab-icon"></i><span class="remarks-tab-text">{{ category_label }}</span></a></li>
   {% endfor %}
   </ul>
 </div>

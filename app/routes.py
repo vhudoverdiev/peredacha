@@ -1562,10 +1562,23 @@ def _material_task_options(project_id: int, params=None) -> list[Task]:
     normalized = {key: value for key, value in normalized.items() if value not in (None, "")}
     # В списании материалов сортировку/фильтр по статусу убрали: поиск должен работать
     # как в замечаниях и не прятать строки из-за старого выбранного статуса.
+    dop_only = str(normalized.get("dop_only") or "").strip() == "1"
     normalized.pop("status", None)
     normalized.setdefault("sort", "apartment")
-    query = build_task_query(normalized, project_id=project_id)
-    dop_only = str(normalized.get("dop_only") or "").strip() == "1"
+
+    category_id = None
+    if dop_only:
+        dop_category = next(
+            (
+                category
+                for category in WorkCategory.query.filter_by(is_active=True).all()
+                if re.sub(r"[\s.]+", "", category.name or "").casefold() == "допсоглашение"
+            ),
+            None,
+        )
+        category_id = dop_category.id if dop_category else None
+
+    query = build_task_query(normalized, category_id=category_id, project_id=project_id)
     acceptance_status = normalized.get("acceptance_status")
     if acceptance_status == "accepted":
         query = query.filter(Apartment.is_app_mode.is_(True))
@@ -1573,8 +1586,15 @@ def _material_task_options(project_id: int, params=None) -> list[Task]:
         query = query.filter(Apartment.is_app_mode.is_(False))
     if dop_only:
         query = query.filter(Task.work_point.has(WorkPoint.point_number.in_(DOP_AGREEMENT_POINT_NUMBERS)))
-        query = query.filter(Task.status == STATUS_DONE)
     query = query.filter(~Task.material_writeoffs.any())
+    if dop_only:
+        query = query.order_by(None).order_by(
+            Task.is_done.desc(),
+            cast(Apartment.apartment_number, Integer).asc(),
+            Apartment.apartment_number.asc(),
+            WorkPoint.point_number.asc(),
+            Task.id.asc(),
+        )
     return (
         query.options(selectinload(Task.apartment), selectinload(Task.work_point))
         .limit(500)
@@ -1709,8 +1729,11 @@ def object_open(project_id: int):
     project = _abort_if_project_forbidden(db.session.get(Project, project_id) or abort(404))
     session["current_project_id"] = project.id
     if current_user.role == ROLE_VERIFIER:
-        return redirect(url_for("main.work_report"))
-    return redirect(url_for("main.dashboard"))
+        response = redirect(url_for("main.work_report"))
+    else:
+        response = redirect(url_for("main.dashboard"))
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
 
 
 
@@ -8225,6 +8248,44 @@ def apartment_detail(apartment_id: int):
     )
 
 
+@bp.route("/apartments/<int:apartment_id>/remarks/export")
+@login_required
+def apartment_remarks_export(apartment_id: int):
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    apartment = db.session.get(Apartment, apartment_id) or abort(404)
+    if apartment.project_id != project.id:
+        abort(404)
+    group_key = _apartment_group_key(apartment)
+    apartment_ids = [
+        item.id
+        for item in Apartment.query.filter(Apartment.project_id == project.id).all()
+        if _is_visible_apartment_row(item) and _apartment_group_key(item) == group_key
+    ]
+    if not apartment_ids:
+        apartment_ids = [apartment.id]
+    tasks = (
+        Task.query.join(Apartment).join(WorkPoint)
+        .options(selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.responsible))
+        .filter(
+            Task.project_id == project.id,
+            Task.apartment_id.in_(apartment_ids),
+            Task.is_archived.is_(False),
+        )
+        .order_by(
+            cast(WorkPoint.point_number, Integer).asc(),
+            WorkPoint.point_number.asc(),
+            Task.updated_at.desc(),
+        )
+        .all()
+    )
+    premise_label = apartment.full_label() if apartment.premise_type == "commercial" else apartment.label()
+    filename_prefix = f"{project.name}_{premise_label}_помещение_замечания"
+    path = export_remark_tasks_excel(tasks, filename_prefix, title=f"Карточка помещения: {premise_label}")
+    return send_file(path, as_attachment=True, download_name=Path(path).name)
+
+
 @bp.route("/report")
 @login_required
 def work_report():
@@ -8470,17 +8531,16 @@ def task_detail(task_id: int):
     visible_changes = [change for change in task.changes if not _is_legacy_problem_comment_change(change, task)]
     users_cache: dict[int, str] = {}
     history_entries = [_build_change_history_entry(change, task=task, users_cache=users_cache) for change in visible_changes]
-    other_open_tasks = (
+    other_tasks = (
         Task.query.join(WorkPoint)
         .options(selectinload(Task.work_point), selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items))
         .filter(
             Task.project_id == project.id,
             Task.apartment_id == task.apartment_id,
             Task.id != task.id,
-            Task.is_done.is_(False),
             Task.is_archived.is_(False),
         )
-        .order_by(WorkPoint.point_number.asc(), Task.updated_at.desc())
+        .order_by(Task.is_done.asc(), WorkPoint.point_number.asc(), Task.updated_at.desc())
         .limit(30)
         .all()
     )
@@ -8493,7 +8553,7 @@ def task_detail(task_id: int):
         comment_form=comment_form,
         visible_changes=visible_changes,
         history_entries=history_entries,
-        other_open_tasks=other_open_tasks,
+        other_open_tasks=other_tasks,
         back_url=back_url,
         can_delete_task=current_user.role != "viewer",
     )

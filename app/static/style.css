@@ -612,6 +612,163 @@ html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-item-c
   text-decoration-line: none !important;
 }
 
+/* Materials writeoff: keep the additional-agreement filter as a polished button. */
+html body.app-body .materials-filter-form .filter-actions {
+  align-items: end !important;
+}
+
+html body.app-body .materials-filter-form .materials-filter-toggle-btn {
+  display: none !important;
+}
+
+html body.app-body .materials-filter-form .materials-filter-icon-btn {
+  width: auto !important;
+  min-width: 154px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  padding: 0 1rem !important;
+  gap: .55rem !important;
+  border-radius: 1rem !important;
+  border: 1px solid rgba(111, 158, 47, .28) !important;
+  background:
+    radial-gradient(circle at top right, rgba(141, 214, 44, .12), transparent 42%),
+    linear-gradient(180deg, #ffffff 0%, #f7fbf2 100%) !important;
+  color: #1f2a1d !important;
+  -webkit-text-fill-color: #1f2a1d !important;
+  box-shadow: 0 10px 22px rgba(31, 45, 61, .06) !important;
+  font-size: .92rem !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+}
+
+html body.app-body .materials-filter-form .materials-filter-icon-btn::after {
+  content: "Доп. соглашение";
+  white-space: nowrap;
+}
+
+html body.app-body .materials-filter-form .materials-filter-icon-btn i,
+html body.app-body .materials-filter-form .materials-filter-icon-btn i::before {
+  color: #5c9f17 !important;
+  -webkit-text-fill-color: #5c9f17 !important;
+  font-size: 1rem !important;
+}
+
+html body.app-body .materials-filter-form .materials-filter-icon-btn:hover,
+html body.app-body .materials-filter-form .materials-filter-icon-btn:focus {
+  transform: translateY(-1px) !important;
+  border-color: rgba(112, 189, 29, .52) !important;
+  box-shadow: 0 14px 28px rgba(111, 158, 47, .12) !important;
+}
+
+html body.app-body .materials-filter-form .materials-filter-icon-btn.is-active {
+  border-color: #70bd1d !important;
+  background: linear-gradient(180deg, #84cf27 0%, #70bd1d 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 14px 28px rgba(112, 189, 29, .22) !important;
+}
+
+html body.app-body .materials-filter-form .materials-filter-icon-btn.is-active i,
+html body.app-body .materials-filter-form .materials-filter-icon-btn.is-active i::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* v580: final task detail related remarks/status and dark Excel action. */
+html body.app-body .task-detail-related-card .related-task-item {
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  gap: .35rem .55rem !important;
+  align-items: start !important;
+}
+
+html body.app-body .task-detail-related-card .related-task-point {
+  grid-column: 1 / 2 !important;
+  margin-bottom: 0 !important;
+}
+
+html body.app-body .task-detail-related-card .related-task-status {
+  grid-column: 2 / 3 !important;
+  justify-self: end !important;
+  white-space: nowrap !important;
+  font-size: .72rem !important;
+  font-weight: 850 !important;
+}
+
+html body.app-body .task-detail-related-card .related-task-text {
+  grid-column: 1 / -1 !important;
+}
+
+html body.app-body .task-detail-related-card .related-task-text.is-done {
+  text-decoration: line-through !important;
+  color: #8a949f !important;
+}
+
+html body.app-body .task-detail-related-actions .task-detail-excel-link,
+html body.app-body .task-detail-related-actions .task-detail-excel-link:hover,
+html body.app-body .task-detail-related-actions .task-detail-excel-link:focus {
+  border-color: #5f9824 !important;
+  background: linear-gradient(180deg, #70bd1d 0%, #5f9824 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(95, 152, 36, .24) !important;
+}
+
+html body.app-body .task-detail-related-actions .task-detail-excel-link *,
+html body.app-body .task-detail-related-actions .task-detail-excel-link i,
+html body.app-body .task-detail-related-actions .task-detail-excel-link i::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* v579: task detail related remarks show every status and dark Excel action. */
+html body.app-body .task-detail-related-card .related-task-item {
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  gap: .35rem .55rem !important;
+  align-items: start !important;
+}
+
+html body.app-body .task-detail-related-card .related-task-point {
+  grid-column: 1 / 2 !important;
+  margin-bottom: 0 !important;
+}
+
+html body.app-body .task-detail-related-card .related-task-status {
+  grid-column: 2 / 3 !important;
+  justify-self: end !important;
+  white-space: nowrap !important;
+  font-size: .72rem !important;
+  font-weight: 850 !important;
+}
+
+html body.app-body .task-detail-related-card .related-task-text {
+  grid-column: 1 / -1 !important;
+}
+
+html body.app-body .task-detail-related-card .related-task-text.is-done {
+  text-decoration: line-through !important;
+  color: #8a949f !important;
+}
+
+html body.app-body .task-detail-related-actions .task-detail-excel-link,
+html body.app-body .task-detail-related-actions .task-detail-excel-link:hover,
+html body.app-body .task-detail-related-actions .task-detail-excel-link:focus {
+  border-color: #5f9824 !important;
+  background: linear-gradient(180deg, #70bd1d 0%, #5f9824 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(95, 152, 36, .24) !important;
+}
+
+html body.app-body .task-detail-related-actions .task-detail-excel-link *,
+html body.app-body .task-detail-related-actions .task-detail-excel-link i,
+html body.app-body .task-detail-related-actions .task-detail-excel-link i::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
 /* v570: guarantee action buttons stay gray, but the "Г" / icon must be black. */
 html body.app-body form.status-action-form[data-status-action="guarantee"] .btn.guarantee-gray-button,
 html body.app-body form[action*="/status/guarantee"] .btn.guarantee-gray-button,
@@ -4162,9 +4319,18 @@ code {
 .task-detail-related-head {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: .75rem;
   margin-bottom: .85rem;
+  flex-wrap: wrap;
+}
+
+.task-detail-related-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .6rem;
+  flex-wrap: wrap;
 }
 
 .task-detail-apartment-link {
@@ -4191,6 +4357,12 @@ code {
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.task-detail-page) .task-detail-related-head {
+    justify-content: stretch;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.task-detail-page) .task-detail-related-actions {
+    width: 100%;
     justify-content: stretch;
   }
 
@@ -8672,6 +8844,50 @@ body.app-body .assignment-issue-panel-restored {
 @media (min-width: 768px) {
   .remarks-filter-form {
     flex-wrap: nowrap;
+  }
+
+  .contractor-filter-form {
+    display: grid !important;
+    grid-template-columns:
+      minmax(12rem, 1.35fr)
+      minmax(11rem, 1fr)
+      minmax(8.5rem, .72fr)
+      minmax(10rem, .86fr)
+      minmax(15rem, 1.15fr)
+      auto !important;
+    gap: .75rem !important;
+    align-items: end !important;
+  }
+
+  .contractor-filter-form > [class*="col-"] {
+    width: auto !important;
+    max-width: none !important;
+    flex: initial !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .contractor-filter-form .remarks-filter-finishing-col {
+    min-width: 0 !important;
+  }
+
+  .contractor-filter-form .remarks-filter-checks {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: .45rem .7rem !important;
+    min-height: 42px !important;
+  }
+
+  .contractor-filter-form .remarks-filter-check {
+    margin: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .contractor-filter-form .contractor-filter-actions {
+    justify-content: flex-end !important;
+    align-self: end !important;
+    white-space: nowrap !important;
   }
 
   .task-table .task-status-cell {
@@ -57503,4 +57719,219 @@ html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-item-r
 html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-item-card * {
   text-decoration: none !important;
   text-decoration-line: none !important;
+}
+
+/* v574: final EOF guard for desktop Contractors filter layout. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .contractor-filter-form,
+  html body.app-body .contractor-filter-form {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: .75rem !important;
+    align-items: end !important;
+    margin: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > [class*="col-"],
+  html body.app-body .contractor-filter-form > [class*="col-"] {
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: none !important;
+    padding: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form :is(.form-control, .form-select, .custom-select-trigger),
+  html body.app-body .contractor-filter-form :is(.form-control, .form-select, .custom-select-trigger) {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .remarks-filter-finishing-col,
+  html body.app-body .contractor-filter-form > .remarks-filter-finishing-col {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .remarks-filter-finishing-col .remarks-filter-checks,
+  html body.app-body .contractor-filter-form > .remarks-filter-finishing-col .remarks-filter-checks {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: .45rem .7rem !important;
+    align-items: center !important;
+    overflow: visible !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .remarks-filter-finishing-col .remarks-filter-check,
+  html body.app-body .contractor-filter-form > .remarks-filter-finishing-col .remarks-filter-check {
+    white-space: normal !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .contractor-filter-actions,
+  html body.app-body .contractor-filter-form > .contractor-filter-actions {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    gap: .55rem !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  html.desktop-like-pointer body.app-body .contractor-filter-form,
+  html body.app-body .contractor-filter-form {
+    grid-template-columns: minmax(16rem, 1.35fr) minmax(13rem, 1fr) minmax(13rem, 1fr) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .remarks-filter-finishing-col,
+  html body.app-body .contractor-filter-form > .remarks-filter-finishing-col {
+    grid-column: 1 / 3 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .contractor-filter-actions,
+  html body.app-body .contractor-filter-form > .contractor-filter-actions {
+    grid-column: 3 / 4 !important;
+    justify-content: flex-end !important;
+  }
+}
+
+@media (min-width: 1680px) {
+  html.desktop-like-pointer body.app-body .contractor-filter-form,
+  html body.app-body .contractor-filter-form {
+    grid-template-columns:
+      minmax(15rem, 1.45fr)
+      minmax(12rem, 1.05fr)
+      minmax(8rem, .75fr)
+      minmax(9rem, .85fr)
+      minmax(16rem, 1.2fr)
+      max-content !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .remarks-filter-finishing-col,
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .contractor-filter-actions,
+  html body.app-body .contractor-filter-form > .remarks-filter-finishing-col,
+  html body.app-body .contractor-filter-form > .contractor-filter-actions {
+    grid-column: auto !important;
+  }
+}
+
+/* v575: stable multi-material writeoff rows on materials pages. */
+html body.app-body .js-multi-material-form .material-lines-field {
+  min-width: 0 !important;
+}
+
+html body.app-body .js-multi-material-form .material-lines {
+  display: grid !important;
+  gap: .75rem !important;
+  width: 100% !important;
+}
+
+html body.app-body .js-multi-material-form .material-line {
+  display: grid !important;
+  grid-template-columns: minmax(13rem, 1.1fr) minmax(11rem, .9fr) 44px !important;
+  gap: .65rem !important;
+  align-items: end !important;
+  width: 100% !important;
+}
+
+html body.app-body .js-multi-material-form .material-line-quantity {
+  display: block !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+html body.app-body .js-multi-material-form .material-line-quantity.d-none {
+  display: none !important;
+}
+
+html body.app-body .js-multi-material-form .material-line-remove {
+  width: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  align-self: end !important;
+}
+
+html body.app-body .material-manual-card .manual-writeoff-grid .material-lines-field {
+  grid-column: 1 / -1 !important;
+}
+
+@media (max-width: 1199.98px) {
+  html body.app-body .js-multi-material-form .material-line {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body.app-body .js-multi-material-form .material-line-remove {
+    width: 100% !important;
+  }
+}
+
+/* v582: additional-agreement filter matches the Find button exactly. */
+html body.app-body .materials-filter-form .materials-filter-icon-btn,
+html body.app-body .materials-filter-form .materials-filter-icon-btn:hover,
+html body.app-body .materials-filter-form .materials-filter-icon-btn:focus,
+html body.app-body .materials-filter-form .materials-filter-icon-btn.is-active {
+  border-color: var(--peredacha-action-green-hover) !important;
+  background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
+}
+
+html body.app-body .materials-filter-form .materials-filter-icon-btn i,
+html body.app-body .materials-filter-form .materials-filter-icon-btn i::before,
+html body.app-body .materials-filter-form .materials-filter-icon-btn.is-active i,
+html body.app-body .materials-filter-form .materials-filter-icon-btn.is-active i::before,
+html body.app-body .materials-filter-form .materials-filter-icon-btn svg,
+html body.app-body .materials-filter-form .materials-filter-icon-btn svg * {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* v581: EOF guard for task detail related statuses and dark Excel action. */
+html body.app-body .task-detail-related-card .related-task-item {
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  gap: .35rem .55rem !important;
+  align-items: start !important;
+}
+
+html body.app-body .task-detail-related-card .related-task-point {
+  grid-column: 1 / 2 !important;
+  margin-bottom: 0 !important;
+}
+
+html body.app-body .task-detail-related-card .related-task-status {
+  grid-column: 2 / 3 !important;
+  justify-self: end !important;
+  white-space: nowrap !important;
+  font-size: .72rem !important;
+  font-weight: 850 !important;
+}
+
+html body.app-body .task-detail-related-card .related-task-text {
+  grid-column: 1 / -1 !important;
+}
+
+html body.app-body .task-detail-related-card .related-task-text.is-done {
+  text-decoration: line-through !important;
+  color: #8a949f !important;
+}
+
+html body.app-body .task-detail-related-actions .task-detail-excel-link,
+html body.app-body .task-detail-related-actions .task-detail-excel-link:hover,
+html body.app-body .task-detail-related-actions .task-detail-excel-link:focus {
+  border-color: #5f9824 !important;
+  background: linear-gradient(180deg, #70bd1d 0%, #5f9824 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(95, 152, 36, .24) !important;
+}
+
+html body.app-body .task-detail-related-actions .task-detail-excel-link *,
+html body.app-body .task-detail-related-actions .task-detail-excel-link i,
+html body.app-body .task-detail-related-actions .task-detail-excel-link i::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }

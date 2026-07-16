@@ -1,5 +1,5 @@
-const STATIC_CACHE = 'peredacha-static-v1';
-const PAGE_CACHE = 'peredacha-pages-v1';
+const STATIC_CACHE = 'peredacha-static-v2';
+const PAGE_CACHE = 'peredacha-pages-v2';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -110,6 +110,10 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  if (/^\/objects\/\d+\/open\/?$/.test(url.pathname)) {
+    return;
+  }
 
   if (request.mode === 'navigate' || isHtmlRequest(request)) {
     event.respondWith(handleHtmlRequest(request));

@@ -115,21 +115,27 @@
 
     <div class="card content-card task-detail-related-card">
       <div class="card-body">
-        <h2 class="section-title">Еще задачи по помещению</h2>
-        {% if task.apartment %}
         <div class="task-detail-related-head">
-          <a class="btn btn-sm btn-outline-secondary task-detail-apartment-link" href="{{ url_for('main.apartment_detail', apartment_id=task.apartment.id, back=request.full_path) }}">
-            <i class="bi bi-building me-1" aria-hidden="true"></i>Карточка квартиры
-          </a>
+          <h2 class="section-title mb-0">Еще задачи по помещению</h2>
+          {% if task.apartment %}
+          <div class="task-detail-related-actions">
+            <a class="btn btn-sm btn-outline-success task-detail-apartment-link task-detail-excel-link" href="{{ url_for('main.apartment_remarks_export', apartment_id=task.apartment.id) }}">
+              <i class="bi bi-file-earmark-excel me-1" aria-hidden="true"></i>Скачать Excel
+            </a>
+            <a class="btn btn-sm btn-outline-secondary task-detail-apartment-link" href="{{ url_for('main.apartment_detail', apartment_id=task.apartment.id, back=request.full_path) }}">
+              <i class="bi bi-building me-1" aria-hidden="true"></i>Карточка помещения
+            </a>
+          </div>
+          {% endif %}
         </div>
-        {% endif %}
         {% if other_open_tasks %}
         <div class="related-task-list">
           {% for other in other_open_tasks %}
           {% set other_point_name = other.work_point.display_name | replace(other.work_point.point_number ~ '. ', '') | replace(other.work_point.point_number ~ '.', '') %}
           <div class="related-task-item task-row-link" data-href="{{ url_for('main.task_detail', task_id=other.id, back=request.full_path) }}">
             <span class="related-task-point">{{ other_point_name }}</span>
-            <span class="related-task-text">{{ remark_text(other.description or other.source_cell_value) }}</span>
+            <span class="related-task-status {{ status_classes.get(other.status, 'status-pill-muted') }}">{{ status_labels.get(other.status, other.status_label()) }}</span>
+            <span class="related-task-text {% if other.is_done %}is-done{% endif %}">{{ remark_text(other.description or other.source_cell_value) }}</span>
           </div>
           {% endfor %}
         </div>
