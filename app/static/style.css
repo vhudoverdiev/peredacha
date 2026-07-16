@@ -622,12 +622,13 @@ html body.app-body .materials-filter-form .materials-filter-toggle-btn {
 }
 
 html body.app-body .materials-filter-form .materials-filter-icon-btn {
-  width: auto !important;
-  min-width: 154px !important;
+  width: 48px !important;
+  min-width: 48px !important;
   height: 48px !important;
   min-height: 48px !important;
-  padding: 0 1rem !important;
-  gap: .55rem !important;
+  padding: 0 !important;
+  justify-content: center !important;
+  gap: 0 !important;
   border-radius: 1rem !important;
   border: 1px solid rgba(111, 158, 47, .28) !important;
   background:
@@ -643,8 +644,8 @@ html body.app-body .materials-filter-form .materials-filter-icon-btn {
 }
 
 html body.app-body .materials-filter-form .materials-filter-icon-btn::after {
-  content: "Доп. соглашение";
-  white-space: nowrap;
+  content: none !important;
+  display: none !important;
 }
 
 html body.app-body .materials-filter-form .materials-filter-icon-btn i,
@@ -57887,6 +57888,40 @@ html body.app-body .materials-filter-form .materials-filter-icon-btn svg * {
   fill: #ffffff !important;
   stroke: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
+}
+
+/* v583: keep the additional-agreement action icon-only and remove delayed
+   entrance from the writeoff balance card. */
+html body.app-body .materials-filter-form .materials-filter-icon-btn {
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+  gap: 0 !important;
+}
+
+html body.app-body .materials-filter-form .materials-filter-icon-btn::after {
+  content: none !important;
+  display: none !important;
+}
+
+html body.app-body .materials-filter-form .materials-filter-icon-btn i,
+html body.app-body .materials-filter-form .materials-filter-icon-btn i::before {
+  margin: 0 !important;
+  font-size: 1.08rem !important;
+}
+
+html body.app-body .materials-writeoff-balance-card {
+  animation: none !important;
+  animation-delay: 0ms !important;
+  transition-delay: 0ms !important;
+}
+
+html body.app-body .material-writeoff-form .materials-writeoff-balance-card {
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 /* v581: EOF guard for task detail related statuses and dark Excel action. */
