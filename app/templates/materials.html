@@ -162,6 +162,11 @@
         <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите цифру или текст">
       </div>
       <div class="col-12 col-lg-4 filter-actions">
+        {% if args.get('dop_only') == '1' %}
+        <a class="materials-filter-icon-btn is-active" href="{{ url_for('main.materials', tab='writeoff', q=args.get('q', '')) }}" title="Показать все замечания" aria-label="Показать все замечания"><i class="bi bi-file-earmark-text"></i></a>
+        {% else %}
+        <a class="materials-filter-icon-btn" href="{{ url_for('main.materials', tab='writeoff', q=args.get('q', ''), dop_only=1) }}" title="Доп. соглашение" aria-label="Доп. соглашение"><i class="bi bi-file-earmark-text"></i></a>
+        {% endif %}
         <label class="materials-filter-toggle-btn">
           <input class="materials-filter-toggle-input" type="checkbox" name="dop_only" value="1" {% if args.get('dop_only') == '1' %}checked{% endif %}>
           <span>Доп. соглашение</span>
@@ -173,7 +178,7 @@
   </div>
 </div>
 
-<form method="post" action="{{ url_for('main.material_writeoff_new') }}" class="material-writeoff-form js-material-writeoff-form" data-selection-key="material-writeoff-{{ project.id }}" data-no-persist-selection="1">
+<form method="post" action="{{ url_for('main.material_writeoff_new') }}" class="material-writeoff-form js-material-writeoff-form js-multi-material-form" data-selection-key="material-writeoff-{{ project.id }}" data-no-persist-selection="1">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="js-material-selected-hidden"></div>
   <div class="row g-3">
@@ -334,7 +339,7 @@
 
 {% elif active_tab == 'task' %}
 <div class="manual-writeoff-shell">
-  <form method="post" action="{{ url_for('main.material_manual_task_new') }}" class="card content-card material-form-card material-manual-card materials-animated-card">
+  <form method="post" action="{{ url_for('main.material_manual_task_new') }}" class="card content-card material-form-card material-manual-card materials-animated-card js-multi-material-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="card-body">
       <div class="material-manual-head">
@@ -354,9 +359,9 @@
         <div>
           <label class="form-label">Материал</label>
           {% if balance_options %}
-          <select class="form-select" name="material_key" required>
+          <select class="form-select js-writeoff-material-select" name="material_key" required>
             <option value="">Выберите материал</option>
-            {% for row in balance_options %}<option value="{{ row.key }}">{{ row.label }}</option>{% endfor %}
+            {% for row in balance_options %}<option value="{{ row.key }}" data-unit="{{ row.unit }}" data-balance="{{ fmt_quantity(row.balance) }}">{{ row.label }}</option>{% endfor %}
           </select>
           {% else %}
           <div class="empty-info-box">Нет материалов на балансе. Сначала добавьте материал на баланс.</div>
@@ -364,7 +369,7 @@
         </div>
         <div>
           <label class="form-label">Количество</label>
-          <input class="form-control" name="quantity" inputmode="decimal" required placeholder="" {% if not balance_options %}disabled{% endif %}>
+          <input class="form-control js-writeoff-quantity-input" name="quantity" inputmode="decimal" required placeholder="" {% if not balance_options %}disabled{% endif %}>
         </div>
       </div>
       <div class="material-form-footer mt-4">

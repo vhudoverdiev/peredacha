@@ -1264,6 +1264,62 @@ def _read_balance_writeoff_row(project_id: int) -> dict[str, object]:
     return {"name": name, "unit": unit, "quantity": quantity, "balance": balance}
 
 
+def _read_balance_writeoff_rows(project_id: int) -> list[dict[str, object]]:
+    material_keys = request.form.getlist("material_key")
+    quantities = request.form.getlist("quantity")
+    balance_rows = _material_balance_rows(project_id)
+    balance_by_identity = {
+        _normalize_material_identity(str(item.get("name") or ""), str(item.get("unit") or "")): item
+        for item in balance_rows
+        if float(item.get("balance") or 0) > 0
+    }
+
+    requested_rows: list[tuple[int, str, str, float]] = []
+    max_len = max(len(material_keys), len(quantities))
+    for index in range(max_len):
+        material_key = material_keys[index].strip() if index < len(material_keys) and isinstance(material_keys[index], str) else ""
+        quantity_raw = quantities[index].strip() if index < len(quantities) and isinstance(quantities[index], str) else ""
+        if not material_key and not quantity_raw:
+            continue
+        parsed = _split_material_key(material_key)
+        if parsed is None:
+            raise ValueError(f"Выберите материал в строке {index + 1}")
+        quantity = _parse_quantity(quantity_raw)
+        if quantity is None:
+            raise ValueError(f"Введите корректное количество в строке {index + 1}")
+        name, unit = parsed
+        requested_rows.append((index, name, unit, float(quantity)))
+
+    if not requested_rows:
+        raise ValueError("Выберите хотя бы один материал с баланса")
+
+    consolidated: dict[tuple[str, str], dict[str, object]] = {}
+    for index, name, unit, quantity in requested_rows:
+        identity = _normalize_material_identity(name, unit)
+        row = balance_by_identity.get(identity)
+        if row is None:
+            raise ValueError(f"Материал из строки {index + 1} уже отсутствует на балансе")
+        existing = consolidated.get(identity)
+        if existing is None:
+            consolidated[identity] = {
+                "name": str(row.get("name") or "").strip(),
+                "unit": str(row.get("unit") or "").strip(),
+                "quantity": float(quantity),
+                "balance": float(row.get("balance") or 0),
+            }
+        else:
+            existing["quantity"] = float(existing["quantity"]) + float(quantity)
+
+    result = list(consolidated.values())
+    for row in result:
+        if float(row["quantity"]) > float(row["balance"]) + 0.000001:
+            raise ValueError(
+                f"Нельзя списать больше остатка для {row['name']}. "
+                f"Доступно: {fmt_quantity(float(row['balance']))} {row['unit']}"
+            )
+    return result
+
+
 def _task_material_weight(task: Task) -> float:
     text = f"{task.description or ''} {task.source_cell_value or ''}".strip()
     length = max(len(text), 20)
@@ -1303,7 +1359,7 @@ def _material_balance_rows(project_id: int) -> list[dict[str, object]]:
     balances: dict[tuple[str, str], dict[str, object]] = {}
 
     def row_for(name: str, unit: str) -> dict[str, object]:
-        key = (" ".join(name.strip().lower().split()), " ".join(unit.strip().lower().split()))
+        key = _normalize_material_identity(name, unit)
         if key not in balances:
             balances[key] = {"name": name.strip(), "unit": unit.strip(), "key": _material_key(name.strip(), unit.strip()), "received": 0.0, "spent": 0.0, "balance": 0.0}
         return balances[key]
@@ -1517,6 +1573,7 @@ def _material_task_options(project_id: int, params=None) -> list[Task]:
         query = query.filter(Apartment.is_app_mode.is_(False))
     if dop_only:
         query = query.filter(Task.work_point.has(WorkPoint.point_number.in_(DOP_AGREEMENT_POINT_NUMBERS)))
+        query = query.filter(Task.status == STATUS_DONE)
     query = query.filter(~Task.material_writeoffs.any())
     return (
         query.options(selectinload(Task.apartment), selectinload(Task.work_point))
@@ -5787,32 +5844,33 @@ def material_writeoff_new():
         order_map = {task_id: index for index, task_id in enumerate(selected_task_ids)}
         selected_tasks.sort(key=lambda task: order_map.get(task.id, 10**9))
         try:
-            row = _read_balance_writeoff_row(project.id)
+            rows = _read_balance_writeoff_rows(project.id)
         except ValueError as exc:
             flash(str(exc), "danger")
-            row = None
+            rows = None
         if not selected_tasks:
             flash("Выберите одно или несколько замечаний", "warning")
-        elif row is None:
+        elif rows is None:
             pass
         else:
             writeoff_date = parse_date(request.form.get("writeoff_date")) or date.today()
             if request.form.get("action") == "distribute":
-                allocations = _distribute_material_quantity(selected_tasks, float(row["quantity"]))
-                for task in selected_tasks:
-                    quantity = allocations.get(task.id)
-                    if not quantity:
-                        continue
-                    writeoff = MaterialWriteOff(project_id=project.id, author_id=current_user.id, writeoff_date=writeoff_date, comment="auto_distributed")
-                    writeoff.tasks = [task]
-                    writeoff.items.append(
-                        MaterialWriteOffItem(
-                            name=str(row["name"]),
-                            quantity=float(quantity),
-                            unit=str(row["unit"]),
+                for row in rows:
+                    allocations = _distribute_material_quantity(selected_tasks, float(row["quantity"]))
+                    for task in selected_tasks:
+                        quantity = allocations.get(task.id)
+                        if not quantity:
+                            continue
+                        writeoff = MaterialWriteOff(project_id=project.id, author_id=current_user.id, writeoff_date=writeoff_date, comment="auto_distributed")
+                        writeoff.tasks = [task]
+                        writeoff.items.append(
+                            MaterialWriteOffItem(
+                                name=str(row["name"]),
+                                quantity=float(quantity),
+                                unit=str(row["unit"]),
+                            )
                         )
-                    )
-                    db.session.add(writeoff)
+                        db.session.add(writeoff)
                 db.session.commit()
                 if False:
                     message = f"Отправлено в синхронизацию: {conflict_count}"
@@ -5826,13 +5884,14 @@ def material_writeoff_new():
                 return redirect(url_for("main.materials", tab="history"))
             writeoff = MaterialWriteOff(project_id=project.id, author_id=current_user.id, writeoff_date=writeoff_date, comment=None)
             writeoff.tasks = selected_tasks
-            writeoff.items.append(
-                MaterialWriteOffItem(
-                    name=str(row["name"]),
-                    quantity=float(row["quantity"]),
-                    unit=str(row["unit"]),
+            for row in rows:
+                writeoff.items.append(
+                    MaterialWriteOffItem(
+                        name=str(row["name"]),
+                        quantity=float(row["quantity"]),
+                        unit=str(row["unit"]),
+                    )
                 )
-            )
             db.session.add(writeoff)
             db.session.commit()
             flash("Материал списан на выбранные замечания", "success")
@@ -6617,13 +6676,13 @@ def material_manual_task_new():
     if request.method == "POST":
         task_name = (request.form.get("task_name") or "").strip()
         try:
-            row = _read_balance_writeoff_row(project.id)
+            rows = _read_balance_writeoff_rows(project.id)
         except ValueError as exc:
             flash(str(exc), "danger")
-            row = None
+            rows = None
         if not task_name:
             flash("Введите перечень работ", "warning")
-        elif row is None:
+        elif rows is None:
             pass
         else:
             writeoff = MaterialWriteOff(
@@ -6632,7 +6691,8 @@ def material_manual_task_new():
                 writeoff_date=parse_date(request.form.get("writeoff_date")) or date.today(),
                 comment=task_name,
             )
-            writeoff.items.append(MaterialWriteOffItem(name=str(row["name"]), quantity=float(row["quantity"]), unit=str(row["unit"])))
+            for row in rows:
+                writeoff.items.append(MaterialWriteOffItem(name=str(row["name"]), quantity=float(row["quantity"]), unit=str(row["unit"])))
             db.session.add(writeoff)
             db.session.commit()
             flash("Задача добавлена в расход материалов", "success")

@@ -9,7 +9,7 @@
   <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='task') }}">Назад</a>
 </div>
 
-<form method="post" class="card content-card material-form-card">
+<form method="post" class="card content-card material-form-card js-multi-material-form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="card-body">
     <div class="row g-3">
@@ -24,9 +24,9 @@
       <div class="col-12 col-md-6">
         <label class="form-label">Материал с баланса</label>
         {% if balance_options %}
-        <select class="form-select" name="material_key" required>
+        <select class="form-select js-writeoff-material-select" name="material_key" required>
           <option value="">Выберите материал</option>
-          {% for row in balance_options %}<option value="{{ row.key }}">{{ row.label }}</option>{% endfor %}
+          {% for row in balance_options %}<option value="{{ row.key }}" data-unit="{{ row.unit }}" data-balance="{{ fmt_quantity(row.balance) }}">{{ row.label }}</option>{% endfor %}
         </select>
         {% else %}
         <div class="empty-info-box">Нет материалов на балансе. Сначала добавьте материал на баланс.</div>

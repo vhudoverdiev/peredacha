@@ -315,6 +315,68 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
 
 }
 
+.materials-filter-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  border: 1px solid #78c51c;
+  background: linear-gradient(180deg, #84cf27 0%, #70bd1d 100%);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(112, 189, 29, .18);
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+
+.materials-filter-icon-btn:hover,
+.materials-filter-icon-btn:focus {
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px rgba(112, 189, 29, .24);
+}
+
+.materials-filter-icon-btn.is-active {
+  filter: saturate(1.08);
+}
+
+.materials-filter-toggle-btn {
+  display: none !important;
+}
+
+.material-lines {
+  display: grid;
+  gap: .8rem;
+}
+
+.material-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(220px, .9fr) 44px;
+  gap: .65rem;
+  align-items: end;
+}
+
+.material-line-quantity {
+  margin: 0;
+}
+
+.material-line-remove {
+  min-height: 42px;
+  padding: .55rem;
+  border-radius: 12px;
+}
+
+@media (max-width: 767.98px) {
+  .material-line {
+    grid-template-columns: 1fr;
+  }
+
+  .material-line-remove {
+    width: 100%;
+  }
+}
+
 
 /* Desktop users: compact project picker, autosave fields and aligned actions. */
 .users-page .users-role-option {
@@ -54180,6 +54242,12 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   padding: .9rem 1rem 0;
 }
 
+@media (min-width: 768px) {
+  .glass-ordered-pagination-top {
+    display: none !important;
+  }
+}
+
 .glass-mobile-back-btn {
   gap: .38rem;
 }
@@ -56386,15 +56454,20 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
     display: inline-flex !important;
     width: 100% !important;
     min-width: 0 !important;
-    min-height: 2.55rem !important;
+    min-height: 3rem !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: .34rem !important;
-    padding: .52rem .9rem !important;
-    border-radius: .9rem !important;
-    font-size: .92rem !important;
+    gap: .5rem !important;
+    padding: .72rem 1rem !important;
+    border-radius: 1rem !important;
+    border: 1px solid rgba(157, 184, 110, .42) !important;
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbf2 100%) !important;
+    box-shadow: 0 10px 24px rgba(111, 158, 47, .10) !important;
+    font-size: .96rem !important;
     font-weight: 850 !important;
     white-space: nowrap !important;
+    text-decoration: none !important;
+    position: relative !important;
   }
 
   .glass-page .glass-mobile-back-btn > i,
@@ -56405,7 +56478,25 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
   }
 
   .glass-page .glass-mobile-back-btn > span:first-child {
+    font-size: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+  }
+
+  .glass-page .glass-mobile-back-btn::before {
+    content: "\F12F";
+    font-family: bootstrap-icons !important;
     font-size: 1rem !important;
+    line-height: 1 !important;
+    flex: 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .glass-page .glass-mobile-back-btn > span:last-child {
+    transform: translateY(-.01em);
   }
 
   .glass-page .glass-page-head .page-title,

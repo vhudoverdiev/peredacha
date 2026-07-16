@@ -27,7 +27,7 @@
   </div>
 </div>
 
-<form method="post" class="material-writeoff-form js-material-writeoff-form" data-selection-key="material-writeoff-{{ project.id }}">
+<form method="post" class="material-writeoff-form js-material-writeoff-form js-multi-material-form" data-selection-key="material-writeoff-{{ project.id }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="js-material-selected-hidden"></div>
 

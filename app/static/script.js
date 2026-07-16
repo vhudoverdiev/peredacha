@@ -3712,6 +3712,147 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, 5000);
   });
+
+  const syncWriteoffQuantityForLine = line => {
+    if (!line) return;
+    const select = line.querySelector('.js-writeoff-material-select');
+    const block = line.querySelector('.js-writeoff-quantity-block');
+    const input = line.querySelector('.js-writeoff-quantity-input');
+    const unitBadge = line.querySelector('.js-writeoff-unit-badge');
+    const balanceHint = line.querySelector('.js-writeoff-balance-hint');
+    const option = select?.selectedOptions && select.selectedOptions[0];
+    const unit = option?.dataset?.unit || '';
+    const balance = option?.dataset?.balance || '';
+    const hasMaterial = Boolean(select?.value);
+    block?.classList.toggle('d-none', !hasMaterial);
+    if (input) {
+      input.disabled = !hasMaterial;
+      input.required = hasMaterial;
+      input.placeholder = unit ? `Введите количество, ${unit}` : 'Введите количество';
+    }
+    if (unitBadge) unitBadge.textContent = unit ? `ед. изм: ${unit}` : '';
+    if (balanceHint) balanceHint.textContent = hasMaterial && balance ? `Доступно к списанию: ${balance} ${unit}` : '';
+    if (!hasMaterial && input) {
+      input.value = '';
+      input.classList.remove('is-invalid');
+    }
+  };
+
+  const bindWriteoffLine = line => {
+    if (!line || line.dataset.writeoffLineBound === '1') return;
+    line.dataset.writeoffLineBound = '1';
+    const select = line.querySelector('.js-writeoff-material-select');
+    const removeBtn = line.querySelector('.js-material-line-remove');
+    select?.addEventListener('change', () => syncWriteoffQuantityForLine(line));
+    removeBtn?.addEventListener('click', () => {
+      const container = line.closest('.js-material-lines');
+      if (!container) return;
+      const lines = Array.from(container.querySelectorAll('.js-material-line'));
+      if (lines.length <= 1) {
+        const currentSelect = line.querySelector('.js-writeoff-material-select');
+        const currentInput = line.querySelector('.js-writeoff-quantity-input');
+        if (currentSelect) currentSelect.value = '';
+        if (currentInput) currentInput.value = '';
+        syncWriteoffQuantityForLine(line);
+        return;
+      }
+      line.remove();
+      const nextLines = Array.from(container.querySelectorAll('.js-material-line'));
+      nextLines.forEach((item, index) => {
+        item.querySelector('.js-material-line-remove')?.classList.toggle('d-none', nextLines.length <= 1 && index === 0);
+      });
+    });
+    syncWriteoffQuantityForLine(line);
+  };
+
+  document.querySelectorAll('.js-multi-material-form').forEach(form => {
+    const originalSelect = form.querySelector('.js-writeoff-material-select');
+    let originalBlock = form.querySelector('.js-writeoff-quantity-block');
+    const fallbackInput = form.querySelector('.js-writeoff-quantity-input, input[name="quantity"]');
+    if (!originalSelect) return;
+    if (!originalBlock && fallbackInput) {
+      const sourceWrap = fallbackInput.parentElement;
+      if (sourceWrap) {
+        originalBlock = document.createElement('div');
+        originalBlock.className = 'js-writeoff-quantity-block';
+        const label = sourceWrap.querySelector('.form-label');
+        if (label) {
+          originalBlock.append(label.cloneNode(true));
+        }
+        const unitBadge = document.createElement('span');
+        unitBadge.className = 'material-unit-pill js-writeoff-unit-badge';
+        originalBlock.append(unitBadge);
+        const lineInput = fallbackInput.cloneNode(true);
+        lineInput.classList.add('js-writeoff-quantity-input');
+        originalBlock.append(lineInput);
+        const hint = document.createElement('div');
+        hint.className = 'form-text js-writeoff-balance-hint';
+        originalBlock.append(hint);
+      }
+    }
+    if (!originalBlock) return;
+    const selectWrap = originalSelect.parentElement;
+    const quantityWrap = form.querySelector('.js-writeoff-quantity-block')?.parentElement || fallbackInput?.parentElement || originalBlock.parentElement;
+    if (!selectWrap || !quantityWrap || selectWrap.dataset.materialLinesReady === '1') return;
+
+    const createLine = () => {
+      const line = document.createElement('div');
+      line.className = 'material-line js-material-line';
+
+      const lineSelect = originalSelect.cloneNode(true);
+      lineSelect.value = '';
+      lineSelect.required = true;
+
+      const lineBlock = originalBlock.cloneNode(true);
+      lineBlock.classList.add('material-line-quantity');
+      lineBlock.classList.add('d-none');
+      const lineInput = lineBlock.querySelector('.js-writeoff-quantity-input');
+      if (lineInput) {
+        lineInput.value = '';
+        lineInput.disabled = true;
+        lineInput.required = false;
+      }
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn btn-outline-secondary material-line-remove js-material-line-remove d-none';
+      removeBtn.setAttribute('aria-label', 'Удалить строку');
+      removeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+
+      line.append(lineSelect, lineBlock, removeBtn);
+      return line;
+    };
+
+    const container = document.createElement('div');
+    container.className = 'material-lines js-material-lines';
+    const firstLine = createLine();
+    container.append(firstLine);
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'btn btn-outline-primary btn-sm mt-3 js-material-line-add';
+    addBtn.innerHTML = '<i class="bi bi-plus-lg me-2"></i>Добавить материал';
+    addBtn.addEventListener('click', () => {
+      const newLine = createLine();
+      container.append(newLine);
+      bindWriteoffLine(newLine);
+      container.querySelectorAll('.js-material-line-remove').forEach(button => button.classList.remove('d-none'));
+    });
+
+    const label = selectWrap.querySelector('.form-label');
+    if (label) {
+      label.textContent = 'Материалы';
+    }
+
+    originalSelect.remove();
+    originalBlock.remove();
+    selectWrap.append(container, addBtn);
+    if (quantityWrap !== selectWrap) {
+      quantityWrap.remove();
+    }
+    selectWrap.dataset.materialLinesReady = '1';
+    bindWriteoffLine(firstLine);
+  });
 });
 
 // Быстрая пагинация: сервер по-прежнему формирует обычную HTML-страницу,
