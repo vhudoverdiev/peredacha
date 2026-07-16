@@ -57922,7 +57922,62 @@ html body.app-body .material-manual-card .manual-writeoff-grid .material-lines-f
   grid-column: 1 / -1 !important;
 }
 
-@media (max-width: 1199.98px) {
+/* v588: manual writeoff material rows use a compact quantity input and red remove control. */
+html body.app-body .js-multi-material-form .material-line {
+  grid-template-columns: minmax(18rem, 1fr) minmax(10rem, .42fr) 44px !important;
+  align-items: center !important;
+}
+
+html body.app-body .js-multi-material-form .material-line-quantity-simple {
+  align-self: center !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body.app-body .js-multi-material-form .material-line-quantity-simple .form-label,
+html body.app-body .js-multi-material-form .material-line-quantity-simple .material-unit-pill,
+html body.app-body .js-multi-material-form .material-line-quantity-simple .js-writeoff-balance-hint {
+  display: none !important;
+}
+
+html body.app-body .js-multi-material-form .material-line-quantity-simple .form-control {
+  min-height: 48px !important;
+}
+
+html body.app-body .js-multi-material-form .material-line-remove {
+  align-self: center !important;
+  border-color: rgba(220, 38, 38, .38) !important;
+  background: #fff7f7 !important;
+  color: #dc2626 !important;
+}
+
+html body.app-body .js-multi-material-form .material-line-remove i,
+html body.app-body .js-multi-material-form .material-line-remove .bi,
+html body.app-body .js-multi-material-form .material-line-remove .bi::before {
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+}
+
+html body.app-body .js-multi-material-form .material-line-remove:hover,
+html body.app-body .js-multi-material-form .material-line-remove:focus-visible {
+  border-color: #dc2626 !important;
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+html body.app-body .js-multi-material-form .material-line-remove:hover i,
+html body.app-body .js-multi-material-form .material-line-remove:hover .bi,
+html body.app-body .js-multi-material-form .material-line-remove:hover .bi::before,
+html body.app-body .js-multi-material-form .material-line-remove:focus-visible i,
+html body.app-body .js-multi-material-form .material-line-remove:focus-visible .bi,
+html body.app-body .js-multi-material-form .material-line-remove:focus-visible .bi::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+@media (max-width: 767.98px) {
   html body.app-body .js-multi-material-form .material-line {
     grid-template-columns: 1fr !important;
   }
@@ -57980,14 +58035,14 @@ html body.app-body .materials-filter-form .materials-filter-icon-btn i::before {
 }
 
 html body.app-body .materials-writeoff-balance-card {
-  animation: none !important;
+  animation: softRise 0.35s ease both !important;
   animation-delay: 0ms !important;
   transition-delay: 0ms !important;
+  will-change: transform, opacity;
 }
 
 html body.app-body .material-writeoff-form .materials-writeoff-balance-card {
-  opacity: 1 !important;
-  transform: none !important;
+  contain: layout paint;
 }
 
 /* v585: filled action buttons keep their icons white even when older button

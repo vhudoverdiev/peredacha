@@ -42,6 +42,7 @@ from app.models import (
     MaterialRequestItem,
     MaterialWriteOff,
     MaterialWriteOffItem,
+    material_writeoff_tasks,
     GlassMeasurement,
     GlassMeasurementItem,
     Project,
@@ -957,6 +958,7 @@ def inject_globals():
         "section_lock_choices": SECTION_LOCK_CHOICES,
         "is_mobile_phone_request": _is_mobile_phone_request(),
         "fmt_quantity": fmt_quantity,
+        "display_material_name": display_material_name,
         "ru_plural": ru_plural,
         "task_word": task_word,
         "task_count_label": task_count_label,
@@ -1150,6 +1152,15 @@ def fmt_quantity(value) -> str:
     if number.is_integer():
         return str(int(number))
     return (f"{number:.3f}".rstrip("0").rstrip(".")) or "0"
+
+
+def display_material_name(value: object) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if "стеклопакет" not in text.lower():
+        return text
+    return re.sub(r"\s+кв\.?\s*\d+[^\s,;—-]*(?=\s*$)", "", text, flags=re.IGNORECASE).strip()
 
 
 def ru_plural(value, one: str, few: str, many: str) -> str:
@@ -1587,7 +1598,12 @@ def _material_task_options(project_id: int, params=None) -> list[Task]:
         query = query.filter(Apartment.is_app_mode.is_(False))
     if dop_only:
         query = query.filter(Task.work_point.has(WorkPoint.point_number.in_(DOP_AGREEMENT_POINT_NUMBERS)))
-    query = query.filter(~Task.material_writeoffs.any())
+    writeoff_task_ids = (
+        db.session.query(material_writeoff_tasks.c.task_id)
+        .join(MaterialWriteOff, MaterialWriteOff.id == material_writeoff_tasks.c.writeoff_id)
+        .filter(MaterialWriteOff.project_id == project_id)
+    )
+    query = query.filter(~Task.id.in_(writeoff_task_ids))
     if dop_only:
         query = query.order_by(None).order_by(
             Task.is_done.desc(),
@@ -5775,7 +5791,7 @@ def material_expense_export():
     ws.title = "Расход материала"
     ws.append(["Дата", "№", "Перечень замечаний", "Потраченный материал"])
     for writeoff in writeoffs:
-        material_lines = [f"{item.name} — {fmt_quantity(item.quantity)} {item.unit}" for item in writeoff.items]
+        material_lines = [f"{display_material_name(item.name)} — {fmt_quantity(item.quantity)} {item.unit}" for item in writeoff.items]
         tasks = list(writeoff.tasks)
         manual_lines = _material_writeoff_remark_lines(writeoff) if not tasks else []
         if not tasks:

@@ -220,8 +220,8 @@ def _excel_premise_label(apartment: Apartment | None) -> str:
         return ""
     number = str(apartment.apartment_number or apartment.construction_number or f"ID {apartment.id}").strip()
     if apartment.premise_type == "commercial":
-        return _excel_commercial_label(number, apartment.building)
-    return apartment.label()
+        return _normalize_report_export_text(_excel_commercial_label(number, apartment.building))
+    return _normalize_report_export_text(apartment.label())
 
 
 def _excel_commercial_label(number: str | None, building: str | None = None) -> str:

@@ -318,7 +318,7 @@
             </td>
             <td>
               {% for item in writeoff.items %}
-                <div class="material-spent-item">{{ item.name }} — <b>{{ fmt_quantity(item.quantity) }}</b> {{ item.unit }}</div>
+                <div class="material-spent-item">{{ display_material_name(item.name) }} — <b>{{ fmt_quantity(item.quantity) }}</b> {{ item.unit }}</div>
               {% else %}
                 <span class="text-muted">Нет позиций</span>
               {% endfor %}

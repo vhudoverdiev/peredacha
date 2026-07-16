@@ -3800,27 +3800,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectWrap = originalSelectShell?.parentElement || originalSelect.parentElement;
     if (!selectWrap || selectWrap.dataset.materialLinesReady === '1') return;
 
-    const createLine = () => {
+    const createLine = (useExisting = false) => {
       const line = document.createElement('div');
       line.className = 'material-line js-material-line';
 
-      const lineSelect = originalSelect.cloneNode(true);
-      lineSelect.value = '';
-      lineSelect.required = true;
-      lineSelect.classList.remove('developer-native-select', 'mobile-native-select');
-      delete lineSelect.dataset.customSelectReady;
-      delete lineSelect.dataset.nativeSelect;
-      lineSelect.removeAttribute('aria-hidden');
-      lineSelect.removeAttribute('tabindex');
+      const lineSelectHost = useExisting ? (originalSelectShell || originalSelect) : originalSelect.cloneNode(true);
+      if (!useExisting) {
+        const lineSelect = lineSelectHost;
+        lineSelect.value = '';
+        lineSelect.required = true;
+        lineSelect.classList.remove('developer-native-select', 'mobile-native-select');
+        delete lineSelect.dataset.customSelectReady;
+        delete lineSelect.dataset.nativeSelect;
+        lineSelect.removeAttribute('aria-hidden');
+        lineSelect.removeAttribute('tabindex');
+      }
 
-      const lineBlock = originalBlock.cloneNode(true);
+      const lineBlock = useExisting ? originalBlock : originalBlock.cloneNode(true);
       lineBlock.classList.add('material-line-quantity');
-      lineBlock.classList.add('d-none');
-      const lineInput = lineBlock.querySelector('.js-writeoff-quantity-input');
-      if (lineInput) {
-        lineInput.value = '';
-        lineInput.disabled = true;
-        lineInput.required = false;
+      if (!useExisting) {
+        lineBlock.classList.add('material-line-quantity-simple');
+        lineBlock.classList.add('d-none');
+        const lineInput = lineBlock.querySelector('.js-writeoff-quantity-input');
+        if (lineInput) {
+          lineInput.value = '';
+          lineInput.disabled = true;
+          lineInput.required = false;
+        }
       }
 
       const removeBtn = document.createElement('button');
@@ -3829,13 +3835,13 @@ document.addEventListener('DOMContentLoaded', () => {
       removeBtn.setAttribute('aria-label', 'Удалить строку');
       removeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
 
-      line.append(lineSelect, lineBlock, removeBtn);
+      line.append(lineSelectHost, lineBlock, removeBtn);
       return line;
     };
 
     const container = document.createElement('div');
     container.className = 'material-lines js-material-lines';
-    const firstLine = createLine();
+    const firstLine = createLine(true);
     container.append(firstLine);
 
     const addBtn = document.createElement('button');
@@ -3855,14 +3861,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     selectWrap.classList.add('material-lines-field');
-    if (originalSelectShell) {
-      originalSelectShell.remove();
-    } else {
-      originalSelect.remove();
-    }
-    if (originalBlock.isConnected) {
-      originalBlock.remove();
-    }
     selectWrap.append(container, addBtn);
     if (builtQuantityBlockFromFallback && fallbackQuantityWrap && fallbackQuantityWrap !== selectWrap) {
       fallbackQuantityWrap.remove();
@@ -4597,9 +4595,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const showExcelGenerationNotice = trigger => {
-    if (!trigger || trigger.dataset.excelNoticeShown === '1') return;
+    if (!trigger) return;
     trigger.dataset.excelNoticeShown = '1';
-    showCrmNotice(excelNoticeText, 'info');
   };
 
   const clearExcelGenerationNotice = trigger => {
@@ -4853,22 +4850,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (event.defaultPrevented) return;
       if (event.button !== 0) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (link.classList.contains('is-loading')) return;
       event.preventDefault();
-      setBusyState(link);
-      try {
-        const response = await window.fetch(link.href, {
-          credentials: 'same-origin',
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const blob = await response.blob();
-        triggerBlobDownload(blob, getDownloadFilename(response));
-        showExcelReadyNotice(link);
-      } catch (error) {
-        window.location.href = link.href;
-      } finally {
-        restoreBusyState(link);
-      }
+      startNativeExcelDownloadFlow(link);
     });
   });
 
