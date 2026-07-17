@@ -247,6 +247,16 @@
       pointer-events: none !important;
     }
 
+    /* Desktop navigation must never expose mobile/PWA splash markup while
+       external stylesheets are still loading. */
+    html.desktop-like-pointer .site-page-loader,
+    html.desktop-like-pointer .mobile-standalone-boot-screen {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
     html.standalone-app .app-launch-loader {
       display: grid !important;
       place-items: center !important;
