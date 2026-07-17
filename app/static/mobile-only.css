@@ -5,7 +5,7 @@
     display: inline-flex !important;
     visibility: visible !important;
     opacity: 1 !important;
-    bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .09rem + env(safe-area-inset-bottom)) !important;
+    bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .045rem + env(safe-area-inset-bottom)) !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)

@@ -628,15 +628,15 @@
       if ('serviceWorker' in navigator && window.isSecureContext) {
         const mobileServiceWorkerUpgrade = window.matchMedia('(max-width: 767.98px)').matches
           && navigator.serviceWorker.controller
-          && !navigator.serviceWorker.controller.scriptURL.includes('v13-mobile-conflict-cleanup');
-        if (mobileServiceWorkerUpgrade && !sessionStorage.getItem('crm-mobile-sw-v13-reloaded')) {
+          && !navigator.serviceWorker.controller.scriptURL.includes('v14-mobile-po-gap');
+        if (mobileServiceWorkerUpgrade && !sessionStorage.getItem('crm-mobile-sw-v14-reloaded')) {
           navigator.serviceWorker.addEventListener('controllerchange', () => {
-            sessionStorage.setItem('crm-mobile-sw-v13-reloaded', '1');
+            sessionStorage.setItem('crm-mobile-sw-v14-reloaded', '1');
             window.location.reload();
           }, { once: true });
         }
         navigator.serviceWorker
-          .register('/service-worker.js?v=v13-mobile-conflict-cleanup', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v14-mobile-po-gap', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -674,7 +674,7 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v602-mobile-conflict-cleanup">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v6-mobile-conflict-cleanup">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v7-mobile-po-gap">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v2-material-request-input-white">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and current_user.role == 'verifier' %} verifier-layout{% endif %}{% if current_user.is_authenticated and mobile_version_under_development %} mobile-dev-flag{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
