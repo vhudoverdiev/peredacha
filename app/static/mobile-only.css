@@ -5,7 +5,7 @@
     display: inline-flex !important;
     visibility: visible !important;
     opacity: 1 !important;
-    bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .015rem + env(safe-area-inset-bottom)) !important;
+    bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .015rem + (env(safe-area-inset-bottom) * .5)) !important;
   }
 
   /* One mobile action system for remark edit/split controls across every page. */
