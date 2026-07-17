@@ -1,5 +1,6 @@
-const STATIC_CACHE = 'peredacha-static-v3';
-const PAGE_CACHE = 'peredacha-pages-v3';
+const STATIC_CACHE = 'peredacha-static-v4';
+const PAGE_CACHE = 'peredacha-pages-v4';
+const LEGACY_PAGE_CACHES = ['peredacha-pages-v3'];
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -98,7 +99,7 @@ self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
     await Promise.all(keys
-      .filter(key => ![STATIC_CACHE, PAGE_CACHE].includes(key))
+      .filter(key => ![STATIC_CACHE, PAGE_CACHE, ...LEGACY_PAGE_CACHES].includes(key))
       .map(key => caches.delete(key)));
     await self.clients.claim();
   })());
@@ -158,7 +159,7 @@ async function handleHtmlRequest(request) {
     }
     throw new Error(`HTTP ${networkResponse?.status || 0}`);
   } catch (error) {
-    const cached = await cache.match(requestWithSearch) || await cache.match(requestWithoutSearch) || await caches.match('/login');
+    const cached = await matchCachedPage(requestWithSearch, requestWithoutSearch);
     if (cached) return buildOfflineFallbackResponse(cached, request.mode === 'navigate');
     return new Response(OFFLINE_HTML, {
       status: 503,
@@ -169,6 +170,26 @@ async function handleHtmlRequest(request) {
       },
     });
   }
+}
+
+async function matchCachedPage(requestWithSearch, requestWithoutSearch) {
+  const cacheNames = [PAGE_CACHE, ...LEGACY_PAGE_CACHES];
+  const pathname = new URL(requestWithoutSearch.url).pathname;
+  const fallbackPaths = pathname === '/'
+    ? ['/object', '/objects', '/login']
+    : (pathname === '/object' ? ['/', '/objects', '/login'] : ['/login']);
+
+  for (const cacheName of cacheNames) {
+    const cache = await caches.open(cacheName);
+    const exact = await cache.match(requestWithSearch) || await cache.match(requestWithoutSearch);
+    if (exact) return exact;
+    for (const fallbackPath of fallbackPaths) {
+      const fallback = await cache.match(fallbackPath);
+      if (fallback) return fallback;
+    }
+  }
+
+  return caches.match('/login');
 }
 
 async function buildOfflineFallbackResponse(response, injectIntoHtml) {

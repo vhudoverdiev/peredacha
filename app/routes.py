@@ -179,7 +179,7 @@ SECTION_LOCK_CHOICES = [
             "main.object_delete_confirm", "main.object_open",
         },
     },
-    {"key": "dashboard", "label": "Главная", "icon": "bi-grid-1x2", "endpoints": {"main.dashboard"}},
+    {"key": "dashboard", "label": "Главная", "icon": "bi-grid-1x2", "endpoints": {"main.dashboard", "main.dashboard_legacy"}},
     {
         "key": "remarks",
         "label": "Замечания",
@@ -1056,6 +1056,7 @@ def _deny_or_redirect():
 
 
 WORKER_ALLOWED_ENDPOINTS = {
+    "main.dashboard_legacy",
     "main.my_tasks",
     "main.my_task_done",
     "main.my_task_return",
@@ -1064,6 +1065,7 @@ WORKER_ALLOWED_ENDPOINTS = {
 }
 
 VERIFIER_ALLOWED_ENDPOINTS = {
+    "main.dashboard_legacy",
     "main.objects",
     "main.object_open",
     "main.work_report",
@@ -1079,6 +1081,7 @@ VIEWER_ALLOWED_GET_ENDPOINTS = {
     "main.objects",
     "main.object_open",
     "main.dashboard",
+    "main.dashboard_legacy",
     "main.task_list",
     "main.task_detail",
     "main.contractors_list",
@@ -1100,7 +1103,7 @@ def enforce_role_access():
     # Единая защита всех main-маршрутов: сначала аутентификация, затем доступ по роли.
     endpoint = request.endpoint or ""
     # Репорт ошибки доступен и со стартового экрана. Он всё равно защищён CSRF и rate limit.
-    if endpoint == "main.report_error":
+    if endpoint in {"main.report_error", "main.service_worker"}:
         return None
 
     if not current_user.is_authenticated:
@@ -1783,6 +1786,15 @@ def dashboard():
     return render_template("dashboard.html", stats=stats, categories=categories, project=project)
 
 
+@bp.route("/object")
+@login_required
+def dashboard_legacy():
+    """Keep the legacy CRM entry URL usable for bookmarks and offline copies."""
+    if current_user.role == ROLE_VERIFIER:
+        return redirect(url_for("main.work_report"))
+    return dashboard()
+
+
 @bp.route("/sync/google", methods=["POST"])
 @login_required
 def sync_google():
@@ -1904,6 +1916,7 @@ def _mobile_phone_allowed_endpoints() -> set[str]:
         "main.objects",
         "main.object_open",
         "main.dashboard",
+        "main.dashboard_legacy",
         "main.account",
         "main.task_list",
         "main.task_detail",
