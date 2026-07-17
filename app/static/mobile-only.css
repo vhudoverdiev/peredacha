@@ -1,13 +1,16 @@
 /* Mobile-only overrides live here so they cannot be undone by legacy rules in style.css. */
 @media (max-width: 767.98px) {
-  body.app-body .po-notification-widget {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartments-page) .po-notification-widget {
     display: inline-flex !important;
     visibility: visible !important;
     opacity: 1 !important;
     bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .09rem + env(safe-area-inset-bottom)) !important;
   }
 
-  body.app-body .remarks-export-table-shell .task-text-tools {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table .task-text .task-text-tools {
     display: flex !important;
     flex-flow: row nowrap !important;
     align-items: center !important;
@@ -16,11 +19,15 @@
     min-width: 5.6rem !important;
     max-width: 100% !important;
     margin-top: .6rem !important;
+    grid-column: 2 !important;
+    justify-self: start !important;
+    align-self: start !important;
     visibility: visible !important;
     opacity: 1 !important;
   }
 
-  body.app-body .remarks-export-table-shell
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
     .task-text-tools :is(.inline-edit-btn, .inline-split-btn) {
     display: inline-flex !important;
     flex: 0 0 2.55rem !important;
@@ -36,7 +43,8 @@
     border-radius: .9rem !important;
   }
 
-  body.app-body .remarks-export-table-shell
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
     .task-text-tools .inline-edit-btn.inline-edit {
     background: #fff !important;
     border-color: rgba(141, 214, 44, .34) !important;
@@ -44,7 +52,8 @@
     -webkit-text-fill-color: #253120 !important;
   }
 
-  body.app-body .remarks-export-table-shell
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
     .task-text-tools .inline-split-btn {
     background: linear-gradient(180deg, #79bf25, #68a91d) !important;
     border-color: #68a91d !important;
@@ -52,41 +61,15 @@
     -webkit-text-fill-color: #fff !important;
   }
 
-  body.app-body .remarks-export-table-shell
-    .task-text-tools :is(.inline-edit-btn, .inline-split-btn) > i,
-  body.app-body .remarks-export-table-shell
-    .task-text-tools :is(.inline-edit-btn, .inline-split-btn) > i::before {
-    display: inline-block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    font-family: "bootstrap-icons" !important;
-    font-size: 1.08rem !important;
-    font-style: normal !important;
-    line-height: 1 !important;
-  }
-
-  body.app-body .remarks-export-table-shell
-    .task-text-tools .inline-edit-btn.inline-edit > i,
-  body.app-body .remarks-export-table-shell
-    .task-text-tools .inline-edit-btn.inline-edit > i::before {
-    color: #253120 !important;
-    -webkit-text-fill-color: #253120 !important;
-  }
-
-  body.app-body .remarks-export-table-shell
-    .task-text-tools .inline-split-btn > i,
-  body.app-body .remarks-export-table-shell
-    .task-text-tools .inline-split-btn > i::before {
-    color: #fff !important;
-    -webkit-text-fill-color: #fff !important;
-  }
-
-  body.app-body .glass-page .glass-mobile-back-btn {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn {
     display: inline-flex !important;
     flex-flow: row nowrap !important;
     align-items: center !important;
     justify-content: center !important;
     gap: .42rem !important;
+    width: 100% !important;
+    min-width: 0 !important;
     min-height: 3rem !important;
     padding: .7rem 1rem !important;
     color: #243121 !important;
@@ -97,12 +80,14 @@
     white-space: nowrap !important;
   }
 
-  body.app-body .glass-page .glass-mobile-back-btn::before {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn::before {
     content: none !important;
     display: none !important;
   }
 
-  body.app-body .glass-page .glass-mobile-back-btn > span {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn > span {
     display: inline-flex !important;
     flex: 0 0 auto !important;
     width: auto !important;
@@ -115,7 +100,8 @@
     white-space: nowrap !important;
   }
 
-  body.app-body .glass-page .glass-mobile-back-btn .glass-mobile-back-icon {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn .glass-mobile-back-icon {
     display: block !important;
     flex: 0 0 1.15rem !important;
     width: 1.15rem !important;
@@ -128,7 +114,8 @@
     stroke-linejoin: round !important;
   }
 
-  body.app-body .glass-page .glass-mobile-back-btn .glass-mobile-back-label {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn .glass-mobile-back-label {
     position: static !important;
     font-size: .98rem !important;
     font-weight: 850 !important;
@@ -136,7 +123,9 @@
     text-indent: 0 !important;
   }
 
-  body.app-body .remarks-export-table-shell .task-text-tools .task-tool-svg {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-text-tools .task-tool-svg {
     display: block !important;
     flex: 0 0 1.2rem !important;
     width: 1.2rem !important;
@@ -151,8 +140,111 @@
     opacity: 1 !important;
   }
 
-  body.app-body .remarks-export-table-shell .task-text-tools .task-tool-font-icon {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-text-tools .task-tool-font-icon {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row > .task-text.inline-editing-host {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-column: 1 / -1 !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row
+    > .task-text.inline-editing-host > .inline-editor-floating {
+    position: static !important;
+    inset: auto !important;
+    grid-column: 2 !important;
+    justify-self: stretch !important;
+    box-sizing: border-box !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: .7rem 0 0 !important;
+    padding: .75rem !important;
+    overflow: visible !important;
+    z-index: auto !important;
+  }
+
+  body.app-body .glass-page .inline-editor-anchor.inline-editing-host {
+    display: flex !important;
+    flex-flow: row wrap !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.app-body .glass-page
+    .inline-editor-anchor.inline-editing-host > .inline-editor-floating {
+    position: static !important;
+    inset: auto !important;
+    flex: 1 0 100% !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: .7rem 0 0 !important;
+    padding: .75rem !important;
+    overflow: visible !important;
+    z-index: auto !important;
+  }
+
+  body.app-body :is(.remarks-export-table-shell, .glass-page)
+    .inline-editor-floating textarea.form-control {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 7.5rem !important;
+    padding: .78rem .85rem !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+    white-space: pre-wrap !important;
+    font-size: 1rem !important;
+    line-height: 1.45 !important;
+  }
+
+  body.app-body :is(.remarks-export-table-shell, .glass-page)
+    .inline-editor-floating .inline-editor-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: .55rem !important;
+  }
+
+  body.app-body :is(.remarks-export-table-shell, .glass-page)
+    .inline-editor-floating .inline-editor-actions .btn {
+    display: inline-flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.75rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .62rem .7rem !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
   }
 
   body.app-body .assignment-issued-table .assignment-issued-row {

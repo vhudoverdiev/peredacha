@@ -8254,12 +8254,6 @@ canvas {
     overflow-wrap: anywhere;
   }
 
-  .po-notification-widget {
-    right: .75rem;
-    bottom: 4.25rem;
-    max-width: calc(100vw - 1.5rem);
-  }
-
   .material-tasks-box {
     max-height: none;
     overflow: visible;
@@ -9016,13 +9010,6 @@ body.app-body .assignment-issue-panel-restored {
   z-index: 1030 !important;
 }
 
-@media (max-width: 575px) and (hover: none) and (pointer: coarse) {
-  .po-notification-widget {
-    right: max(.85rem, env(safe-area-inset-right)) !important;
-    bottom: calc(max(.85rem, env(safe-area-inset-bottom)) + 3.75rem) !important;
-  }
-}
-
 @media (min-width: 821px) {
   .auth-shell .auth-brand,
   .auth-shell .auth-flashes,
@@ -9253,13 +9240,6 @@ button.disabled,
   font-size: .68rem !important;
   font-weight: 900 !important;
   border: 2px solid #fff !important;
-}
-
-@media (max-width: 575px) and (hover: none) and (pointer: coarse) {
-  .po-notification-widget {
-    right: calc(max(.85rem, env(safe-area-inset-right)) + 3.15rem) !important;
-    bottom: max(.85rem, env(safe-area-inset-bottom)) !important;
-  }
 }
 
 /* Glass/material practical fixes */
@@ -33389,13 +33369,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     z-index: 1039 !important;
   }
 
-  .po-notification-widget {
-    right: max(.82rem, var(--ios-safe-right)) !important;
-    left: auto !important;
-    bottom: calc(9.05rem + var(--ios-safe-bottom)) !important;
-    z-index: 1039 !important;
-  }
-
   body.auth-body .floating-error-corner {
     bottom: max(.86rem, var(--ios-safe-bottom)) !important;
   }
@@ -40368,11 +40341,6 @@ body.app-body .app-content > .po-notification-widget {
   display: inline-flex !important;
 }
 
-html.mobile-viewport body.app-body:has(.apartments-page) .po-notification-widget,
-html.adaptive-mobile-viewport body.app-body:has(.apartments-page) .po-notification-widget {
-  display: none !important;
-}
-
 html.desktop-like-pointer body.app-body:has(.apartments-page) .apartments-grid::after {
   content: "";
   display: block;
@@ -44131,10 +44099,8 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
 @media (max-width: 767.98px) {
   html.mobile-viewport body .crm-toast-stack,
   html.mobile-viewport body .crm-validation-toast,
-  html.mobile-viewport body .po-notification-widget,
   html.adaptive-mobile-viewport body .crm-toast-stack,
-  html.adaptive-mobile-viewport body .crm-validation-toast,
-  html.adaptive-mobile-viewport body .po-notification-widget {
+  html.adaptive-mobile-viewport body .crm-validation-toast {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -45103,41 +45069,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     margin-top: .56rem !important;
   }
 
-  html.mobile-viewport body.app-body .remarks-export-table-shell .inline-edit-btn,
-  html.adaptive-mobile-viewport body.app-body .remarks-export-table-shell .inline-edit-btn {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: .42rem !important;
-    width: auto !important;
-    min-width: 0 !important;
-    min-height: 2.46rem !important;
-    margin-top: 0 !important;
-    padding: 0 .84rem !important;
-    border: 1px solid rgba(206, 220, 193, .96) !important;
-    border-radius: .92rem !important;
-    background: rgba(255, 255, 255, .96) !important;
-    color: #243121 !important;
-    box-shadow: 0 10px 20px rgba(31, 45, 61, .06) !important;
-  }
-
-  html.mobile-viewport body.app-body .remarks-export-table-shell .inline-edit-btn::after,
-  html.adaptive-mobile-viewport body.app-body .remarks-export-table-shell .inline-edit-btn::after {
-    font-size: .76rem !important;
-    font-weight: 800 !important;
-    letter-spacing: .01em !important;
-  }
-
-  html.mobile-viewport body.app-body .remarks-export-table-shell .inline-edit-btn.inline-edit::after,
-  html.adaptive-mobile-viewport body.app-body .remarks-export-table-shell .inline-edit-btn.inline-edit::after {
-    content: "Изменить";
-  }
-
-  html.mobile-viewport body.app-body .remarks-export-table-shell .inline-edit-btn.inline-split-btn::after,
-  html.adaptive-mobile-viewport body.app-body .remarks-export-table-shell .inline-edit-btn.inline-split-btn::after {
-    content: "Разделить";
-  }
-
   html.mobile-viewport body.app-body .remarks-export-table-shell .actions-cell,
   html.adaptive-mobile-viewport body.app-body .remarks-export-table-shell .actions-cell {
     display: grid !important;
@@ -46096,46 +46027,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   html.adaptive-mobile-viewport body.app-body .empty-info-box {
     color: #5f6a5c !important;
     line-height: 1.46 !important;
-  }
-
-  html.mobile-viewport body.app-body:has(.apartments-page) .po-notification-widget,
-  html.adaptive-mobile-viewport body.app-body:has(.apartments-page) .po-notification-widget {
-    position: fixed !important;
-    right: max(.9rem, env(safe-area-inset-right)) !important;
-    bottom: calc(5.65rem + env(safe-area-inset-bottom)) !important;
-    z-index: 1041 !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: .6rem !important;
-    min-height: 3.2rem !important;
-    max-width: calc(100vw - 1.8rem) !important;
-    padding: .76rem .92rem !important;
-    border: 1px solid rgba(255, 193, 7, .44) !important;
-    border-radius: 1.08rem !important;
-    background:
-      radial-gradient(circle at top right, rgba(255, 193, 7, .18), transparent 38%),
-      linear-gradient(180deg, rgba(255, 250, 235, .98), rgba(255, 245, 207, .98)) !important;
-    color: #7d5b00 !important;
-    box-shadow: 0 16px 32px rgba(31, 45, 61, .16) !important;
-  }
-
-  html.mobile-viewport body.app-body:has(.apartments-page) .po-notification-widget span,
-  html.adaptive-mobile-viewport body.app-body:has(.apartments-page) .po-notification-widget span {
-    font-size: .82rem !important;
-    font-weight: 900 !important;
-    letter-spacing: .08em !important;
-  }
-
-  html.mobile-viewport body.app-body:has(.apartments-page) .po-notification-widget b,
-  html.adaptive-mobile-viewport body.app-body:has(.apartments-page) .po-notification-widget b {
-    min-width: 1.9rem !important;
-    height: 1.9rem !important;
-    border-radius: .8rem !important;
-    background: linear-gradient(135deg, #ffc107, #ffb100) !important;
-    color: #3f2d00 !important;
-    font-size: .9rem !important;
-    font-weight: 950 !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .36) !important;
   }
 
   html.mobile-viewport body.app-body:has(.apartments-page) .floating-error-corner,
@@ -47178,20 +47069,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     gap: .5rem !important;
   }
 
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn {
-    width: 2.58rem !important;
-    min-width: 2.58rem !important;
-    height: 2.58rem !important;
-    min-height: 2.58rem !important;
-    padding: 0 !important;
-    border-radius: .92rem !important;
-  }
-
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn::after,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn::after,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn::after,
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .actions-cell .btn::after,
   html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .actions-cell .btn::after,
   html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .actions-cell .btn::after {
@@ -47388,17 +47265,14 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-card-mode-cell > *,
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-card-deadline-cell > *,
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-status-cell > *,
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text > *,
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-actions-cell > *,
   html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-card-mode-cell > *,
   html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-card-deadline-cell > *,
   html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-status-cell > *,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text > *,
   html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-actions-cell > *,
   html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-card-mode-cell > *,
   html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-card-deadline-cell > *,
   html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-status-cell > *,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text > *,
   html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-actions-cell > * {
     grid-column: 2 !important;
     min-width: 0 !important;
@@ -47411,28 +47285,10 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     gap: .5rem !important;
   }
 
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text-tools,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text-tools,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text-tools {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: .5rem !important;
-  }
-
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text .inline-text,
   html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text .inline-text,
   html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text .inline-text {
     flex: initial !important;
-  }
-
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn {
-    width: 2.38rem !important;
-    min-width: 2.38rem !important;
-    height: 2.38rem !important;
-    min-height: 2.38rem !important;
-    padding: 0 !important;
   }
 
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .actions-cell,
@@ -47828,15 +47684,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     padding-top: .32rem !important;
   }
 
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text > *,
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-actions-cell > *,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text > *,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-actions-cell > *,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text > *,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-actions-cell > * {
-    grid-column: auto !important;
-  }
-
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text::before,
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-actions-cell::before,
   html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text::before,
@@ -47867,25 +47714,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .glass-ordered-badge {
     display: inline-flex !important;
     margin-top: .52rem !important;
-  }
-
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text-tools,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text-tools,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text-tools {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: .5rem !important;
-    margin-top: .55rem !important;
-  }
-
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn {
-    width: 2.45rem !important;
-    min-width: 2.45rem !important;
-    height: 2.45rem !important;
-    min-height: 2.45rem !important;
-    padding: 0 !important;
   }
 
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-actions-cell,
@@ -48051,7 +47879,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   html.touch-app-device body.app-body:has(.apartments-page) .po-notification-widget {
     position: fixed !important;
     right: calc(max(.88rem, env(safe-area-inset-right)) + 3.2rem) !important;
-    bottom: calc(5.1rem + env(safe-area-inset-bottom)) !important;
     z-index: 1041 !important;
     display: inline-flex !important;
     align-items: center !important;
@@ -48522,27 +48349,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     text-align: left !important;
   }
 
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text-tools,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text-tools,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text-tools {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: .46rem !important;
-    margin-top: .6rem !important;
-  }
-
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn {
-    width: 2.28rem !important;
-    min-width: 2.28rem !important;
-    height: 2.28rem !important;
-    min-height: 2.28rem !important;
-    padding: 0 !important;
-    border-radius: .82rem !important;
-    -webkit-tap-highlight-color: transparent !important;
-  }
-
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .actions-cell,
   html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .actions-cell,
   html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .actions-cell {
@@ -48626,41 +48432,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell tbody tr.task-row-link:focus-within,
   html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell tbody tr.task-row-link:active {
     outline: none !important;
-  }
-
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text.inline-editing-host,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text.inline-editing-host,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text.inline-editing-host {
-    position: static !important;
-  }
-
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text.inline-editing-host .inline-editor-floating,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text.inline-editing-host .inline-editor-floating,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text.inline-editing-host .inline-editor-floating {
-    position: static !important;
-    left: auto !important;
-    top: auto !important;
-    width: 100% !important;
-    max-width: none !important;
-    margin-top: .62rem !important;
-    padding: .72rem !important;
-    z-index: auto !important;
-  }
-
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text.inline-editing-host .inline-editor-actions,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text.inline-editing-host .inline-editor-actions,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text.inline-editing-host .inline-editor-actions {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    justify-content: stretch !important;
-    gap: .52rem !important;
-  }
-
-  html.mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text.inline-editing-host .inline-editor-actions .btn,
-  html.adaptive-mobile-viewport body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text.inline-editing-host .inline-editor-actions .btn,
-  html.touch-app-device body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text.inline-editing-host .inline-editor-actions .btn {
-    width: 100% !important;
-    min-height: 2.62rem !important;
   }
 
   html.mobile-viewport body.app-body:has(.remarks-page-head) .remark-split-close,
@@ -49430,22 +49201,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     font-size: 1rem !important;
     font-weight: 700 !important;
     line-height: 1.48 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-text-tools {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: .46rem !important;
-    margin-top: .56rem !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-export-table-shell .inline-edit-btn {
-    width: 2.34rem !important;
-    min-width: 2.34rem !important;
-    height: 2.34rem !important;
-    min-height: 2.34rem !important;
-    padding: 0 !important;
-    border-radius: .86rem !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.remarks-page-head) .remarks-export-table-shell .actions-cell {
@@ -51774,31 +51529,6 @@ body.app-body:has(.remarks-page-head)
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-text-tools {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: .46rem !important;
-    margin: .08rem 0 0 !important;
-    padding: 0 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .inline-edit-btn {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 2.46rem !important;
-    min-width: 2.46rem !important;
-    height: 2.46rem !important;
-    min-height: 2.46rem !important;
-    padding: 0 !important;
-    border: 1px solid rgba(214, 226, 205, .98) !important;
-    border-radius: .86rem !important;
-    background: #fff !important;
-    box-shadow: 0 7px 16px rgba(31, 45, 61, .08) !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table .task-actions-cell > .actions-cell {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -51831,22 +51561,6 @@ body.app-body:has(.remarks-page-head)
 /* Mobile measurements expose only the ordered workflow and a direct return
    to Remarks. Desktop retains the complete three-tab management interface. */
 @media (max-width: 767.98px) {
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.glass-page) .glass-page-head .glass-mobile-back-btn {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    justify-self: start !important;
-    width: fit-content !important;
-    min-height: 2.58rem !important;
-    padding: .54rem .82rem !important;
-    gap: .42rem !important;
-    border-radius: .9rem !important;
-    color: #33412f !important;
-    font-size: .84rem !important;
-    font-weight: 850 !important;
-  }
-
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.glass-page) .glass-page-head .glass-head-actions {
     display: none !important;
@@ -54531,15 +54245,6 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   }
 }
 
-.glass-mobile-back-btn {
-  gap: .38rem;
-}
-
-.glass-mobile-back-btn > span:first-child {
-  font-size: 1rem;
-  line-height: 1;
-}
-
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.remarks-page-head:not(.glass-page-head))
@@ -54632,17 +54337,6 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
     gap: .64rem !important;
     margin-bottom: .82rem !important;
     padding: 0 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.glass-page) .glass-page .glass-page-head > :not(.remarks-page-actions) {
-    display: block !important;
-    width: 100% !important;
-    height: auto !important;
-    max-height: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -55091,10 +54785,6 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
     -webkit-text-fill-color: #000000 !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.apartments-page) .po-notification-widget {
-    bottom: calc(4.35rem + env(safe-area-inset-bottom)) !important;
-  }
 }
 
 /* v504: Subtle side gutters for mobile object and account cards. */
@@ -56274,10 +55964,6 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
     text-shadow: none !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.apartments-page) .po-notification-widget {
-    bottom: calc(5.35rem + env(safe-area-inset-bottom)) !important;
-  }
 }
 
 /* v562: verifier mobile report had oversized clearances above the Excel button
@@ -56733,55 +56419,6 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
     padding: 0 !important;
   }
 
-  .glass-page .glass-mobile-back-btn {
-    display: inline-flex !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 3rem !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: .5rem !important;
-    padding: .72rem 1rem !important;
-    border-radius: 1rem !important;
-    border: 1px solid rgba(157, 184, 110, .42) !important;
-    background: linear-gradient(180deg, #ffffff 0%, #f7fbf2 100%) !important;
-    box-shadow: 0 10px 24px rgba(111, 158, 47, .10) !important;
-    font-size: .96rem !important;
-    font-weight: 850 !important;
-    white-space: nowrap !important;
-    text-decoration: none !important;
-    position: relative !important;
-  }
-
-  .glass-page .glass-mobile-back-btn > i,
-  .glass-page .glass-mobile-back-btn > span {
-    display: inline-flex !important;
-    align-items: center !important;
-    line-height: 1 !important;
-  }
-
-  .glass-page .glass-mobile-back-btn > span:first-child {
-    font-size: 0 !important;
-    width: 0 !important;
-    overflow: hidden !important;
-    margin: 0 !important;
-  }
-
-  .glass-page .glass-mobile-back-btn::before {
-    content: "\F12F";
-    font-family: bootstrap-icons !important;
-    font-size: 1rem !important;
-    line-height: 1 !important;
-    flex: 0 0 auto !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-
-  .glass-page .glass-mobile-back-btn > span:last-child {
-    transform: translateY(-.01em);
-  }
-
   .glass-page .glass-page-head .page-title,
   .glass-page .glass-page-head .page-subtitle,
   .glass-page .glass-head-actions,
@@ -56867,30 +56504,6 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
     gap: .65rem !important;
     margin: .35rem 0 .8rem !important;
     padding: 0 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.glass-page) .glass-mobile-back-btn {
-    display: inline-flex !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 2.55rem !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: .42rem !important;
-    padding: .52rem .9rem !important;
-    border-radius: .9rem !important;
-    font-weight: 850 !important;
-    white-space: nowrap !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.glass-page) .glass-mobile-back-btn > i,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.glass-page) .glass-mobile-back-btn > span {
-    display: inline-flex !important;
-    align-items: center !important;
-    line-height: 1 !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -56995,16 +56608,6 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
     opacity: .55 !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.glass-page) .glass-mobile-back-btn {
-    gap: .34rem !important;
-    font-size: .92rem !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.glass-page) .glass-mobile-back-btn > span:first-child {
-    font-size: 1rem !important;
-  }
 }
 
 /* Auth screen: keep the login background one solid tone to the very bottom. */
@@ -57134,17 +56737,6 @@ body.app-body .material-detail-actions .js-material-request-edit .bi::before {
 
 /* v561: mobile remarks edit/split buttons belong under the remark text,
    not under the left "Замечание" label column. */
-@media (max-width: 767.98px) {
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-page-head)
-    .remarks-export-table-shell .task-table.mobile-card-table .task-text .task-text-tools {
-    grid-column: 2 !important;
-    justify-self: start !important;
-    align-self: start !important;
-    margin-top: .34rem !important;
-  }
-}
-
 /* v563: mobile empty states for Remarks and Assignments should be full-width
    readable cards, not clipped table cells or tiny floating buttons. */
 @media (max-width: 767.98px) {

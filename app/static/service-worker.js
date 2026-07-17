@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v11-mobile-pwa-ui';
+const STATIC_CACHE = 'peredacha-static-v13-mobile-conflict-cleanup';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -12,7 +12,7 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
   '/static/style.css?v=v602-mobile-conflict-cleanup',
-  '/static/mobile-only.css?v=v4-mobile-pwa-ui',
+  '/static/mobile-only.css?v=v6-mobile-conflict-cleanup',
   '/static/desktop-only.css?v=v2-material-request-input-white',
   '/static/script.js?v=v602-mobile-actions-cache-reset',
 ];
@@ -149,7 +149,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  if (request.mode === 'navigate' && isMobileRequest(request)) {
+  if (request.mode === 'navigate') {
     event.respondWith(mobileNavigationNetworkFirst(request));
     return;
   }
@@ -158,10 +158,6 @@ self.addEventListener('fetch', event => {
 
   event.respondWith(staticNetworkFirst(request));
 });
-
-function isMobileRequest(request) {
-  return /Android|iPhone|iPad|iPod|Mobile/i.test(request.headers.get('user-agent') || '');
-}
 
 async function mobileNavigationNetworkFirst(request) {
   try {
