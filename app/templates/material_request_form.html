@@ -18,18 +18,18 @@
   <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='requests') }}">Назад</a>
 </div>
 
-<form method="post" class="card content-card material-form-card">
+<form method="post" class="card content-card material-form-card js-material-request-form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="card-body">
 
     <div class="row g-3 mb-3">
       <div class="col-12 col-lg-8 material-request-title-col">
         <label class="form-label">Название заявки</label>
-        <input class="form-control" name="title" placeholder="Например: Материалы для витражников / заказ стеклопакетов">
+        <input class="form-control" name="title" value="{{ form_state.title }}" placeholder="Например: Материалы для витражников / заказ стеклопакетов">
       </div>
       <div class="col-12 col-lg-4 material-request-date-col">
         <label class="form-label">Дата заявки</label>
-        <input class="form-control" type="date" name="request_date" value="{{ today.isoformat() if today else '' }}">
+        <input class="form-control" type="date" name="request_date" value="{{ form_state.request_date }}">
       </div>
     </div>
 
@@ -59,12 +59,14 @@
           </tr>
         </thead>
         <tbody data-max-rows="{{ max_rows }}">
-        {% for i in range(1, 2) %}
+        {% for row in form_state.rows %}
+          {% set row_index = loop.index0 %}
+          {% set row_errors = invalid_fields.get(row_index, []) %}
           <tr>
-            <td class="text-muted">{{ i }}</td>
-            <td><input class="form-control material-name-input" name="name[]" list="request-material-presets" placeholder="Например: Ротбанд"></td>
-            <td><input class="form-control" name="quantity[]" inputmode="decimal" placeholder="Например: 5"></td>
-            <td><input class="form-control material-unit-input" name="unit[]" placeholder="меш / кг / шт / м²"></td>
+            <td class="text-muted">{{ loop.index }}</td>
+            <td><input class="form-control material-name-input{% if 'name' in row_errors %} is-invalid{% endif %}" name="name[]" value="{{ row.name }}" list="request-material-presets" placeholder="Например: Ротбанд"></td>
+            <td><input class="form-control{% if 'quantity' in row_errors %} is-invalid{% endif %}" name="quantity[]" value="{{ row.quantity }}" inputmode="decimal" placeholder="Например: 5"></td>
+            <td><input class="form-control material-unit-input{% if 'unit' in row_errors %} is-invalid{% endif %}" name="unit[]" value="{{ row.unit }}" placeholder="меш / кг / шт / м²"></td>
           </tr>
         {% endfor %}
         </tbody>

@@ -11,7 +11,7 @@ from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import urlparse
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, exists
 from werkzeug.exceptions import HTTPException
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, session, url_for, jsonify
@@ -1214,8 +1214,9 @@ def _read_material_rows_from_form(limit: int = 10) -> list[dict[str, object]]:
     names = request.form.getlist("name[]")
     quantities = request.form.getlist("quantity[]")
     units = request.form.getlist("unit[]")
+    source_item_ids = request.form.getlist("item_id[]")
     rows = []
-    for idx in range(min(limit, max(len(names), len(quantities), len(units)))):
+    for idx in range(min(limit, max(len(names), len(quantities), len(units), len(source_item_ids)))):
         name = (names[idx] if idx < len(names) else "").strip()
         unit = (units[idx] if idx < len(units) else "").strip()
         quantity = _parse_quantity(quantities[idx] if idx < len(quantities) else "")
@@ -1223,7 +1224,13 @@ def _read_material_rows_from_form(limit: int = 10) -> list[dict[str, object]]:
             continue
         if not name or quantity is None or not unit:
             raise ValueError("Заполните наименование, количество и единицу измерения у каждой позиции")
-        rows.append({"name": name, "quantity": quantity, "unit": unit})
+        source_item_id = None
+        if idx < len(source_item_ids):
+            try:
+                source_item_id = int(source_item_ids[idx])
+            except (TypeError, ValueError):
+                pass
+        rows.append({"name": name, "quantity": quantity, "unit": unit, "source_item_id": source_item_id})
     return rows
 
 
@@ -1530,13 +1537,17 @@ def _measurement_request_groups(old_items: list[MaterialRequestItem]) -> list[di
             groups.append(current_group)
         elif current_group is not None:
             current_group["end"] = index + 1
+    for group in groups:
+        start = int(group.get("start") or 0)
+        end = int(group.get("end") or start + 1)
+        group["item_ids"] = [item.id for item in old_items[start:end] if item.id]
     return groups
 
 
 def _sync_measurement_writeoffs_from_request_groups(
     material_request: MaterialRequest,
     groups: list[dict[str, object]],
-    new_items: list[MaterialRequestItem],
+    new_items_by_old_id: dict[int, MaterialRequestItem],
 ) -> None:
     if not groups:
         return
@@ -1544,15 +1555,20 @@ def _sync_measurement_writeoffs_from_request_groups(
         measurement = group.get("measurement")
         if measurement is None:
             continue
-        start = int(group.get("start") or 0)
-        end = int(group.get("end") or start + 1)
-        group_items = new_items[start:end]
+        group_item_ids = [int(item_id) for item_id in group.get("item_ids") or []]
+        group_items = [new_items_by_old_id[item_id] for item_id in group_item_ids if item_id in new_items_by_old_id]
         if group_items:
             measurement.material_request_item = group_items[0]
         else:
             measurement.material_request_item = None
         writeoff = getattr(measurement, "material_writeoff", None)
         if writeoff is None:
+            continue
+        if not group_items:
+            _unlink_measurements_from_writeoff(writeoff.id)
+            measurement.material_writeoff = None
+            writeoff.tasks.clear()
+            db.session.delete(writeoff)
             continue
         writeoff.writeoff_date = material_request.request_date
         writeoff.comment = f"{MEASUREMENT_WRITEOFF_COMMENT_PREFIX}: {material_request.title or material_request.id}"
@@ -1599,12 +1615,9 @@ def _material_task_options(project_id: int, params=None) -> list[Task]:
         query = query.filter(Apartment.is_app_mode.is_(False))
     if dop_only:
         query = query.filter(Task.work_point.has(WorkPoint.point_number.in_(DOP_AGREEMENT_POINT_NUMBERS)))
-    writeoff_task_ids = (
-        db.session.query(material_writeoff_tasks.c.task_id)
-        .join(MaterialWriteOff, MaterialWriteOff.id == material_writeoff_tasks.c.writeoff_id)
-        .filter(MaterialWriteOff.project_id == project_id)
+    query = query.filter(
+        ~exists().where(material_writeoff_tasks.c.task_id == Task.id)
     )
-    query = query.filter(~Task.id.in_(writeoff_task_ids))
     if dop_only:
         query = query.order_by(None).order_by(
             Task.is_done.desc(),
@@ -5453,6 +5466,7 @@ def material_request_update(request_id: int):
         flash("Добавьте хотя бы одну позицию материала", "warning")
         return redirect(url_for("main.material_request_detail", request_id=request_id))
     old_items = list(material_request.items)
+    old_item_ids_set = {item.id for item in old_items if item.id}
     measurement_request_groups = _measurement_request_groups(old_items) if _is_measurement_material_request(material_request) else []
     old_item_ids = [item.id for item in old_items if item.id]
     linked_measurements = (
@@ -5467,17 +5481,18 @@ def material_request_update(request_id: int):
     material_request.request_date = request_date
     material_request.comment = (request.form.get("comment") or material_request.comment or "").strip() or None
     material_request.items.clear()
-    new_items: list[MaterialRequestItem] = []
-    for index, row in enumerate(rows):
+    new_items_by_old_id: dict[int, MaterialRequestItem] = {}
+    for row in rows:
         new_item = MaterialRequestItem(name=str(row["name"]), quantity=float(row["quantity"]), unit=str(row["unit"]))
         material_request.items.append(new_item)
-        new_items.append(new_item)
-        if index < len(old_items):
-            linked_measurement = linked_by_old_item_id.get(old_items[index].id)
+        source_item_id = row.get("source_item_id")
+        if isinstance(source_item_id, int) and source_item_id in old_item_ids_set:
+            new_items_by_old_id[source_item_id] = new_item
+            linked_measurement = linked_by_old_item_id.get(source_item_id)
             if linked_measurement is not None:
                 linked_measurement.material_request_item = new_item
     if _is_measurement_material_request(material_request):
-        _sync_measurement_writeoffs_from_request_groups(material_request, measurement_request_groups, new_items)
+        _sync_measurement_writeoffs_from_request_groups(material_request, measurement_request_groups, new_items_by_old_id)
     db.session.commit()
     flash("Заявка обновлена", "success")
     return redirect(url_for("main.material_request_detail", request_id=request_id))
@@ -5639,7 +5654,6 @@ def material_writeoff_edit(writeoff_id: int):
             flash("Добавьте хотя бы одну позицию материала", "warning")
             return redirect(url_for("main.material_writeoff_edit", writeoff_id=writeoff.id))
         writeoff.writeoff_date = writeoff_date
-        writeoff.comment = None
         writeoff.items.clear()
         for row in rows:
             writeoff.items.append(MaterialWriteOffItem(name=str(row["name"]), quantity=float(row["quantity"]), unit=str(row["unit"])))
@@ -5833,13 +5847,57 @@ def material_request_new():
     if not _can_edit_materials():
         abort(403)
 
+    form_state = {
+        "title": "",
+        "request_date": date.today().isoformat(),
+        "rows": [{"name": "", "quantity": "", "unit": ""}],
+    }
+    invalid_fields: dict[int, set[str]] = {}
+
     if request.method == "POST":
+        posted_names = request.form.getlist("name[]")[:10]
+        posted_quantities = request.form.getlist("quantity[]")[:10]
+        posted_units = request.form.getlist("unit[]")[:10]
+        posted_row_count = max(1, len(posted_names), len(posted_quantities), len(posted_units))
+        form_state = {
+            "title": request.form.get("title", ""),
+            "request_date": request.form.get("request_date", "") or date.today().isoformat(),
+            "rows": [
+                {
+                    "name": posted_names[index] if index < len(posted_names) else "",
+                    "quantity": posted_quantities[index] if index < len(posted_quantities) else "",
+                    "unit": posted_units[index] if index < len(posted_units) else "",
+                }
+                for index in range(posted_row_count)
+            ],
+        }
+        active_row_indexes = [
+            index
+            for index, row in enumerate(form_state["rows"])
+            if any(str(row[key]).strip() for key in ("name", "quantity", "unit"))
+        ]
+        indexes_to_validate = active_row_indexes or [0]
+        for index in indexes_to_validate:
+            row = form_state["rows"][index]
+            missing = set()
+            if not str(row["name"]).strip():
+                missing.add("name")
+            if _parse_quantity(row["quantity"]) is None:
+                missing.add("quantity")
+            if not str(row["unit"]).strip():
+                missing.add("unit")
+            if missing:
+                invalid_fields[index] = missing
+
         try:
             rows = _read_material_rows_from_form(limit=10)
         except ValueError as exc:
             flash(str(exc), "danger")
             rows = []
-        if not rows:
+        if invalid_fields:
+            rows = []
+        elif not rows:
+            invalid_fields[0] = {"name", "quantity", "unit"}
             flash("Добавьте хотя бы одну позицию материала", "warning")
         else:
             request_date = parse_date(request.form.get("request_date")) or date.today()
@@ -5857,7 +5915,14 @@ def material_request_new():
             flash("Заявка на материал добавлена", "success")
             return redirect(url_for("main.materials", tab="requests"))
 
-    return render_template("material_request_form.html", project=project, max_rows=10, today=date.today())
+    return render_template(
+        "material_request_form.html",
+        project=project,
+        max_rows=10,
+        today=date.today(),
+        form_state=form_state,
+        invalid_fields=invalid_fields,
+    )
 
 
 @bp.route("/materials/write-off", methods=["GET", "POST"])
@@ -5868,16 +5933,10 @@ def material_writeoff_new():
         return redirect(url_for("main.objects"))
     if not _can_edit_materials():
         abort(403)
-
-    tasks = _material_task_options(project.id, request.args)
-    finishing_types = [
-        x[0]
-        for x in db.session.query(distinct(Apartment.finishing_type))
-        .filter(Apartment.project_id == project.id, Apartment.finishing_type.isnot(None))
-        .all()
-    ]
-    balance_rows = _material_balance_rows(project.id)
-    balance_options = _balance_options(project.id)
+    if request.method == "GET":
+        redirect_args = request.args.to_dict()
+        redirect_args["tab"] = "writeoff"
+        return redirect(url_for("main.materials", **redirect_args))
 
     if request.method == "POST":
         selected_task_ids = []
@@ -5889,10 +5948,23 @@ def material_writeoff_new():
         selected_tasks = (
             Task.query.options(selectinload(Task.apartment), selectinload(Task.work_point))
             .filter(Task.project_id == project.id, Task.id.in_(selected_task_ids or [-1]))
+            .with_for_update()
             .all()
         )
         order_map = {task_id: index for index, task_id in enumerate(selected_task_ids)}
         selected_tasks.sort(key=lambda task: order_map.get(task.id, 10**9))
+        already_written_off_ids = {
+            task_id
+            for (task_id,) in (
+                db.session.query(material_writeoff_tasks.c.task_id)
+                .filter(material_writeoff_tasks.c.task_id.in_([task.id for task in selected_tasks] or [-1]))
+                .all()
+            )
+        }
+        if already_written_off_ids:
+            db.session.rollback()
+            flash("Одно или несколько выбранных замечаний уже есть в истории списаний. Повторное списание отменено.", "warning")
+            return redirect(url_for("main.materials", tab="writeoff"))
         try:
             rows = _read_balance_writeoff_rows(project.id)
         except ValueError as exc:
@@ -5900,8 +5972,11 @@ def material_writeoff_new():
             rows = None
         if not selected_tasks:
             flash("Выберите одно или несколько замечаний", "warning")
+            db.session.rollback()
+            return redirect(url_for("main.materials", tab="writeoff"))
         elif rows is None:
-            pass
+            db.session.rollback()
+            return redirect(url_for("main.materials", tab="writeoff"))
         else:
             writeoff_date = parse_date(request.form.get("writeoff_date")) or date.today()
             if request.form.get("action") == "distribute":
@@ -5947,18 +6022,7 @@ def material_writeoff_new():
             flash("Материал списан на выбранные замечания", "success")
             return redirect(url_for("main.materials", tab="history"))
 
-    return render_template(
-        "material_writeoff_form.html",
-        project=project,
-        tasks=tasks,
-        balance_rows=balance_rows,
-        balance_options=balance_options,
-        max_rows=1,
-        points=_contractor_point_options(),
-        finishing_types=finishing_types,
-        args=request.args,
-        today=date.today(),
-    )
+    return redirect(url_for("main.materials", tab="writeoff"))
 
 
 def _project_apartment_options(project_id: int) -> list[Apartment]:
@@ -8428,17 +8492,15 @@ def work_report():
         return redirect(url_for("main.objects"))
     today = date.today()
     start = today - timedelta(days=55)
-    # В отчёт попадает только обычное «Выполнено». Завершающие статусы
-    # «Отступные», «Чистовики» и «Гарантия» намеренно не учитываются.
-    report_excluded_statuses = (STATUS_CONCESSION, STATUS_FINISHERS, STATUS_GUARANTEE)
+    # Include ordinary completed work and remarks closed with a concession.
+    report_statuses = (STATUS_DONE, STATUS_CONCESSION)
     tasks = (
         Task.query.join(Apartment)
         .join(WorkPoint)
         .filter(
             Task.project_id == project.id,
             Task.is_done.is_(True),
-            Task.status == STATUS_DONE,
-            Task.status.notin_(report_excluded_statuses),
+            Task.status.in_(report_statuses),
             WorkPoint.point_number.notin_(DOP_AGREEMENT_POINT_NUMBERS),
             Task.completed_date.isnot(None),
             Task.completed_date >= start,
@@ -8477,12 +8539,11 @@ def work_report_export():
         end = today
         filename_prefix = f"{project.name}_отчет_весь период"
     # Держим Excel-выгрузку синхронной с экраном отчёта.
-    report_excluded_statuses = (STATUS_CONCESSION, STATUS_FINISHERS, STATUS_GUARANTEE)
+    report_statuses = (STATUS_DONE, STATUS_CONCESSION)
     base_query = Task.query.filter(
         Task.project_id == project.id,
         Task.is_done.is_(True),
-        Task.status == STATUS_DONE,
-        Task.status.notin_(report_excluded_statuses),
+        Task.status.in_(report_statuses),
         Task.work_point.has(WorkPoint.point_number.notin_(DOP_AGREEMENT_POINT_NUMBERS)),
         Task.completed_date.isnot(None),
         Task.completed_date >= start,
@@ -8490,7 +8551,7 @@ def work_report_export():
     )
     task_count, last_updated = base_query.with_entities(func.count(Task.id), func.max(Task.updated_at)).one()
     cache_stamp = last_updated.strftime("%Y%m%d%H%M%S") if last_updated else "empty"
-    cache_key = f"report-v2_count-{task_count}_updated-{cache_stamp}"
+    cache_key = f"report-v3-concessions_count-{task_count}_updated-{cache_stamp}"
     path = build_export_path(filename_prefix, cache_key=cache_key)
     download_name = f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
     if path.exists():

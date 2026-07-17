@@ -32,7 +32,10 @@
       {% for task in bucket.tasks %}
       <div class="report-task-item">
         <b>{{ task.apartment.label() if task.apartment else '—' }} · {{ task.completed_date|ru_date if task.completed_date else '' }}</b>
-        <span>{{ remark_text(task.description or task.source_cell_value) }}</span>
+        <span>
+          {{ remark_text(task.description or task.source_cell_value) }}
+          {% if task.status == 'concession' %}<strong class="report-task-result">(Выданы отступные)</strong>{% endif %}
+        </span>
       </div>
       {% else %}
       <p class="text-muted mb-0">За этот интервал выполненных работ нет.</p>

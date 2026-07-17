@@ -1,0 +1,18 @@
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .inline-edit-btn.inline-edit,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .inline-edit-btn.inline-edit:is(:hover, :focus, :active) {
+    background: linear-gradient(180deg, #79bf25, #6aa81f) !important;
+    border-color: #6aa81f !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .inline-edit-btn.inline-edit :is(i, .bi),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .inline-edit-btn.inline-edit :is(i, .bi)::before {
+    display: inline-block !important;
+    color: #fff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    -webkit-text-fill-color: #fff !important;
+  }
+}

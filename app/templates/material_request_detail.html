@@ -95,7 +95,10 @@
           {% set item = material_request.items[i] if i < material_request.items|length else none %}
           <tr>
             <td class="text-muted">{{ i + 1 }}</td>
-            <td><input class="form-control material-name-input" name="name[]" value="{{ item.name if item else '' }}" placeholder="Например: Стекло"></td>
+            <td>
+              <input type="hidden" name="item_id[]" value="{{ item.id if item else '' }}">
+              <input class="form-control material-name-input" name="name[]" value="{{ item.name if item else '' }}" placeholder="Например: Стекло">
+            </td>
             <td><input class="form-control" name="quantity[]" inputmode="decimal" value="{{ fmt_quantity(item.quantity) if item else '' }}" placeholder="Например: 5"></td>
             <td><input class="form-control material-unit-input" name="unit[]" value="{{ item.unit if item else '' }}" placeholder="меш / кг / шт / м²"></td>
           </tr>

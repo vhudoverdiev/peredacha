@@ -1,0 +1,61 @@
+/* Overrides in this file are intentionally limited to desktop layouts. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active),
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active):hover,
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active):focus {
+    border-color: rgba(112, 189, 29, 0.42) !important;
+    background: #ffffff !important;
+    color: #5c9f17 !important;
+    -webkit-text-fill-color: #5c9f17 !important;
+    box-shadow: 0 10px 22px rgba(31, 45, 61, 0.07) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active) i,
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active) i::before {
+    color: #5c9f17 !important;
+    -webkit-text-fill-color: #5c9f17 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn.is-active {
+    border-color: #6aa81f !important;
+    background: linear-gradient(180deg, #79bf25 0%, #6aa81f 100%) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 10px 22px rgba(121, 191, 37, 0.22) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn.is-active i,
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn.is-active i::before {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:hover,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:focus,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:focus-visible,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:-webkit-autofill,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:-webkit-autofill:hover,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:-webkit-autofill:focus {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+    -webkit-text-fill-color: #111827 !important;
+    caret-color: #5c9f17 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:not(.is-invalid):focus,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:not(.is-invalid):focus-visible,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:not(.is-invalid):-webkit-autofill:focus {
+    border-color: #8dd62c !important;
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 0.2rem rgba(141, 214, 44, 0.14) !important;
+    box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 0.2rem rgba(141, 214, 44, 0.14) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input.is-invalid,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input.is-invalid:focus {
+    border-color: #dc3545 !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 0.2rem rgba(220, 53, 69, 0.14) !important;
+  }
+}

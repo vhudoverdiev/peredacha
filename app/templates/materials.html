@@ -218,7 +218,6 @@
               </tbody>
             </table>
           </div>
-          <div class="form-text mt-2">Галочку можно поставить кликом по всей строке. Двойной клик откроет карточку замечания.</div>
         </div>
       </div>
     </div>
@@ -290,6 +289,7 @@
             <th>№</th>
             <th>Перечень замечаний</th>
             <th>Потраченный материал</th>
+            <th class="material-history-actions-head">Действия</th>
           </tr>
         </thead>
         <tbody>
@@ -311,7 +311,17 @@
             <td>
               <div class="material-task-list">
                 {% for task in writeoff.tasks %}
-                  <div class="material-task-item"><span>{{ remark_text(task.description or task.source_cell_value) }}</span></div>
+                  <div class="material-task-item">
+                    <div class="d-flex align-items-start gap-2">
+                      <span class="inline-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
+                      {% if can_edit_materials %}
+                      <span class="material-history-desktop-task-actions">
+                        <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square"></i></button>
+                        <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
+                      </span>
+                      {% endif %}
+                    </div>
+                  </div>
                 {% else %}
                   <span class="text-muted">Замечания не выбраны</span>
                 {% endfor %}
@@ -324,9 +334,20 @@
                 <span class="text-muted">Нет позиций</span>
               {% endfor %}
             </td>
+            <td class="material-history-actions-col">
+              {% if can_edit_materials %}
+              <div class="material-history-actions">
+                <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.material_writeoff_edit', writeoff_id=writeoff.id) }}" title="Редактировать списание" aria-label="Редактировать списание"><i class="bi bi-pencil-square"></i></a>
+                <form method="post" action="{{ url_for('main.material_writeoff_delete', writeoff_id=writeoff.id) }}" data-confirm="Удалить это списание? Материал вернётся на баланс.">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-outline-danger btn-sm" type="submit" title="Удалить списание" aria-label="Удалить списание"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+              {% endif %}
+            </td>
           </tr>
         {% else %}
-          <tr><td colspan="4" class="text-center text-muted py-5">Списаний материала пока нет</td></tr>
+          <tr><td colspan="5" class="text-center text-muted py-5">Списаний материала пока нет</td></tr>
         {% endfor %}
         </tbody>
       </table>

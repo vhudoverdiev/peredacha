@@ -13,7 +13,7 @@ from openpyxl.cell.rich_text import CellRichText, TextBlock
 from openpyxl.cell.text import InlineFont
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
-from app.models import Apartment, SyncLog, Task, STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR
+from app.models import Apartment, SyncLog, Task, STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR, STATUS_CONCESSION
 from app.services.excel_import import inspect_remarks_workbook
 from app.services.task_service import get_setting
 
@@ -472,6 +472,13 @@ def _normalize_report_export_text(value: object) -> str:
     return text[:1].upper() + text[1:]
 
 
+def _report_task_remark(task: Task) -> str:
+    remark = _clean_report_remark(task.description or task.source_cell_value)
+    if task.status == STATUS_CONCESSION:
+        return f"{remark} (Выданы отступные)" if remark else "Выданы отступные"
+    return remark
+
+
 def export_report_tasks_excel(tasks: Iterable[Task], filename_prefix: str) -> Path:
     folder = Path(current_app.config["EXPORT_FOLDER"])
     folder.mkdir(parents=True, exist_ok=True)
@@ -485,7 +492,7 @@ def export_report_tasks_excel(tasks: Iterable[Task], filename_prefix: str) -> Pa
         ws.append(
             [
                 (_excel_premise_label(task.apartment) if task.apartment else ""),
-                _clean_report_remark(task.description or task.source_cell_value),
+                _report_task_remark(task),
                 task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
             ]
         )
@@ -506,7 +513,7 @@ def export_report_tasks_excel(tasks: Iterable[Task], filename_prefix: str, cache
         ws.append(
             [
                 (_excel_premise_label(task.apartment) if task.apartment else ""),
-                _clean_report_remark(task.description or task.source_cell_value),
+                _report_task_remark(task),
                 task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
             ]
         )

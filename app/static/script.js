@@ -2557,6 +2557,48 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  document.querySelectorAll('.js-material-request-form').forEach(form => {
+    const rowFields = row => ({
+      name: row.querySelector('input[name="name[]"]'),
+      quantity: row.querySelector('input[name="quantity[]"]'),
+      unit: row.querySelector('input[name="unit[]"]'),
+    });
+    const hasValue = field => Boolean(field?.value.trim());
+    const validQuantity = field => {
+      const value = Number((field?.value || '').trim().replace(',', '.'));
+      return Number.isFinite(value) && value > 0;
+    };
+
+    form.addEventListener('input', event => {
+      const field = event.target.closest('input[name="name[]"], input[name="quantity[]"], input[name="unit[]"]');
+      if (!field) return;
+      const valid = field.name === 'quantity[]' ? validQuantity(field) : hasValue(field);
+      if (valid) field.classList.remove('is-invalid');
+    });
+
+    form.addEventListener('submit', event => {
+      const rows = Array.from(form.querySelectorAll('.material-edit-table tbody tr'));
+      const activeRows = rows.filter(row => Object.values(rowFields(row)).some(hasValue));
+      const rowsToValidate = activeRows.length ? activeRows : rows.slice(0, 1);
+      const invalid = [];
+
+      rowsToValidate.forEach(row => {
+        const fields = rowFields(row);
+        if (!hasValue(fields.name)) invalid.push(fields.name);
+        if (!validQuantity(fields.quantity)) invalid.push(fields.quantity);
+        if (!hasValue(fields.unit)) invalid.push(fields.unit);
+      });
+      invalid.filter(Boolean).forEach(field => field.classList.add('is-invalid'));
+      if (!invalid.length) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const firstInvalid = invalid.find(Boolean);
+      firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      window.setTimeout(() => firstInvalid?.focus({ preventScroll: true }), 180);
+    });
+  });
+
   document.querySelectorAll('.js-material-request-edit').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelector('.js-material-request-view')?.classList.add('d-none');
