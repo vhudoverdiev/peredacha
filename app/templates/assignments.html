@@ -95,7 +95,15 @@
 </div>
 
 <div class="assignment-subtabs mb-3">
-  <a class="assignment-subtab {% if view_mode != 'issued' %}active{% endif %}" href="{{ url_for('main.assignments') }}"><i class="bi bi-send-check"></i>Выдать задачи</a>
+  <a class="assignment-subtab {% if view_mode == 'issued' %}assignment-issued-back-link{% endif %} {% if view_mode != 'issued' %}active{% endif %}" href="{{ url_for('main.assignments') }}">
+    <span class="assignment-desktop-issue-content"><i class="bi bi-send-check"></i>Выдать задачи</span>
+    {% if view_mode == 'issued' %}
+    <span class="assignment-mobile-back-content" style="display:none">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg>
+      <span>Назад</span>
+    </span>
+    {% endif %}
+  </a>
   <a class="assignment-subtab {% if view_mode == 'issued' %}active{% endif %}" href="{{ url_for('main.assignments', view='issued') }}"><i class="bi bi-people"></i>Выданные сотрудникам{% if issued_total %}<span title="{{ task_count_label(issued_total) }}">{{ issued_total }}</span>{% endif %}</a>
 </div>
 

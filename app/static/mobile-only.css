@@ -5,7 +5,79 @@
     display: inline-flex !important;
     visibility: visible !important;
     opacity: 1 !important;
-    bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .045rem + env(safe-area-inset-bottom)) !important;
+    bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .015rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* One mobile action system for remark edit/split controls across every page. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body :is(.inline-edit-btn.inline-edit, .inline-edit-btn.inline-split-btn) {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    flex: 0 0 2.55rem !important;
+    width: 2.55rem !important;
+    min-width: 2.55rem !important;
+    max-width: 2.55rem !important;
+    height: 2.55rem !important;
+    min-height: 2.55rem !important;
+    max-height: 2.55rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: .9rem !important;
+    line-height: 1 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body :is(.inline-edit-btn.inline-edit, .inline-edit-btn.inline-edit:hover,
+    .inline-edit-btn.inline-edit:focus, .inline-edit-btn.inline-edit:focus-visible,
+    .inline-edit-btn.inline-edit:active) {
+    border: 1px solid rgba(141, 214, 44, .25) !important;
+    background: linear-gradient(180deg, #fff 0%, #f9fbf5 100%) !important;
+    color: #18231a !important;
+    -webkit-text-fill-color: #18231a !important;
+    box-shadow: 0 7px 16px rgba(37, 49, 32, .07) !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body :is(.inline-edit-btn.inline-split-btn, .inline-edit-btn.inline-split-btn:hover,
+    .inline-edit-btn.inline-split-btn:focus, .inline-edit-btn.inline-split-btn:focus-visible,
+    .inline-edit-btn.inline-split-btn:active) {
+    border: 1px solid #80c628 !important;
+    background: linear-gradient(180deg, #99df3f 0%, #80c628 100%) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    box-shadow: 0 9px 18px rgba(141, 214, 44, .2) !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body :is(.inline-edit-btn.inline-edit, .inline-edit-btn.inline-split-btn) :is(i, .bi, svg) {
+    display: inline-flex !important;
+    width: 1.18rem !important;
+    height: 1.18rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    font-size: 1.08rem !important;
+    line-height: 1 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .inline-edit-btn.inline-edit :is(i, .bi, svg) {
+    color: #18231a !important;
+    -webkit-text-fill-color: #18231a !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .inline-edit-btn.inline-split-btn :is(i, .bi, svg) {
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
@@ -55,8 +127,8 @@
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.remarks-page-head) .remarks-export-table-shell
     .task-text-tools .inline-split-btn {
-    background: linear-gradient(180deg, #79bf25, #68a91d) !important;
-    border-color: #68a91d !important;
+    background: linear-gradient(180deg, #99df3f 0%, #80c628 100%) !important;
+    border-color: #80c628 !important;
     color: #fff !important;
     -webkit-text-fill-color: #fff !important;
   }
@@ -171,6 +243,23 @@
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.remarks-page-head) .remarks-export-table-shell
     .task-table.mobile-card-table tr.inline-editor-open-row
+    > .task-text.inline-editing-host::before {
+    display: block !important;
+    grid-column: 2 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 0 .3rem !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+    writing-mode: horizontal-tb !important;
+    line-height: 1.2 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row
     > .task-text.inline-editing-host > .inline-editor-floating {
     position: static !important;
     inset: auto !important;
@@ -203,6 +292,46 @@
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
+    margin: .7rem 0 0 !important;
+    padding: .75rem !important;
+    overflow: visible !important;
+    z-index: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page
+    .glass-ordered-table.mobile-card-table .glass-order-row
+    .task-text:has(> .inline-editor-anchor.inline-editing-host)
+    > .inline-editor-anchor.inline-editing-host {
+    grid-column: 1 / -1 !important;
+    justify-self: stretch !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page
+    .glass-ordered-table.mobile-card-table .glass-order-row
+    .inline-editor-anchor.inline-editing-host {
+    display: grid !important;
+    grid-template-columns: repeat(2, 2.55rem) minmax(0, 1fr) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    align-items: center !important;
+    gap: .5rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page
+    .glass-ordered-table.mobile-card-table .glass-order-row
+    .inline-editor-anchor.inline-editing-host > .inline-editor-floating {
+    position: static !important;
+    inset: auto !important;
+    grid-column: 1 / -1 !important;
+    justify-self: stretch !important;
+    box-sizing: border-box !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
     margin: .7rem 0 0 !important;
     padding: .75rem !important;
     overflow: visible !important;
@@ -348,5 +477,118 @@
   body.app-body .assignment-issued-table .assignment-delete-employee-task-btn :is(i, .bi)::before {
     color: #b42332 !important;
     -webkit-text-fill-color: #b42332 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child {
+    display: flex !important;
+    width: 100% !important;
+    min-height: 3.45rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .78rem 1rem !important;
+    border: 1px solid rgba(141, 191, 80, .34) !important;
+    border-radius: 1.2rem !important;
+    background: linear-gradient(180deg, #fff 0%, #f6faef 100%) !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    box-shadow: 0 12px 28px rgba(59, 82, 42, .08) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child
+    .assignment-desktop-issue-content {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child
+    .assignment-mobile-back-content {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .48rem !important;
+    font-size: 1rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child
+    .assignment-mobile-back-content svg {
+    display: block !important;
+    width: 1.18rem !important;
+    height: 1.18rem !important;
+    flex: 0 0 1.18rem !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2.15 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    .remarks-tab-link-category::after {
+    content: attr(data-category-label) !important;
+    bottom: calc(100% + .42rem) !important;
+    padding: .38rem .62rem !important;
+    border-radius: .58rem !important;
+    background: #111820 !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    font-size: .72rem !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+    box-shadow: 0 10px 24px rgba(10, 16, 24, .26) !important;
+    z-index: 30 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    .remarks-tab-link-category:is(:hover, :focus, :focus-visible, :active)::after {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: translateX(-50%) translateY(0) !important;
+  }
+
+  /* Keep primary green identical to the mobile Save button in every state. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.task-detail-page) .task-detail-comments-card
+    form[data-task-comment-async="1"]
+    :is(.btn, .btn:hover, .btn:focus, .btn:focus-visible, .btn:active),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page)
+    .apartment-inspection-status-form-detail .apartment-inspection-date-actions
+    :is(.btn, .btn:hover, .btn:focus, .btn:focus-visible, .btn:active) {
+    border-color: #80c628 !important;
+    background: linear-gradient(180deg, #99df3f 0%, #80c628 100%) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    box-shadow: 0 12px 24px rgba(141, 214, 44, .22) !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.task-detail-page) .task-detail-related-actions
+    .task-detail-excel-link {
+    display: none !important;
   }
 }
