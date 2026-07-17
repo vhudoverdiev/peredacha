@@ -1107,6 +1107,10 @@ def enforce_role_access():
         return None
 
     if not current_user.is_authenticated:
+        if request.method in {"GET", "HEAD"} and endpoint in {"main.dashboard", "main.dashboard_legacy"}:
+            from app.auth import login as login_view
+
+            return login_view()
         next_url = request.full_path if request.query_string else request.path
         return redirect(url_for("auth.login", next=next_url))
 

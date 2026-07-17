@@ -5,10 +5,11 @@
   <div class="card login-card shadow-sm">
     <div class="login-card-glow" aria-hidden="true"></div>
     <div class="card-body p-4">
-      <form method="post" class="login-form">
+      <form method="post" action="{{ url_for('auth.login') }}" class="login-form">
         {{ form.hidden_tag() }}
-        {% if request.args.get('next') %}
-        <input type="hidden" name="next" value="{{ request.args.get('next') }}">
+        {% set login_next = request.args.get('next') or (request.path if request.path in ['/', '/object'] else '') %}
+        {% if login_next %}
+        <input type="hidden" name="next" value="{{ login_next }}">
         {% endif %}
         <div class="mb-3 login-field">
           {{ form.username.label(class="form-label") }}

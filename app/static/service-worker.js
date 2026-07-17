@@ -1,6 +1,6 @@
-const STATIC_CACHE = 'peredacha-static-v5';
-const PAGE_CACHE = 'peredacha-pages-v5';
-const LEGACY_PAGE_CACHES = ['peredacha-pages-v4', 'peredacha-pages-v3'];
+const STATIC_CACHE = 'peredacha-static-v7';
+const PAGE_CACHE = 'peredacha-pages-v7';
+const LEGACY_PAGE_CACHES = ['peredacha-pages-v6', 'peredacha-pages-v5', 'peredacha-pages-v4', 'peredacha-pages-v3'];
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -8,8 +8,17 @@ const STATIC_ASSETS = [
   '/static/favicon-32x32.png',
   '/static/favicon-16x16.png',
   '/static/apple-splash.png',
-  '/login',
+  '/static/vendor/bootstrap/bootstrap.min.css?v=5.3.3',
+  '/static/vendor/bootstrap/bootstrap-icons.min.css?v=1.11.3',
+  '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
+  '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
+  '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
+  '/static/style.css?v=v601-mobile-cascade-cleanup',
+  '/static/mobile-only.css?v=v2-mobile-cascade-cleanup',
+  '/static/desktop-only.css?v=v2-material-request-input-white',
+  '/static/script.js?v=v601-mobile-actions-fix',
 ];
+const APP_SHELL_PAGES = ['/', '/object', '/objects', '/login'];
 const MOBILE_OFFLINE_STYLE = `<style data-crm-offline-mobile-style>
   #crmMobileOfflineExperience { display: none; }
 
@@ -18,6 +27,7 @@ const MOBILE_OFFLINE_STYLE = `<style data-crm-offline-mobile-style>
     html.crm-offline-mobile-experience body {
       overflow: hidden !important;
       overscroll-behavior: none !important;
+      background: #f3f8ec !important;
     }
 
     html.crm-offline-mobile-experience body > :not(#crmMobileOfflineExperience) {
@@ -30,12 +40,15 @@ const MOBILE_OFFLINE_STYLE = `<style data-crm-offline-mobile-style>
 
     #crmMobileOfflineExperience {
       position: fixed;
-      inset: 0;
+      inset: -1px;
       z-index: 2147483647;
       display: grid;
       place-items: center;
       box-sizing: border-box;
-      min-height: 100dvh;
+      width: calc(100vw + 2px);
+      height: calc(100vh + 2px);
+      height: calc(100dvh + 2px);
+      min-height: calc(100vh + 2px);
       padding: max(1.2rem, env(safe-area-inset-top)) 1.15rem max(1.2rem, env(safe-area-inset-bottom));
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
@@ -87,64 +100,91 @@ const MOBILE_OFFLINE_STYLE = `<style data-crm-offline-mobile-style>
 
     .crm-mobile-offline-loader {
       display: grid;
+      width: 100%;
       justify-items: center;
-      gap: 1rem;
-      padding: 1.55rem 1.25rem;
-      border: 1px solid rgba(210, 224, 199, .92);
-      border-radius: 1.65rem;
-      background: rgba(255, 255, 255, .88);
-      box-shadow: 0 1.8rem 5rem rgba(31, 45, 61, .13);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
     }
 
-    .crm-mobile-offline-loader-orbit {
+    .crm-mobile-offline-loader .site-page-loader-card {
+      width: min(64vw, 19.5rem);
+      min-width: 15rem;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(210, 224, 199, .92);
+      border-radius: clamp(2rem, 7vw, 3.5rem);
+      background: rgba(255, 255, 255, .8);
+      box-shadow: 0 34px 95px rgba(31, 45, 61, .18);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      animation: siteLoaderCardIn .5s ease both;
+    }
+
+    .crm-mobile-offline-loader .mobile-loading-orbit {
       position: relative;
       display: grid;
-      width: 5.6rem;
-      height: 5.6rem;
+      width: clamp(8.5rem, 30vw, 11rem);
+      height: clamp(8.5rem, 30vw, 11rem);
       place-items: center;
     }
 
-    .crm-mobile-offline-loader-orbit::before {
+    .crm-mobile-offline-loader .mobile-loading-orbit::before,
+    .crm-mobile-offline-loader .mobile-loading-orbit::after,
+    .crm-mobile-offline-loader .mobile-loading-orbit > span {
       content: "";
       position: absolute;
       inset: 0;
-      border: .22rem solid rgba(141, 214, 44, .16);
-      border-top-color: #7fc523;
-      border-right-color: #7fc523;
+      border: 2px solid transparent;
       border-radius: 50%;
-      animation: crmOfflineSpin .9s linear infinite;
     }
 
-    .crm-mobile-offline-brand {
-      position: relative;
+    .crm-mobile-offline-loader .mobile-loading-orbit::before {
+      border-top-color: rgba(141, 214, 44, .92);
+      border-right-color: rgba(141, 214, 44, .24);
+      animation: mobileLoaderSpin 1.15s linear infinite;
+    }
+
+    .crm-mobile-offline-loader .mobile-loading-orbit::after {
+      inset: .75rem;
+      border-bottom-color: rgba(141, 214, 44, .9);
+      border-left-color: rgba(141, 214, 44, .22);
+      animation: mobileLoaderSpin 1.7s linear infinite reverse;
+    }
+
+    .crm-mobile-offline-loader .mobile-loading-orbit > span:nth-child(1) {
+      inset: 1.55rem;
+      border-top-color: rgba(124, 58, 237, .42);
+      animation: mobileLoaderPulse 1.6s ease-in-out infinite;
+    }
+
+    .crm-mobile-offline-loader .mobile-loading-orbit > span:nth-child(2) {
+      inset: -.35rem;
+      border-right-color: rgba(141, 214, 44, .18);
+      animation: mobileLoaderPulse 1.9s ease-in-out infinite .18s;
+    }
+
+    .crm-mobile-offline-loader .mobile-loading-orbit > span:nth-child(3) {
+      inset: 2.25rem;
+      background: radial-gradient(circle, rgba(141, 214, 44, .1), transparent 68%);
+      animation: mobileLoaderGlow 1.45s ease-in-out infinite alternate;
+    }
+
+    .crm-mobile-offline-loader .mobile-loading-mark {
       display: grid;
-      width: 3.45rem;
-      height: 3.45rem;
+      width: clamp(4.2rem, 15vw, 5.35rem);
+      height: clamp(4.2rem, 15vw, 5.35rem);
       place-items: center;
-      border-radius: 1.05rem;
-      background: linear-gradient(145deg, #9ade43, #79c51d);
-      color: #fff;
-      font-size: 1.7rem;
-      font-weight: 900;
-      line-height: 1;
-      box-shadow: 0 .85rem 1.8rem rgba(121, 197, 29, .28), inset 0 1px 0 rgba(255, 255, 255, .55);
+      overflow: hidden;
+      border-radius: clamp(1.25rem, 4vw, 1.65rem);
+      background: #8dd62c;
+      box-shadow: 0 18px 42px rgba(141, 214, 44, .3);
+      animation: mobileLoaderMark 1.8s ease-in-out infinite;
     }
 
-    .crm-mobile-offline-brand::after {
-      content: "✦";
-      position: absolute;
-      top: .36rem;
-      right: .42rem;
-      font-size: .48rem;
-      opacity: .9;
-    }
-
-    .crm-mobile-offline-loader strong {
-      font-size: 1.02rem;
-      font-weight: 850;
-      letter-spacing: -.01em;
+    .crm-mobile-offline-loader .mobile-loading-logo {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .crm-mobile-offline-card {
@@ -221,12 +261,17 @@ const MOBILE_OFFLINE_STYLE = `<style data-crm-offline-mobile-style>
       line-height: 1;
       box-shadow: 0 .9rem 1.9rem rgba(105, 170, 31, .24), inset 0 1px 0 rgba(255, 255, 255, .32);
       -webkit-tap-highlight-color: transparent;
+      overflow: visible;
     }
 
     .crm-mobile-offline-retry svg {
       width: 1.08rem;
       height: 1.08rem;
-      stroke: currentColor;
+      display: block;
+      flex: 0 0 1.08rem;
+      overflow: visible !important;
+      fill: none !important;
+      stroke: currentColor !important;
     }
 
     html.crm-offline-mobile-loading .crm-mobile-offline-loader {
@@ -250,21 +295,47 @@ const MOBILE_OFFLINE_STYLE = `<style data-crm-offline-mobile-style>
       transform: translate(-50%, -50%) scale(1);
     }
 
-    @keyframes crmOfflineSpin {
+    @keyframes mobileLoaderSpin {
       to { transform: rotate(360deg); }
+    }
+
+    @keyframes mobileLoaderPulse {
+      0%, 100% { transform: scale(.94); opacity: .34; }
+      50% { transform: scale(1.04); opacity: .82; }
+    }
+
+    @keyframes mobileLoaderGlow {
+      from { transform: scale(.9); opacity: .35; }
+      to { transform: scale(1.12); opacity: .85; }
+    }
+
+    @keyframes mobileLoaderMark {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-3px) scale(1.04); }
+    }
+
+    @keyframes siteLoaderCardIn {
+      from { transform: translateY(1rem) scale(.97); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
     }
 
     @media (prefers-reduced-motion: reduce) {
       .crm-mobile-offline-panel { transition-duration: .01ms; }
-      .crm-mobile-offline-loader-orbit::before { animation-duration: 1.8s; }
+      .crm-mobile-offline-loader .mobile-loading-orbit::before { animation-duration: 1.8s; }
     }
   }
 </style>`;
 
 const MOBILE_OFFLINE_MARKUP = `<section id="crmMobileOfflineExperience" aria-live="polite" aria-label="Нет подключения к интернету">
   <div class="crm-mobile-offline-panel crm-mobile-offline-loader" role="status">
-    <div class="crm-mobile-offline-loader-orbit" aria-hidden="true"><span class="crm-mobile-offline-brand">A</span></div>
-    <strong>Загружаем приложение…</strong>
+    <div class="site-page-loader-card">
+      <div class="mobile-loading-orbit" aria-hidden="true">
+        <span></span><span></span><span></span>
+        <div class="mobile-loading-mark">
+          <img class="mobile-loading-logo" src="/static/brand-logo.png" width="82" height="82" alt="">
+        </div>
+      </div>
+    </div>
   </div>
   <div class="crm-mobile-offline-panel crm-mobile-offline-card">
     <div class="crm-mobile-offline-icon" aria-hidden="true">
@@ -274,7 +345,7 @@ const MOBILE_OFFLINE_MARKUP = `<section id="crmMobileOfflineExperience" aria-liv
     <h2>Нет интернета</h2>
     <p>Проверьте подключение к сети и попробуйте открыть приложение ещё раз.</p>
     <button class="crm-mobile-offline-retry" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8.1 8.1 0 1 0 2 5.3"/><path d="M20 4v7h-7"/></svg>
+      <svg viewBox="-1 -1 26 26" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6v5h-5"/><path d="M20 11a8 8 0 1 0 1.2 5.7"/></svg>
       <span>Попробовать снова</span>
     </button>
   </div>
@@ -360,12 +431,24 @@ const withoutSearch = request => {
 };
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then(cache => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
-      .catch(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const staticCache = await caches.open(STATIC_CACHE);
+    const pageCache = await caches.open(PAGE_CACHE);
+
+    await Promise.allSettled([
+      staticCache.addAll(STATIC_ASSETS),
+      ...APP_SHELL_PAGES.map(async path => {
+        const request = new Request(path, {
+          method: 'GET',
+          credentials: 'same-origin',
+          cache: 'reload',
+        });
+        const response = await fetch(request);
+        if (response && response.ok) await pageCache.put(path, response.clone());
+      }),
+    ]);
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', event => {
@@ -424,7 +507,7 @@ async function handleHtmlRequest(request) {
   const requestWithoutSearch = withoutSearch(request);
 
   try {
-    const networkResponse = await fetchWithTimeout(requestWithSearch, 4500);
+    const networkResponse = await fetchWithTimeout(requestWithSearch, 3500);
     if (networkResponse && networkResponse.ok) {
       cache.put(requestWithSearch, networkResponse.clone()).catch(() => {});
       cache.put(requestWithoutSearch, networkResponse.clone()).catch(() => {});
@@ -494,17 +577,12 @@ async function buildOfflineFallbackResponse(response, injectIntoHtml) {
   });
 }
 
-function fetchWithTimeout(request, timeoutMs) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('timeout')), timeoutMs);
-    fetch(request)
-      .then(response => {
-        clearTimeout(timer);
-        resolve(response);
-      })
-      .catch(error => {
-        clearTimeout(timer);
-        reject(error);
-      });
-  });
+async function fetchWithTimeout(request, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(request, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 }

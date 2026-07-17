@@ -102,9 +102,9 @@ def create_app(config_class=Config):
             "form-action 'self'; "
             "frame-ancestors 'none'; "
             "img-src 'self' data:; "
-            "font-src 'self' https://cdn.jsdelivr.net data:; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "font-src 'self' data:; "
+            "style-src 'self' 'unsafe-inline'; "
+            "script-src 'self' 'unsafe-inline'; "
             "connect-src 'self'",
         )
         if app.config.get("FORCE_HSTS") or request.is_secure:
