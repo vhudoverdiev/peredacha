@@ -4,14 +4,17 @@
     display: inline-flex !important;
     visibility: visible !important;
     opacity: 1 !important;
-    bottom: calc(4.68rem + env(safe-area-inset-bottom)) !important;
+    bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .09rem + env(safe-area-inset-bottom)) !important;
   }
 
   body.app-body .remarks-export-table-shell .task-text-tools {
     display: flex !important;
-    flex-flow: row wrap !important;
+    flex-flow: row nowrap !important;
     align-items: center !important;
     gap: .5rem !important;
+    width: max-content !important;
+    min-width: 5.6rem !important;
+    max-width: 100% !important;
     margin-top: .6rem !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -83,14 +86,14 @@
     flex-flow: row nowrap !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: .48rem !important;
+    gap: .42rem !important;
     min-height: 3rem !important;
-    padding: .72rem 1rem !important;
+    padding: .7rem 1rem !important;
     color: #243121 !important;
     -webkit-text-fill-color: #243121 !important;
     font-size: .98rem !important;
     font-weight: 850 !important;
-    line-height: 1 !important;
+    line-height: 1.2 !important;
     white-space: nowrap !important;
   }
 
@@ -108,13 +111,44 @@
     margin: 0 !important;
     overflow: visible !important;
     transform: none !important;
-    line-height: 1 !important;
+    line-height: 1.2 !important;
     white-space: nowrap !important;
   }
 
-  body.app-body .glass-page .glass-mobile-back-btn > span:first-child {
-    font-size: 1.28rem !important;
-    font-weight: 500 !important;
+  body.app-body .glass-page .glass-mobile-back-btn .glass-mobile-back-icon {
+    display: block !important;
+    flex: 0 0 1.15rem !important;
+    width: 1.15rem !important;
+    height: 1.15rem !important;
+    overflow: visible !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2.15 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+  }
+
+  body.app-body .glass-page .glass-mobile-back-btn .glass-mobile-back-label {
+    position: static !important;
+    font-size: .98rem !important;
+    font-weight: 850 !important;
+    letter-spacing: 0 !important;
+    text-indent: 0 !important;
+  }
+
+  body.app-body .remarks-export-table-shell .task-text-tools .task-tool-svg {
+    display: block !important;
+    flex: 0 0 1.2rem !important;
+    width: 1.2rem !important;
+    height: 1.2rem !important;
+    overflow: visible !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 1.9 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   body.app-body .assignment-issued-table .assignment-issued-row {

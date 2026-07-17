@@ -4,7 +4,10 @@
 <div class="glass-page" data-ajax-pagination-page="glass-measurements">
 <div class="page-head remarks-page-head glass-page-head">
   <a class="btn btn-outline-secondary glass-mobile-back-btn" href="{{ url_for('main.task_list') }}">
-    <span aria-hidden="true">←</span><span>Назад</span>
+    <svg class="glass-mobile-back-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M15 18l-6-6 6-6"></path>
+    </svg>
+    <span class="glass-mobile-back-label">Назад</span>
   </a>
   <div>
     <h1 class="page-title">Замеры</h1>
