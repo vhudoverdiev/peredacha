@@ -1,19 +1,39 @@
 /* Mobile-only overrides live here so they cannot be undone by legacy rules in style.css. */
 @media (max-width: 767.98px) {
-  body.app-body .apartments-page .po-notification-widget {
+  body.app-body .po-notification-widget {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     bottom: calc(4.68rem + env(safe-area-inset-bottom)) !important;
   }
 
-  body.app-body .remarks-export-table-shell .task-table.mobile-card-table
-    .task-text-tools :is(.inline-edit-btn, .inline-split-btn) {
-    display: inline-flex !important;
+  body.app-body .remarks-export-table-shell .task-text-tools {
+    display: flex !important;
+    flex-flow: row wrap !important;
     align-items: center !important;
-    justify-content: center !important;
+    gap: .5rem !important;
+    margin-top: .6rem !important;
     visibility: visible !important;
     opacity: 1 !important;
   }
 
-  body.app-body .remarks-export-table-shell .task-table.mobile-card-table
+  body.app-body .remarks-export-table-shell
+    .task-text-tools :is(.inline-edit-btn, .inline-split-btn) {
+    display: inline-flex !important;
+    flex: 0 0 2.55rem !important;
+    width: 2.55rem !important;
+    min-width: 2.55rem !important;
+    height: 2.55rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: .9rem !important;
+  }
+
+  body.app-body .remarks-export-table-shell
     .task-text-tools .inline-edit-btn.inline-edit {
     background: #fff !important;
     border-color: rgba(141, 214, 44, .34) !important;
@@ -21,7 +41,7 @@
     -webkit-text-fill-color: #253120 !important;
   }
 
-  body.app-body .remarks-export-table-shell .task-table.mobile-card-table
+  body.app-body .remarks-export-table-shell
     .task-text-tools .inline-split-btn {
     background: linear-gradient(180deg, #79bf25, #68a91d) !important;
     border-color: #68a91d !important;
@@ -29,9 +49,9 @@
     -webkit-text-fill-color: #fff !important;
   }
 
-  body.app-body .remarks-export-table-shell .task-table.mobile-card-table
+  body.app-body .remarks-export-table-shell
     .task-text-tools :is(.inline-edit-btn, .inline-split-btn) > i,
-  body.app-body .remarks-export-table-shell .task-table.mobile-card-table
+  body.app-body .remarks-export-table-shell
     .task-text-tools :is(.inline-edit-btn, .inline-split-btn) > i::before {
     display: inline-block !important;
     visibility: visible !important;
@@ -42,17 +62,17 @@
     line-height: 1 !important;
   }
 
-  body.app-body .remarks-export-table-shell .task-table.mobile-card-table
+  body.app-body .remarks-export-table-shell
     .task-text-tools .inline-edit-btn.inline-edit > i,
-  body.app-body .remarks-export-table-shell .task-table.mobile-card-table
+  body.app-body .remarks-export-table-shell
     .task-text-tools .inline-edit-btn.inline-edit > i::before {
     color: #253120 !important;
     -webkit-text-fill-color: #253120 !important;
   }
 
-  body.app-body .remarks-export-table-shell .task-table.mobile-card-table
+  body.app-body .remarks-export-table-shell
     .task-text-tools .inline-split-btn > i,
-  body.app-body .remarks-export-table-shell .task-table.mobile-card-table
+  body.app-body .remarks-export-table-shell
     .task-text-tools .inline-split-btn > i::before {
     color: #fff !important;
     -webkit-text-fill-color: #fff !important;
@@ -116,6 +136,8 @@
   }
 
   body.app-body .assignment-issued-table .assignment-issued-actions {
+    display: grid !important;
+    width: 100% !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: .5rem !important;
   }
@@ -129,6 +151,13 @@
   }
 
   body.app-body .assignment-issued-table .assignment-issued-actions .btn {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
     min-height: 3.1rem !important;
     gap: .36rem !important;
     padding: .55rem .4rem !important;
@@ -151,6 +180,12 @@
     color: #fff !important;
     -webkit-text-fill-color: #fff !important;
     box-shadow: 0 10px 22px rgba(121, 191, 37, .2) !important;
+  }
+
+  body.app-body .assignment-issued-table .assignment-change-assignee-text {
+    display: inline !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   body.app-body .assignment-issued-table .assignment-delete-employee-task-btn {

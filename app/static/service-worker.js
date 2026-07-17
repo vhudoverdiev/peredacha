@@ -1,6 +1,6 @@
-const STATIC_CACHE = 'peredacha-static-v7';
-const PAGE_CACHE = 'peredacha-pages-v7';
-const LEGACY_PAGE_CACHES = ['peredacha-pages-v6', 'peredacha-pages-v5', 'peredacha-pages-v4', 'peredacha-pages-v3'];
+const STATIC_CACHE = 'peredacha-static-v8';
+const PAGE_CACHE = 'peredacha-pages-v8';
+const LEGACY_PAGE_CACHES = ['peredacha-pages-v7', 'peredacha-pages-v6', 'peredacha-pages-v5', 'peredacha-pages-v4', 'peredacha-pages-v3'];
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,10 +13,10 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
-  '/static/style.css?v=v601-mobile-cascade-cleanup',
-  '/static/mobile-only.css?v=v2-mobile-cascade-cleanup',
+  '/static/style.css?v=v602-mobile-conflict-cleanup',
+  '/static/mobile-only.css?v=v3-mobile-conflict-cleanup',
   '/static/desktop-only.css?v=v2-material-request-input-white',
-  '/static/script.js?v=v601-mobile-actions-fix',
+  '/static/script.js?v=v602-mobile-actions-cache-reset',
 ];
 const APP_SHELL_PAGES = ['/', '/object', '/objects', '/login'];
 const MOBILE_OFFLINE_STYLE = `<style data-crm-offline-mobile-style>
