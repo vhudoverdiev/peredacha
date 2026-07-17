@@ -277,12 +277,10 @@
             {% if current_user.role != 'viewer' %}
             <div class="task-text-tools">
               <button class="inline-edit-btn inline-edit" type="button" title="Редактировать замечание" aria-label="Редактировать замечание" data-task-id="{{ task.id }}">
-                <i class="bi bi-pencil-square task-tool-font-icon" aria-hidden="true"></i>
-                <svg class="task-tool-svg" viewBox="0 0 24 24" aria-hidden="true" style="display:none"><path d="M4 20h4l11-11-4-4L4 16v4z"></path><path d="M13.5 6.5l4 4"></path></svg>
+                <i class="bi bi-pencil-square" aria-hidden="true"></i>
               </button>
               <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" aria-label="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}">
-                <i class="bi bi-scissors task-tool-font-icon" aria-hidden="true"></i>
-                <svg class="task-tool-svg" viewBox="0 0 24 24" aria-hidden="true" style="display:none"><circle cx="6" cy="7" r="2.5"></circle><circle cx="6" cy="17" r="2.5"></circle><path d="M8.2 8.2L20 18"></path><path d="M8.2 15.8L20 6"></path></svg>
+                <i class="bi bi-scissors" aria-hidden="true"></i>
               </button>
             </div>
             {% endif %}

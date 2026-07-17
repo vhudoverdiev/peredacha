@@ -6976,3 +6976,50 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }).observe(document.body, { childList: true, subtree: true });
 });
+
+/* Mobile category buttons show their full label for exactly one second before
+   the existing AJAX/navigation handler continues. */
+(() => {
+  const labelTimers = new WeakMap();
+  const resumedLinks = new WeakSet();
+  const isMobileRemarks = () => window.matchMedia?.('(max-width: 767.98px)').matches
+    && document.body?.classList.contains('app-body');
+
+  const showLabel = (link, onFinish = null) => {
+    const previousTimer = labelTimers.get(link);
+    if (previousTimer) window.clearTimeout(previousTimer);
+    document.querySelectorAll('.remarks-tab-link-category.is-mobile-label-visible').forEach(item => {
+      if (item !== link) item.classList.remove('is-mobile-label-visible');
+    });
+    link.classList.add('is-mobile-label-visible');
+    const timer = window.setTimeout(() => {
+      link.classList.remove('is-mobile-label-visible');
+      labelTimers.delete(link);
+      onFinish?.();
+    }, 1000);
+    labelTimers.set(link, timer);
+  };
+
+  document.addEventListener('pointerdown', event => {
+    if (!isMobileRemarks()) return;
+    const link = event.target.closest?.('.remarks-tab-link-category[data-category-label]');
+    if (link) showLabel(link);
+  }, true);
+
+  document.addEventListener('click', event => {
+    if (!isMobileRemarks() || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest?.('.remarks-tab-link-category[data-category-label]');
+    if (!link || resumedLinks.has(link)) {
+      if (link) resumedLinks.delete(link);
+      return;
+    }
+    const href = link.getAttribute('href');
+    if (!href || href === '#') return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    showLabel(link, () => {
+      resumedLinks.add(link);
+      link.click();
+    });
+  }, true);
+})();

@@ -154,10 +154,10 @@ def service_worker_reset():
       const openCrm = () => {
         if (finished) return;
         finished = true;
-        window.location.replace('/?worker=v20');
+        window.location.replace('/?worker=v21');
       };
       navigator.serviceWorker?.addEventListener('controllerchange', openCrm, { once: true });
-      navigator.serviceWorker?.register('/service-worker.js?v=v20-mobile-actions-back-parity', { scope: '/', updateViaCache: 'none' })
+      navigator.serviceWorker?.register('/service-worker.js?v=v21-mobile-shared-back', { scope: '/', updateViaCache: 'none' })
         .then(registration => registration.update())
         .catch(() => {})
         .finally(() => window.setTimeout(openCrm, 1200));

@@ -100,41 +100,6 @@
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
-    .task-text-tools :is(.inline-edit-btn, .inline-split-btn) {
-    display: inline-flex !important;
-    flex: 0 0 2.55rem !important;
-    width: 2.55rem !important;
-    min-width: 2.55rem !important;
-    height: 2.55rem !important;
-    align-items: center !important;
-    justify-content: center !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border-radius: .9rem !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
-    .task-text-tools .inline-edit-btn.inline-edit {
-    background: #fff !important;
-    border-color: rgba(141, 214, 44, .34) !important;
-    color: #253120 !important;
-    -webkit-text-fill-color: #253120 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
-    .task-text-tools .inline-split-btn {
-    background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
-    border-color: var(--peredacha-action-green-hover) !important;
-    color: #fff !important;
-    -webkit-text-fill-color: #fff !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn {
     display: inline-flex !important;
     flex-flow: row nowrap !important;
@@ -212,31 +177,6 @@
     font-weight: 850 !important;
     letter-spacing: 0 !important;
     text-indent: 0 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
-    .task-text-tools .task-tool-svg {
-    display: block !important;
-    flex: 0 0 1.2rem !important;
-    width: 1.2rem !important;
-    height: 1.2rem !important;
-    overflow: visible !important;
-    fill: none !important;
-    stroke: currentColor !important;
-    stroke-width: 1.9 !important;
-    stroke-linecap: round !important;
-    stroke-linejoin: round !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
-    .task-text-tools .task-tool-font-icon {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
@@ -614,7 +554,14 @@
     body.app-body:has(.remarks-page-head) .remarks-tabs
     .remarks-tab-link-category::after {
     content: attr(data-category-label) !important;
+    position: absolute !important;
+    left: 50% !important;
     bottom: calc(100% + .42rem) !important;
+    display: block !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    transform: translateX(-50%) translateY(.18rem) !important;
+    min-width: max-content !important;
     padding: .38rem .62rem !important;
     border-radius: .58rem !important;
     background: #111820 !important;
@@ -624,16 +571,29 @@
     font-weight: 800 !important;
     line-height: 1.1 !important;
     box-shadow: 0 10px 24px rgba(10, 16, 24, .26) !important;
+    pointer-events: none !important;
+    transition: opacity .14s ease, transform .14s ease !important;
     z-index: 30 !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.remarks-page-head) .remarks-tabs
-    .remarks-tab-link-category:is(:hover, :focus, :focus-visible, :active)::after {
+    .remarks-tab-link-category.is-mobile-label-visible::after {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
     transform: translateX(-50%) translateY(0) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs .crm-tabs,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs .nav-item,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category {
+    overflow: visible !important;
   }
 
   /* Keep primary green identical to the mobile Save button in every state. */
@@ -737,15 +697,10 @@
   }
 }
 
-/* Final mobile authority: the Measurements and Issued-to-employees back actions
-   intentionally share one component, including their nested label and arrow. */
+/* Final mobile authority: Measurements and Issued tasks use the same component. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.glass-page) .glass-page
-    a.btn.btn-outline-secondary.glass-mobile-back-btn,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
-    .assignment-subtab.assignment-issued-back-link:first-child {
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn {
     box-sizing: border-box !important;
     display: flex !important;
     width: 100% !important;
@@ -764,15 +719,24 @@
     line-height: 1 !important;
     box-shadow: 0 12px 28px rgba(59, 82, 42, .08) !important;
     text-decoration: none !important;
+    transform: none !important;
+    filter: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  /* Glass legacy button rules have unusually high specificity. This selector
+     keeps its shared back component identical to the Issued tasks version. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page
+    a.btn.btn-outline-secondary.glass-mobile-back-btn.mobile-shared-back-btn.mobile-shared-back-btn {
+    display: flex !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn
-    .glass-mobile-back-content,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
-    .assignment-subtab.assignment-issued-back-link:first-child
-    .assignment-mobile-back-content {
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn
+    .mobile-shared-back-content.mobile-shared-back-content {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -790,15 +754,15 @@
     font-weight: 850 !important;
     line-height: 1 !important;
     white-space: nowrap !important;
+    box-shadow: none !important;
+    background-image: none !important;
+    transform: none !important;
+    filter: none !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn
-    .glass-mobile-back-content > span,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
-    .assignment-subtab.assignment-issued-back-link:first-child
-    .assignment-mobile-back-content > span {
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn
+    .mobile-shared-back-label.mobile-shared-back-label {
     display: inline-block !important;
     min-width: 0 !important;
     min-height: 0 !important;
@@ -816,15 +780,16 @@
     white-space: nowrap !important;
     opacity: 1 !important;
     visibility: visible !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    background-image: none !important;
+    transform: none !important;
+    filter: none !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn
-    .glass-mobile-back-content > svg,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
-    .assignment-subtab.assignment-issued-back-link:first-child
-    .assignment-mobile-back-content > svg {
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn
+    .mobile-shared-back-icon.mobile-shared-back-icon {
     display: block !important;
     flex: 0 0 1.18rem !important;
     width: 1.18rem !important;
@@ -837,5 +802,47 @@
     stroke-linecap: round !important;
     stroke-linejoin: round !important;
     color: #253120 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-image: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn:active {
+    transform: translateY(1px) scale(.985) !important;
+    border-color: rgba(111, 169, 42, .5) !important;
+    background: linear-gradient(180deg, #f4faeb 0%, #edf6e2 100%) !important;
+    box-shadow: 0 5px 14px rgba(59, 82, 42, .1) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn:active
+    .mobile-shared-back-icon.mobile-shared-back-icon {
+    transform: translateX(-.2rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn::after,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-content.mobile-shared-back-content::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-content.mobile-shared-back-content::after,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-label.mobile-shared-back-label::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-label.mobile-shared-back-label::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
   }
 }
