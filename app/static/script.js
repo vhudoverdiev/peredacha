@@ -3708,7 +3708,12 @@ document.addEventListener('DOMContentLoaded', () => {
         button.disabled = false;
         return;
       }
-      markIssuedRowUnassigned(button.closest('.assignment-issued-row'), data);
+      const issuedRow = button.closest('.assignment-issued-row');
+      if (button.dataset.removeIssuedRow === '1' && issuedRow) {
+        refreshIssuedCountsAfterRemoval(issuedRow);
+      } else {
+        markIssuedRowUnassigned(issuedRow, data);
+      }
       showCrmNotice(data.message || 'Исполнитель снят', 'success');
     } catch (error) {
       showCrmNotice(error.message || 'Не удалось снять исполнителя', 'danger');

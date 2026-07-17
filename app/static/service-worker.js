@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v21-mobile-shared-back';
+const STATIC_CACHE = 'peredacha-static-v22-mobile-layout-fixes';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -12,9 +12,9 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
   '/static/style.css?v=v602-mobile-conflict-cleanup',
-  '/static/mobile-only.css?v=v15-mobile-shared-back',
+  '/static/mobile-only.css?v=v16-mobile-layout-fixes',
   '/static/desktop-only.css?v=v2-material-request-input-white',
-  '/static/script.js?v=v603-mobile-category-label',
+  '/static/script.js?v=v604-mobile-issued-actions',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>

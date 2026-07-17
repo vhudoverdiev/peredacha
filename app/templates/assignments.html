@@ -56,19 +56,19 @@
               <div class="assignment-issued-actions">
                 <form method="post" action="{{ url_for('main.assignments', view='issued', issued_day=issued_filter) }}" class="assignment-date-action-form">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-sm btn-outline-primary js-assignment-date-open" type="button" data-task-id="{{ task.id }}" data-current-date="{{ (task.planned_date or today).isoformat() }}" title="Изменить дату выполнения задачи" aria-label="Изменить дату выполнения задачи"><i class="bi bi-calendar-check"></i></button>
+                  <button class="btn btn-sm btn-outline-primary js-assignment-date-open" type="button" data-task-id="{{ task.id }}" data-current-date="{{ (task.planned_date or today).isoformat() }}" title="Изменить дату выполнения задачи" aria-label="Изменить дату выполнения задачи"><i class="bi bi-calendar-check"></i><span class="assignment-date-action-text d-none">Дата</span></button>
                 </form>
                 <button class="btn btn-sm assignment-change-assignee-btn js-assignment-change-assignee-open" type="button" title="Сменить исполнителя" aria-label="Сменить исполнителя" data-bs-toggle="modal" data-bs-target="#assignmentChangeAssigneeModal" data-task-id="{{ task.id }}" data-room="{{ task.apartment.label() if task.apartment else '—' }}" data-task-text="{{ (task.description or task.source_cell_value or '')|striptags }}" data-current-responsible-id="{{ task.responsible_id or '' }}" data-current-responsible-name="{{ (task.responsible.full_name or task.responsible.username) if task.responsible else '—' }}">
                   <i class="bi bi-person-gear"></i><span class="assignment-change-assignee-text">Сменить</span>
                 </button>
-                <form method="post" action="{{ url_for('main.assignment_delete_from_employee', task_id=task.id) }}" class="assignment-delete-employee-form" data-confirm="Удалить эту задачу у сотрудника?
+                <form method="post" action="{{ url_for('main.assignment_delete_from_employee', task_id=task.id) }}" class="assignment-delete-employee-form assignment-direct-unassign-form" data-confirm="Удалить эту задачу у сотрудника?
 
 Задача снова станет без исполнителя и без даты выполнения.">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-sm assignment-delete-employee-task-btn" type="submit" title="Удалить задачу у исполнителя" aria-label="Удалить задачу у исполнителя" data-confirm="Удалить эту задачу у сотрудника?
+                  <button class="btn btn-sm assignment-delete-employee-task-btn js-assignment-unassign-direct" type="button" title="Снять задачу у исполнителя" aria-label="Снять задачу у исполнителя" data-unassign-url="{{ url_for('main.assignment_delete_from_employee', task_id=task.id) }}" data-remove-issued-row="1" data-assignment-confirm-title="Снять задачу" data-assignment-confirm-ok="Снять" data-assignment-confirm="Снять эту задачу у сотрудника?
 
 Задача снова станет без исполнителя и без даты выполнения.">
-                    <i class="bi bi-trash3-fill"></i>
+                    <i class="bi bi-trash3-fill"></i><span class="assignment-unassign-text d-none">Снять</span>
                   </button>
                 </form>
               </div>
@@ -99,7 +99,6 @@
     <span class="assignment-desktop-issue-content"><i class="bi bi-send-check"></i>Выдать задачи</span>
     {% if view_mode == 'issued' %}
     <span class="assignment-mobile-back-content mobile-shared-back-content" style="display:none">
-      <svg class="mobile-shared-back-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg>
       <span class="mobile-shared-back-label">Назад</span>
     </span>
     {% endif %}
@@ -350,9 +349,10 @@
             </td>
             <td><span class="assignment-room-pill js-highlight-text"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else '—' }}</span></td>
             <td class="task-text">
-              <div class="d-flex align-items-start gap-2">
+              <div class="d-flex align-items-start gap-2 inline-editor-anchor assignment-task-inline-anchor">
                 <span class="assignment-task-text inline-text js-highlight-text" data-task-id="{{ task.id }}" title="{{ task.description or task.source_cell_value }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
                 {% if current_user.role != 'viewer' %}
+                <button class="inline-edit-btn inline-edit assignment-mobile-task-edit-btn d-none" type="button" title="Редактировать замечание" aria-label="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
                 <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
                 {% endif %}
               </div>

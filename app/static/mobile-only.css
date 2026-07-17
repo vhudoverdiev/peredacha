@@ -182,17 +182,16 @@
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.remarks-page-head) .remarks-export-table-shell
     .task-table.mobile-card-table tr.inline-editor-open-row {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    width: auto !important;
+    display: block !important;
+    width: 100% !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.remarks-page-head) .remarks-export-table-shell
     .task-table.mobile-card-table tr.inline-editor-open-row > .task-text.inline-editing-host {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-column: 1 / -1 !important;
+    grid-template-columns: minmax(5.3rem, 29%) minmax(0, 1fr) !important;
+    grid-column: auto !important;
     box-sizing: border-box !important;
     width: 100% !important;
     min-width: 0 !important;
@@ -204,10 +203,11 @@
     .task-table.mobile-card-table tr.inline-editor-open-row
     > .task-text.inline-editing-host::before {
     display: block !important;
-    grid-column: 1 / -1 !important;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
     width: auto !important;
     min-width: 0 !important;
-    margin: 0 0 .3rem !important;
+    margin: 0 !important;
     padding: 0 !important;
     white-space: nowrap !important;
     overflow-wrap: normal !important;
@@ -259,19 +259,18 @@
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.glass-page) .glass-page
-    .glass-ordered-table.mobile-card-table .glass-order-row
-    .task-text:has(> .inline-editor-anchor.inline-editing-host)
+    .mobile-card-table .task-text:has(> .inline-editor-anchor.inline-editing-host)
     > .inline-editor-anchor.inline-editing-host {
-    grid-column: 1 / -1 !important;
+    grid-column: 2 !important;
     justify-self: stretch !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.glass-page) .glass-page
-    .glass-ordered-table.mobile-card-table .glass-order-row
+    .mobile-card-table
     .inline-editor-anchor.inline-editing-host {
-    display: grid !important;
-    grid-template-columns: repeat(2, 2.55rem) minmax(0, 1fr) !important;
+    display: flex !important;
+    flex-flow: row wrap !important;
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
@@ -281,12 +280,13 @@
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.glass-page) .glass-page
-    .glass-ordered-table.mobile-card-table .glass-order-row
+    .mobile-card-table
     .inline-editor-anchor.inline-editing-host > .inline-editor-floating {
     position: static !important;
     inset: auto !important;
-    grid-column: 1 / -1 !important;
     justify-self: stretch !important;
+    flex: 1 0 100% !important;
+    order: 2 !important;
     box-sizing: border-box !important;
     width: auto !important;
     min-width: 0 !important;
@@ -297,7 +297,7 @@
     z-index: auto !important;
   }
 
-  body.app-body :is(.remarks-export-table-shell, .glass-page)
+  body.app-body :is(.remarks-export-table-shell, .glass-page, .assignment-contractor-table)
     .inline-editor-floating textarea.form-control {
     display: block !important;
     box-sizing: border-box !important;
@@ -313,7 +313,7 @@
     line-height: 1.45 !important;
   }
 
-  body.app-body :is(.remarks-export-table-shell, .glass-page)
+  body.app-body :is(.remarks-export-table-shell, .glass-page, .assignment-contractor-table)
     .inline-editor-floating .inline-editor-actions {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -322,7 +322,7 @@
     gap: .55rem !important;
   }
 
-  body.app-body :is(.remarks-export-table-shell, .glass-page)
+  body.app-body :is(.remarks-export-table-shell, .glass-page, .assignment-contractor-table)
     .inline-editor-floating .inline-editor-actions .btn {
     display: inline-flex !important;
     width: 100% !important;
@@ -333,109 +333,6 @@
     padding: .62rem .7rem !important;
     line-height: 1.15 !important;
     white-space: nowrap !important;
-  }
-
-  body.app-body .assignment-issued-table .assignment-issued-row {
-    gap: .82rem !important;
-    padding: 1.05rem !important;
-  }
-
-  body.app-body .assignment-issued-table .assignment-issued-row > td:nth-child(1),
-  body.app-body .assignment-issued-table .assignment-issued-row > td:nth-child(3),
-  body.app-body .assignment-issued-table .assignment-issued-row > td:nth-child(4) {
-    justify-content: flex-start !important;
-  }
-
-  body.app-body .assignment-issued-table .assignment-issued-date-cell {
-    display: flex !important;
-    flex-flow: row wrap !important;
-    align-items: center !important;
-    gap: .42rem .58rem !important;
-  }
-
-  body.app-body .assignment-issued-table .assignment-issued-actions {
-    display: grid !important;
-    width: 100% !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: .5rem !important;
-  }
-
-  body.app-body .assignment-issued-table
-    :is(.assignment-date-action-form, .assignment-delete-employee-form) {
-    display: block !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    margin: 0 !important;
-  }
-
-  body.app-body .assignment-issued-table .assignment-issued-actions .btn {
-    box-sizing: border-box !important;
-    display: inline-flex !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    flex: 1 1 auto !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-height: 3.1rem !important;
-    gap: .36rem !important;
-    padding: .55rem .4rem !important;
-    font-size: .78rem !important;
-    white-space: nowrap !important;
-  }
-
-  body.app-body .assignment-issued-table
-    .assignment-date-action-form .js-assignment-date-open::after {
-    content: "Дата" !important;
-  }
-
-  body.app-body .assignment-issued-table .assignment-delete-employee-task-btn::after {
-    content: "Снять" !important;
-  }
-
-  body.app-body .assignment-issued-table .assignment-change-assignee-btn {
-    background: linear-gradient(180deg, #79bf25, #68a91d) !important;
-    border-color: #68a91d !important;
-    color: #fff !important;
-    -webkit-text-fill-color: #fff !important;
-    box-shadow: 0 10px 22px rgba(121, 191, 37, .2) !important;
-  }
-
-  body.app-body .assignment-issued-table .assignment-change-assignee-text {
-    display: inline !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-
-  body.app-body .assignment-issued-table .assignment-delete-employee-task-btn {
-    background: linear-gradient(180deg, #fff7f7, #fffafa) !important;
-    border-color: rgba(220, 53, 69, .34) !important;
-    color: #b42332 !important;
-    -webkit-text-fill-color: #b42332 !important;
-  }
-
-  body.app-body .assignment-issued-table .assignment-issued-actions .btn i,
-  body.app-body .assignment-issued-table .assignment-issued-actions .btn .bi,
-  body.app-body .assignment-issued-table .assignment-issued-actions .btn i::before,
-  body.app-body .assignment-issued-table .assignment-issued-actions .btn .bi::before {
-    display: inline-block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    font-family: "bootstrap-icons" !important;
-    font-size: 1rem !important;
-    font-style: normal !important;
-    line-height: 1 !important;
-  }
-
-  body.app-body .assignment-issued-table .assignment-change-assignee-btn :is(i, .bi),
-  body.app-body .assignment-issued-table .assignment-change-assignee-btn :is(i, .bi)::before {
-    color: #fff !important;
-    -webkit-text-fill-color: #fff !important;
-  }
-
-  body.app-body .assignment-issued-table .assignment-delete-employee-task-btn :is(i, .bi),
-  body.app-body .assignment-issued-table .assignment-delete-employee-task-btn :is(i, .bi)::before {
-    color: #b42332 !important;
-    -webkit-text-fill-color: #b42332 !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
@@ -585,6 +482,28 @@
     transform: translateX(-50%) translateY(0) !important;
   }
 
+  /* Keep the last category tooltip inside the right edge of the mobile screen. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    .crm-tabs.justify-content-end .nav-item:last-child
+    .remarks-tab-link-category::after {
+    right: 0 !important;
+    left: auto !important;
+    max-width: min(14rem, calc(100vw - 2rem)) !important;
+    min-width: 0 !important;
+    width: max-content !important;
+    white-space: normal !important;
+    text-align: center !important;
+    transform: translateY(.18rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    .crm-tabs.justify-content-end .nav-item:last-child
+    .remarks-tab-link-category.is-mobile-label-visible::after {
+    transform: translateY(0) !important;
+  }
+
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.remarks-page-head) .remarks-tabs,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
@@ -673,13 +592,14 @@
     line-height: 1.2 !important;
   }
 
-  /* The open remark editor is a single full-width mobile column. */
+  /* Opening the editor must not move the existing remark label or text. */
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.remarks-page-head) .remarks-export-table-shell
     .task-table.mobile-card-table tr.inline-editor-open-row
     > .task-text.inline-editing-host
-    > :is(.task-text-body, .task-text-tools, .inline-editor-floating) {
-    grid-column: 1 / -1 !important;
+    > .task-text-body {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
     justify-self: stretch !important;
     width: 100% !important;
     min-width: 0 !important;
@@ -690,10 +610,435 @@
     body.app-body:has(.remarks-page-head) .remarks-export-table-shell
     .task-table.mobile-card-table tr.inline-editor-open-row
     > .task-text.inline-editing-host > .task-text-tools {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
     flex-flow: row nowrap !important;
     justify-self: start !important;
     width: max-content !important;
     max-width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row
+    > .task-text.inline-editing-host > .inline-editor-floating {
+    grid-column: 1 / -1 !important;
+    grid-row: 3 !important;
+  }
+}
+
+/* Mobile v16: stable inline editing, professional issued-task cards and
+   clearly separated informational statuses. Desktop remains untouched. */
+@media (max-width: 767.98px) {
+  /* Current status is information, not another management button. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-status-mobile {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: .72rem !important;
+    margin-top: .9rem !important;
+    padding-top: .85rem !important;
+    border-top: 1px solid rgba(121, 191, 37, .14) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-status-mobile::before {
+    content: "Статус" !important;
+    display: block !important;
+    color: #778273 !important;
+    font-size: .68rem !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    letter-spacing: .11em !important;
+    text-transform: uppercase !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-status-current-mobile {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    min-height: 2.15rem !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    justify-self: start !important;
+    padding: .44rem .82rem !important;
+    border: 1px solid rgba(128, 145, 118, .22) !important;
+    border-radius: 999px !important;
+    background: #f5f8f1 !important;
+    color: #34412f !important;
+    -webkit-text-fill-color: #34412f !important;
+    font-size: .84rem !important;
+    font-weight: 850 !important;
+    line-height: 1.1 !important;
+    box-shadow: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-actions {
+    margin-top: .08rem !important;
+    padding-top: .78rem !important;
+    border-top: 1px dashed rgba(128, 145, 118, .2) !important;
+  }
+
+  /* "Проблема" shares the final row with "Отступные" in management grids. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.task-detail-page) .task-detail-status-grid .problem-action-form,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-actions .apartment-task-action-form-problem {
+    grid-column: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-contractor-table) .assignment-task-inline-anchor {
+    display: flex !important;
+    flex-flow: row wrap !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: .5rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-contractor-table) .assignment-mobile-task-edit-btn {
+    display: inline-flex !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-contractor-table) .assignment-task-inline-anchor > .assignment-task-text {
+    flex: 1 1 calc(100% - 7rem) !important;
+    min-width: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-contractor-table) .assignment-task-inline-anchor > .inline-edit-btn {
+    flex: 0 0 2.65rem !important;
+    align-self: flex-start !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-contractor-table) .assignment-task-inline-anchor > .inline-editor-floating {
+    position: static !important;
+    inset: auto !important;
+    flex: 1 0 100% !important;
+    order: 2 !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin-top: .2rem !important;
+    padding: .75rem !important;
+    overflow: visible !important;
+    z-index: auto !important;
+  }
+
+  /* One clean mobile system for issued-day, employee and task cards. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-layout {
+    display: grid !important;
+    gap: 1rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-group {
+    box-sizing: border-box !important;
+    display: grid !important;
+    gap: .82rem !important;
+    width: 100% !important;
+    padding: .82rem !important;
+    border: 1px solid rgba(226, 77, 84, .2) !important;
+    border-radius: 1.35rem !important;
+    background: linear-gradient(180deg, rgba(255, 249, 249, .96), rgba(255, 255, 255, .98)) !important;
+    box-shadow: 0 16px 34px rgba(80, 35, 38, .07) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head {
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: .75rem !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: .78rem .84rem !important;
+    border: 1px solid rgba(226, 77, 84, .16) !important;
+    border-radius: 1rem !important;
+    background: #fff !important;
+    box-shadow: 0 9px 22px rgba(80, 35, 38, .05) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head > div {
+    min-width: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head :is(b, h2, h3) {
+    color: #24301f !important;
+    font-size: 1rem !important;
+    font-weight: 900 !important;
+    line-height: 1.15 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head strong,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-count {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    min-height: 2rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .38rem .68rem !important;
+    border: 1px solid rgba(121, 191, 37, .2) !important;
+    border-radius: 999px !important;
+    background: #f7faf3 !important;
+    color: #53634c !important;
+    font-size: .76rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-cards {
+    display: grid !important;
+    gap: .82rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-card {
+    overflow: hidden !important;
+    margin: 0 !important;
+    border: 1px solid rgba(121, 191, 37, .2) !important;
+    border-radius: 1.22rem !important;
+    background: #fff !important;
+    box-shadow: 0 14px 30px rgba(31, 45, 61, .07) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-head {
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: .7rem !important;
+    min-height: 4.65rem !important;
+    padding: .82rem .88rem !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(121, 191, 37, .13) !important;
+    background: linear-gradient(135deg, #f6fbee 0%, #ffffff 76%) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-user {
+    display: flex !important;
+    min-width: 0 !important;
+    align-items: center !important;
+    gap: .68rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-user > span {
+    display: inline-flex !important;
+    flex: 0 0 2.55rem !important;
+    width: 2.55rem !important;
+    height: 2.55rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid rgba(121, 191, 37, .18) !important;
+    border-radius: .9rem !important;
+    background: #fff !important;
+    color: #69a91e !important;
+    box-shadow: 0 8px 18px rgba(121, 191, 37, .1) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-user b {
+    display: block !important;
+    color: #1d281a !important;
+    font-size: .98rem !important;
+    font-weight: 900 !important;
+    line-height: 1.16 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-user small {
+    display: block !important;
+    margin-top: .2rem !important;
+    color: #73806d !important;
+    font-size: .68rem !important;
+    font-weight: 850 !important;
+    letter-spacing: .09em !important;
+    line-height: 1.1 !important;
+    text-transform: uppercase !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-head-actions {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    gap: .38rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-export-btn {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table tbody {
+    gap: .78rem !important;
+    padding: .78rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-areas: "room room" "task task" "date status" "actions actions" !important;
+    gap: .72rem .58rem !important;
+    width: 100% !important;
+    padding: .9rem !important;
+    border: 1px solid rgba(209, 222, 199, .92) !important;
+    border-radius: 1.08rem !important;
+    background: linear-gradient(180deg, #fff 0%, #fbfdf8 100%) !important;
+    box-shadow: 0 10px 24px rgba(31, 45, 61, .055) !important;
+    overflow: hidden !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(1) {
+    grid-area: room !important;
+    justify-content: flex-start !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(2) {
+    grid-area: task !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(3) {
+    grid-area: date !important;
+    justify-content: flex-start !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(4) {
+    grid-area: status !important;
+    justify-content: flex-end !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(5) {
+    grid-area: actions !important;
+    padding-top: .72rem !important;
+    border-top: 1px solid rgba(121, 191, 37, .12) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-room-pill {
+    justify-content: flex-start !important;
+    min-height: 2rem !important;
+    padding: .38rem .68rem !important;
+    font-size: .84rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-task-open-link {
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+    line-height: 1.38 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-date-cell {
+    display: flex !important;
+    flex-flow: row wrap !important;
+    gap: .3rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-date-cell > span,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-status-toggle {
+    min-height: 2rem !important;
+    padding: .38rem .62rem !important;
+    font-size: .75rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-actions {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: .5rem !important;
+    width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table
+    :is(.assignment-date-action-form, .assignment-direct-unassign-form) {
+    display: contents !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-actions .btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .34rem !important;
+    min-height: 2.85rem !important;
+    padding: .5rem .35rem !important;
+    border-radius: .86rem !important;
+    font-size: .72rem !important;
+    font-weight: 850 !important;
+    box-shadow: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-actions
+    :is(.assignment-date-action-text, .assignment-change-assignee-text, .assignment-unassign-text) {
+    display: inline !important;
+    min-width: 0 !important;
+    font: inherit !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-actions .btn > i {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    color: currentColor !important;
+    -webkit-text-fill-color: currentColor !important;
+    font-size: .92rem !important;
+    line-height: 1 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-change-assignee-btn {
+    border-color: var(--peredacha-action-green-hover) !important;
+    background: linear-gradient(180deg, var(--peredacha-action-green), var(--peredacha-action-green-hover)) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-delete-employee-task-btn {
+    border-color: rgba(220, 53, 69, .26) !important;
+    background: #fff9f9 !important;
+    color: #b42332 !important;
+    -webkit-text-fill-color: #b42332 !important;
   }
 }
 
@@ -729,9 +1074,27 @@
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.glass-page) .glass-page
     a.btn.btn-outline-secondary.glass-mobile-back-btn.mobile-shared-back-btn.mobile-shared-back-btn {
+    box-sizing: border-box !important;
     display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 3.45rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .78rem 1rem !important;
+    border: 1px solid rgba(141, 191, 80, .34) !important;
+    border-radius: 1.2rem !important;
+    background: linear-gradient(180deg, #fff 0%, #f6faef 100%) !important;
+    background-image: linear-gradient(180deg, #fff 0%, #f6faef 100%) !important;
     color: #253120 !important;
     -webkit-text-fill-color: #253120 !important;
+    font-size: 1rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    box-shadow: 0 12px 28px rgba(59, 82, 42, .08) !important;
+    text-decoration: none !important;
+    transform: none !important;
+    filter: none !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
@@ -837,6 +1200,19 @@
     body.app-body .mobile-shared-back-label.mobile-shared-back-label::before,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body .mobile-shared-back-label.mobile-shared-back-label::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-icon.mobile-shared-back-icon::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-icon.mobile-shared-back-icon::after {
     content: none !important;
     display: none !important;
     background: none !important;
