@@ -151,6 +151,10 @@
     opacity: 1 !important;
   }
 
+  body.app-body .remarks-export-table-shell .task-text-tools .task-tool-font-icon {
+    display: none !important;
+  }
+
   body.app-body .assignment-issued-table .assignment-issued-row {
     gap: .82rem !important;
     padding: 1.05rem !important;
