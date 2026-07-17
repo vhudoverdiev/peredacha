@@ -617,7 +617,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v9-static-only', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v10-solid-mobile-offline', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
