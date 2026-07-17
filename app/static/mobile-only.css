@@ -48,8 +48,8 @@
     body.app-body :is(.inline-edit-btn.inline-split-btn, .inline-edit-btn.inline-split-btn:hover,
     .inline-edit-btn.inline-split-btn:focus, .inline-edit-btn.inline-split-btn:focus-visible,
     .inline-edit-btn.inline-split-btn:active) {
-    border: 1px solid #80c628 !important;
-    background: linear-gradient(180deg, #99df3f 0%, #80c628 100%) !important;
+    border: 1px solid var(--peredacha-action-green-hover) !important;
+    background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
     color: #fff !important;
     -webkit-text-fill-color: #fff !important;
     box-shadow: 0 9px 18px rgba(141, 214, 44, .2) !important;
@@ -128,8 +128,8 @@
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.remarks-page-head) .remarks-export-table-shell
     .task-text-tools .inline-split-btn {
-    background: linear-gradient(180deg, #99df3f 0%, #80c628 100%) !important;
-    border-color: #80c628 !important;
+    background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+    border-color: var(--peredacha-action-green-hover) !important;
     color: #fff !important;
     -webkit-text-fill-color: #fff !important;
   }
@@ -140,17 +140,35 @@
     flex-flow: row nowrap !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: .42rem !important;
+    gap: .48rem !important;
     width: 100% !important;
     min-width: 0 !important;
-    min-height: 3rem !important;
-    padding: .7rem 1rem !important;
-    color: #243121 !important;
-    -webkit-text-fill-color: #243121 !important;
-    font-size: .98rem !important;
+    min-height: 3.45rem !important;
+    padding: .78rem 1rem !important;
+    border: 1px solid rgba(141, 191, 80, .34) !important;
+    border-radius: 1.2rem !important;
+    background: linear-gradient(180deg, #fff 0%, #f6faef 100%) !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    font-size: 1rem !important;
     font-weight: 850 !important;
-    line-height: 1.2 !important;
+    line-height: 1 !important;
     white-space: nowrap !important;
+    box-shadow: 0 12px 28px rgba(59, 82, 42, .08) !important;
+    transform: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    touch-action: manipulation !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn:active {
+    transform: translateY(1px) scale(.985) !important;
+    border-color: rgba(111, 169, 42, .5) !important;
+    background: linear-gradient(180deg, #f4faeb 0%, #edf6e2 100%) !important;
+    box-shadow: 0 5px 14px rgba(59, 82, 42, .1) !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
@@ -176,9 +194,9 @@
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn .glass-mobile-back-icon {
     display: block !important;
-    flex: 0 0 1.15rem !important;
-    width: 1.15rem !important;
-    height: 1.15rem !important;
+    flex: 0 0 1.18rem !important;
+    width: 1.18rem !important;
+    height: 1.18rem !important;
     overflow: visible !important;
     fill: none !important;
     stroke: currentColor !important;
@@ -190,7 +208,7 @@
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn .glass-mobile-back-label {
     position: static !important;
-    font-size: .98rem !important;
+    font-size: 1rem !important;
     font-weight: 850 !important;
     letter-spacing: 0 !important;
     text-indent: 0 !important;
@@ -627,8 +645,8 @@
     body.app-body:has(.apartment-detail-page)
     .apartment-inspection-status-form-detail .apartment-inspection-date-actions
     :is(.btn, .btn:hover, .btn:focus, .btn:focus-visible, .btn:active) {
-    border-color: #80c628 !important;
-    background: linear-gradient(180deg, #99df3f 0%, #80c628 100%) !important;
+    border-color: var(--peredacha-action-green-hover) !important;
+    background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
     color: #fff !important;
     -webkit-text-fill-color: #fff !important;
     box-shadow: 0 12px 24px rgba(141, 214, 44, .22) !important;
@@ -716,5 +734,108 @@
     justify-self: start !important;
     width: max-content !important;
     max-width: 100% !important;
+  }
+}
+
+/* Final mobile authority: the Measurements and Issued-to-employees back actions
+   intentionally share one component, including their nested label and arrow. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page
+    a.btn.btn-outline-secondary.glass-mobile-back-btn,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 3.45rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .78rem 1rem !important;
+    border: 1px solid rgba(141, 191, 80, .34) !important;
+    border-radius: 1.2rem !important;
+    background: linear-gradient(180deg, #fff 0%, #f6faef 100%) !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    font-size: 1rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    box-shadow: 0 12px 28px rgba(59, 82, 42, .08) !important;
+    text-decoration: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn
+    .glass-mobile-back-content,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child
+    .assignment-mobile-back-content {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .48rem !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    font-size: 1rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn
+    .glass-mobile-back-content > span,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child
+    .assignment-mobile-back-content > span {
+    display: inline-block !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    font-size: 1rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn
+    .glass-mobile-back-content > svg,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child
+    .assignment-mobile-back-content > svg {
+    display: block !important;
+    flex: 0 0 1.18rem !important;
+    width: 1.18rem !important;
+    height: 1.18rem !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2.15 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    color: #253120 !important;
   }
 }

@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v19-assignment-back-button';
+const STATIC_CACHE = 'peredacha-static-v20-mobile-actions-back-parity';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -12,7 +12,7 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
   '/static/style.css?v=v602-mobile-conflict-cleanup',
-  '/static/mobile-only.css?v=v13-assignment-back-button',
+  '/static/mobile-only.css?v=v14-mobile-actions-back-parity',
   '/static/desktop-only.css?v=v2-material-request-input-white',
   '/static/script.js?v=v602-mobile-actions-cache-reset',
 ];
