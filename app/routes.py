@@ -146,6 +146,28 @@ def service_worker():
     return response
 
 
+@bp.route("/service-worker-reset")
+def service_worker_reset():
+    html = """<!doctype html><html lang=\"ru\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Обновление CRM</title></head><body><p>Обновляем приложение...</p><script>
+    (() => {
+      let finished = false;
+      const openCrm = () => {
+        if (finished) return;
+        finished = true;
+        window.location.replace('/?worker=v9');
+      };
+      navigator.serviceWorker?.addEventListener('controllerchange', openCrm, { once: true });
+      navigator.serviceWorker?.register('/service-worker.js?v=v9-static-only', { scope: '/', updateViaCache: 'none' })
+        .then(registration => registration.update())
+        .catch(() => {})
+        .finally(() => window.setTimeout(openCrm, 1200));
+    })();
+    </script></body></html>"""
+    response = current_app.response_class(html, content_type="text/html; charset=utf-8")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
+
+
 MANUAL_WRITEOFF_COMMENT_PREFIX = "__manual_writeoff__:"
 TRUE_SETTING_VALUES = {"1", "true", "yes", "on", "да", "checked"}
 
@@ -1103,7 +1125,7 @@ def enforce_role_access():
     # Единая защита всех main-маршрутов: сначала аутентификация, затем доступ по роли.
     endpoint = request.endpoint or ""
     # Репорт ошибки доступен и со стартового экрана. Он всё равно защищён CSRF и rate limit.
-    if endpoint in {"main.report_error", "main.service_worker"}:
+    if endpoint in {"main.report_error", "main.service_worker", "main.service_worker_reset"}:
         return None
 
     if not current_user.is_authenticated:
