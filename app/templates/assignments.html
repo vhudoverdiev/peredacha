@@ -95,7 +95,7 @@
 </div>
 
 <div class="assignment-subtabs mb-3">
-  <a class="assignment-subtab {% if view_mode == 'issued' %}assignment-issued-back-link{% endif %} {% if view_mode != 'issued' %}active{% endif %}" href="{{ url_for('main.assignments') }}">
+  <a class="assignment-subtab {% if view_mode == 'issued' %}assignment-issued-back-link{% endif %} {% if view_mode != 'issued' %}active{% endif %}" href="{{ url_for('main.assignments') }}"{% if view_mode == 'issued' %} aria-label="Назад к выдаче задач" data-no-loader="1"{% endif %}>
     <span class="assignment-desktop-issue-content"><i class="bi bi-send-check"></i>Выдать задачи</span>
     {% if view_mode == 'issued' %}
     <span class="assignment-mobile-back-content" style="display:none">

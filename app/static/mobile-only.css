@@ -495,6 +495,25 @@
     color: #253120 !important;
     -webkit-text-fill-color: #253120 !important;
     box-shadow: 0 12px 28px rgba(59, 82, 42, .08) !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    touch-action: manipulation !important;
+    transition:
+      transform .18s cubic-bezier(.2, .8, .2, 1),
+      background .18s ease,
+      border-color .18s ease,
+      box-shadow .18s ease !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child:active {
+    transform: translateY(1px) scale(.985) !important;
+    border-color: rgba(111, 169, 42, .5) !important;
+    background: linear-gradient(180deg, #f4faeb 0%, #edf6e2 100%) !important;
+    box-shadow: 0 5px 14px rgba(59, 82, 42, .1) !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
@@ -516,6 +535,27 @@
     font-weight: 850 !important;
     line-height: 1 !important;
     white-space: nowrap !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    background: transparent !important;
+    transition: transform .18s cubic-bezier(.2, .8, .2, 1) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child
+    .assignment-mobile-back-content > span {
+    display: inline-block !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transition: color .18s ease, opacity .18s ease !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
@@ -531,6 +571,15 @@
     stroke-width: 2.15 !important;
     stroke-linecap: round !important;
     stroke-linejoin: round !important;
+    color: #253120 !important;
+    transition: transform .18s cubic-bezier(.2, .8, .2, 1) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child:active
+    .assignment-mobile-back-content svg {
+    transform: translateX(-.2rem) !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
