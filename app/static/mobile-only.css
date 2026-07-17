@@ -591,4 +591,40 @@
     .task-detail-excel-link {
     display: none !important;
   }
+
+  /* Deadline mirrors the mobile Inspection row: badge first, date below, left aligned. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-data-deadline-row
+    .apartment-deadline-display {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    justify-items: start !important;
+    justify-content: start !important;
+    align-items: start !important;
+    gap: .42rem !important;
+    width: 100% !important;
+    margin: 0 !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-data-deadline-row
+    .apartment-deadline-status {
+    order: 1 !important;
+    justify-self: start !important;
+    margin: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-data-deadline-row
+    .apartment-deadline-date {
+    order: 2 !important;
+    display: block !important;
+    justify-self: start !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    font-size: 1.02rem !important;
+    font-weight: 900 !important;
+    line-height: 1.2 !important;
+  }
 }

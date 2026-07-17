@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v15-mobile-batch-ui';
+const STATIC_CACHE = 'peredacha-static-v16-mobile-deadline-align';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -12,7 +12,7 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
   '/static/style.css?v=v602-mobile-conflict-cleanup',
-  '/static/mobile-only.css?v=v8-mobile-batch-ui',
+  '/static/mobile-only.css?v=v9-mobile-deadline-align',
   '/static/desktop-only.css?v=v2-material-request-input-white',
   '/static/script.js?v=v602-mobile-actions-cache-reset',
 ];

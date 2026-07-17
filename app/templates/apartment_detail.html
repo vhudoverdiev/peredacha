@@ -94,10 +94,10 @@
           {% if row.mode == 'АПП' %}
           <div class="apartment-data-row apartment-data-deadline-row">
             <span>Срок устранения</span>
-            <b>
-              {{ row.remark_deadline_display }}
+            <b class="apartment-deadline-display">
+              <span class="apartment-deadline-date">{{ row.remark_deadline_display }}</span>
               {% if row.remark_deadline_status %}
-                <span class="deadline-badge deadline-badge-{{ row.remark_deadline_status.class }} ms-2">{{ row.remark_deadline_status.label }}</span>
+                <span class="deadline-badge deadline-badge-{{ row.remark_deadline_status.class }} apartment-deadline-status ms-2">{{ row.remark_deadline_status.label }}</span>
               {% endif %}
             </b>
           </div>
