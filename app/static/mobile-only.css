@@ -246,7 +246,7 @@
     .task-table.mobile-card-table tr.inline-editor-open-row
     > .task-text.inline-editing-host::before {
     display: block !important;
-    grid-column: 2 !important;
+    grid-column: 1 / -1 !important;
     width: auto !important;
     min-width: 0 !important;
     margin: 0 0 .3rem !important;
@@ -264,7 +264,7 @@
     > .task-text.inline-editing-host > .inline-editor-floating {
     position: static !important;
     inset: auto !important;
-    grid-column: 2 !important;
+    grid-column: 1 / -1 !important;
     justify-self: stretch !important;
     box-sizing: border-box !important;
     width: auto !important;
@@ -609,8 +609,25 @@
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-detail-page
+    .apartment-data-row.apartment-data-deadline-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+    justify-items: start !important;
+    align-items: start !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.apartment-detail-page) .apartment-data-deadline-row
-    .apartment-deadline-status {
+    > :is(span, b) {
+    grid-column: 1 / -1 !important;
+    justify-self: start !important;
+    width: 100% !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-data-deadline-row
+    :is(.apartment-deadline-status, .deadline-badge) {
     order: 1 !important;
     justify-self: start !important;
     margin: 0 !important;
@@ -627,5 +644,28 @@
     font-size: 1.02rem !important;
     font-weight: 900 !important;
     line-height: 1.2 !important;
+  }
+
+  /* The open remark editor is a single full-width mobile column. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row
+    > .task-text.inline-editing-host
+    > :is(.task-text-body, .task-text-tools, .inline-editor-floating) {
+    grid-column: 1 / -1 !important;
+    justify-self: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row
+    > .task-text.inline-editing-host > .task-text-tools {
+    flex-flow: row nowrap !important;
+    justify-self: start !important;
+    width: max-content !important;
+    max-width: 100% !important;
   }
 }
