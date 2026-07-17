@@ -1,6 +1,6 @@
-const STATIC_CACHE = 'peredacha-static-v4';
-const PAGE_CACHE = 'peredacha-pages-v4';
-const LEGACY_PAGE_CACHES = ['peredacha-pages-v3'];
+const STATIC_CACHE = 'peredacha-static-v5';
+const PAGE_CACHE = 'peredacha-pages-v5';
+const LEGACY_PAGE_CACHES = ['peredacha-pages-v4', 'peredacha-pages-v3'];
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -10,7 +10,277 @@ const STATIC_ASSETS = [
   '/static/apple-splash.png',
   '/login',
 ];
-const OFFLINE_NOTICE_SCRIPT = "<script>window.__CRM_OFFLINE_FALLBACK__=true;document.documentElement.classList.add('crm-offline-fallback');</script>";
+const MOBILE_OFFLINE_STYLE = `<style data-crm-offline-mobile-style>
+  #crmMobileOfflineExperience { display: none; }
+
+  @media (max-width: 767.98px) {
+    html.crm-offline-mobile-experience,
+    html.crm-offline-mobile-experience body {
+      overflow: hidden !important;
+      overscroll-behavior: none !important;
+    }
+
+    html.crm-offline-mobile-experience body > :not(#crmMobileOfflineExperience) {
+      pointer-events: none !important;
+    }
+
+    html.crm-offline-mobile-experience .crm-offline-banner {
+      display: none !important;
+    }
+
+    #crmMobileOfflineExperience {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      display: grid;
+      place-items: center;
+      box-sizing: border-box;
+      min-height: 100dvh;
+      padding: max(1.2rem, env(safe-area-inset-top)) 1.15rem max(1.2rem, env(safe-area-inset-bottom));
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      color: #172033;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(141, 214, 44, .22), transparent 15rem),
+        radial-gradient(circle at 92% 84%, rgba(141, 214, 44, .13), transparent 17rem),
+        linear-gradient(160deg, #fbfef7 0%, #f3f8ec 48%, #eef5e6 100%);
+      isolation: isolate;
+    }
+
+    #crmMobileOfflineExperience::before,
+    #crmMobileOfflineExperience::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      border-radius: 999px;
+      filter: blur(1px);
+      pointer-events: none;
+    }
+
+    #crmMobileOfflineExperience::before {
+      width: 15rem;
+      height: 15rem;
+      top: -7.5rem;
+      right: -6rem;
+      border: 1px solid rgba(141, 214, 44, .2);
+      box-shadow: 0 0 0 2.8rem rgba(141, 214, 44, .035), 0 0 0 5.6rem rgba(141, 214, 44, .025);
+    }
+
+    #crmMobileOfflineExperience::after {
+      width: 11rem;
+      height: 11rem;
+      bottom: -6rem;
+      left: -4.8rem;
+      background: rgba(255, 255, 255, .5);
+      box-shadow: 0 1.4rem 4rem rgba(31, 45, 61, .08);
+    }
+
+    .crm-mobile-offline-panel {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      box-sizing: border-box;
+      width: min(calc(100% - 2.3rem), 25rem);
+      transform: translate(-50%, -50%);
+      transition: opacity .34s ease, transform .42s cubic-bezier(.2, .75, .24, 1);
+    }
+
+    .crm-mobile-offline-loader {
+      display: grid;
+      justify-items: center;
+      gap: 1rem;
+      padding: 1.55rem 1.25rem;
+      border: 1px solid rgba(210, 224, 199, .92);
+      border-radius: 1.65rem;
+      background: rgba(255, 255, 255, .88);
+      box-shadow: 0 1.8rem 5rem rgba(31, 45, 61, .13);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .crm-mobile-offline-loader-orbit {
+      position: relative;
+      display: grid;
+      width: 5.6rem;
+      height: 5.6rem;
+      place-items: center;
+    }
+
+    .crm-mobile-offline-loader-orbit::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: .22rem solid rgba(141, 214, 44, .16);
+      border-top-color: #7fc523;
+      border-right-color: #7fc523;
+      border-radius: 50%;
+      animation: crmOfflineSpin .9s linear infinite;
+    }
+
+    .crm-mobile-offline-brand {
+      position: relative;
+      display: grid;
+      width: 3.45rem;
+      height: 3.45rem;
+      place-items: center;
+      border-radius: 1.05rem;
+      background: linear-gradient(145deg, #9ade43, #79c51d);
+      color: #fff;
+      font-size: 1.7rem;
+      font-weight: 900;
+      line-height: 1;
+      box-shadow: 0 .85rem 1.8rem rgba(121, 197, 29, .28), inset 0 1px 0 rgba(255, 255, 255, .55);
+    }
+
+    .crm-mobile-offline-brand::after {
+      content: "✦";
+      position: absolute;
+      top: .36rem;
+      right: .42rem;
+      font-size: .48rem;
+      opacity: .9;
+    }
+
+    .crm-mobile-offline-loader strong {
+      font-size: 1.02rem;
+      font-weight: 850;
+      letter-spacing: -.01em;
+    }
+
+    .crm-mobile-offline-card {
+      padding: 1.45rem;
+      border: 1px solid rgba(207, 222, 195, .96);
+      border-radius: 1.75rem;
+      background:
+        radial-gradient(circle at 88% 4%, rgba(141, 214, 44, .12), transparent 9rem),
+        rgba(255, 255, 255, .94);
+      box-shadow: 0 2rem 5.5rem rgba(31, 45, 61, .15), inset 0 1px 0 rgba(255, 255, 255, .96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .crm-mobile-offline-icon {
+      display: grid;
+      width: 4.35rem;
+      height: 4.35rem;
+      margin-bottom: 1.2rem;
+      place-items: center;
+      border: 1px solid rgba(141, 214, 44, .28);
+      border-radius: 1.35rem;
+      background: linear-gradient(145deg, #f4fde9, #fff);
+      color: #67a81c;
+      box-shadow: 0 1rem 2.4rem rgba(103, 168, 28, .14);
+    }
+
+    .crm-mobile-offline-icon svg {
+      width: 2.1rem;
+      height: 2.1rem;
+      stroke: currentColor;
+    }
+
+    .crm-mobile-offline-card h1 {
+      margin: 0 0 .42rem;
+      color: #172033;
+      font-size: clamp(1.72rem, 8vw, 2.08rem);
+      font-weight: 950;
+      letter-spacing: -.045em;
+      line-height: 1.05;
+    }
+
+    .crm-mobile-offline-card h2 {
+      margin: 0 0 .72rem;
+      color: #2c3828;
+      font-size: 1.12rem;
+      font-weight: 850;
+      line-height: 1.2;
+    }
+
+    .crm-mobile-offline-card p {
+      margin: 0;
+      color: #687164;
+      font-size: .95rem;
+      line-height: 1.55;
+    }
+
+    .crm-mobile-offline-retry {
+      display: inline-flex;
+      width: 100%;
+      min-height: 3.25rem;
+      align-items: center;
+      justify-content: center;
+      gap: .55rem;
+      margin-top: 1.25rem;
+      padding: .75rem 1rem;
+      border: 1px solid #69a91f;
+      border-radius: 1.05rem;
+      background: linear-gradient(180deg, #7cc426, #69aa1f);
+      color: #fff;
+      font: inherit;
+      font-size: .98rem;
+      font-weight: 900;
+      line-height: 1;
+      box-shadow: 0 .9rem 1.9rem rgba(105, 170, 31, .24), inset 0 1px 0 rgba(255, 255, 255, .32);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .crm-mobile-offline-retry svg {
+      width: 1.08rem;
+      height: 1.08rem;
+      stroke: currentColor;
+    }
+
+    html.crm-offline-mobile-loading .crm-mobile-offline-loader {
+      opacity: 1;
+    }
+
+    html.crm-offline-mobile-loading .crm-mobile-offline-card {
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, calc(-50% + 1rem)) scale(.97);
+    }
+
+    html.crm-offline-mobile-ready .crm-mobile-offline-loader {
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, calc(-50% - .8rem)) scale(.97);
+    }
+
+    html.crm-offline-mobile-ready .crm-mobile-offline-card {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    @keyframes crmOfflineSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .crm-mobile-offline-panel { transition-duration: .01ms; }
+      .crm-mobile-offline-loader-orbit::before { animation-duration: 1.8s; }
+    }
+  }
+</style>`;
+
+const MOBILE_OFFLINE_MARKUP = `<section id="crmMobileOfflineExperience" aria-live="polite" aria-label="Нет подключения к интернету">
+  <div class="crm-mobile-offline-panel crm-mobile-offline-loader" role="status">
+    <div class="crm-mobile-offline-loader-orbit" aria-hidden="true"><span class="crm-mobile-offline-brand">A</span></div>
+    <strong>Загружаем приложение…</strong>
+  </div>
+  <div class="crm-mobile-offline-panel crm-mobile-offline-card">
+    <div class="crm-mobile-offline-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a10.9 10.9 0 0 1 14.1 0"/><path d="M8.5 16a6.1 6.1 0 0 1 7 0"/><path d="M12 19.5h.01"/><path d="m3 3 18 18"/></svg>
+    </div>
+    <h1>Упссс…</h1>
+    <h2>Нет интернета</h2>
+    <p>Проверьте подключение к сети и попробуйте открыть приложение ещё раз.</p>
+    <button class="crm-mobile-offline-retry" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8.1 8.1 0 1 0 2 5.3"/><path d="M20 4v7h-7"/></svg>
+      <span>Попробовать снова</span>
+    </button>
+  </div>
+</section>`;
+
+const OFFLINE_NOTICE_SCRIPT = `<script>(()=>{window.__CRM_OFFLINE_FALLBACK__=true;document.documentElement.classList.add("crm-offline-fallback");const mobile=window.matchMedia("(max-width: 767.98px)").matches;if(!mobile)return;const root=document.documentElement;root.classList.add("crm-offline-mobile-experience","crm-offline-mobile-loading");const mount=()=>{if(!document.getElementById("crmMobileOfflineExperience"))document.body.insertAdjacentHTML("beforeend",${JSON.stringify(MOBILE_OFFLINE_MARKUP)});document.querySelector(".crm-mobile-offline-retry")?.addEventListener("click",()=>window.location.reload());window.setTimeout(()=>{root.classList.remove("crm-offline-mobile-loading");root.classList.add("crm-offline-mobile-ready")},1150)};if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mount,{once:true});else mount();window.addEventListener("online",()=>window.setTimeout(()=>window.location.reload(),250),{once:true})})();</script>`;
 const OFFLINE_HTML = `<!doctype html>
 <html lang="ru">
 <head>
@@ -18,6 +288,7 @@ const OFFLINE_HTML = `<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#f9fbf5">
   <title>Передача</title>
+  ${MOBILE_OFFLINE_STYLE}
   <style>
     :root { color-scheme: light; }
     * { box-sizing: border-box; }
@@ -70,6 +341,7 @@ const OFFLINE_HTML = `<!doctype html>
   </style>
 </head>
 <body>
+  ${MOBILE_OFFLINE_MARKUP}
   <main class="offline-card">
     <div class="offline-logo">
       <img src="/static/brand-logo.png" width="96" height="96" alt="">
@@ -77,6 +349,7 @@ const OFFLINE_HTML = `<!doctype html>
     <h1>Не удается обновить</h1>
     <p>Нет интернета и сохраненной версии этой страницы тоже нет. Подключитесь к сети и попробуйте снова.</p>
   </main>
+  ${OFFLINE_NOTICE_SCRIPT}
 </body>
 </html>`;
 
@@ -207,9 +480,10 @@ async function buildOfflineFallbackResponse(response, injectIntoHtml) {
 
   let html = await response.text();
   if (!html.includes('window.__CRM_OFFLINE_FALLBACK__=true')) {
+    const offlineHead = `${MOBILE_OFFLINE_STYLE}${OFFLINE_NOTICE_SCRIPT}`;
     html = html.includes('</head>')
-      ? html.replace('</head>', `${OFFLINE_NOTICE_SCRIPT}</head>`)
-      : `${OFFLINE_NOTICE_SCRIPT}${html}`;
+      ? html.replace('</head>', `${offlineHead}</head>`)
+      : `${offlineHead}${html}`;
   }
 
   headers.set('Content-Type', 'text/html; charset=utf-8');
