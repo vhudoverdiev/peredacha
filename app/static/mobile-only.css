@@ -1403,12 +1403,28 @@
 
   html body.app-body.app-body.app-body:not(:has(.task-single-form))
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
-    padding-bottom: calc(4.5rem + .2rem) !important;
+    padding-bottom: calc(4.5rem + .75rem) !important;
   }
 
   html body.app-body.app-body.app-body:not(:has(.task-single-form)) .crm-mobile-page-shell,
   html body.app-body.app-body.app-body:not(:has(.task-single-form)) .crm-mobile-page-shell > :last-child:not(.crm-toast-stack) {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
+  }
+
+  /* A short issued-task list still fills the canvas down to the fixed dock.
+     This is intentionally limited to the empty state so normal long pages do
+     not regain the large blank scrolling tail removed above. */
+  html body.app-body.app-body.app-body:has(.assignment-issued-empty):not(:has(.task-single-form)),
+  html body.app-body.app-body.app-body:has(.assignment-issued-empty):not(:has(.task-single-form))
+    :is(.app-layout, .app-main) {
+    min-height: 100dvh !important;
+    background: #f5f7fc !important;
+  }
+
+  html body.app-body.app-body.app-body:has(.assignment-issued-empty):not(:has(.task-single-form))
+    :is(.app-content, [data-ajax-pagination-page="assignments"]) {
+    min-height: calc(100dvh - 4.5rem) !important;
+    background: #f5f7fc !important;
   }
 }

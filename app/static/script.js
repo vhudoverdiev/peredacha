@@ -1613,6 +1613,9 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.classList.remove('d-none');
     window.setTimeout(() => cancel?.focus(), 0);
   });
+  // Assignment actions are initialized in a separate DOM-ready block below.
+  // Expose the shared dialog explicitly instead of relying on block scope.
+  window.crmShowConfirm = showCrmConfirm;
 
   document.querySelectorAll('[data-search-highlight]').forEach(container => {
     const query = (container.dataset.searchHighlight || '').trim();
@@ -3227,7 +3230,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const confirmMessage = submitter.dataset.assignmentConfirm;
     if (confirmMessage) {
-      const confirmed = await showCrmConfirm({
+      const confirmed = await window.crmShowConfirm({
         title: submitter.dataset.assignmentConfirmTitle || 'Подтвердите действие',
         message: confirmMessage,
         okText: submitter.dataset.assignmentConfirmOk || 'Подтвердить',
@@ -3533,6 +3536,8 @@ document.addEventListener('DOMContentLoaded', () => {
         button.dataset.currentDate = data.planned_date_iso || selectedIso;
         close();
         showCrmNotice(data.message || 'Дата выполнения изменена', 'success');
+      } catch (error) {
+        showCrmNotice(error?.message || 'Не удалось изменить дату. Проверьте соединение и попробуйте ещё раз.', 'danger');
       } finally {
         saveBtn.disabled = false;
       }
@@ -3543,23 +3548,20 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.classList.remove('d-none');
   };
 
-  document.querySelectorAll('.js-assignment-date-open').forEach(button => {
-    button.addEventListener('click', event => {
-      event.preventDefault();
-      openAssignmentDateModal(button);
-    });
-  });
-
-  document.addEventListener('submit', async event => {
-    const form = event.target.closest?.('.assignment-remove-user-form');
-    if (!form || event.target !== form) return;
-    if (form.dataset.assignmentNativeSubmit === '1') return;
+  // The issued-day tabs replace their cards without reloading the page. Keep
+  // this handler delegated so newly inserted "Date" buttons work as well.
+  document.addEventListener('click', event => {
+    const button = event.target.closest?.('.js-assignment-date-open');
+    if (!button) return;
     event.preventDefault();
-    event.stopImmediatePropagation();
-    const button = event.submitter || form.querySelector('.assignment-remove-user-btn');
-    if (button?.dataset.pending === '1') return;
+    event.stopPropagation();
+    openAssignmentDateModal(button);
+  }, true);
 
-    const confirmed = await showCrmConfirm({
+  const removeIssuedAssignment = async (form, button) => {
+    if (!form || button?.dataset.pending === '1') return;
+
+    const confirmed = await window.crmShowConfirm({
       title: 'Удалить задачу у сотрудника',
       message: 'Задача будет снята с пользователя и снова станет доступна без исполнителя и даты выполнения.',
       okText: 'Удалить',
@@ -3607,6 +3609,27 @@ document.addEventListener('DOMContentLoaded', () => {
     } finally {
       if (button) delete button.dataset.pending;
     }
+  };
+
+  // Capture the deliberate tap before legacy submit/confirmation handlers.
+  // A submit fallback remains for keyboard and assistive-technology users.
+  document.addEventListener('click', event => {
+    const button = event.target.closest?.('.assignment-remove-user-btn');
+    const form = button?.closest?.('.assignment-remove-user-form');
+    if (!button || !form) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+    void removeIssuedAssignment(form, button);
+  }, true);
+
+  document.addEventListener('submit', event => {
+    const form = event.target.closest?.('.assignment-remove-user-form');
+    if (!form || event.target !== form || form.dataset.assignmentNativeSubmit === '1') return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const button = event.submitter || form.querySelector('.assignment-remove-user-btn');
+    void removeIssuedAssignment(form, button);
   });
 
   document.addEventListener('click', event => {
