@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v38-mobile-shell-canvas';
+const STATIC_CACHE = 'peredacha-static-v40-stable-mobile-shell';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -6,15 +6,16 @@ const STATIC_ASSETS = [
   '/static/favicon-32x32.png',
   '/static/favicon-16x16.png',
   '/static/apple-splash.png',
+  '/static/apple-splash-1290x2796.png',
   '/static/vendor/bootstrap/bootstrap.min.css?v=5.3.3',
   '/static/vendor/bootstrap/bootstrap-icons.min.css?v=1.11.3',
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
-  '/static/style.css?v=v604-mobile-shell-canvas',
-  '/static/mobile-only.css?v=v31-mobile-shell-canvas',
-  '/static/desktop-only.css?v=v13-materials-ajax-pagination',
-  '/static/script.js?v=v616-issued-count-sync',
+  '/static/style.css?v=v606-stable-mobile-shell',
+  '/static/mobile-only.css?v=v33-stable-mobile-shell',
+  '/static/desktop-only.css?v=v14-contractor-delete-dark-red',
+  '/static/script.js?v=v618-stable-mobile-shell',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>
@@ -22,14 +23,14 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-  <meta name="theme-color" content="#f4f8ee">
+  <meta name="theme-color" content="#f9fbf5">
   <title>Передача — нет интернета</title>
   <style>
-    :root { color-scheme: light; background: #f4f8ee; }
+    :root { color-scheme: light; background: #f9fbf5; }
     * { box-sizing: border-box; }
     html, body {
       width: 100%; min-height: 100%; margin: 0; overflow: hidden;
-      background: #f4f8ee;
+      background: #f9fbf5;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
       color: #172033;
     }
@@ -37,7 +38,7 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
       position: fixed; inset: 0; display: grid; place-items: center;
       width: 100vw; height: 100vh; height: 100lvh;
       padding: max(1.2rem, env(safe-area-inset-top)) 1.15rem max(1.2rem, env(safe-area-inset-bottom));
-      background: #f4f8ee;
+      background: #f9fbf5;
     }
     .offline-panel {
       position: absolute; left: 50%; top: 50%;

@@ -10,7 +10,8 @@
   <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}?v=v327-mobile-shell-unify">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}?v=v327-mobile-shell-unify">
   <link rel="apple-touch-icon-precomposed" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}?v=v327-mobile-shell-unify">
-  <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='apple-splash.png') }}?v=v440-mobile-standalone-launch-screen">
+  <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='apple-splash-1290x2796.png') }}?v=v607-solid-mobile-launch" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='apple-splash.png') }}?v=v607-solid-mobile-launch">
   <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}?v=v473-safe-area-colors">
   <meta name="application-name" content="Передача">
   <meta name="apple-mobile-web-app-title" content="Передача">
@@ -53,7 +54,6 @@
       const DESKTOP_REFERENCE_HEIGHT = 1080;
       const DESKTOP_TO_MOBILE_VIEWPORT_WIDTH = 768;
       const allowAdaptiveMobileViewport = false;
-      const standaloneBootLoaderStorageKey = 'crm-standalone-boot-seen-v2';
       const getViewportWidth = () => Math.max(
         320,
         Math.round(window.visualViewport?.width || window.innerWidth || document.documentElement.clientWidth || DESKTOP_REFERENCE_WIDTH),
@@ -126,20 +126,6 @@
       }
       const getDesktopStageScale = () => Math.min(1, getViewportWidth() / DESKTOP_REFERENCE_WIDTH);
       const useAdaptiveMobileViewport = allowAdaptiveMobileViewport && !isTouchAppDevice && getViewportWidth() <= DESKTOP_TO_MOBILE_VIEWPORT_WIDTH;
-      let showStandaloneBootSplash = false;
-      try {
-        showStandaloneBootSplash = window.sessionStorage.getItem(standaloneBootLoaderStorageKey) !== '1';
-        if (showStandaloneBootSplash) {
-          window.sessionStorage.setItem(standaloneBootLoaderStorageKey, '1');
-        } else {
-          document.documentElement.classList.add('crm-standalone-boot-seen');
-        }
-      } catch (error) {
-        showStandaloneBootSplash = !document.documentElement.classList.contains('crm-standalone-boot-seen');
-        if (!showStandaloneBootSplash) {
-          document.documentElement.classList.add('crm-standalone-boot-seen');
-        }
-      }
       const mobileEntrySkipStorageKey = 'crm-mobile-nav-skip-entry';
       let skipNextMobileEntryTransition = false;
       if (isTouchAppDevice || useAdaptiveMobileViewport) {
@@ -189,9 +175,10 @@
       try {
         if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
       } catch (error) {}
+      let navigationType = 'navigate';
       try {
         const navEntry = window.performance?.getEntriesByType?.('navigation')?.[0];
-        const navigationType = navEntry?.type || (window.performance?.navigation?.type === 1 ? 'reload' : 'navigate');
+        navigationType = navEntry?.type || (window.performance?.navigation?.type === 1 ? 'reload' : 'navigate');
         document.documentElement.classList.toggle(
           'crm-loader-suppressed',
           skipNextMobileEntryTransition || navigationType === 'back_forward',
@@ -208,7 +195,11 @@
         if (/iPhone|iPod/i.test(userAgent) || isIpadOsLike) {
           document.documentElement.classList.add('ios-standalone-bottom-chrome');
         }
-        if ((isTouchAppDevice || useAdaptiveMobileViewport) && showStandaloneBootSplash) {
+        if (
+          (isTouchAppDevice || useAdaptiveMobileViewport)
+          && !skipNextMobileEntryTransition
+          && navigationType !== 'back_forward'
+        ) {
           document.documentElement.classList.add('mobile-standalone-boot');
         }
       }
@@ -273,10 +264,8 @@
       inset: 0 !important;
       z-index: 2147483000 !important;
       padding: max(1.25rem, env(safe-area-inset-top)) 1.25rem max(1.25rem, env(safe-area-inset-bottom)) !important;
-      background:
-        radial-gradient(circle at 18% 18%, rgba(141, 214, 44, .18), transparent 17rem),
-        radial-gradient(circle at 82% 20%, rgba(141, 214, 44, .16), transparent 15rem),
-        linear-gradient(180deg, #fefdfe 0%, #f7faef 100%) !important;
+      background: #f9fbf5 !important;
+      background-color: #f9fbf5 !important;
     }
 
     html.standalone-app .app-launch-loader .site-page-loader-card {
@@ -285,12 +274,12 @@
       aspect-ratio: 1 !important;
       display: grid !important;
       place-items: center !important;
-      border-radius: clamp(1.95rem, 6vw, 3rem) !important;
-      background: rgba(255, 255, 255, .8) !important;
-      border: 1px solid rgba(200, 211, 232, .64) !important;
-      box-shadow: 0 34px 95px rgba(31, 45, 61, .18) !important;
-      backdrop-filter: blur(18px) !important;
-      -webkit-backdrop-filter: blur(18px) !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      border: 0 !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
     }
 
     html.standalone-app .app-launch-loader .mobile-loading-orbit {
@@ -402,13 +391,14 @@
       /* Keep short pages on one stable viewport canvas from the first paint.
          The dock stays fixed; the light page background reaches its top. */
       html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-        body.app-body:not(:has(.task-single-form)) {
+        body.app-body {
         min-height: var(--app-height, 100dvh) !important;
-        background-color: #f6f8fb !important;
+        background: #111820 !important;
+        background-color: #111820 !important;
       }
 
       html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-        body.app-body:not(:has(.task-single-form))
+        body.app-body
         :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout, .app-main) {
         min-height: calc(var(--app-height, 100dvh) - 4.5rem) !important;
         background-color: #f6f8fb !important;
@@ -516,10 +506,8 @@
       min-height: 0;
       max-height: none;
       padding: 0;
-      background:
-        radial-gradient(circle at 20% 18%, rgba(141, 214, 44, .18), transparent 18rem),
-        radial-gradient(circle at 80% 16%, rgba(141, 214, 44, .1), transparent 15rem),
-        linear-gradient(180deg, #fdfef9 0%, #f7faef 54%, #f9fbf5 100%);
+      background: #f9fbf5;
+      background-color: #f9fbf5;
       opacity: 1;
       visibility: visible;
       transition: none;
@@ -623,11 +611,9 @@
       to { transform: translateY(-2px) scale(1.02); }
     }
 
-    html.standalone-app body.auth-body .app-launch-loader {
-      background:
-        radial-gradient(circle at 20% 18%, rgba(141, 214, 44, .16), transparent 18rem),
-        radial-gradient(circle at 80% 16%, rgba(141, 214, 44, .08), transparent 15rem),
-        linear-gradient(180deg, #fdfef9 0%, #f6faef 100%) !important;
+    html.standalone-app .app-launch-loader {
+      background: #f9fbf5 !important;
+      background-color: #f9fbf5 !important;
     }
 
     /* The mobile loader card is stretched to the viewport width by the main
@@ -650,7 +636,7 @@
 
     /* Standalone mode already has the branded launch cover above. Rendering
        the older login loader underneath created a second translucent layer. */
-    html.standalone-app body.auth-body .js-app-launch-loader {
+    html.standalone-app .js-app-launch-loader {
       display: none !important;
       opacity: 0 !important;
       visibility: hidden !important;
@@ -694,15 +680,15 @@
       if ('serviceWorker' in navigator && window.isSecureContext) {
         const mobileServiceWorkerUpgrade = window.matchMedia('(max-width: 767.98px)').matches
           && navigator.serviceWorker.controller
-          && !navigator.serviceWorker.controller.scriptURL.includes('v38-mobile-shell-canvas');
-        if (mobileServiceWorkerUpgrade && !sessionStorage.getItem('crm-mobile-sw-v38-reloaded')) {
+          && !navigator.serviceWorker.controller.scriptURL.includes('v40-stable-mobile-shell');
+        if (mobileServiceWorkerUpgrade && !sessionStorage.getItem('crm-mobile-sw-v40-reloaded')) {
           navigator.serviceWorker.addEventListener('controllerchange', () => {
-            sessionStorage.setItem('crm-mobile-sw-v38-reloaded', '1');
+            sessionStorage.setItem('crm-mobile-sw-v40-reloaded', '1');
             window.location.reload();
           }, { once: true });
         }
         navigator.serviceWorker
-          .register('/service-worker.js?v=v38-mobile-shell-canvas', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v40-stable-mobile-shell', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -739,8 +725,8 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v604-mobile-shell-canvas">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v31-mobile-shell-canvas">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v606-stable-mobile-shell">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v33-stable-mobile-shell">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v14-contractor-delete-dark-red">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and current_user.role == 'verifier' %} verifier-layout{% endif %}{% if current_user.is_authenticated and mobile_version_under_development %} mobile-dev-flag{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
@@ -1333,6 +1319,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v616-issued-count-sync"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v618-stable-mobile-shell"></script>
 </body>
 </html>

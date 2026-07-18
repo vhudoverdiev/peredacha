@@ -75,6 +75,18 @@ const rememberInstantMobileEntryForNextNavigation = href => {
     window.sessionStorage.setItem(mobileEntrySkipStorageKey, '1');
   } catch (error) {}
 };
+
+// Every in-app link marks the next document as an internal transition. This
+// keeps the native/HTML launch cover exclusive to a real app start or reload;
+// ordinary navigation therefore cannot repaint the fixed header or dock.
+document.addEventListener('click', event => {
+  const link = event.target.closest?.('a[href]');
+  if (!link || link.hasAttribute('download')) return;
+  if (link.target && link.target !== '_self') return;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  rememberInstantMobileEntryForNextNavigation(link.href);
+}, true);
+
 const getTouchViewportProfile = () => {
   const viewportWidth = getViewportWidth();
   const viewportHeight = getViewportHeight();

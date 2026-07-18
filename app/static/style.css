@@ -52844,30 +52844,8 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 }
 
-/* v419: mobile inner tabs use one dedicated shared reveal. Fixed shell chrome
-   stays still while only the page surface fades in like the landing. */
-@property --crm-mobile-entry-opacity {
-  syntax: "<number>";
-  inherits: false;
-  initial-value: 1;
-}
-
-@property --crm-mobile-entry-y {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@keyframes crmMobileContentReveal {
-  from {
-    --crm-mobile-entry-opacity: 0;
-    --crm-mobile-entry-y: 8px;
-  }
-  to {
-    --crm-mobile-entry-opacity: 1;
-    --crm-mobile-entry-y: 0px;
-  }
-}
+/* Mobile documents switch without a second reveal. The old property-driven
+   animation was restarted after style.css arrived and caused a visible flash. */
 
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartments-page)
@@ -52908,11 +52886,12 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   html.crm-mobile-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body .crm-page-entry-surface.crm-page-entry-surface {
     visibility: visible !important;
-    opacity: var(--crm-mobile-entry-opacity) !important;
-    transform: translate3d(0, var(--crm-mobile-entry-y), 0) !important;
-    animation: crmMobileContentReveal 280ms cubic-bezier(.22, .72, .2, 1) both !important;
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
     pointer-events: auto !important;
-    will-change: opacity, transform !important;
+    will-change: auto !important;
   }
 
   html.crm-mobile-entry-skip:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -53066,7 +53045,7 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
 
   html.crm-mobile-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body .crm-page-entry-surface.crm-page-entry-surface * {
-    transition: revert-layer !important;
+    transition: none !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
@@ -53082,8 +53061,12 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
     .crm-page-entry-surface.crm-page-entry-surface {
-    animation: crmMobileContentReveal 280ms cubic-bezier(.22, .72, .2, 1) both !important;
-    transform-origin: 50% 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+    will-change: auto !important;
   }
 
   .mobile-apartments-pagination {
@@ -53147,10 +53130,8 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .app-launch-loader,
   body.standalone-app.app-body .app-launch-loader {
     padding: calc(env(safe-area-inset-top) + 1.5rem) 1.5rem calc(env(safe-area-inset-bottom) + 1.5rem) !important;
-    background:
-      radial-gradient(circle at 20% 18%, rgba(141, 214, 44, .2), transparent 18rem),
-      radial-gradient(circle at 80% 16%, rgba(141, 214, 44, .12), transparent 15rem),
-      linear-gradient(180deg, #151c23 0%, #1b242d 54%, #151c23 100%) !important;
+    background: #f9fbf5 !important;
+    background-color: #f9fbf5 !important;
   }
 
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .app-launch-loader .site-page-loader-card,
