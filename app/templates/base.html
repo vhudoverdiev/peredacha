@@ -323,6 +323,23 @@
     /* Critical mobile-web dock geometry is available before the external
        stylesheet and icon fonts finish loading. */
     @media (max-width: 767.98px) {
+      /* Mobile documents are painted at their final position from the first
+         frame. The main stylesheet still contains desktop entrance effects;
+         keeping this critical rule inline prevents them from running for a
+         fraction of a second before mobile-only.css arrives. */
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body .crm-page-entry-surface,
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body .crm-page-entry-surface > :not(.crm-toast-stack) {
+        visibility: visible !important;
+        opacity: 1 !important;
+        transform: none !important;
+        translate: none !important;
+        scale: none !important;
+        animation: none !important;
+        transition: none !important;
+      }
+
       html:not(.standalone-app) body.app-body > nav.mobile-bottom-nav-root {
         position: fixed !important;
         inset: auto 0 0 0 !important;
@@ -465,11 +482,20 @@
 
     .mobile-standalone-boot-screen {
       position: fixed;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: auto;
+      left: 0;
       z-index: 2147483640;
       display: none;
       align-items: center;
       justify-content: center;
+      width: 100%;
+      height: 100vh;
+      height: 100lvh;
+      min-height: 100vh;
+      min-height: 100lvh;
+      max-height: 100lvh;
       padding: 0;
       background:
         radial-gradient(circle at 20% 18%, rgba(141, 214, 44, .18), transparent 18rem),
@@ -499,6 +525,8 @@
       display: grid;
       place-items: center;
       flex: 0 0 8rem;
+      contain: layout paint;
+      transform: translateZ(0);
     }
 
     .mobile-standalone-boot-screen__ring,
@@ -635,15 +663,15 @@
       if ('serviceWorker' in navigator && window.isSecureContext) {
         const mobileServiceWorkerUpgrade = window.matchMedia('(max-width: 767.98px)').matches
           && navigator.serviceWorker.controller
-          && !navigator.serviceWorker.controller.scriptURL.includes('v33-mobile-stable-shell');
-        if (mobileServiceWorkerUpgrade && !sessionStorage.getItem('crm-mobile-sw-v33-reloaded')) {
+          && !navigator.serviceWorker.controller.scriptURL.includes('v35-issued-count-sync');
+        if (mobileServiceWorkerUpgrade && !sessionStorage.getItem('crm-mobile-sw-v35-reloaded')) {
           navigator.serviceWorker.addEventListener('controllerchange', () => {
-            sessionStorage.setItem('crm-mobile-sw-v33-reloaded', '1');
+            sessionStorage.setItem('crm-mobile-sw-v35-reloaded', '1');
             window.location.reload();
           }, { once: true });
         }
         navigator.serviceWorker
-          .register('/service-worker.js?v=v33-mobile-stable-shell', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v35-issued-count-sync', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -680,9 +708,9 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v602-mobile-conflict-cleanup">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v27-mobile-stable-shell">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v10-contractor-delete-hover">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v603-mobile-loader-steady">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v28-mobile-loader-steady">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v13-materials-ajax-pagination">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and current_user.role == 'verifier' %} verifier-layout{% endif %}{% if current_user.is_authenticated and mobile_version_under_development %} mobile-dev-flag{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <div class="crm-offline-banner js-crm-offline-banner" hidden>Не удается обновить. Показана сохраненная версия.</div>
@@ -1274,6 +1302,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v613-mobile-stable-shell"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v616-issued-count-sync"></script>
 </body>
 </html>

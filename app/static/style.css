@@ -3877,29 +3877,29 @@ textarea.form-control {
   }
 }
 
-body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack) {
+html.desktop-like-pointer body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack) {
   opacity: 0;
   animation: dashboardFadeUp .36s ease both;
   animation-delay: var(--crm-enter-delay, 0ms);
 }
 
-body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(1) { --crm-enter-delay: 0ms; }
-body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(2) { --crm-enter-delay: 70ms; }
-body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(3) { --crm-enter-delay: 140ms; }
-body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(4) { --crm-enter-delay: 210ms; }
-body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(5) { --crm-enter-delay: 280ms; }
+html.desktop-like-pointer body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(1) { --crm-enter-delay: 0ms; }
+html.desktop-like-pointer body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(2) { --crm-enter-delay: 70ms; }
+html.desktop-like-pointer body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(3) { --crm-enter-delay: 140ms; }
+html.desktop-like-pointer body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(4) { --crm-enter-delay: 210ms; }
+html.desktop-like-pointer body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack):nth-child(5) { --crm-enter-delay: 280ms; }
 
-body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > * {
+html.desktop-like-pointer body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > * {
   opacity: 0;
   animation: dashboardFadeUp .36s ease both;
   animation-delay: var(--crm-grid-enter-delay, 0ms);
 }
 
-body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > *:nth-child(1) { --crm-grid-enter-delay: 120ms; }
-body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > *:nth-child(2) { --crm-grid-enter-delay: 180ms; }
-body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > *:nth-child(3) { --crm-grid-enter-delay: 240ms; }
-body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > *:nth-child(4) { --crm-grid-enter-delay: 300ms; }
-body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > *:nth-child(n+5) { --crm-grid-enter-delay: 360ms; }
+html.desktop-like-pointer body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > *:nth-child(1) { --crm-grid-enter-delay: 120ms; }
+html.desktop-like-pointer body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > *:nth-child(2) { --crm-grid-enter-delay: 180ms; }
+html.desktop-like-pointer body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > *:nth-child(3) { --crm-grid-enter-delay: 240ms; }
+html.desktop-like-pointer body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > *:nth-child(4) { --crm-grid-enter-delay: 300ms; }
+html.desktop-like-pointer body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > *:nth-child(n+5) { --crm-grid-enter-delay: 360ms; }
 
 @keyframes dashboardProgress {
   from {
@@ -53541,15 +53541,21 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   font-weight: 400 !important;
 }
 
-/* v472: the launch screen uses the real viewport box, so flex centering is
-   geometrically exact. The iOS system area stays white via the v470 root. */
+/* The standalone launch screen uses the largest viewport height. iOS grows
+   its visual viewport after the homescreen opening animation; centering in
+   the dynamic fixed box made the logo jump by roughly half that delta. */
 @media (max-width: 767.98px) {
   html.mobile-standalone-boot .mobile-standalone-boot-screen {
-    inset: 0 !important;
     top: 0 !important;
     right: 0 !important;
-    bottom: 0 !important;
+    bottom: auto !important;
     left: 0 !important;
+    width: 100% !important;
+    height: 100vh !important;
+    height: 100lvh !important;
+    min-height: 100vh !important;
+    min-height: 100lvh !important;
+    max-height: 100lvh !important;
   }
 }
 

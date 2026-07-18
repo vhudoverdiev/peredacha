@@ -64,6 +64,7 @@
                 </button>
                 <form method="post" action="{{ url_for('main.assignment_delete_from_employee', task_id=task.id) }}" class="assignment-remove-user-form">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="issued_day" value="{{ issued_filter }}">
                   <button class="btn btn-sm btn-outline-danger assignment-remove-user-btn" type="submit" data-testid="assignment-remove-user" title="Удалить задачу у сотрудника" aria-label="Удалить задачу у сотрудника">
                     <svg class="assignment-remove-user-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4h6m-8 3h10m-9 0 .7 12h6.6L16 7M10 10v6m4-6v6"/></svg><span class="assignment-remove-user-text">Удалить</span>
                   </button>

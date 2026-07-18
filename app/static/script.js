@@ -3254,7 +3254,37 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${value} задач`;
   };
 
-  const refreshIssuedCountsAfterRemoval = (row) => {
+  const syncIssuedFilterBadge = (selector, total) => {
+    if (!Number.isFinite(Number(total))) return;
+    const link = document.querySelector(selector);
+    if (!link) return;
+    let badge = link.querySelector(':scope > span');
+    if (Number(total) > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        link.appendChild(badge);
+      }
+      badge.textContent = String(total);
+    } else {
+      badge?.remove();
+    }
+  };
+
+  const ensureIssuedEmptyState = () => {
+    const layout = document.querySelector('.assignment-issued-layout');
+    if (!layout || layout.querySelector('.assignment-issued-row, .assignment-issued-empty')) return;
+    const overdue = layout.classList.contains('assignment-overdue-layout');
+    const empty = document.createElement('div');
+    empty.className = `card content-card assignment-issued-empty${overdue ? ' assignment-overdue-empty' : ''}`;
+    empty.innerHTML = `
+      <div class="card-body text-center text-muted py-5">
+        <i class="bi ${overdue ? 'bi-check2-circle' : 'bi-inbox'}"></i>
+        <div>${overdue ? 'Просроченных невыполненных задач нет.' : 'Выданных задач за выбранный день пока нет.'}</div>
+      </div>`;
+    layout.replaceChildren(empty);
+  };
+
+  const refreshIssuedCountsAfterRemoval = (row, payload = {}) => {
     const card = row.closest('.assignment-issued-card');
     const dayGroup = row.closest('.assignment-overdue-day-group');
     row.remove();
@@ -3270,6 +3300,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (dayCount) dayCount.textContent = assignmentTaskLabel(dayRowsLeft);
       if (!dayRowsLeft) dayGroup.remove();
     }
+    syncIssuedFilterBadge('.assignment-filter-pill[href*="issued_day=overdue"]', payload.overdue_total);
+    syncIssuedFilterBadge('.assignment-subtab[href*="view=issued"]', payload.issued_total);
+    ensureIssuedEmptyState();
   };
 
   const isOverdueIssuedView = () => Boolean(document.querySelector('.assignment-overdue-layout'));
@@ -3719,7 +3752,10 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(data.message || 'Не удалось удалить задачу у сотрудника');
       }
       const row = form.closest('.assignment-issued-row');
-      if (row) refreshIssuedCountsAfterRemoval(row);
+      if (row) refreshIssuedCountsAfterRemoval(row, data);
+      if (typeof window.crmRefreshIssuedAssignments === 'function') {
+        await window.crmRefreshIssuedAssignments();
+      }
       showCrmNotice(data.message || 'Задача удалена у сотрудника', 'success');
     } catch (error) {
       showCrmNotice(error.message || 'Не удалось удалить задачу у сотрудника', 'danger');
@@ -4276,7 +4312,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const loadIssuedFilter = async (url, pushHistory = true) => {
-    if (!url) return;
+    if (!url) return false;
     issuedFilterRequest?.abort();
     issuedFilterRequest = new AbortController();
 
@@ -4299,15 +4335,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!replaceIssuedRegion(sourceDocument, url, pushHistory)) {
         throw new Error('Не удалось обновить список задач');
       }
+      return true;
     } catch (error) {
-      if (error.name === 'AbortError') return;
+      if (error.name === 'AbortError') return false;
       showCrmNotice(error.message || 'Не удалось обновить список задач', 'danger');
+      return false;
     } finally {
       const activeFilters = document.querySelector('.assignment-issued-filters');
       activeFilters?.classList.remove('is-updating');
       activeFilters?.removeAttribute('aria-busy');
     }
   };
+
+  window.crmRefreshIssuedAssignments = () => loadIssuedFilter(window.location.href, false);
 
   document.addEventListener('click', event => {
     const link = event.target.closest('.js-assignment-issued-filter');
@@ -4539,30 +4579,39 @@ document.addEventListener('DOMContentLoaded', () => {
     input.addEventListener('paste', () => setTimeout(clean, 0));
   });
 
-  document.querySelectorAll('.material-select-row').forEach(row => {
-    const checkbox = row.querySelector('input[type="checkbox"]');
-    const syncState = () => row.classList.toggle('is-selected', Boolean(checkbox?.checked));
-    row.addEventListener('click', event => {
-      if (event.target.closest('textarea, select')) return;
-      if (!checkbox) return;
-      // Клик по любой части строки ставит/снимает галочку. Нативный клик по самому checkbox не дублируем.
-      if (!event.target.closest('input[type="checkbox"]')) {
-        checkbox.checked = !checkbox.checked;
-        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+  const initMaterialSelectRows = (scope = document) => {
+    const rows = [];
+    if (scope.matches?.('.material-select-row')) rows.push(scope);
+    scope.querySelectorAll?.('.material-select-row').forEach(row => rows.push(row));
+    rows.forEach(row => {
+      if (row.dataset.materialSelectBound === '1') return;
+      const checkbox = row.querySelector('input[type="checkbox"]');
+      const syncState = () => row.classList.toggle('is-selected', Boolean(checkbox?.checked));
+      row.addEventListener('click', event => {
+        if (event.target.closest('textarea, select')) return;
+        if (!checkbox) return;
+        if (!event.target.closest('input[type="checkbox"]')) {
+          checkbox.checked = !checkbox.checked;
+          checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        syncState();
+      });
+      row.addEventListener('dblclick', event => {
+        if (event.target.closest('a, button, form, input, textarea, select, label')) return;
+        const href = row.dataset.href;
+        if (href) window.location.href = href;
+      });
+      if (checkbox) {
+        checkbox.addEventListener('change', syncState);
+        syncState();
       }
-      syncState();
+      row.dataset.materialSelectBound = '1';
     });
-    row.addEventListener('dblclick', event => {
-      if (event.target.closest('a, button, form, input, textarea, select, label')) return;
-      const href = row.dataset.href;
-      if (href) {
-        window.location.href = href;
-      }
-    });
-    if (checkbox) {
-      checkbox.addEventListener('change', syncState);
-      syncState();
-    }
+  };
+
+  initMaterialSelectRows();
+  document.addEventListener('crm:ajax-pagination-updated', event => {
+    if (event.detail?.pageKey === 'materials') initMaterialSelectRows(event.detail?.content || document);
   });
 
   document.querySelectorAll('.js-material-writeoff-form').forEach(form => {
@@ -4617,18 +4666,62 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    form.querySelectorAll('.material-task-check').forEach(check => {
-      check.addEventListener('change', () => {
-        const selection = readSelection();
-        if (check.checked) {
-          selection.add(String(check.value));
-        } else {
-          selection.delete(String(check.value));
-        }
-        writeSelection(selection);
-        syncSelectionUi();
+    const bindSelectionChecks = (scope = form) => {
+      scope.querySelectorAll('.material-task-check').forEach(check => {
+        if (check.dataset.writeoffSelectionBound === '1') return;
+        check.addEventListener('change', () => {
+          const selection = readSelection();
+          if (check.checked) selection.add(String(check.value));
+          else selection.delete(String(check.value));
+          writeSelection(selection);
+          syncSelectionUi();
+        });
+        check.dataset.writeoffSelectionBound = '1';
       });
+    };
+
+    bindSelectionChecks();
+    document.addEventListener('crm:ajax-pagination-updated', event => {
+      if (event.detail?.pageKey !== 'materials' || !form.contains(event.detail?.content)) return;
+      bindSelectionChecks(event.detail.content);
+      syncSelectionUi();
     });
+
+    const parseWriteoffNumber = value => {
+      const normalized = String(value || '').replace(/[\s\u00a0]+/g, '').replace(',', '.');
+      const number = Number(normalized);
+      return Number.isFinite(number) ? number : NaN;
+    };
+    const formatWriteoffNumber = value => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 3 }).format(value);
+    const validateWriteoffBalances = () => {
+      const totals = new Map();
+      for (const line of form.querySelectorAll('.js-material-line')) {
+        const select = line.querySelector('.js-writeoff-material-select');
+        const input = line.querySelector('.js-writeoff-quantity-input');
+        if (!select?.value && !input?.value.trim()) continue;
+        const option = select?.selectedOptions?.[0];
+        if (!select?.value) return { input: select, message: 'Выберите материал для списания.' };
+        const quantity = parseWriteoffNumber(input?.value);
+        if (!Number.isFinite(quantity) || quantity <= 0) {
+          return { input, message: 'Введите корректное количество материала больше нуля.' };
+        }
+        const balance = parseWriteoffNumber(option?.dataset?.balance);
+        const [name = option?.textContent?.trim() || 'Материал', unit = ''] = String(select.value).split('|||');
+        const current = totals.get(select.value) || { name, unit, balance, quantity: 0, input };
+        current.quantity += quantity;
+        totals.set(select.value, current);
+      }
+      for (const row of totals.values()) {
+        if (Number.isFinite(row.balance) && row.quantity > row.balance + 0.000001) {
+          const unitSuffix = row.unit ? ` ${row.unit}` : '';
+          return {
+            input: row.input,
+            message: `Для материала «${row.name}» введено ${formatWriteoffNumber(row.quantity)}${unitSuffix}, доступно только ${formatWriteoffNumber(row.balance)}${unitSuffix}. Уменьшите количество.`,
+          };
+        }
+      }
+      return null;
+    };
 
     clearBtn?.addEventListener('click', () => {
       clearSelection();
@@ -4645,6 +4738,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (form.dataset.writeoffSubmitting === '1') return;
 
         syncSelectionUi();
+        if (readSelection().size === 0) {
+          showCrmNotice('Выберите хотя бы одно замечание для списания.', 'danger');
+          return;
+        }
+        const balanceError = validateWriteoffBalances();
+        if (balanceError) {
+          balanceError.input?.classList.add('is-invalid');
+          balanceError.input?.focus({ preventScroll: true });
+          showCrmNotice(balanceError.message, 'danger');
+          return;
+        }
         const submitter = event.submitter;
         const formData = new FormData(form);
         if (submitter?.name) formData.set(submitter.name, submitter.value);
@@ -4665,9 +4769,24 @@ document.addEventListener('DOMContentLoaded', () => {
               'Accept': 'application/json',
             },
           });
-          const data = await response.json().catch(() => ({}));
+          const responseText = await response.text();
+          let data = {};
+          try {
+            data = responseText ? JSON.parse(responseText) : {};
+          } catch (parseError) {
+            const responseDocument = new DOMParser().parseFromString(responseText, 'text/html');
+            const serverMessage = responseDocument.querySelector('.crm-toast-text, main .alert, h1')?.textContent?.trim();
+            data = { ok: false, message: serverMessage || '' };
+          }
           if (!response.ok || data.ok === false) {
-            const error = new Error(data.message || 'Не удалось списать материал');
+            const statusMessages = {
+              400: 'Сервер отклонил введённые данные. Проверьте выбранный материал и количество.',
+              403: 'Недостаточно прав для списания материала.',
+              409: 'Остаток или выбранное замечание уже изменились. Обновите данные и повторите попытку.',
+              429: 'Слишком много попыток. Подождите минуту и повторите списание.',
+              500: 'Внутренняя ошибка сервера при списании материала.',
+            };
+            const error = new Error(data.message || statusMessages[response.status] || `Ошибка списания: сервер вернул код ${response.status}.`);
             error.field = data.field || '';
             throw error;
           }
@@ -4679,7 +4798,10 @@ document.addEventListener('DOMContentLoaded', () => {
             quantityInput?.classList.add('is-invalid');
             quantityInput?.focus({ preventScroll: true });
           }
-          showCrmNotice(error.message || 'Не удалось списать материал', 'danger');
+          const errorMessage = error?.name === 'TypeError'
+            ? 'Сервер не ответил. Проверьте подключение к интернету и повторите попытку.'
+            : (error.message || 'Не удалось списать материал: сервер не сообщил причину.');
+          showCrmNotice(errorMessage, 'danger');
         } finally {
           delete form.dataset.writeoffSubmitting;
           form.querySelectorAll('button[type="submit"]').forEach(button => { button.disabled = false; });

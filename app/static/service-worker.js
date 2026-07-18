@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v33-mobile-stable-shell';
+const STATIC_CACHE = 'peredacha-static-v35-issued-count-sync';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -11,10 +11,10 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
-  '/static/style.css?v=v602-mobile-conflict-cleanup',
-  '/static/mobile-only.css?v=v27-mobile-stable-shell',
-  '/static/desktop-only.css?v=v2-material-request-input-white',
-  '/static/script.js?v=v613-mobile-stable-shell',
+  '/static/style.css?v=v603-mobile-loader-steady',
+  '/static/mobile-only.css?v=v28-mobile-loader-steady',
+  '/static/desktop-only.css?v=v13-materials-ajax-pagination',
+  '/static/script.js?v=v616-issued-count-sync',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>
@@ -35,7 +35,7 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
     }
     .offline-screen {
       position: fixed; inset: 0; display: grid; place-items: center;
-      width: 100vw; height: 100vh; height: 100dvh;
+      width: 100vw; height: 100vh; height: 100lvh;
       padding: max(1.2rem, env(safe-area-inset-top)) 1.15rem max(1.2rem, env(safe-area-inset-bottom));
       background: #f4f8ee;
     }

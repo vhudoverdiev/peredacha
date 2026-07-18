@@ -158,7 +158,7 @@ def service_worker_reset():
         window.location.replace('/?worker=v33');
       };
       navigator.serviceWorker?.addEventListener('controllerchange', openCrm, { once: true });
-      navigator.serviceWorker?.register('/service-worker.js?v=v33-mobile-stable-shell', { scope: '/', updateViaCache: 'none' })
+      navigator.serviceWorker?.register('/service-worker.js?v=v35-issued-count-sync', { scope: '/', updateViaCache: 'none' })
         .then(registration => registration.update())
         .catch(() => {})
         .finally(() => window.setTimeout(openCrm, 1200));
@@ -1310,7 +1310,10 @@ def _read_balance_writeoff_row(project_id: int) -> dict[str, object]:
         raise ValueError("Этого материала нет на балансе")
     balance = float(row.get("balance") or 0)
     if quantity > balance + 0.000001:
-        raise ValueError(f"Нельзя списать больше остатка. Доступно: {fmt_quantity(balance)} {unit}")
+        raise ValueError(
+            f"Для материала «{name}» введено {fmt_quantity(quantity)} {unit}, "
+            f"доступно только {fmt_quantity(balance)} {unit}. Уменьшите количество."
+        )
     return {"name": name, "unit": unit, "quantity": quantity, "balance": balance}
 
 
@@ -1364,8 +1367,8 @@ def _read_balance_writeoff_rows(project_id: int) -> list[dict[str, object]]:
     for row in result:
         if float(row["quantity"]) > float(row["balance"]) + 0.000001:
             raise ValueError(
-                f"Нельзя списать больше остатка для {row['name']}. "
-                f"Доступно: {fmt_quantity(float(row['balance']))} {row['unit']}"
+                f"Для материала «{row['name']}» введено {fmt_quantity(float(row['quantity']))} {row['unit']}, "
+                f"доступно только {fmt_quantity(float(row['balance']))} {row['unit']}. Уменьшите количество."
             )
     return result
 
@@ -4079,6 +4082,28 @@ def assignment_delete_from_employee(task_id: int):
         log_change(task, "field_update", "planned_date", old_date, None, user_id=current_user.id)
     db.session.commit()
 
+    remaining_issued_query = Task.query.filter(
+        Task.project_id == project.id,
+        Task.responsible_id.isnot(None),
+        Task.status.notin_([STATUS_FINISHERS, STATUS_CONTRACTOR]),
+        Task.is_archived.is_(False),
+        Task.is_missing_in_latest_sync.is_(False),
+    )
+    remaining_overdue_filter = (
+        Task.planned_date.isnot(None),
+        Task.planned_date < date.today(),
+        Task.status != STATUS_DONE,
+        Task.is_done.is_(False),
+    )
+    remaining_overdue_total = remaining_issued_query.filter(*remaining_overdue_filter).count()
+    remaining_filter, remaining_filter_date = _assignment_issued_day_filter(request.form.get("issued_day"))
+    if remaining_filter == "overdue":
+        remaining_filtered_total = remaining_issued_query.filter(*remaining_overdue_filter).count()
+    elif remaining_filter_date is not None:
+        remaining_filtered_total = remaining_issued_query.filter(Task.planned_date == remaining_filter_date).count()
+    else:
+        remaining_filtered_total = remaining_issued_query.count()
+
     message = "Задача удалена у сотрудника и снова доступна без исполнителя. Действие можно отменить в логах удалений."
     if wants_json:
         return jsonify({
@@ -4089,6 +4114,8 @@ def assignment_delete_from_employee(task_id: int):
             "planned_date": "—",
             "planned_date_iso": "",
             "removed": True,
+            "issued_total": remaining_filtered_total,
+            "overdue_total": remaining_overdue_total,
             "message": message,
         })
     flash(message, "success")

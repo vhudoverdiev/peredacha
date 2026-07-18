@@ -42,6 +42,21 @@
     will-change: auto !important;
   }
 
+  html.desktop-like-pointer body.app-body .materials-writeoff-list-column {
+    position: relative;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-writeoff-pagination {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+  }
+
+  html.desktop-like-pointer body.app-body .material-writeoff-form:has(.materials-writeoff-pagination) {
+    margin-bottom: 4.75rem;
+  }
+
   html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active),
   html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active):hover,
   html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active):focus {
@@ -223,12 +238,20 @@
   /* Contractor directory: white delete button, red only on interaction. */
   html.desktop-like-pointer body.app-body .contractor-directory-delete-btn,
   html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:focus {
-    border-color: #dc2626 !important;
-    background: #ffffff !important;
-    background-image: none !important;
+    min-width: 126px;
+    min-height: 48px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    border: 1px solid #dc2626 !important;
+    border-radius: 12px !important;
+    background-color: #ffffff !important;
+    background-image: linear-gradient(180deg, #ffffff 0%, #fff7f7 100%) !important;
     color: #dc2626 !important;
     -webkit-text-fill-color: #dc2626 !important;
-    box-shadow: none !important;
+    font-weight: 700 !important;
+    box-shadow: 0 8px 18px rgba(220, 38, 38, .10) !important;
   }
 
   html.desktop-like-pointer body.app-body
@@ -239,6 +262,39 @@
     :is(i, .bi, .bi::before) {
     color: #dc2626 !important;
     -webkit-text-fill-color: #dc2626 !important;
+    opacity: 1 !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-directory-delete-btn i.bi {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0 !important;
+    font-size: 1rem !important;
+    line-height: 1 !important;
+    visibility: visible !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-directory-delete-btn i.bi::before {
+    display: inline-block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .btn.btn-danger.contractor-directory-delete-btn:not(:hover):not(:active):not(:focus-visible)
+    i.bi,
+  html.desktop-like-pointer body.app-body
+    .btn.btn-danger.contractor-directory-delete-btn:not(:hover):not(:active):not(:focus-visible)
+    i.bi::before {
+    color: #dc2626 !important;
+    fill: #dc2626 !important;
+    stroke: #dc2626 !important;
+    -webkit-text-fill-color: #dc2626 !important;
   }
 
   html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:hover,
@@ -246,9 +302,11 @@
   html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:focus-visible {
     border-color: #dc2626 !important;
     background: #dc2626 !important;
+    background-image: none !important;
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
-    box-shadow: 0 10px 24px rgba(220, 38, 38, .18) !important;
+    box-shadow: 0 10px 24px rgba(220, 38, 38, .22) !important;
+    transform: translateY(-1px);
   }
 
   html.desktop-like-pointer body.app-body
@@ -432,6 +490,29 @@
     min-height: 44px;
     align-items: center;
     justify-content: center;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-response-actions .btn.btn-outline-secondary,
+  html.desktop-like-pointer body.app-body
+    .contractor-response-actions .btn.btn-outline-secondary:hover,
+  html.desktop-like-pointer body.app-body
+    .contractor-response-actions .btn.btn-outline-secondary:focus {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-response-actions .btn.btn-outline-secondary
+    :is(i, .bi, .bi::before),
+  html.desktop-like-pointer body.app-body
+    .contractor-response-actions .btn.btn-outline-secondary:hover
+    :is(i, .bi, .bi::before),
+  html.desktop-like-pointer body.app-body
+    .contractor-response-actions .btn.btn-outline-secondary:focus
+    :is(i, .bi, .bi::before) {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
   }
 
   html.desktop-like-pointer body.app-body .contractor-response-empty {
