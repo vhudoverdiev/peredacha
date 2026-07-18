@@ -244,14 +244,14 @@
     align-items: center;
     justify-content: center;
     gap: .5rem;
-    border: 1px solid #dc2626 !important;
+    border: 1px solid #c62828 !important;
     border-radius: 12px !important;
     background-color: #ffffff !important;
     background-image: linear-gradient(180deg, #ffffff 0%, #fff7f7 100%) !important;
-    color: #dc2626 !important;
-    -webkit-text-fill-color: #dc2626 !important;
+    color: #c62828 !important;
+    -webkit-text-fill-color: #c62828 !important;
     font-weight: 700 !important;
-    box-shadow: 0 8px 18px rgba(220, 38, 38, .10) !important;
+    box-shadow: 0 8px 18px rgba(198, 40, 40, .12) !important;
   }
 
   html.desktop-like-pointer body.app-body
@@ -260,8 +260,8 @@
   html.desktop-like-pointer body.app-body
     .contractor-directory-delete-btn:focus
     :is(i, .bi, .bi::before) {
-    color: #dc2626 !important;
-    -webkit-text-fill-color: #dc2626 !important;
+    color: #c62828 !important;
+    -webkit-text-fill-color: #c62828 !important;
     opacity: 1 !important;
   }
 
@@ -291,21 +291,21 @@
   html.desktop-like-pointer body.app-body
     .btn.btn-danger.contractor-directory-delete-btn:not(:hover):not(:active):not(:focus-visible)
     i.bi::before {
-    color: #dc2626 !important;
-    fill: #dc2626 !important;
-    stroke: #dc2626 !important;
-    -webkit-text-fill-color: #dc2626 !important;
+    color: #c62828 !important;
+    fill: #c62828 !important;
+    stroke: #c62828 !important;
+    -webkit-text-fill-color: #c62828 !important;
   }
 
   html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:hover,
   html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:active,
   html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:focus-visible {
-    border-color: #dc2626 !important;
-    background: #dc2626 !important;
+    border-color: #c62828 !important;
+    background: #c62828 !important;
     background-image: none !important;
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
-    box-shadow: 0 10px 24px rgba(220, 38, 38, .22) !important;
+    box-shadow: 0 10px 24px rgba(198, 40, 40, .24) !important;
     transform: translateY(-1px);
   }
 
