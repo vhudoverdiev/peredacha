@@ -691,6 +691,11 @@
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-inspection-reset-mobile-only {
+    display: block !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.apartment-detail-page) .apartment-task-delete-mobile-btn {
     box-sizing: border-box !important;
     display: inline-flex !important;

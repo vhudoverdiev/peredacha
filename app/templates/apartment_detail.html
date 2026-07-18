@@ -54,7 +54,8 @@
           {% endif %}
           {% set can_manage_inspection = current_user.role != 'viewer' and row.mode not in ['не продана', 'АПП'] %}
           {% set can_edit_inspection_date = can_manage_inspection %}
-          {% set can_reset_inspection = can_manage_inspection and row.inspection_status in ['Был', 'Будет'] %}
+          {% set can_reset_inspection = can_manage_inspection and row.inspection_status == 'Был' %}
+          {% set can_reset_future_inspection_mobile = can_manage_inspection and row.inspection_status == 'Будет' %}
           {% if can_edit_inspection_date and row.inspection_date %}
           <form method="post" action="{{ url_for('main.update_apartment_inspection_date', apartment_id=apartment.id) }}" class="apartment-inspection-date-form apartment-inspection-status-form-detail mb-3" data-apartment-async="1">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -66,6 +67,15 @@
           </form>
           {% if can_reset_inspection %}
           <form method="post" action="{{ url_for('main.update_apartment_inspection_status', apartment_id=apartment.id) }}" class="apartment-inspection-status-form apartment-inspection-status-form-detail mb-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="inspection_status" value="not_was">
+            <span class="apartment-inspection-status-label">Сбросить осмотр</span>
+            <div class="apartment-inspection-date-actions">
+              <button class="btn btn-outline-success btn-sm" type="submit">Поставить «Не был»</button>
+            </div>
+          </form>
+          {% elif can_reset_future_inspection_mobile %}
+          <form method="post" action="{{ url_for('main.update_apartment_inspection_status', apartment_id=apartment.id) }}" class="apartment-inspection-status-form apartment-inspection-status-form-detail apartment-inspection-reset-mobile-only d-none mb-3">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="inspection_status" value="not_was">
             <span class="apartment-inspection-status-label">Сбросить осмотр</span>
