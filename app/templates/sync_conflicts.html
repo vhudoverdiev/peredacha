@@ -36,22 +36,14 @@
       <tr>
         <td>
           <div><b>{{ c.apartment.label() if c.apartment else (c.task.apartment.label() if c.task and c.task.apartment else '—') }}</b></div>
-          <div class="text-muted small">{{ c.field_label or 'Ячейка замечания' }}</div>
+          <div class="text-muted small">{{ conflict_field_label(c) }}</div>
           <div class="text-muted small">{{ c.sheet_name }}{% if c.cell_address %} &middot; {{ c.cell_address }}{% endif %}</div>
         </td>
         <td class="sync-conflict-value">
-          {% if c.field_name == 'status' %}
-            {{ status_labels.get(c.old_value, {}).get('label', c.old_value or '') }}
-          {% else %}
-            {{ c.old_value or '' }}
-          {% endif %}
+          {{ conflict_value_label(c, c.old_value) }}
         </td>
         <td class="sync-conflict-value">
-          {% if c.field_name == 'status' %}
-            {{ status_labels.get(c.new_value, {}).get('label', c.new_value or '') }}
-          {% else %}
-            {{ c.new_value or '' }}
-          {% endif %}
+          {{ conflict_value_label(c, c.new_value) }}
         </td>
         <td>
           <div class="d-flex gap-2 flex-wrap">

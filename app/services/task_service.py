@@ -603,6 +603,19 @@ def _is_inspection_schedule_marker(value: str | None) -> bool:
     return str(value or "").strip().startswith(INSPECTION_SCHEDULE_PREFIX)
 
 
+def _discard_pending_inspection_schedule_conflicts(apartment: Apartment) -> None:
+    """Remove obsolete conflicts that tried to replace a human comment with a schedule marker."""
+    conflicts = SyncConflict.query.filter(
+        SyncConflict.status == "pending",
+        SyncConflict.target_type == "apartment",
+        SyncConflict.apartment_id == apartment.id,
+        SyncConflict.field_name == "inspection_note",
+        SyncConflict.new_value.like(f"{INSPECTION_SCHEDULE_PREFIX}%"),
+    ).all()
+    for conflict in conflicts:
+        db.session.delete(conflict)
+
+
 def is_visible_work_point_number(point_number: str | int | None) -> bool:
     if point_number is None:
         return False
@@ -1178,7 +1191,11 @@ def get_or_update_apartment(
     )
     schedule_marker = _inspection_schedule_marker(inspection_schedule)
     has_raw_inspection_value = raw_inspection_value is not None and str(raw_inspection_value).strip() != ""
-    if schedule_marker or (has_raw_inspection_value and _is_inspection_schedule_marker(apartment.inspection_note)):
+    old_note_is_marker = _is_inspection_schedule_marker(apartment.inspection_note)
+    old_note_has_comment = _has_meaningful_import_value(apartment.inspection_note) and not old_note_is_marker
+    if old_note_has_comment:
+        _discard_pending_inspection_schedule_conflicts(apartment)
+    elif schedule_marker or (has_raw_inspection_value and old_note_is_marker):
         _set_apartment_import_field(
             apartment,
             "inspection_note",
@@ -1186,7 +1203,7 @@ def get_or_update_apartment(
             sheet_name=sheet_name,
             row_index=row_index,
             column_index=col_for("inspection_date"),
-            conflict_on_change=not created_apartment and not _is_inspection_schedule_marker(apartment.inspection_note),
+            conflict_on_change=False,
         )
     _set_apartment_import_field(
         apartment,

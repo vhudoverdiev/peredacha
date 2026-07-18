@@ -3176,41 +3176,6 @@ document.addEventListener('DOMContentLoaded', () => {
     dateCell.innerHTML = `<span>${escapeAssignmentHtml(label)}</span>${overdueText ? `<small class="assignment-overdue-days">${escapeAssignmentHtml(overdueText)}</small>` : ''}`;
   };
 
-  const markIssuedRowUnassigned = (row, payload = {}) => {
-    if (!row) return;
-    row.classList.add('assignment-issued-row-unassigned');
-    row.dataset.unassigned = '1';
-    renderIssuedDateCell(row.querySelector('.assignment-issued-date-cell'), payload);
-
-    const statusButton = row.querySelector('.assignment-status-toggle');
-    if (statusButton) {
-      statusButton.textContent = 'Без исполнителя';
-      statusButton.className = 'badge assignment-status-toggle bg-secondary';
-      statusButton.disabled = true;
-      statusButton.title = 'Исполнитель снят. После обновления таблицы задача исчезнет из выданных.';
-    }
-
-    row.querySelectorAll('.js-assignment-date-open').forEach(button => {
-      button.disabled = true;
-      button.title = 'Сначала назначьте исполнителя';
-    });
-
-    const unassignButton = row.querySelector('.js-assignment-unassign-direct, button[name="remove_assignee_task_id"]');
-    if (unassignButton) {
-      unassignButton.disabled = true;
-      unassignButton.classList.add('is-unassigned');
-      unassignButton.title = 'Исполнитель уже снят';
-      const label = unassignButton.querySelector('.assignment-unassign-text');
-      if (label) label.textContent = 'Снят';
-    }
-
-    const changeButton = row.querySelector('.js-assignment-change-assignee-open');
-    if (changeButton) {
-      changeButton.dataset.currentResponsibleId = '';
-      changeButton.dataset.currentResponsibleName = '—';
-    }
-  };
-
   const nativeSubmitAssignmentAction = (form, submitter) => {
     if (!form) return;
     if (submitter?.name) {
@@ -3291,8 +3256,6 @@ document.addEventListener('DOMContentLoaded', () => {
           row.classList.toggle('done-task', Boolean(data.is_done));
         } else if (submitter.name === 'update_date_task_id') {
           renderIssuedDateCell(row.querySelector('.assignment-issued-date-cell'), data);
-        } else if (submitter.name === 'remove_assignee_task_id') {
-          markIssuedRowUnassigned(row, data);
         }
       }
       showCrmNotice(data.message || 'Изменения сохранены', 'success');
@@ -3588,17 +3551,17 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.addEventListener('submit', async event => {
-    const form = event.target.closest?.('.assignment-delete-employee-form');
+    const form = event.target.closest?.('.assignment-remove-user-form');
     if (!form || event.target !== form) return;
     if (form.dataset.assignmentNativeSubmit === '1') return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    const button = event.submitter || form.querySelector('.assignment-delete-employee-task-btn');
+    const button = event.submitter || form.querySelector('.assignment-remove-user-btn');
     if (button?.dataset.pending === '1') return;
 
     const confirmed = await showCrmConfirm({
       title: 'Удалить задачу у сотрудника',
-      message: button?.dataset.confirm || form.dataset.confirm || 'Удалить эту задачу у сотрудника?',
+      message: 'Задача будет снята с пользователя и снова станет доступна без исполнителя и даты выполнения.',
       okText: 'Удалить',
       danger: true,
     });
@@ -3647,7 +3610,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.addEventListener('click', event => {
-    const submitter = event.target.closest('button[name="toggle_employee_status_task_id"], button[name="remove_assignee_task_id"]');
+    const submitter = event.target.closest('button[name="toggle_employee_status_task_id"]');
     if (!submitter) return;
     const form = submitter.closest('form');
     if (!form) return;
@@ -4903,7 +4866,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('submit', event => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
-    if (form.classList.contains('assignment-delete-employee-form')) return;
+    if (form.classList.contains('assignment-remove-user-form')) return;
     const submitter = event.submitter;
     const confirmText = normalizeConfirmText(submitter?.dataset?.confirmResolved || submitter?.dataset?.confirm || form.dataset.confirm);
     if (!confirmText || form.dataset.confirmed === '1') return;

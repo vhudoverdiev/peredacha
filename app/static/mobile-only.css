@@ -1026,7 +1026,7 @@
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.assignment-issued-filters) .assignment-issued-table
-    :is(.assignment-date-action-form, .assignment-direct-unassign-form) {
+    :is(.assignment-date-action-form, .assignment-remove-user-form) {
     display: contents !important;
   }
 
@@ -1046,7 +1046,7 @@
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-actions
-    :is(.assignment-date-action-text, .assignment-change-assignee-text, .assignment-unassign-text) {
+    :is(.assignment-date-action-text, .assignment-change-assignee-text, .assignment-remove-user-text) {
     display: inline !important;
     min-width: 0 !important;
     font: inherit !important;
@@ -1076,11 +1076,12 @@
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-delete-employee-task-btn {
-    border-color: rgba(220, 53, 69, .26) !important;
-    background: #fff9f9 !important;
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-remove-user-btn {
+    border: 1px solid rgba(180, 35, 50, .3) !important;
+    background: linear-gradient(180deg, #fff8f8 0%, #fff3f4 100%) !important;
     color: #b42332 !important;
     -webkit-text-fill-color: #b42332 !important;
+    box-shadow: 0 8px 18px rgba(180, 35, 50, .08) !important;
   }
 }
 
@@ -1331,76 +1332,82 @@
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.assignment-issued-filters) .assignment-issued-table
-    :is(.assignment-date-action-form, .assignment-direct-unassign-form) {
+    :is(.assignment-date-action-form, .assignment-remove-user-form) {
     position: relative !important;
     display: block !important;
     min-width: 0 !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.assignment-issued-filters) .assignment-mobile-native-date-input {
-    position: absolute !important;
-    inset: 0 !important;
-    z-index: 3 !important;
+    body.app-body:has(.assignment-issued-filters) .assignment-remove-user-icon {
     display: block !important;
-    width: 100% !important;
-    height: 100% !important;
-    min-width: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    opacity: .001 !important;
-    cursor: pointer !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.assignment-issued-filters) .assignment-unassign-icon {
-    display: block !important;
-    flex: 0 0 1rem !important;
-    width: 1rem !important;
-    height: 1rem !important;
+    flex: 0 0 1.05rem !important;
+    width: 1.05rem !important;
+    height: 1.05rem !important;
     overflow: visible !important;
     fill: none !important;
-    stroke: currentColor !important;
-    stroke-width: 1.9 !important;
+    stroke: #b42332 !important;
+    stroke-width: 2 !important;
     stroke-linecap: round !important;
     stroke-linejoin: round !important;
     color: #b42332 !important;
+    -webkit-text-fill-color: #b42332 !important;
     opacity: 1 !important;
     visibility: visible !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:not(:has(.task-single-form))
-    :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
-    min-height: auto !important;
+    body.app-body:has(.assignment-issued-filters) .assignment-remove-user-btn:is(:hover, :focus-visible, :active) {
+    color: #b42332 !important;
+    -webkit-text-fill-color: #b42332 !important;
+    background: #fff0f2 !important;
+    border-color: rgba(180, 35, 50, .5) !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:not(:has(.task-single-form))
+  html body.app-body.app-body.app-body:not(:has(.task-single-form)) {
+    min-height: 0 !important;
+    height: auto !important;
+    padding-bottom: 0 !important;
+  }
+
+  html body.app-body.app-body.app-body:not(:has(.task-single-form))
+    :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  html body.app-body.app-body.app-body:not(:has(.task-single-form))
     .app-main {
     min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    padding-bottom: 0 !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:not(:has(.task-single-form))
+  html body.app-body.app-body.app-body:not(:has(.task-single-form))
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
     min-height: 0 !important;
-    flex-grow: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: 0 0 auto !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:not(:has(.task-single-form))
+  html body.app-body.app-body.app-body:not(:has(.task-single-form)) [data-ajax-pagination-page] {
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  html body.app-body.app-body.app-body:not(:has(.task-single-form))
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
-    padding-bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .28rem) !important;
+    padding-bottom: calc(4.5rem + .2rem) !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:not(:has(.task-single-form)) .crm-mobile-page-shell,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:not(:has(.task-single-form)) .crm-mobile-page-shell > :last-child:not(.crm-toast-stack) {
+  html body.app-body.app-body.app-body:not(:has(.task-single-form)) .crm-mobile-page-shell,
+  html body.app-body.app-body.app-body:not(:has(.task-single-form)) .crm-mobile-page-shell > :last-child:not(.crm-toast-stack) {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
   }

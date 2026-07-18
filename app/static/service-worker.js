@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v25-mobile-inspection-reset';
+const STATIC_CACHE = 'peredacha-static-v28-mobile-scroll-end';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -12,9 +12,9 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
   '/static/style.css?v=v602-mobile-conflict-cleanup',
-  '/static/mobile-only.css?v=v19-mobile-inspection-reset',
+  '/static/mobile-only.css?v=v22-mobile-scroll-end',
   '/static/desktop-only.css?v=v2-material-request-input-white',
-  '/static/script.js?v=v605-mobile-issued-native-actions',
+  '/static/script.js?v=v606-mobile-issued-actions',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from copy import copy
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 import json
 import random
 import re
@@ -154,10 +154,10 @@ def service_worker_reset():
       const openCrm = () => {
         if (finished) return;
         finished = true;
-        window.location.replace('/?worker=v25');
+        window.location.replace('/?worker=v28');
       };
       navigator.serviceWorker?.addEventListener('controllerchange', openCrm, { once: true });
-      navigator.serviceWorker?.register('/service-worker.js?v=v25-mobile-inspection-reset', { scope: '/', updateViaCache: 'none' })
+      navigator.serviceWorker?.register('/service-worker.js?v=v28-mobile-scroll-end', { scope: '/', updateViaCache: 'none' })
         .then(registration => registration.update())
         .catch(() => {})
         .finally(() => window.setTimeout(openCrm, 1200));
@@ -6199,6 +6199,12 @@ def _project_pending_conflicts_query(project_id: int):
         SyncConflict.query.outerjoin(Task, SyncConflict.task_id == Task.id)
         .outerjoin(Apartment, SyncConflict.apartment_id == Apartment.id)
         .filter(SyncConflict.status == "pending")
+        .filter(
+            ~and_(
+                SyncConflict.field_name == "inspection_note",
+                SyncConflict.new_value.like("__inspection_schedule__:%"),
+            )
+        )
         .filter(or_(Task.project_id == project_id, Apartment.project_id == project_id))
     )
 
@@ -9708,6 +9714,96 @@ def _parse_conflict_value_for_field(field_name: str | None, value: str | None):
     return text or None
 
 
+SYNC_CONFLICT_FIELD_LABELS = {
+    "status": "Статус замечания",
+    "is_done": "Статус замечания",
+    "source_cell_value": "Текст замечания",
+    "description": "Текст замечания",
+    "owner_name": "Собственник",
+    "is_unsold": "Статус продажи",
+    "phone": "Телефон",
+    "finishing_type": "Вид отделки",
+    "entrance": "Подъезд / секция",
+    "floor": "Этаж",
+    "inspection_date": "Дата осмотра",
+    "inspection_note": "Комментарий осмотра",
+    "reinspection_date": "Дата повторного осмотра",
+    "deadline_date": "Дата АПП / срок передачи",
+    "remark_deadline_date": "Срок устранения замечаний по АПП",
+    "app_deadline_date": "Срок устранения замечаний по АПП",
+    "app_deadline_raw": "Срок устранения замечаний по АПП",
+    "app_deadline_status": "Статус срока АПП",
+    "is_app_mode": "Режим АПП",
+    "avr_status": "Статус АВР",
+    "avr_signed_date": "Дата подписания АВР",
+    "comment": "Комментарий",
+}
+
+SYNC_CONFLICT_VALUE_LABELS = {
+    "normal": "Есть замечания",
+    "no_remarks": "Без замечаний",
+    "expiring": "Срок скоро истекает",
+    "expired": "Срок истёк",
+    "needed": "Требуется АВР",
+    "signed": "АВР подписан",
+    "true": "Да",
+    "false": "Нет",
+    "yes": "Да",
+    "no": "Нет",
+}
+
+
+def _repair_legacy_mojibake(value: str | None) -> str:
+    """Repair UTF-8 text that an old import decoded as Windows-1251."""
+    text = str(value or "").strip()
+    for _ in range(3):
+        try:
+            repaired = text.encode("cp1251").decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            break
+        if repaired == text:
+            break
+        text = repaired
+    return text
+
+
+def _format_sync_conflict_datetime(value: str) -> str | None:
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2})?)?", value):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace(" ", "T"))
+    except ValueError:
+        return None
+    date_label = parsed.strftime("%d.%m.%Y")
+    return date_label if parsed.time() == time.min else f"{date_label} {parsed.strftime('%H:%M')}"
+
+
+def _sync_conflict_field_label(conflict: SyncConflict) -> str:
+    known_label = SYNC_CONFLICT_FIELD_LABELS.get(conflict.field_name or "")
+    if known_label:
+        return known_label
+    return _repair_legacy_mojibake(conflict.field_label) or "Ячейка замечания"
+
+
+def _sync_conflict_value_label(conflict: SyncConflict, value: str | None) -> str:
+    text = _repair_legacy_mojibake(value)
+    if not text:
+        return "Не указано"
+    if text.startswith("__inspection_schedule__:"):
+        payload = text.partition(":")[2]
+        return _format_sync_conflict_datetime(payload) or "Дата осмотра не указана"
+    task_status = TASK_STATUSES.get(text)
+    if task_status:
+        return task_status.get("label", text)
+    if conflict.field_name == "is_app_mode":
+        return "Да" if text.casefold() in {"1", "true", "yes", "да", "апп"} else "Нет"
+    translated = SYNC_CONFLICT_VALUE_LABELS.get(text.casefold())
+    if translated:
+        return translated
+    formatted_datetime = _format_sync_conflict_datetime(text)
+    return formatted_datetime or text
+
+
 def _apply_sync_conflict_new_value(conflict: SyncConflict) -> None:
     if (conflict.target_type or "task") == "apartment":
         apartment = conflict.apartment or (conflict.task.apartment if conflict.task else None)
@@ -9789,7 +9885,12 @@ def sync_conflicts():
         .limit(500)
         .all()
     )
-    return render_template("sync_conflicts.html", conflicts=conflicts, status_labels=TASK_STATUSES)
+    return render_template(
+        "sync_conflicts.html",
+        conflicts=conflicts,
+        conflict_field_label=_sync_conflict_field_label,
+        conflict_value_label=_sync_conflict_value_label,
+    )
 
 
 @bp.route("/conflicts/<int:conflict_id>/<action>", methods=["POST"])

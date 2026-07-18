@@ -39,7 +39,7 @@ def _find_header_map(rows: list[list[Any]]) -> tuple[int, dict[str, int]]:
         "owner_name": ("ф.и.о. дольщиков", "фио дольщиков", "ф.и.о дольщиков"),
         "phone": ("телефон",),
         "finishing_type": ("вид отделки",),
-        "inspection_note": ("дата осмотра",),
+        "inspection_note": ("дата осмотра", "запись на осмотр"),
         "first_inspection_date": ("дата первичного осмотра",),
         "reinspection_date": ("дата повторного осмотра",),
         "app_signed_date": ("дата подписания апп",),
@@ -50,6 +50,7 @@ def _find_header_map(rows: list[list[Any]]) -> tuple[int, dict[str, int]]:
         "owner_name": ("ф.и.о", "фио", "дольщик", "дольщиков"),
         "phone": ("телефон",),
         "finishing_type": ("вид отделки",),
+        "inspection_note": ("дата осмотра", "запись на осмотр"),
         "comment": ("комментар",),
     }
     for row_idx, row in enumerate(rows):
