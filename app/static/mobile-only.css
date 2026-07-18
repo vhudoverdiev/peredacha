@@ -1458,8 +1458,14 @@
     height: 4.5rem !important;
     min-height: 4.5rem !important;
     max-height: 4.5rem !important;
-    padding-block: .28rem .18rem !important;
+    padding: .28rem max(.28rem, env(safe-area-inset-right)) .18rem max(.28rem, env(safe-area-inset-left)) !important;
     box-sizing: border-box !important;
+    align-items: stretch !important;
+    border: 0 !important;
+    border-radius: 1.55rem 1.55rem 0 0 !important;
+    background: linear-gradient(#23292f 0%, #1a1f24 100%) !important;
+    background-color: #1d2328 !important;
+    box-shadow: none !important;
     contain: layout paint !important;
     overflow: hidden !important;
   }
@@ -1472,6 +1478,55 @@
     min-height: 0 !important;
     max-height: 100% !important;
     box-sizing: border-box !important;
+  }
+
+  /* The logo itself is the shell asset. Do not let the legacy PNG background
+     replace it after style.css finishes loading. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.mobile-app-topbar, .mobile-project-topbar)
+    a.mobile-top-avatar.mobile-shell-brand {
+    background: transparent !important;
+    background-image: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.mobile-app-topbar, .mobile-project-topbar)
+    a.mobile-top-avatar.mobile-shell-brand .mobile-brand-logo-svg {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* Shell icons are inline SVG, not an icon font. They are therefore present
+     in the first paint of every document and keep an identical footprint
+     while the page content changes. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .mobile-shell-svg-icon {
+    display: block !important;
+    width: 1.38rem !important;
+    height: 1.38rem !important;
+    min-width: 1.38rem !important;
+    min-height: 1.38rem !important;
+    flex: 0 0 1.38rem !important;
+    overflow: visible !important;
+    color: inherit !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 1.7 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.mobile-shell-account, .mobile-shell-project-caret) .mobile-shell-svg-icon,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .mobile-shell-project-caret.mobile-shell-svg-icon {
+    width: 1.3rem !important;
+    height: 1.3rem !important;
+    min-width: 1.3rem !important;
+    min-height: 1.3rem !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)

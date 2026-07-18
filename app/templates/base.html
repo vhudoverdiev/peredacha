@@ -20,6 +20,8 @@
   <meta name="theme-color" content="{% if current_user.is_authenticated %}#111820{% else %}#f9fbf5{% endif %}">
   <meta name="msapplication-TileColor" content="{% if current_user.is_authenticated %}#111820{% else %}#f9fbf5{% endif %}">
   <meta name="msapplication-tap-highlight" content="no">
+  <link rel="preload" href="{{ url_for('static', filename='brand-logo.png') }}" as="image" fetchpriority="high">
+  <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap/fonts/bootstrap-icons.woff2') }}" as="font" type="font/woff2" crossorigin>
   <script>
     window.__CRM_OFFLINE_MESSAGE__ = 'Не удается обновить. Показана сохраненная версия.';
   </script>
@@ -235,6 +237,16 @@
       object-fit: cover !important;
     }
 
+    .mobile-brand-logo-svg {
+      display: block !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      border-radius: inherit !important;
+      overflow: hidden !important;
+    }
+
     img.brand-mark-image {
       display: block !important;
       width: 48px !important;
@@ -388,10 +400,167 @@
         transition: none !important;
       }
 
+      /* Nothing from the authenticated page may leak through the launch
+         cover while iOS is still settling its standalone viewport. */
+      html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
+        body.app-body > :not(.mobile-standalone-boot-screen) {
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+
       html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
         body.app-body::after {
         content: none !important;
         display: none !important;
+      }
+
+      /* Critical shell paint: these rules are inline deliberately. The fixed
+         chrome has its final geometry before the external styles and icon
+         font are available, so a full document navigation cannot resize it. */
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body :is(.mobile-app-topbar, .mobile-project-topbar) {
+        position: fixed !important;
+        z-index: 1070 !important;
+        top: 0 !important;
+        right: 0 !important;
+        left: 0 !important;
+        display: grid !important;
+        grid-template-columns: 2.42rem minmax(0, 1fr) 2.42rem !important;
+        align-items: center !important;
+        gap: .42rem !important;
+        width: 100% !important;
+        min-height: calc(3.82rem + env(safe-area-inset-top)) !important;
+        padding: calc(.34rem + env(safe-area-inset-top)) max(.74rem, env(safe-area-inset-right)) .34rem max(.74rem, env(safe-area-inset-left)) !important;
+        box-sizing: border-box !important;
+        border: 0 !important;
+        border-radius: 0 0 1.34rem 1.34rem !important;
+        background: linear-gradient(#23292f 0%, #1a1f24 100%) !important;
+        background-color: #1f2429 !important;
+        box-shadow: none !important;
+        transform: none !important;
+        animation: none !important;
+        transition: none !important;
+      }
+
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body :is(.mobile-app-topbar, .mobile-project-topbar)
+        :is(.mobile-top-avatar, .mobile-shell-brand, .mobile-shell-account) {
+        display: grid !important;
+        width: 2.42rem !important;
+        min-width: 2.42rem !important;
+        max-width: 2.42rem !important;
+        height: 2.42rem !important;
+        min-height: 2.42rem !important;
+        max-height: 2.42rem !important;
+        place-items: center !important;
+        overflow: hidden !important;
+        border-radius: .88rem !important;
+        color: #fff !important;
+        text-decoration: none !important;
+      }
+
+      /* A late legacy rule used to hide the real logo and repaint the same
+         image as a CSS background. Keeping the SVG visible here prevents the
+         logo from disappearing and decoding again between documents. */
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body :is(.mobile-app-topbar, .mobile-project-topbar)
+        a.mobile-top-avatar.mobile-shell-brand {
+        background: transparent !important;
+        background-image: none !important;
+      }
+
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body :is(.mobile-app-topbar, .mobile-project-topbar)
+        a.mobile-top-avatar.mobile-shell-brand .mobile-brand-logo-svg {
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body :is(.mobile-app-topbar, .mobile-project-topbar) .mobile-shell-account {
+        background: rgba(255, 255, 255, .06) !important;
+      }
+
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body :is(.mobile-app-topbar, .mobile-project-topbar)
+        :is(.mobile-shell-project-link, .mobile-top-title) {
+        display: flex !important;
+        min-width: 0 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: .28rem !important;
+        overflow: hidden !important;
+        border: 0 !important;
+        background: transparent !important;
+        color: #fff !important;
+        font: inherit !important;
+        font-size: .9rem !important;
+        font-weight: 800 !important;
+        line-height: 1.12 !important;
+        white-space: nowrap !important;
+        text-decoration: none !important;
+      }
+
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body :is(.mobile-app-topbar, .mobile-project-topbar) .mobile-shell-project-name {
+        min-width: 0 !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+      }
+
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body > nav.mobile-bottom-nav-root {
+        z-index: 1065 !important;
+        display: grid !important;
+        grid-template-columns: repeat(var(--mobile-nav-count, 4), minmax(0, 1fr)) !important;
+        align-items: stretch !important;
+        padding: .28rem max(.28rem, env(safe-area-inset-right)) .18rem max(.28rem, env(safe-area-inset-left)) !important;
+        border: 0 !important;
+        border-radius: 1.55rem 1.55rem 0 0 !important;
+        background: linear-gradient(#23292f 0%, #1a1f24 100%) !important;
+        background-color: #1d2328 !important;
+        color: #c7ced7 !important;
+        box-shadow: none !important;
+      }
+
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body > nav.mobile-bottom-nav-root .mobile-nav-item {
+        display: flex !important;
+        min-width: 0 !important;
+        height: 100% !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-direction: column !important;
+        gap: .12rem !important;
+        color: #c7ced7 !important;
+        text-decoration: none !important;
+        font-size: .63rem !important;
+        line-height: 1.05 !important;
+        transform: none !important;
+        animation: none !important;
+        transition: none !important;
+      }
+
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body > nav.mobile-bottom-nav-root .mobile-nav-item.active {
+        color: #8dd62c !important;
+      }
+
+      .mobile-shell-svg-icon {
+        display: block !important;
+        width: 1.38rem !important;
+        height: 1.38rem !important;
+        min-width: 1.38rem !important;
+        min-height: 1.38rem !important;
+        flex: 0 0 1.38rem !important;
+        overflow: visible !important;
+        color: inherit !important;
+        fill: none !important;
+        stroke: currentColor !important;
+        stroke-width: 1.7 !important;
+        stroke-linecap: round !important;
+        stroke-linejoin: round !important;
       }
     }
 
@@ -488,8 +657,6 @@
       left: 0;
       z-index: 2147483640;
       display: none;
-      align-items: center;
-      justify-content: center;
       width: 100%;
       height: 100vh;
       height: 100lvh;
@@ -507,7 +674,7 @@
     }
 
     html.mobile-standalone-boot .mobile-standalone-boot-screen {
-      display: flex;
+      display: block;
     }
 
     html.mobile-standalone-boot.crm-loader-suppressed .mobile-standalone-boot-screen {
@@ -515,7 +682,10 @@
     }
 
     .mobile-standalone-boot-screen__orbit {
-      position: relative;
+      position: absolute;
+      top: 50vh;
+      top: 50svh;
+      left: 50%;
       width: 8rem;
       height: 8rem;
       min-width: 8rem;
@@ -526,38 +696,18 @@
       place-items: center;
       flex: 0 0 8rem;
       contain: layout paint;
-      transform: translateZ(0);
+      transform: translate(-50%, -50%);
     }
 
-    .mobile-standalone-boot-screen__ring,
-    .mobile-standalone-boot-screen__glow {
+    .mobile-standalone-boot-screen__spinner {
       position: absolute;
-      inset: 0;
+      inset: .08rem;
       border-radius: 50%;
       pointer-events: none;
-    }
-
-    .mobile-standalone-boot-screen__ring {
-      border: 2px solid transparent;
-    }
-
-    .mobile-standalone-boot-screen__ring--outer {
-      border-top-color: rgba(141, 214, 44, .94);
-      border-right-color: rgba(141, 214, 44, .2);
+      background: conic-gradient(from 15deg, rgba(141, 214, 44, 0) 0 22%, rgba(141, 214, 44, .94) 48%, rgba(141, 214, 44, .16) 76%, rgba(141, 214, 44, 0) 100%);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 0);
+      mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 0);
       animation: mobileStandaloneBootSpin 1.15s linear infinite;
-    }
-
-    .mobile-standalone-boot-screen__ring--inner {
-      inset: .72rem;
-      border-bottom-color: rgba(141, 214, 44, .88);
-      border-left-color: rgba(141, 214, 44, .16);
-      animation: mobileStandaloneBootSpin 1.55s linear infinite reverse;
-    }
-
-    .mobile-standalone-boot-screen__glow {
-      inset: 1.65rem;
-      background: radial-gradient(circle, rgba(141, 214, 44, .24), transparent 68%);
-      animation: mobileStandaloneBootGlow 1.5s ease-in-out infinite alternate;
     }
 
     .mobile-standalone-boot-screen__mark {
@@ -571,10 +721,7 @@
       max-height: 5.15rem;
       overflow: hidden;
       border-radius: 1.45rem;
-      box-shadow:
-        0 0 0 1px rgba(141, 214, 44, .14),
-        0 20px 42px rgba(144, 170, 111, .2),
-        0 0 28px rgba(141, 214, 44, .14);
+      box-shadow: 0 .8rem 2rem rgba(93, 127, 63, .14);
       animation: none;
       transform: none;
     }
@@ -584,6 +731,11 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+
+    .mobile-standalone-boot-screen__mark .mobile-brand-logo-svg {
+      width: 100% !important;
+      height: 100% !important;
     }
 
     @keyframes mobileStandaloneBootSpin {
@@ -663,15 +815,15 @@
       if ('serviceWorker' in navigator && window.isSecureContext) {
         const mobileServiceWorkerUpgrade = window.matchMedia('(max-width: 767.98px)').matches
           && navigator.serviceWorker.controller
-          && !navigator.serviceWorker.controller.scriptURL.includes('v35-issued-count-sync');
-        if (mobileServiceWorkerUpgrade && !sessionStorage.getItem('crm-mobile-sw-v35-reloaded')) {
+          && !navigator.serviceWorker.controller.scriptURL.includes('v36-stable-mobile-shell');
+        if (mobileServiceWorkerUpgrade && !sessionStorage.getItem('crm-mobile-sw-v36-reloaded')) {
           navigator.serviceWorker.addEventListener('controllerchange', () => {
-            sessionStorage.setItem('crm-mobile-sw-v35-reloaded', '1');
+            sessionStorage.setItem('crm-mobile-sw-v36-reloaded', '1');
             window.location.reload();
           }, { once: true });
         }
         navigator.serviceWorker
-          .register('/service-worker.js?v=v35-issued-count-sync', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v36-stable-mobile-shell', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -709,18 +861,16 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v603-mobile-loader-steady">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v28-mobile-loader-steady">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v29-stable-mobile-shell">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v14-contractor-delete-dark-red">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and current_user.role == 'verifier' %} verifier-layout{% endif %}{% if current_user.is_authenticated and mobile_version_under_development %} mobile-dev-flag{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <div class="crm-offline-banner js-crm-offline-banner" hidden>Не удается обновить. Показана сохраненная версия.</div>
 <div class="mobile-standalone-boot-screen" aria-hidden="true">
   <div class="mobile-standalone-boot-screen__orbit" aria-hidden="true">
-    <span class="mobile-standalone-boot-screen__ring mobile-standalone-boot-screen__ring--outer"></span>
-    <span class="mobile-standalone-boot-screen__ring mobile-standalone-boot-screen__ring--inner"></span>
-    <span class="mobile-standalone-boot-screen__glow"></span>
+    <span class="mobile-standalone-boot-screen__spinner"></span>
     <div class="mobile-standalone-boot-screen__mark">
-      <img src="{{ url_for('static', filename='brand-logo.png') }}" width="82" height="82" style="display:block;width:82px;height:82px;max-width:82px;max-height:82px;object-fit:cover" decoding="sync" alt="">
+      <svg class="mobile-brand-logo-svg" viewBox="0 0 40 40" aria-hidden="true" focusable="false"><rect width="40" height="40" rx="11" fill="#8dde26"></rect><path d="M10.7 31 18.2 9h3.6l7.5 22h-4.1l-1.7-5.4h-7.2L14.6 31h-3.9Zm6.7-9h5l-2.5-8.1L17.4 22Z" fill="#5d646a"></path><path d="m29.7 7 .72 2.08L32.5 9.8l-2.08.72-.72 2.08-.72-2.08-2.08-.72 2.08-.72L29.7 7Z" fill="#fff"></path></svg>
     </div>
   </div>
 </div>
@@ -816,30 +966,56 @@
   {% endif %}
 {%- endmacro %}
 
+{% macro mobile_brand_logo(extra_class='') -%}
+<svg class="mobile-brand-logo-svg {{ extra_class }}" viewBox="0 0 40 40" aria-hidden="true" focusable="false"><rect width="40" height="40" rx="11" fill="#8dde26"></rect><path d="M10.7 31 18.2 9h3.6l7.5 22h-4.1l-1.7-5.4h-7.2L14.6 31h-3.9Zm6.7-9h5l-2.5-8.1L17.4 22Z" fill="#5d646a"></path><path d="m29.7 7 .72 2.08L32.5 9.8l-2.08.72-.72 2.08-.72-2.08-2.08-.72 2.08-.72L29.7 7Z" fill="#fff"></path></svg>
+{%- endmacro %}
+
+{% macro mobile_shell_icon(name, extra_class='') -%}
+<svg class="mobile-shell-svg-icon {{ extra_class }}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  {% if name == 'home' %}
+  <rect x="3" y="3" width="7" height="11" rx="1.2"></rect><rect x="14" y="3" width="7" height="6" rx="1.2"></rect><rect x="3" y="18" width="7" height="3" rx="1.2"></rect><rect x="14" y="13" width="7" height="8" rx="1.2"></rect>
+  {% elif name == 'remarks' %}
+  <rect x="3" y="3.5" width="18" height="17" rx="2"></rect><path d="m6.5 8 1.3 1.3 2.3-2.6M12.5 8.2h5M6.5 14l1.3 1.3 2.3-2.6M12.5 14.2h5"></path>
+  {% elif name == 'assignments' %}
+  <circle cx="9" cy="7" r="3"></circle><path d="M3.5 17.5c.8-3.1 2.6-4.7 5.5-4.7 1.3 0 2.4.3 3.3 1"></path><circle cx="17" cy="16.5" r="4"></circle><path d="m15.3 16.5 1.2 1.2 2.4-2.5"></path>
+  {% elif name == 'apartments' %}
+  <path d="M3 21V9l7-3v15M10 21V3l11 4v14M1.5 21h21"></path><path d="M5.5 11h2M5.5 15h2M13 7h2M18 8.5h1M13 11h2M18 12.5h1M13 15h2M18 16.5h1"></path>
+  {% elif name == 'account' %}
+  <circle cx="12" cy="8" r="3.2"></circle><path d="M5 20c.7-4.1 3-6.1 7-6.1s6.3 2 7 6.1"></path>
+  {% elif name == 'caret' %}
+  <path d="m7 9.5 5 5 5-5"></path>
+  {% elif name == 'objects' %}
+  <rect x="3" y="4" width="6" height="5" rx="1"></rect><rect x="15" y="4" width="6" height="5" rx="1"></rect><rect x="9" y="15" width="6" height="5" rx="1"></rect><path d="M6 9v3h12V9M12 12v3"></path>
+  {% elif name == 'report' %}
+  <path d="M6 2.8h8l4 4V21H6z"></path><path d="M14 2.8v4h4M9 16v2M12 13v5M15 10v8"></path>
+  {% endif %}
+</svg>
+{%- endmacro %}
+
 {% macro mobile_page_chrome(title='Передача', back_href=None) -%}
 {% if worker_role %}
   <div class="mobile-project-topbar mobile-shell-topbar mobile-shell-topbar-static mobile-worker-project-topbar" aria-label="Текущий объект">
     <a class="mobile-top-avatar mobile-shell-brand" href="{{ url_for('main.my_tasks') }}" aria-label="К задачам">
-      <img class="mobile-top-avatar-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="40" height="40" alt="">
+      {{ mobile_brand_logo('mobile-top-avatar-logo') }}
     </a>
     <div class="mobile-shell-project-link mobile-shell-project-link-static mobile-worker-project-label" aria-current="page">
       <span class="mobile-shell-project-name">Объект: {{ current_project.name if current_project else 'не назначен' }}</span>
     </div>
     <a class="mobile-shell-account {% if request.endpoint == 'main.account' %}is-active{% endif %}" href="{{ url_for('main.account') }}" aria-label="Аккаунт">
-      <i class="bi bi-person-fill"></i>
+      {{ mobile_shell_icon('account') }}
     </a>
   </div>
 {% elif current_project and layout_mode.strip() != 'objects' and request.endpoint not in ['main.account', 'main.site_settings'] %}
   <div class="mobile-project-topbar mobile-shell-topbar" aria-label="Выбранный объект">
     <a class="mobile-top-avatar mobile-shell-brand" href="{{ url_for('main.dashboard') }}" aria-label="На дашборд">
-      <img class="mobile-top-avatar-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="40" height="40" alt="">
+      {{ mobile_brand_logo('mobile-top-avatar-logo') }}
     </a>
     <button class="mobile-shell-project-link mobile-project-switch-toggle" type="button" aria-label="Сменить объект" aria-haspopup="listbox" aria-expanded="false" data-mobile-project-toggle>
       <span class="mobile-shell-project-name">Объект: {{ current_project.name }}</span>
-      <i class="bi bi-chevron-down mobile-shell-project-caret" aria-hidden="true"></i>
+      {{ mobile_shell_icon('caret', 'mobile-shell-project-caret') }}
     </button>
     <a class="mobile-shell-account {% if request.endpoint == 'main.account' %}is-active{% endif %}" href="{{ url_for('main.account') }}" aria-label="Аккаунт">
-      <i class="bi bi-person-fill"></i>
+      {{ mobile_shell_icon('account') }}
     </a>
     <div class="mobile-project-switch-panel" role="listbox" aria-label="Выберите объект" hidden data-mobile-project-panel>
       <div class="mobile-project-switch-head">
@@ -863,22 +1039,22 @@
   {% elif not worker_role and request.endpoint in ['main.account', 'main.objects'] %}
   <div class="mobile-project-topbar mobile-shell-topbar mobile-shell-topbar-static" aria-label="Мобильная шапка">
     <a class="mobile-top-avatar mobile-shell-brand" href="{{ url_for('main.objects') }}" aria-label="К объектам">
-      <img class="mobile-top-avatar-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="40" height="40" alt="">
+      {{ mobile_brand_logo('mobile-top-avatar-logo') }}
     </a>
     <a class="mobile-shell-project-link mobile-shell-project-link-static" href="{{ url_for('main.account') if request.endpoint == 'main.account' else url_for('main.objects') }}" aria-current="page">
       <span class="mobile-shell-project-name">{{ title }}</span>
     </a>
     <a class="mobile-shell-account {% if request.endpoint == 'main.account' %}is-active{% endif %}" href="{{ url_for('main.account') }}" aria-label="Аккаунт">
-      <i class="bi bi-person-fill"></i>
+      {{ mobile_shell_icon('account') }}
     </a>
   </div>
   {% else %}
   <div class="mobile-app-topbar {% if worker_role %}mobile-app-topbar-worker{% endif %} mobile-shell-topbar" aria-label="Мобильная шапка">
-    <a class="mobile-top-avatar" href="{{ url_for('main.my_tasks') if worker_role else (url_for('main.dashboard') if current_user.is_authenticated and current_user.role == 'manager' else url_for('main.objects')) }}" aria-label="Главная"><img class="mobile-top-avatar-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="40" height="40" alt=""></a>
+    <a class="mobile-top-avatar" href="{{ url_for('main.my_tasks') if worker_role else (url_for('main.dashboard') if current_user.is_authenticated and current_user.role == 'manager' else url_for('main.objects')) }}" aria-label="Главная">{{ mobile_brand_logo('mobile-top-avatar-logo') }}</a>
     {% if not worker_role %}
     <div class="mobile-top-title">{{ title }}</div>
     <a class="mobile-shell-account {% if request.endpoint == 'main.account' %}is-active{% endif %}" href="{{ url_for('main.account') }}" aria-label="Аккаунт">
-      <i class="bi bi-person-fill"></i>
+      {{ mobile_shell_icon('account') }}
     </a>
     {% endif %}
   </div>
@@ -889,10 +1065,10 @@
   {% if worker_role %}
   <nav class="mobile-bottom-nav mobile-bottom-nav-root mobile-worker-bottom-nav" aria-label="Основная навигация" style="--mobile-nav-count: 2">
     <a class="mobile-nav-item {% if active == 'tasks' %}active{% endif %}" href="{{ url_for('main.my_tasks') }}">
-      <i class="bi bi-card-checklist"></i><span>Задачи</span>
+      {{ mobile_shell_icon('remarks') }}<span>Задачи</span>
     </a>
     <a class="mobile-nav-item {% if active == 'account' %}active{% endif %}" href="{{ url_for('main.account') }}">
-      <i class="bi bi-person-circle"></i><span>Аккаунт</span>
+      {{ mobile_shell_icon('account') }}<span>Аккаунт</span>
     </a>
   </nav>
   {% else %}
@@ -903,37 +1079,37 @@
     {% if report_only_role %}
       {% if primary_mobile_shell %}
     <a class="mobile-nav-item {% if active == 'report' %}active{% endif %}" href="{{ url_for('main.work_report') }}">
-      <i class="bi bi-file-earmark-bar-graph"></i><span>Отчет</span>
+      {{ mobile_shell_icon('report') }}<span>Отчет</span>
     </a>
       {% else %}
     <a class="mobile-nav-item {% if active == 'objects' %}active{% endif %}" href="{{ url_for('main.objects') }}">
-      <i class="bi bi-diagram-3"></i><span>Объекты</span>
+      {{ mobile_shell_icon('objects') }}<span>Объекты</span>
     </a>
       {% endif %}
     <a class="mobile-nav-item {% if active == 'account' %}active{% endif %}" href="{{ url_for('main.account') }}">
-      <i class="bi bi-person-circle"></i><span>Аккаунт</span>
+      {{ mobile_shell_icon('account') }}<span>Аккаунт</span>
     </a>
     {% elif no_mobile_project %}
     <a class="mobile-nav-item {% if active == 'objects' %}active{% endif %}" href="{{ url_for('main.objects') }}">
-      <i class="bi bi-diagram-3"></i><span>Объекты</span>
+      {{ mobile_shell_icon('objects') }}<span>Объекты</span>
     </a>
     <a class="mobile-nav-item {% if active == 'account' %}active{% endif %}" href="{{ url_for('main.account') }}">
-      <i class="bi bi-person-circle"></i><span>Аккаунт</span>
+      {{ mobile_shell_icon('account') }}<span>Аккаунт</span>
     </a>
     {% else %}
     <a class="mobile-nav-item mobile-nav-item-home {% if active == 'dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">
-      <i class="bi bi-grid-1x2"></i><span>Главная</span>
+      {{ mobile_shell_icon('home') }}<span>Главная</span>
     </a>
     <a class="mobile-nav-item {% if active == 'remarks' %}active{% endif %}" href="{{ url_for('main.task_list') }}">
-      <i class="bi bi-card-checklist"></i><span>Замечания</span>
+      {{ mobile_shell_icon('remarks') }}<span>Замечания</span>
     </a>
     {% if current_user.role in ['admin', 'manager'] %}
     <a class="mobile-nav-item mobile-nav-item-assignments {% if active == 'assignments' %}active{% endif %}" href="{{ url_for('main.assignments') }}">
-      <i class="bi bi-person-check"></i><span class="mobile-nav-label-assignments">&#1042;&#1099;&#1076;&#1072;&#1095;&#1072; &#1079;&#1072;&#1076;&#1072;&#1095;</span>
+      {{ mobile_shell_icon('assignments') }}<span class="mobile-nav-label-assignments">&#1042;&#1099;&#1076;&#1072;&#1095;&#1072; &#1079;&#1072;&#1076;&#1072;&#1095;</span>
     </a>
     {% endif %}
     <a class="mobile-nav-item mobile-nav-item-apartments {% if active == 'apartments' %}active{% endif %}" href="{{ url_for('main.apartments') }}">
-      <i class="bi bi-buildings"></i><span>&#1050;&#1074;&#1072;&#1088;&#1090;&#1080;&#1088;&#1099;</span>
+      {{ mobile_shell_icon('apartments') }}<span>&#1050;&#1074;&#1072;&#1088;&#1090;&#1080;&#1088;&#1099;</span>
     </a>
     {% endif %}
   </nav>
