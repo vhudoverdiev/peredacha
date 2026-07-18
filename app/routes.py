@@ -155,10 +155,10 @@ def service_worker_reset():
       const openCrm = () => {
         if (finished) return;
         finished = true;
-        window.location.replace('/?worker=v33');
+        window.location.replace('/?worker=v38');
       };
       navigator.serviceWorker?.addEventListener('controllerchange', openCrm, { once: true });
-      navigator.serviceWorker?.register('/service-worker.js?v=v36-stable-mobile-shell', { scope: '/', updateViaCache: 'none' })
+      navigator.serviceWorker?.register('/service-worker.js?v=v38-mobile-shell-canvas', { scope: '/', updateViaCache: 'none' })
         .then(registration => registration.update())
         .catch(() => {})
         .finally(() => window.setTimeout(openCrm, 1200));

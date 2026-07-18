@@ -52409,16 +52409,6 @@ html.tablet-touch-device body.app-body .crm-mobile-page-shell {
     word-break: normal !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-empty-row) .app-content {
-    padding-bottom: calc(max(.5rem, var(--ios-safe-bottom, 0px)) + .35rem) !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-empty-row) .crm-mobile-page-shell {
-    margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
-  }
 }
 
 /* v405: final installed-app geometry for iOS/Android home-screen launches. */
@@ -52471,14 +52461,9 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:not(:has(.remarks-empty-row))
+    body.app-body
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
     padding-bottom: calc(var(--ref-mobile-nav-height, 4.18rem) + env(safe-area-inset-bottom) + .7rem) !important;
-  }
-
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-empty-row) .app-content {
-    padding-bottom: calc(max(.5rem, env(safe-area-inset-bottom)) + .35rem) !important;
   }
 }
 
@@ -53548,14 +53533,12 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   html.mobile-standalone-boot .mobile-standalone-boot-screen {
     top: 0 !important;
     right: 0 !important;
-    bottom: auto !important;
+    bottom: 0 !important;
     left: 0 !important;
-    width: 100% !important;
-    height: 100vh !important;
-    height: 100lvh !important;
-    min-height: 100vh !important;
-    min-height: 100lvh !important;
-    max-height: 100lvh !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
   }
 }
 

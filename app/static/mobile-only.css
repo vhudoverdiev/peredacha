@@ -1365,24 +1365,27 @@
   }
 
   html body.app-body.app-body.app-body:not(:has(.task-single-form)) {
-    min-height: 0 !important;
+    min-height: var(--app-height, 100dvh) !important;
     height: auto !important;
     padding-bottom: 0 !important;
+    background-color: #f6f8fb !important;
   }
 
   html body.app-body.app-body.app-body:not(:has(.task-single-form))
     :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
-    min-height: 0 !important;
+    min-height: calc(var(--app-height, 100dvh) - 4.5rem) !important;
     height: auto !important;
     max-height: none !important;
+    background-color: #f6f8fb !important;
   }
 
   html body.app-body.app-body.app-body:not(:has(.task-single-form))
     .app-main {
-    min-height: 0 !important;
+    min-height: calc(var(--app-height, 100dvh) - 4.5rem) !important;
     height: auto !important;
     max-height: none !important;
     padding-bottom: 0 !important;
+    background-color: #f6f8fb !important;
   }
 
   html body.app-body.app-body.app-body:not(:has(.task-single-form))
@@ -1412,34 +1415,6 @@
     padding-bottom: 0 !important;
   }
 
-  /* A short issued-task list still fills the canvas down to the fixed dock.
-     This is intentionally limited to the empty state so normal long pages do
-     not regain the large blank scrolling tail removed above. */
-  html body.app-body.app-body.app-body:is(
-    :has(.assignment-issued-empty),
-    :has(.assignment-empty-row),
-    :has(.remarks-empty-row)
-  ):not(:has(.task-single-form)),
-  html body.app-body.app-body.app-body:is(
-    :has(.assignment-issued-empty),
-    :has(.assignment-empty-row),
-    :has(.remarks-empty-row)
-  ):not(:has(.task-single-form))
-    :is(.app-layout, .app-main) {
-    min-height: 100dvh !important;
-    background: #f5f7fc !important;
-  }
-
-  html body.app-body.app-body.app-body:is(
-    :has(.assignment-issued-empty),
-    :has(.assignment-empty-row),
-    :has(.remarks-empty-row)
-  ):not(:has(.task-single-form))
-    :is(.app-content, [data-ajax-pagination-page="assignments"]) {
-    min-height: calc(100dvh - 4.5rem) !important;
-    background: #f5f7fc !important;
-  }
-
   /* Keep the mobile shell visually fixed while documents are switched. The
      loader still spins on a cold launch, but its card/logo no longer jump. */
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -1458,16 +1433,27 @@
     height: 4.5rem !important;
     min-height: 4.5rem !important;
     max-height: 4.5rem !important;
-    padding: .28rem max(.28rem, env(safe-area-inset-right)) .18rem max(.28rem, env(safe-area-inset-left)) !important;
+    padding-block: .28rem .18rem !important;
     box-sizing: border-box !important;
-    align-items: stretch !important;
-    border: 0 !important;
-    border-radius: 1.55rem 1.55rem 0 0 !important;
-    background: linear-gradient(#23292f 0%, #1a1f24 100%) !important;
-    background-color: #1d2328 !important;
-    box-shadow: none !important;
     contain: layout paint !important;
     overflow: hidden !important;
+  }
+
+  /* Remove the two legacy mobile shell conflicts. The launch cover owns the
+     whole viewport, and every short page paints one light canvas up to the
+     fixed dock (including Measurements, Account and empty Remarks). */
+  html.mobile-standalone-boot .mobile-standalone-boot-screen {
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
+    body > :not(.mobile-standalone-boot-screen):not(.portrait-orientation-guard) {
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -1478,55 +1464,6 @@
     min-height: 0 !important;
     max-height: 100% !important;
     box-sizing: border-box !important;
-  }
-
-  /* The logo itself is the shell asset. Do not let the legacy PNG background
-     replace it after style.css finishes loading. */
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body :is(.mobile-app-topbar, .mobile-project-topbar)
-    a.mobile-top-avatar.mobile-shell-brand {
-    background: transparent !important;
-    background-image: none !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body :is(.mobile-app-topbar, .mobile-project-topbar)
-    a.mobile-top-avatar.mobile-shell-brand .mobile-brand-logo-svg {
-    opacity: 1 !important;
-    visibility: visible !important;
-  }
-
-  /* Shell icons are inline SVG, not an icon font. They are therefore present
-     in the first paint of every document and keep an identical footprint
-     while the page content changes. */
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .mobile-shell-svg-icon {
-    display: block !important;
-    width: 1.38rem !important;
-    height: 1.38rem !important;
-    min-width: 1.38rem !important;
-    min-height: 1.38rem !important;
-    flex: 0 0 1.38rem !important;
-    overflow: visible !important;
-    color: inherit !important;
-    fill: none !important;
-    stroke: currentColor !important;
-    stroke-width: 1.7 !important;
-    stroke-linecap: round !important;
-    stroke-linejoin: round !important;
-    transform: none !important;
-    animation: none !important;
-    transition: none !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body :is(.mobile-shell-account, .mobile-shell-project-caret) .mobile-shell-svg-icon,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .mobile-shell-project-caret.mobile-shell-svg-icon {
-    width: 1.3rem !important;
-    height: 1.3rem !important;
-    min-width: 1.3rem !important;
-    min-height: 1.3rem !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)

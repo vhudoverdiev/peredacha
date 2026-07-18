@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v36-stable-mobile-shell';
+const STATIC_CACHE = 'peredacha-static-v38-mobile-shell-canvas';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -11,8 +11,8 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
-  '/static/style.css?v=v603-mobile-loader-steady',
-  '/static/mobile-only.css?v=v29-stable-mobile-shell',
+  '/static/style.css?v=v604-mobile-shell-canvas',
+  '/static/mobile-only.css?v=v31-mobile-shell-canvas',
   '/static/desktop-only.css?v=v13-materials-ajax-pagination',
   '/static/script.js?v=v616-issued-count-sync',
 ];
@@ -51,20 +51,30 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
       min-width: 8rem; min-height: 8rem; max-width: 8rem; max-height: 8rem;
       place-items: center; flex: 0 0 8rem;
     }
-    .mobile-standalone-boot-screen__spinner {
-      position: absolute; inset: .08rem; border-radius: 50%; pointer-events: none;
-      background: conic-gradient(from 15deg,rgba(141,214,44,0) 0 22%,rgba(141,214,44,.94) 48%,rgba(141,214,44,.16) 76%,rgba(141,214,44,0) 100%);
-      -webkit-mask: radial-gradient(farthest-side,transparent calc(100% - 2px),#000 0);
-      mask: radial-gradient(farthest-side,transparent calc(100% - 2px),#000 0);
+    .mobile-standalone-boot-screen__ring,
+    .mobile-standalone-boot-screen__glow {
+      position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+    }
+    .mobile-standalone-boot-screen__ring { border: 2px solid transparent; }
+    .mobile-standalone-boot-screen__ring--outer {
+      border-top-color: rgba(141,214,44,.94); border-right-color: rgba(141,214,44,.2);
       animation: mobileStandaloneBootSpin 1.15s linear infinite;
+    }
+    .mobile-standalone-boot-screen__ring--inner {
+      inset: .72rem; border-bottom-color: rgba(141,214,44,.88); border-left-color: rgba(141,214,44,.16);
+      animation: mobileStandaloneBootSpin 1.55s linear infinite reverse;
+    }
+    .mobile-standalone-boot-screen__glow {
+      inset: 1.65rem; background: radial-gradient(circle,rgba(141,214,44,.24),transparent 68%);
+      animation: mobileStandaloneBootGlow 1.5s ease-in-out infinite alternate;
     }
     .mobile-standalone-boot-screen__mark {
       position: relative; z-index: 1; width: 5.15rem; height: 5.15rem;
       min-width: 5.15rem; min-height: 5.15rem; max-width: 5.15rem; max-height: 5.15rem;
       overflow: hidden; border-radius: 1.45rem;
-      box-shadow: 0 .8rem 2rem rgba(93,127,63,.14);
+      box-shadow: 0 0 0 1px rgba(141,214,44,.14), 0 20px 42px rgba(144,170,111,.2), 0 0 28px rgba(141,214,44,.14);
     }
-    .mobile-standalone-boot-screen__mark svg { display: block; width: 100%; height: 100%; }
+    .mobile-standalone-boot-screen__mark img { display: block; width: 100%; height: 100%; object-fit: cover; }
     .offline-card {
       padding: 1.45rem; border: 1px solid rgba(207,222,195,.96); border-radius: 1.75rem;
       background: rgba(255,255,255,.96); box-shadow: 0 2rem 5.5rem rgba(31,45,61,.14);
@@ -97,8 +107,10 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
   <main class="offline-screen">
     <section class="offline-panel offline-loader" role="status" aria-label="Загрузка">
       <div class="mobile-standalone-boot-screen__orbit" aria-hidden="true">
-        <span class="mobile-standalone-boot-screen__spinner"></span>
-        <div class="mobile-standalone-boot-screen__mark"><svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="#8dde26"></rect><path d="M10.7 31 18.2 9h3.6l7.5 22h-4.1l-1.7-5.4h-7.2L14.6 31h-3.9Zm6.7-9h5l-2.5-8.1L17.4 22Z" fill="#5d646a"></path><path d="m29.7 7 .72 2.08L32.5 9.8l-2.08.72-.72 2.08-.72-2.08-2.08-.72 2.08-.72L29.7 7Z" fill="#fff"></path></svg></div>
+        <span class="mobile-standalone-boot-screen__ring mobile-standalone-boot-screen__ring--outer"></span>
+        <span class="mobile-standalone-boot-screen__ring mobile-standalone-boot-screen__ring--inner"></span>
+        <span class="mobile-standalone-boot-screen__glow"></span>
+        <div class="mobile-standalone-boot-screen__mark"><img src="/static/brand-logo.png" alt=""></div>
       </div>
     </section>
     <section class="offline-panel offline-card" aria-live="polite">
