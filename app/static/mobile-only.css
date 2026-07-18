@@ -1413,7 +1413,103 @@
 
   html body.app-body.app-body.app-body
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
-    padding-bottom: calc(72px + 1.5rem) !important;
+    padding-bottom: calc(72px + .75rem) !important;
+  }
+
+  /* Short worker/settings pages must paint the light application canvas all
+     the way to the real 72px dock. Legacy worker rules used min-height:auto,
+     which made the dark body look like an enormously stretched navigation. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.mobile-worker-project-topbar) .app-layout.worker-layout {
+    min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+    height: auto !important;
+    max-height: none !important;
+    box-sizing: border-box !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.mobile-worker-project-topbar) .app-layout.worker-layout > .app-main {
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: 1 0 auto !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .documents-standalone-layout.settings-standalone-layout {
+    min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+    height: auto !important;
+    max-height: none !important;
+    box-sizing: border-box !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .documents-standalone-layout.settings-standalone-layout > .documents-content {
+    min-height: 0 !important;
+    flex: 1 0 auto !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  /* The verifier header is fixed. Old report rules reserved the same header
+     height on app-layout once more, producing the thick white strip. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .app-layout {
+    min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .app-layout > .app-main {
+    min-height: 0 !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .app-layout > .app-main > .app-content {
+    padding-top: .12rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-page {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head {
+    display: block !important;
+    min-height: 0 !important;
+    margin: 0 0 .42rem !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head > div:first-child {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head > div:last-child {
+    display: flex !important;
+    width: 100% !important;
+    gap: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-export-all-btn {
+    width: 100% !important;
+    margin: 0 !important;
   }
 
   html body.app-body.app-body.app-body .crm-mobile-page-shell,

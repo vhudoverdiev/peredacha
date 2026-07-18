@@ -3894,7 +3894,11 @@ document.addEventListener('DOMContentLoaded', () => {
     syncWriteoffQuantityForLine(line);
   };
 
-  document.querySelectorAll('.js-multi-material-form').forEach(form => {
+  const initMultiMaterialForms = (scope = document) => {
+    const forms = [];
+    if (scope.matches?.('.js-multi-material-form')) forms.push(scope);
+    scope.querySelectorAll?.('.js-multi-material-form').forEach(form => forms.push(form));
+    forms.forEach(form => {
     const originalSelect = form.querySelector('.js-writeoff-material-select');
     let originalBlock = form.querySelector('.js-writeoff-quantity-block');
     const fallbackInput = form.querySelector('.js-writeoff-quantity-input, input[name="quantity"]');
@@ -3996,9 +4000,14 @@ document.addEventListener('DOMContentLoaded', () => {
     selectWrap.dataset.materialLinesReady = '1';
     bindWriteoffLine(firstLine);
     form.classList.add('is-material-lines-ready');
-  });
+    });
+  };
 
-  document.querySelectorAll('.js-material-manual-form').forEach(form => {
+  const initMaterialManualForms = (scope = document) => {
+    const forms = [];
+    if (scope.matches?.('.js-material-manual-form')) forms.push(scope);
+    scope.querySelectorAll?.('.js-material-manual-form').forEach(form => forms.push(form));
+    forms.forEach(form => {
     if (form.dataset.manualAjaxBound === '1') return;
     form.dataset.manualAjaxBound = '1';
     form.addEventListener('submit', async event => {
@@ -4051,6 +4060,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     });
+    });
+  };
+
+  initMultiMaterialForms();
+  initMaterialManualForms();
+  document.addEventListener('crm:ajax-pagination-updated', event => {
+    if (event.detail?.pageKey !== 'materials') return;
+    const content = event.detail?.content || document;
+    initMultiMaterialForms(content);
+    initMaterialManualForms(content);
   });
 });
 
@@ -4163,8 +4182,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  const updatePaginationPage = async (targetUrl, { push = true, scroll = true, useCache = true } = {}) => {
-    const currentRoot = document.querySelector('[data-ajax-pagination-page]');
+  const updatePaginationPage = async (targetUrl, { push = true, scroll = true, useCache = true, root = null } = {}) => {
+    const currentRoot = root || document.querySelector('[data-ajax-pagination-page]');
     if (!currentRoot) {
       window.location.assign(targetUrl.toString());
       return;
@@ -4223,6 +4242,8 @@ document.addEventListener('DOMContentLoaded', () => {
         else nav.remove();
       });
 
+      syncElementAttributes(currentRoot, nextRoot);
+
       if (push) window.history.pushState({ ajaxPagination: true, pageKey }, '', targetUrl);
       document.title = nextDocument.title || document.title;
       currentRoot.classList.remove('ajax-pagination-loading');
@@ -4249,8 +4270,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!href || href === '#') return;
     const targetUrl = new URL(href, window.location.href);
     if (targetUrl.origin !== window.location.origin) return;
+    const pageRoot = link.closest('[data-ajax-pagination-page]');
     event.preventDefault();
-    updatePaginationPage(targetUrl);
+    updatePaginationPage(targetUrl, { root: pageRoot });
   });
 
   document.addEventListener('click', event => {
@@ -4262,10 +4284,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const targetUrl = new URL(href, window.location.href);
     if (targetUrl.origin !== window.location.origin) return;
 
-    event.preventDefault();
     const tabs = link.closest('[data-ajax-pagination-tabs]');
+    const pageRoot = tabs?.closest('[data-ajax-pagination-page]');
+    const pageKey = pageRoot?.dataset.ajaxPaginationPage || '';
+    if (['glass-measurements', 'materials', 'developer-tools', 'site-errors'].includes(pageKey)
+        && !document.documentElement.classList.contains('desktop-like-pointer')) return;
+    event.preventDefault();
     tabs?.querySelectorAll('.remarks-tab-link').forEach(tab => tab.classList.toggle('active', tab === link));
-    void updatePaginationPage(targetUrl, { push: true, scroll: false, useCache: false });
+    void updatePaginationPage(targetUrl, { push: true, scroll: false, useCache: false, root: pageRoot });
   });
 
   document.addEventListener('submit', event => {
@@ -4282,13 +4308,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const normalizedValue = String(value || '').trim();
       if (normalizedValue) targetUrl.searchParams.append(key, normalizedValue);
     });
-    void updatePaginationPage(targetUrl, { push: true, scroll: false, useCache: false });
+    void updatePaginationPage(targetUrl, { push: true, scroll: false, useCache: false, root: pageRoot });
   });
 
-  window.addEventListener('popstate', () => {
-    if (!document.querySelector('[data-ajax-pagination-page]')) return;
-    updatePaginationPage(new URL(window.location.href), { push: false });
+  window.addEventListener('popstate', event => {
+    const pageKey = event.state?.pageKey || '';
+    const pageRoot = pageKey
+      ? document.querySelector(`[data-ajax-pagination-page="${CSS.escape(pageKey)}"]`)
+      : document.querySelector('[data-ajax-pagination-page]');
+    if (!pageRoot) return;
+    updatePaginationPage(new URL(window.location.href), { push: false, root: pageRoot });
   });
+
+  window.crmUpdatePaginationPage = (targetUrl, options = {}) => updatePaginationPage(targetUrl, options);
 
   const start = () => {
     const pageRoot = document.querySelector('[data-ajax-pagination-page]');
@@ -4297,6 +4329,41 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();
 })();
+
+document.addEventListener('click', event => {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  if (!document.documentElement.classList.contains('desktop-like-pointer')) return;
+  const link = event.target.closest('.developer-stat-summary-link[href]');
+  if (!link || link.target || link.hasAttribute('download')) return;
+  const root = link.closest('[data-ajax-pagination-page="developer-statistics"]');
+  if (!root || typeof window.crmUpdatePaginationPage !== 'function') return;
+  const targetUrl = new URL(link.href, window.location.href);
+  if (targetUrl.origin !== window.location.origin) return;
+  event.preventDefault();
+  root.querySelectorAll('.developer-stat-summary-link').forEach(card => {
+    const isActive = card === link;
+    card.classList.toggle('is-active', isActive);
+    if (isActive) card.setAttribute('aria-current', 'page');
+    else card.removeAttribute('aria-current');
+  });
+  void window.crmUpdatePaginationPage(targetUrl, {
+    push: true,
+    scroll: false,
+    useCache: false,
+    root,
+  });
+});
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('.site-error-delete-trigger');
+  if (!button) return;
+  const form = document.getElementById('deleteErrorForm');
+  const text = document.getElementById('deleteErrorText');
+  if (!form) return;
+  form.action = button.dataset.deleteUrl || '';
+  const title = button.dataset.errorTitle || 'эту ошибку';
+  if (text) text.textContent = `Удалить запись: ${title}? Это действие нельзя отменить.`;
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.querySelector('[data-contractor-response-autosave]');
@@ -4699,12 +4766,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  initMaterialSelectRows();
-  document.addEventListener('crm:ajax-pagination-updated', event => {
-    if (event.detail?.pageKey === 'materials') initMaterialSelectRows(event.detail?.content || document);
-  });
-
-  document.querySelectorAll('.js-material-writeoff-form').forEach(form => {
+  const initMaterialWriteoffForms = (scope = document) => {
+    const forms = [];
+    if (scope.matches?.('.js-material-writeoff-form')) forms.push(scope);
+    scope.querySelectorAll?.('.js-material-writeoff-form').forEach(form => forms.push(form));
+    forms.forEach(form => {
+    if (form.dataset.materialWriteoffBound === '1') return;
+    form.dataset.materialWriteoffBound = '1';
     const storageKey = form.dataset.selectionKey || 'material-writeoff-selection';
     const hiddenBox = form.querySelector('.js-material-selected-hidden');
     const countEl = form.querySelector('.js-material-selected-count');
@@ -4771,11 +4839,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     bindSelectionChecks();
-    document.addEventListener('crm:ajax-pagination-updated', event => {
-      if (event.detail?.pageKey !== 'materials' || !form.contains(event.detail?.content)) return;
-      bindSelectionChecks(event.detail.content);
-      syncSelectionUi();
-    });
 
     const parseWriteoffNumber = value => {
       const normalized = String(value || '').replace(/[\s\u00a0]+/g, '').replace(',', '.');
@@ -4908,6 +4971,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     syncSelectionUi();
+    });
+  };
+
+  initMaterialSelectRows();
+  initMaterialWriteoffForms();
+  document.addEventListener('crm:ajax-pagination-updated', event => {
+    if (event.detail?.pageKey !== 'materials') return;
+    const content = event.detail?.content || document;
+    initMaterialSelectRows(content);
+    initMaterialWriteoffForms(content);
   });
 
 
@@ -4942,8 +5015,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   updateGlassBulkAction();
 
-  document.querySelectorAll('.js-writeoff-material-select').forEach(select => {
-    if (select.closest('.js-material-line')) return;
+  const initStandaloneWriteoffSelects = (scope = document) => {
+    const selects = [];
+    if (scope.matches?.('.js-writeoff-material-select')) selects.push(scope);
+    scope.querySelectorAll?.('.js-writeoff-material-select').forEach(select => selects.push(select));
+    selects.forEach(select => {
+    if (select.closest('.js-material-line') || select.dataset.writeoffQuantityBound === '1') return;
+    select.dataset.writeoffQuantityBound = '1';
     const form = select.closest('form');
     const block = form?.querySelector('.js-writeoff-quantity-block');
     const input = block?.querySelector('.js-writeoff-quantity-input');
@@ -4968,6 +5046,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     select.addEventListener('change', syncWriteoffQuantity);
     syncWriteoffQuantity();
+    });
+  };
+
+  initStandaloneWriteoffSelects();
+  document.addEventListener('crm:ajax-pagination-updated', event => {
+    if (event.detail?.pageKey === 'materials') {
+      initStandaloneWriteoffSelects(event.detail?.content || document);
+    }
   });
 
   const excelNoticeText = 'Ожидайте генерации таблицы Excel. Как только файл будет подготовлен, автоматически начнется скачивание.';
@@ -5040,13 +5126,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   };
-
-  bindStatisticsTopCard({
-    selector: '.developer-stat-summary-card-duration',
-    currentPageSelector: '.developer-statistics-page-overview',
-    datasetKey: 'overviewUrl',
-    requestTop: requestStatisticsOverviewTop,
-  });
 
   const startNativeExcelDownload = link => {
     if (!link?.href) return;
@@ -5755,10 +5834,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const glassManualModalElement = document.getElementById('glassManualTaskModal');
-  const glassManualOpen = document.querySelector('.js-glass-manual-open');
   const glassManualForm = document.querySelector('.js-glass-manual-form');
   const glassManualModal = glassManualModalElement && window.bootstrap ? new bootstrap.Modal(glassManualModalElement) : null;
-  glassManualOpen?.addEventListener('click', () => glassManualModal?.show());
+  document.addEventListener('click', event => {
+    if (event.target.closest('.js-glass-manual-open')) glassManualModal?.show();
+  });
   glassManualForm?.addEventListener('submit', async event => {
     event.preventDefault();
     const button = event.submitter || glassManualForm.querySelector('button[type="submit"]');
@@ -6741,8 +6821,11 @@ document.addEventListener('DOMContentLoaded', () => {
   dateObserver.observe(document.body, { childList: true, subtree: true });
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('form[action*="/site-errors/"][action$="/close"]').forEach(form => {
+const initSiteErrorCloseForms = (scope = document) => {
+  const forms = [];
+  if (scope.matches?.('form[action*="/site-errors/"][action$="/close"]')) forms.push(scope);
+  scope.querySelectorAll?.('form[action*="/site-errors/"][action$="/close"]').forEach(form => forms.push(form));
+  forms.forEach(form => {
     if (form.dataset.asyncBound === '1') return;
     form.dataset.asyncBound = '1';
     form.addEventListener('submit', async event => {
@@ -6785,11 +6868,19 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+};
+
+document.addEventListener('DOMContentLoaded', () => initSiteErrorCloseForms(document));
+document.addEventListener('crm:ajax-pagination-updated', event => {
+  if (['site-errors', 'developer-tools'].includes(event.detail?.pageKey)) {
+    initSiteErrorCloseForms(event.detail?.content || document);
+  }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  const pickers = document.querySelectorAll('.js-developer-stat-range-picker');
-  if (!pickers.length) return;
+  const hasInitialPicker = Boolean(document.querySelector('.js-developer-stat-range-picker'));
+  const supportsPartialDeveloperTabs = document.documentElement.classList.contains('desktop-like-pointer');
+  if (!hasInitialPicker && !supportsPartialDeveloperTabs) return;
 
   const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
   const padDatePart = value => String(value).padStart(2, '0');
@@ -7011,13 +7102,13 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.classList.remove('d-none');
   };
 
-  pickers.forEach(picker => {
-    const openButton = picker.querySelector('.js-developer-stat-range-open');
+  document.addEventListener('click', event => {
+    const openButton = event.target.closest('.js-developer-stat-range-open');
     if (!openButton) return;
-    openButton.addEventListener('click', event => {
-      event.preventDefault();
-      open(picker);
-    });
+    const picker = openButton.closest('.js-developer-stat-range-picker');
+    if (!picker) return;
+    event.preventDefault();
+    open(picker);
   });
 });
 
@@ -7070,8 +7161,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-document.addEventListener('DOMContentLoaded', () => {
-  const toggles = document.querySelectorAll('.js-developer-ip-toggle');
+const initDeveloperIpToggles = (scope = document) => {
+  const toggles = scope.querySelectorAll('.js-developer-ip-toggle');
   if (!toggles.length) return;
 
   const updateHash = rowId => {
@@ -7102,6 +7193,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   toggles.forEach(button => {
+    if (button.dataset.developerIpBound === '1') return;
     button.addEventListener('click', event => {
       event.preventDefault();
       const rowId = button.dataset.ipRow || '';
@@ -7112,6 +7204,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setExpanded(item, shouldExpand);
       updateHash(shouldExpand ? item.id : '');
     });
+    button.dataset.developerIpBound = '1';
   });
 
   const hashId = decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
@@ -7121,6 +7214,13 @@ document.addEventListener('DOMContentLoaded', () => {
       collapseSiblings(hashedItem);
       setExpanded(hashedItem, true);
     }
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => initDeveloperIpToggles(document));
+document.addEventListener('crm:ajax-pagination-updated', event => {
+  if (['developer-statistics', 'developer-tools'].includes(event.detail?.pageKey)) {
+    initDeveloperIpToggles(event.detail?.content || document);
   }
 });
 

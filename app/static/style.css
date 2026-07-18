@@ -260,35 +260,6 @@ body:has(.materials-page-head) .material-icon-delete-btn .bi::before {
   }
 }
 
-/* v182: same loader for hidden mobile version in iOS standalone mode. */
-body.mobile-dev-flag .mobile-dev-screen.site-page-loader {
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  min-width: 100vw !important;
-  height: 100vh !important;
-  min-height: 100vh !important;
-  height: 100dvh !important;
-  min-height: 100dvh !important;
-  padding: max(env(safe-area-inset-top), 1rem) 1rem max(env(safe-area-inset-bottom), 1rem) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  overflow: hidden !important;
-  background:
-    radial-gradient(circle at 50% 40%, rgba(141, 214, 44, .16), transparent 22rem),
-    linear-gradient(180deg, #fbfdf7 0%, #f7faef 100%) !important;
-  z-index: 9999 !important;
-}
-
-body.mobile-dev-flag .mobile-dev-screen.site-page-loader .site-page-loader-card {
-  margin: 0 auto !important;
-}
-
-body.mobile-dev-flag .mobile-dev-screen .mobile-loading-dots {
-  display: none !important;
-}
-
 /* v183 true final override: iOS install hint and bottom nav scroll boundary. */
 body.auth-body .ios-install-button span:last-child {
   white-space: nowrap !important;
@@ -15545,32 +15516,6 @@ body:has(.documents-standalone-layout)::-webkit-scrollbar,
 }
 
 @media (max-width: 991.98px) and (hover: none) and (pointer: coarse) {
-  body.mobile-dev-flag {
-    min-height: 100vh;
-    overflow: hidden;
-    background: radial-gradient(circle at top left, rgba(141, 214, 44, .18), transparent 34%), #f6f9ff;
-  }
-
-  body.mobile-dev-flag .app-layout,
-  body.mobile-dev-flag .objects-layout,
-  body.mobile-dev-flag .documents-standalone-layout,
-  body.mobile-dev-flag .report-error-floating,
-  body.mobile-dev-flag .modal,
-  body.mobile-dev-flag .modal-backdrop {
-    display: none !important;
-  }
-
-  body.mobile-dev-flag .mobile-dev-screen {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: radial-gradient(circle at top left, rgba(141, 214, 44, .18), transparent 36%), linear-gradient(180deg, #fefdfe 0%, #f7faef 100%);
-  }
-
   .mobile-dev-card {
     width: min(100%, 26rem);
     display: grid;
@@ -32611,35 +32556,6 @@ body.standalone-app.app-body {
     width: fit-content !important;
     max-width: 100% !important;
   }
-}
-
-/* v182 final override: hidden mobile mode uses the same loader as login/logout. */
-body.mobile-dev-flag .mobile-dev-screen.site-page-loader {
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  min-width: 100vw !important;
-  height: 100vh !important;
-  min-height: 100vh !important;
-  height: 100dvh !important;
-  min-height: 100dvh !important;
-  padding: max(env(safe-area-inset-top), 1rem) 1rem max(env(safe-area-inset-bottom), 1rem) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  overflow: hidden !important;
-  background:
-    radial-gradient(circle at 50% 40%, rgba(141, 214, 44, .16), transparent 22rem),
-    linear-gradient(180deg, #fbfdf7 0%, #f7faef 100%) !important;
-  z-index: 9999 !important;
-}
-
-body.mobile-dev-flag .mobile-dev-screen.site-page-loader .site-page-loader-card {
-  margin: 0 auto !important;
-}
-
-body.mobile-dev-flag .mobile-dev-screen .mobile-loading-dots {
-  display: none !important;
 }
 
 /* v183 true final override: iOS install hint and bottom nav scroll boundary. */
@@ -52877,62 +52793,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     box-shadow: 0 10px 22px rgba(43, 91, 20, .24) !important;
   }
 
-  html.crm-mobile-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface.crm-page-entry-surface {
-    visibility: visible !important;
-    opacity: 1 !important;
-    transform: none !important;
-    animation: none !important;
-    transition: none !important;
-    pointer-events: auto !important;
-    will-change: auto !important;
-  }
-
-  html.crm-mobile-entry-skip:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface.crm-page-entry-surface {
-    visibility: visible !important;
-    opacity: 1 !important;
-    transform: none !important;
-    animation: none !important;
-    transition: none !important;
-    pointer-events: auto !important;
-    will-change: auto !important;
-  }
-
-  html.crm-mobile-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface.crm-page-entry-surface {
-    visibility: visible !important;
-    animation: none !important;
-    pointer-events: none !important;
-    will-change: opacity, transform !important;
-  }
-
-  html.crm-mobile-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface.crm-page-entry-surface.crm-mobile-content-enter {
-    visibility: visible !important;
-    animation: none !important;
-    pointer-events: auto !important;
-    will-change: opacity, transform !important;
-  }
-
-  html.crm-mobile-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface.crm-page-entry-surface * {
-    animation: none !important;
-    transition: none !important;
-  }
-
-  html.crm-mobile-entry-complete:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface.crm-page-entry-surface,
-  html.crm-custom-select-fallback:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface.crm-page-entry-surface {
-    visibility: visible !important;
-    opacity: 1 !important;
-    transform: none !important;
-    animation: none !important;
-    pointer-events: auto !important;
-    will-change: auto !important;
-  }
-
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
     :is(.mobile-app-topbar, .mobile-project-topbar) {
     animation: none !important;
@@ -52957,18 +52817,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     -webkit-text-fill-color: #8dde2c !important;
     opacity: 1 !important;
     transform: none !important;
-  }
-}
-
-@media (max-width: 767.98px) and (prefers-reduced-motion: reduce) {
-  html.crm-mobile-entry-pending:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface.crm-page-entry-surface,
-  html.crm-mobile-entry-started:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface.crm-page-entry-surface.crm-mobile-content-enter {
-    opacity: 1 !important;
-    transform: none !important;
-    visibility: visible !important;
-    animation: none !important;
   }
 }
 
@@ -53361,26 +53209,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 }
 
-/* Mobile pages do not use entry motion. */
-@media (max-width: 767.98px) {
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface * {
-    animation: none !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body .crm-page-entry-surface {
-    visibility: visible !important;
-    opacity: 1 !important;
-    transform: none !important;
-    pointer-events: auto !important;
-    will-change: auto !important;
-  }
-
-}
-
 /* v461: selected remark categories and issued-day filters use the exact same
    green surface as the Remarks "Add" button. */
 body.app-body:has(.remarks-page-head)
@@ -53769,27 +53597,6 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.worker-page-minimal) .app-layout.worker-layout {
-    min-height: auto !important;
-    margin-top: 0 !important;
-    padding-top: calc(var(--mobile-project-topbar-height-final) + .32rem) !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.worker-page-minimal) .worker-layout .app-main {
-    min-height: auto !important;
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.worker-page-minimal) .worker-layout .app-content {
-    min-height: auto !important;
-    padding: .3rem .75rem calc(4.5rem + var(--ios-safe-bottom) + .55rem) !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -54925,17 +54732,19 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.mobile-worker-project-topbar) .app-layout.worker-layout {
-    min-height: auto !important;
+    min-height: calc(var(--app-height, 100dvh) - var(--ref-mobile-nav-height, 4.5rem)) !important;
     margin-top: 0 !important;
     padding-top: calc(3.75rem + var(--ios-safe-top, 0px)) !important;
+    box-sizing: border-box !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.mobile-worker-project-topbar) .app-layout.worker-layout > .app-main {
-    min-height: auto !important;
+    min-height: 0 !important;
     margin-top: 0 !important;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
+    flex: 1 0 auto !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -55835,55 +55644,6 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
     text-shadow: none !important;
   }
 
-}
-
-/* v562: verifier mobile report had oversized clearances above the Excel button
-   and below the last report card; keep both roughly three times smaller. */
-@media (max-width: 767.98px) {
-  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.verifier-layout:has(.work-report-page) .app-layout > .app-main > .app-content {
-    padding-top: .12rem !important;
-    padding-bottom: calc((var(--ref-mobile-nav-height, 4.5rem) / 3) + .08rem) !important;
-  }
-
-  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.verifier-layout:has(.work-report-page) .work-report-page {
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-  }
-
-  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head {
-    display: block !important;
-    min-height: 0 !important;
-    margin: 0 0 .42rem !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-  }
-
-  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head > div:first-child {
-    display: none !important;
-  }
-
-  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head > div:last-child {
-    display: flex !important;
-    width: 100% !important;
-    gap: 0 !important;
-  }
-
-  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.verifier-layout:has(.work-report-page) .work-report-export-all-btn {
-    width: 100% !important;
-    margin: 0 !important;
-  }
-
-  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.verifier-layout:has(.work-report-page) .work-report-page .report-grid {
-    margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
-  }
 }
 
 /* Assignment search remains fixed while the iOS keyboard changes the visual
