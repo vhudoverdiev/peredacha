@@ -54,7 +54,7 @@
           {% endif %}
           {% set can_manage_inspection = current_user.role != 'viewer' and row.mode not in ['не продана', 'АПП'] %}
           {% set can_edit_inspection_date = can_manage_inspection %}
-          {% set can_reset_inspection = can_manage_inspection and row.inspection_status == 'Был' %}
+          {% set can_reset_inspection = can_manage_inspection and row.inspection_status in ['Был', 'Будет'] %}
           {% if can_edit_inspection_date and row.inspection_date %}
           <form method="post" action="{{ url_for('main.update_apartment_inspection_date', apartment_id=apartment.id) }}" class="apartment-inspection-date-form apartment-inspection-status-form-detail mb-3" data-apartment-async="1">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -233,6 +233,11 @@
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='concession') }}" class="apartment-task-action-form status-action-form {% if task.status == 'concession' %}d-none{% endif %}" data-status-action="concession"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning apartment-task-action-btn" type="submit">Отступные</button></form>
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="apartment-task-action-form apartment-task-action-form-problem status-action-form problem-action-form problem-action-form-inline {% if task.status == 'problem' %}d-none{% endif %}" data-status-action="problem"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-danger problem-toggle-btn apartment-task-action-btn" type="button" data-problem-modal-title="Проблема">Проблема</button></form>
               </div>
+              <form method="post" action="{{ url_for('main.task_delete', task_id=task.id) }}" class="apartment-task-delete-mobile-form" data-confirm="Удалить это замечание? Это действие нельзя отменить.">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+                <button class="btn btn-outline-danger apartment-task-delete-mobile-btn" type="submit"><i class="bi bi-trash me-2" aria-hidden="true"></i>Удалить</button>
+              </form>
               {% endif %}
             </div>
             <div class="apartment-task-meta">

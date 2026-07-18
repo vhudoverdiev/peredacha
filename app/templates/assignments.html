@@ -56,6 +56,8 @@
               <div class="assignment-issued-actions">
                 <form method="post" action="{{ url_for('main.assignments', view='issued', issued_day=issued_filter) }}" class="assignment-date-action-form">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="update_date_task_id" value="{{ task.id }}">
+                  <input class="assignment-mobile-native-date-input d-none" type="date" name="planned_date_{{ task.id }}" value="{{ (task.planned_date or today).isoformat() }}" aria-label="Изменить дату выполнения задачи" onchange="if (this.value) { this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit(); }">
                   <button class="btn btn-sm btn-outline-primary js-assignment-date-open" type="button" data-task-id="{{ task.id }}" data-current-date="{{ (task.planned_date or today).isoformat() }}" title="Изменить дату выполнения задачи" aria-label="Изменить дату выполнения задачи"><i class="bi bi-calendar-check"></i><span class="assignment-date-action-text d-none">Дата</span></button>
                 </form>
                 <button class="btn btn-sm assignment-change-assignee-btn js-assignment-change-assignee-open" type="button" title="Сменить исполнителя" aria-label="Сменить исполнителя" data-bs-toggle="modal" data-bs-target="#assignmentChangeAssigneeModal" data-task-id="{{ task.id }}" data-room="{{ task.apartment.label() if task.apartment else '—' }}" data-task-text="{{ (task.description or task.source_cell_value or '')|striptags }}" data-current-responsible-id="{{ task.responsible_id or '' }}" data-current-responsible-name="{{ (task.responsible.full_name or task.responsible.username) if task.responsible else '—' }}">
@@ -65,10 +67,8 @@
 
 Задача снова станет без исполнителя и без даты выполнения.">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-sm assignment-delete-employee-task-btn js-assignment-unassign-direct" type="button" title="Снять задачу у исполнителя" aria-label="Снять задачу у исполнителя" data-unassign-url="{{ url_for('main.assignment_delete_from_employee', task_id=task.id) }}" data-remove-issued-row="1" data-assignment-confirm-title="Снять задачу" data-assignment-confirm-ok="Снять" data-assignment-confirm="Снять эту задачу у сотрудника?
-
-Задача снова станет без исполнителя и без даты выполнения.">
-                    <i class="bi bi-trash3-fill"></i><span class="assignment-unassign-text d-none">Снять</span>
+                  <button class="btn btn-sm assignment-delete-employee-task-btn" type="submit" title="Снять задачу у исполнителя" aria-label="Снять задачу у исполнителя">
+                    <svg class="assignment-unassign-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4h6m-8 3h10m-9 0 .7 12h6.6L16 7M10 10v6m4-6v6"/></svg><span class="assignment-unassign-text d-none">Снять</span>
                   </button>
                 </form>
               </div>

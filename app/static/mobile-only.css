@@ -682,6 +682,43 @@
     border-top: 1px dashed rgba(128, 145, 118, .2) !important;
   }
 
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-delete-mobile-form {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: .12rem 0 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-delete-mobile-btn {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    width: 100% !important;
+    min-height: 3.05rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .72rem 1rem !important;
+    border: 1px solid rgba(220, 53, 69, .28) !important;
+    border-radius: 1rem !important;
+    background: linear-gradient(180deg, #fff 0%, #fff8f8 100%) !important;
+    color: #b42332 !important;
+    -webkit-text-fill-color: #b42332 !important;
+    font-size: .9rem !important;
+    font-weight: 850 !important;
+    line-height: 1.1 !important;
+    box-shadow: 0 10px 22px rgba(180, 35, 50, .06) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-delete-mobile-btn:is(:active, :focus-visible) {
+    border-color: rgba(180, 35, 50, .46) !important;
+    background: #fff3f3 !important;
+    color: #9f1d2b !important;
+    -webkit-text-fill-color: #9f1d2b !important;
+    box-shadow: 0 6px 15px rgba(180, 35, 50, .09) !important;
+  }
+
   /* "Проблема" shares the final row with "Отступные" in management grids. */
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.task-detail-page) .task-detail-status-grid .problem-action-form,
@@ -1220,5 +1257,146 @@
     box-shadow: none !important;
     -webkit-mask: none !important;
     mask: none !important;
+  }
+}
+
+/* Final mobile authority: reliable issued-task controls, left-aligned headers,
+   and one compact end-of-page clearance above the fixed navigation dock. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head {
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    flex-direction: column !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head > div {
+    display: flex !important;
+    width: 100% !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head > div > div {
+    min-width: 0 !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head strong {
+    width: auto !important;
+    align-self: flex-start !important;
+    margin-left: 3.3rem !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-head {
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    flex-direction: column !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-user {
+    width: 100% !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-user > div {
+    min-width: 0 !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-head-actions {
+    width: auto !important;
+    align-self: flex-start !important;
+    justify-content: flex-start !important;
+    margin-left: 3.23rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table
+    :is(.assignment-date-action-form, .assignment-direct-unassign-form) {
+    position: relative !important;
+    display: block !important;
+    min-width: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-mobile-native-date-input {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 3 !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    opacity: .001 !important;
+    cursor: pointer !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-unassign-icon {
+    display: block !important;
+    flex: 0 0 1rem !important;
+    width: 1rem !important;
+    height: 1rem !important;
+    overflow: visible !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 1.9 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    color: #b42332 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:not(:has(.task-single-form))
+    :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
+    min-height: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:not(:has(.task-single-form))
+    .app-main {
+    min-height: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:not(:has(.task-single-form))
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    min-height: 0 !important;
+    flex-grow: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:not(:has(.task-single-form))
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .28rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:not(:has(.task-single-form)) .crm-mobile-page-shell,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:not(:has(.task-single-form)) .crm-mobile-page-shell > :last-child:not(.crm-toast-stack) {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
   }
 }

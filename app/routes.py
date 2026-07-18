@@ -154,10 +154,10 @@ def service_worker_reset():
       const openCrm = () => {
         if (finished) return;
         finished = true;
-        window.location.replace('/?worker=v22');
+        window.location.replace('/?worker=v24');
       };
       navigator.serviceWorker?.addEventListener('controllerchange', openCrm, { once: true });
-      navigator.serviceWorker?.register('/service-worker.js?v=v22-mobile-layout-fixes', { scope: '/', updateViaCache: 'none' })
+      navigator.serviceWorker?.register('/service-worker.js?v=v24-mobile-actions-scroll', { scope: '/', updateViaCache: 'none' })
         .then(registration => registration.update())
         .catch(() => {})
         .finally(() => window.setTimeout(openCrm, 1200));
@@ -8809,7 +8809,7 @@ def task_delete(task_id: int):
     _delete_task_with_relations(task, project.id)
     db.session.commit()
     flash("Замечание удалено", "success")
-    return redirect(url_for("main.task_list"))
+    return _safe_redirect(request.form.get("next"), "main.task_list")
 
 
 @bp.route("/tasks/<int:task_id>/update", methods=["POST"])

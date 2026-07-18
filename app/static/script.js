@@ -3587,19 +3587,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  const postNativeUnassign = (url, csrfToken) => {
-    const form = document.createElement('form');
-    form.method = 'post';
-    form.action = url;
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'csrf_token';
-    input.value = csrfToken || getCsrfToken();
-    form.appendChild(input);
-    document.body.appendChild(form);
-    form.submit();
-  };
-
   document.addEventListener('submit', async event => {
     const form = event.target.closest?.('.assignment-delete-employee-form');
     if (!form || event.target !== form) return;
@@ -3658,70 +3645,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (button) delete button.dataset.pending;
     }
   });
-
-  document.addEventListener('click', async event => {
-    const button = event.target.closest('.js-assignment-unassign-direct');
-    if (!button) return;
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation?.();
-    if (button.disabled || button.dataset.pending === '1') return;
-
-    const confirmed = await showCrmConfirm({
-      title: button.dataset.assignmentConfirmTitle || 'Снять исполнителя',
-      message: button.dataset.assignmentConfirm || 'Снять исполнителя с этой задачи?',
-      okText: button.dataset.assignmentConfirmOk || 'Снять',
-      danger: true,
-    });
-    if (!confirmed) return;
-
-    const url = button.dataset.unassignUrl;
-    const csrfToken = button.closest('form')?.querySelector('input[name="csrf_token"]')?.value || getCsrfToken();
-    if (!url) return;
-    if (!window.fetch) {
-      postNativeUnassign(url, csrfToken);
-      return;
-    }
-
-    button.dataset.pending = '1';
-    button.disabled = true;
-    try {
-      const body = new FormData();
-      body.set('csrf_token', csrfToken);
-      const response = await fetch(url, {
-        method: 'POST',
-        body,
-        credentials: 'same-origin',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'application/json',
-        },
-      });
-      const isJson = (response.headers.get('content-type') || '').includes('application/json');
-      if (!isJson) {
-        postNativeUnassign(url, csrfToken);
-        return;
-      }
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.ok === false) {
-        showCrmNotice(data.message || 'Не удалось снять исполнителя', 'danger');
-        button.disabled = false;
-        return;
-      }
-      const issuedRow = button.closest('.assignment-issued-row');
-      if (button.dataset.removeIssuedRow === '1' && issuedRow) {
-        refreshIssuedCountsAfterRemoval(issuedRow);
-      } else {
-        markIssuedRowUnassigned(issuedRow, data);
-      }
-      showCrmNotice(data.message || 'Исполнитель снят', 'success');
-    } catch (error) {
-      showCrmNotice(error.message || 'Не удалось снять исполнителя', 'danger');
-      button.disabled = false;
-    } finally {
-      delete button.dataset.pending;
-    }
-  }, true);
 
   document.addEventListener('click', event => {
     const submitter = event.target.closest('button[name="toggle_employee_status_task_id"], button[name="remove_assignee_task_id"]');
