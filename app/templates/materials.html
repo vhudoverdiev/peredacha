@@ -48,16 +48,17 @@
   </article>
 </div>
 
-<div class="remarks-tabs materials-tabs materials-tabs-polished mb-3">
+<div class="remarks-tabs materials-tabs materials-tabs-polished mb-3" data-ajax-pagination-tabs>
   <ul class="nav crm-tabs">
-    <li class="nav-item"><a class="nav-link {% if active_tab == 'balance' %}active{% endif %}" href="{{ url_for('main.materials', tab='balance') }}">Баланс</a></li>
-    <li class="nav-item"><a class="nav-link {% if active_tab == 'requests' %}active{% endif %}" href="{{ url_for('main.materials', tab='requests') }}">Заявки</a></li>
-    <li class="nav-item"><a class="nav-link {% if active_tab == 'writeoff' %}active{% endif %}" href="{{ url_for('main.materials', tab='writeoff') }}">Списать материалы</a></li>
-    <li class="nav-item"><a class="nav-link {% if active_tab == 'history' %}active{% endif %}" href="{{ url_for('main.materials', tab='history') }}">История списаний</a></li>
-    <li class="nav-item"><a class="nav-link {% if active_tab == 'task' %}active{% endif %}" href="{{ url_for('main.materials', tab='task') }}">Ручное списание</a></li>
+    <li class="nav-item"><a class="nav-link remarks-tab-link {% if active_tab == 'balance' %}active{% endif %}" href="{{ url_for('main.materials', tab='balance') }}">Баланс</a></li>
+    <li class="nav-item"><a class="nav-link remarks-tab-link {% if active_tab == 'requests' %}active{% endif %}" href="{{ url_for('main.materials', tab='requests') }}">Заявки</a></li>
+    <li class="nav-item"><a class="nav-link remarks-tab-link {% if active_tab == 'writeoff' %}active{% endif %}" href="{{ url_for('main.materials', tab='writeoff') }}">Списать материалы</a></li>
+    <li class="nav-item"><a class="nav-link remarks-tab-link {% if active_tab == 'history' %}active{% endif %}" href="{{ url_for('main.materials', tab='history') }}">История списаний</a></li>
+    <li class="nav-item"><a class="nav-link remarks-tab-link {% if active_tab == 'task' %}active{% endif %}" href="{{ url_for('main.materials', tab='task') }}">Ручное списание</a></li>
   </ul>
 </div>
 
+<div class="materials-tab-content" data-ajax-pagination-content>
 {% if active_tab == 'balance' %}
 {% if can_edit_materials %}
 <form id="material-balance-delete-form" method="post" action="{{ url_for('main.material_balance_delete') }}">
@@ -427,5 +428,6 @@
   </form>
 </div>
 {% endif %}
+</div>
 </div>
 {% endblock %}

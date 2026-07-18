@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Для разработчика{% endblock %}
 {% block content %}
+<div class="developer-tools-ajax-page" data-ajax-pagination-page="developer-tools">
 <div class="page-head remarks-page-head">
   <div>
     <h1 class="page-title">Для разработчика</h1>
@@ -8,33 +9,36 @@
   </div>
 </div>
 
-<div class="developer-section-tabs">
-  <a class="developer-section-tab active" href="{{ url_for('main.site_errors') }}">
+<div class="developer-section-tabs" data-ajax-pagination-tabs>
+  <a class="developer-section-tab remarks-tab-link active" href="{{ url_for('main.site_errors') }}">
     <i class="bi bi-inbox"></i><span>Сообщения</span>
   </a>
-  <a class="developer-section-tab" href="{{ url_for('main.developer_delete_logs') }}">
+  <a class="developer-section-tab remarks-tab-link" href="{{ url_for('main.developer_delete_logs') }}">
     <i class="bi bi-clock-history"></i><span>Логи удалений</span>
   </a>
-  <a class="developer-section-tab" href="{{ url_for('main.developer_statistics', days=7) }}">
+  <a class="developer-section-tab remarks-tab-link" href="{{ url_for('main.developer_statistics', days=7) }}">
     <i class="bi bi-graph-up-arrow"></i><span>Статистика</span>
   </a>
 </div>
 
-<div class="site-errors-kind-tabs">
-  <a class="site-errors-kind-tab {% if not kind %}active{% endif %}" href="{{ url_for('main.site_errors', status=status) }}">
+<div class="developer-tools-tab-content" data-ajax-pagination-content>
+<div class="site-errors-ajax-page" data-ajax-pagination-page="site-errors">
+<div class="site-errors-kind-tabs" data-ajax-pagination-tabs>
+  <a class="site-errors-kind-tab remarks-tab-link {% if not kind %}active{% endif %}" href="{{ url_for('main.site_errors', status=status) }}">
     <i class="bi bi-list-ul"></i><span>Все</span>
   </a>
-  <a class="site-errors-kind-tab {% if kind == 'user' %}active{% endif %}" href="{{ url_for('main.site_errors', kind='user', status=status) }}">
+  <a class="site-errors-kind-tab remarks-tab-link {% if kind == 'user' %}active{% endif %}" href="{{ url_for('main.site_errors', kind='user', status=status) }}">
     <i class="bi bi-chat-dots"></i><span>Обращения</span>
   </a>
-  <a class="site-errors-kind-tab {% if kind == 'registration' %}active{% endif %}" href="{{ url_for('main.site_errors', kind='registration', status=status) }}">
+  <a class="site-errors-kind-tab remarks-tab-link {% if kind == 'registration' %}active{% endif %}" href="{{ url_for('main.site_errors', kind='registration', status=status) }}">
     <i class="bi bi-person-plus"></i><span>Регистрации</span>
   </a>
-  <a class="site-errors-kind-tab {% if kind == 'system' %}active{% endif %}" href="{{ url_for('main.site_errors', kind='system', status=status) }}">
+  <a class="site-errors-kind-tab remarks-tab-link {% if kind == 'system' %}active{% endif %}" href="{{ url_for('main.site_errors', kind='system', status=status) }}">
     <i class="bi bi-exclamation-octagon"></i><span>Системные</span>
   </a>
 </div>
 
+<div class="site-errors-tab-content" data-ajax-pagination-content>
 <div class="card content-card mb-3">
   <div class="card-body">
     <form class="row g-2 align-items-end crm-filter-form site-errors-filter-form" method="get">
@@ -145,6 +149,11 @@
       </div>
     </form>
   </div>
+</div>
+
+</div>
+</div>
+</div>
 </div>
 
 <script>

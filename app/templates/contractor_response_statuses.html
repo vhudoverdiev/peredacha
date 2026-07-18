@@ -13,7 +13,7 @@
   </div>
 
   {% if contractor_rows %}
-  <form method="post" class="contractor-response-form">
+  <form method="post" action="{{ url_for('main.contractor_response_statuses') }}" class="contractor-response-form" data-contractor-response-autosave>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="contractor-response-list">
       {% for row in contractor_rows %}
@@ -25,11 +25,11 @@
         </div>
         <div class="contractor-response-options" role="radiogroup" aria-label="Статус подрядчика {{ contractor.name }}">
           <label class="contractor-response-option contractor-response-option-positive">
-            <input class="visually-hidden" type="radio" name="contractor_status_{{ contractor.id }}" value="responds" {% if row.response_status != 'not_responding' %}checked{% endif %}>
+            <input class="visually-hidden" type="radio" name="contractor_status_{{ contractor.id }}" value="responds" data-contractor-id="{{ contractor.id }}" {% if row.response_status != 'not_responding' %}checked{% endif %}>
             <span><i class="bi bi-check-circle"></i>Реагирует</span>
           </label>
           <label class="contractor-response-option contractor-response-option-negative">
-            <input class="visually-hidden" type="radio" name="contractor_status_{{ contractor.id }}" value="not_responding" {% if row.response_status == 'not_responding' %}checked{% endif %}>
+            <input class="visually-hidden" type="radio" name="contractor_status_{{ contractor.id }}" value="not_responding" data-contractor-id="{{ contractor.id }}" {% if row.response_status == 'not_responding' %}checked{% endif %}>
             <span><i class="bi bi-x-circle"></i>Не реагирует</span>
           </label>
         </div>
@@ -38,7 +38,10 @@
     </div>
     <div class="contractor-response-actions">
       <a class="btn btn-outline-secondary" href="{{ url_for('main.contractor_directory') }}"><i class="bi bi-arrow-left me-2"></i>Назад</a>
-      <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Сохранить статусы</button>
+      <span class="contractor-response-save-state" data-contractor-response-save-state aria-live="polite">
+        <i class="bi bi-cloud-check"></i>
+        <span>Изменения сохраняются автоматически</span>
+      </span>
     </div>
   </form>
   {% else %}

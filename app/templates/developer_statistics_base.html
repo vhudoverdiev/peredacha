@@ -8,7 +8,7 @@
 {% set scope_label = 'Все посещения' if scope == 'all' else ('Только авторизованные' if scope == 'auth' else 'Только гости') %}
 {% set statistics_title = 'Статистика посещений' if active_statistics_page == 'overview' else ('Последние посещения' if active_statistics_page == 'visits' else 'Источники и топ IP') %}
 {% set statistics_text = 'Динамика посещений, общая активность и ключевые цифры по выбранному периоду.' if active_statistics_page == 'overview' else ('Журнал визитов по пользователям, устройствам и открытым вкладкам.' if active_statistics_page == 'visits' else 'Срез по IP-адресам, страницам и браузерам за текущий период.') %}
-<div class="developer-statistics-page developer-statistics-page-{{ active_statistics_page }}">
+<div class="developer-tools-ajax-page developer-statistics-page" data-ajax-pagination-page="developer-tools">
   <div class="page-head remarks-page-head developer-stat-shell-head">
     <div>
       <h1 class="page-title">Для разработчика</h1>
@@ -16,18 +16,20 @@
     </div>
   </div>
 
-  <div class="developer-section-tabs developer-stat-top-tabs">
-    <a class="developer-section-tab" href="{{ url_for('main.site_errors') }}">
+  <div class="developer-section-tabs developer-stat-top-tabs" data-ajax-pagination-tabs>
+    <a class="developer-section-tab remarks-tab-link" href="{{ url_for('main.site_errors') }}">
       <i class="bi bi-inbox"></i><span>Сообщения</span>
     </a>
-    <a class="developer-section-tab" href="{{ url_for('main.developer_delete_logs') }}">
+    <a class="developer-section-tab remarks-tab-link" href="{{ url_for('main.developer_delete_logs') }}">
       <i class="bi bi-clock-history"></i><span>Логи удалений</span>
     </a>
-    <a class="developer-section-tab active" href="{{ url_for('main.developer_statistics', days=7) }}">
+    <a class="developer-section-tab remarks-tab-link active" href="{{ url_for('main.developer_statistics', days=7) }}">
       <i class="bi bi-graph-up-arrow"></i><span>Статистика</span>
     </a>
   </div>
 
+  <div class="developer-tools-tab-content" data-ajax-pagination-content>
+  <div class="developer-statistics-partial-page developer-statistics-page-{{ active_statistics_page }}" data-ajax-pagination-page="developer-statistics">
   <section class="card content-card developer-stat-hero-card">
     <div class="card-body">
       <div class="developer-stat-hero-head">
@@ -55,7 +57,7 @@
       </div>
 
       <section class="developer-stat-summary-grid developer-stat-summary-showcase">
-        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-visits developer-stat-summary-link" href="{{ visits_href }}">
+        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-visits developer-stat-summary-link" href="{{ visits_href }}" data-statistics-page="visits">
           <div class="card-body">
             <span class="developer-stat-summary-icon" aria-hidden="true"><i class="bi bi-activity"></i></span>
             <span class="developer-stat-summary-label">Всего посещений</span>
@@ -63,7 +65,7 @@
           </div>
         </a>
 
-        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-sources developer-stat-summary-link" href="{{ sources_href }}" data-no-scroll-restore="1">
+        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-sources developer-stat-summary-link" href="{{ sources_href }}" data-statistics-page="sources" data-no-scroll-restore="1">
           <div class="card-body">
             <span class="developer-stat-summary-icon" aria-hidden="true"><i class="bi bi-diagram-3"></i></span>
             <span class="developer-stat-summary-label">Уникальные посещения</span>
@@ -71,25 +73,21 @@
           </div>
         </a>
 
-        {% if active_statistics_page == 'overview' %}
-        <article class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-duration">
-        {% else %}
-        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-duration developer-stat-summary-link" href="{{ overview_href }}" data-no-scroll-restore="1">
-        {% endif %}
+        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-duration developer-stat-summary-link" href="{{ overview_href }}" data-statistics-page="overview" data-no-scroll-restore="1">
           <div class="card-body">
             <span class="developer-stat-summary-icon" aria-hidden="true"><i class="bi bi-stopwatch"></i></span>
             <span class="developer-stat-summary-label">Среднее время</span>
             <strong class="developer-stat-summary-value developer-stat-summary-value-word">{{ avg_duration_label }}</strong>
           </div>
-        {% if active_statistics_page == 'overview' %}
-        </article>
-        {% else %}
         </a>
-        {% endif %}
       </section>
     </div>
   </section>
 
-  {% block statistics_page_content %}{% endblock %}
+  <div class="developer-statistics-lower-content" data-ajax-pagination-content>
+    {% block statistics_page_content %}{% endblock %}
+  </div>
+  </div>
+  </div>
 </div>
 {% endblock %}

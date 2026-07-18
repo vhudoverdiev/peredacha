@@ -45,7 +45,10 @@
         <div class="invalid-feedback">Укажите наименование подрядчика.</div>
       </div>
       <div class="contractor-wizard-actions contractor-wizard-actions-end">
-        <button class="btn btn-primary contractor-wizard-next" type="button" data-contractor-next="2">Продолжить<i class="bi bi-arrow-right"></i></button>
+        {% if contractor %}
+        <button class="btn btn-primary d-none contractor-edit-save-desktop" type="submit"><i class="bi bi-check2-circle"></i>Сохранить</button>
+        {% endif %}
+        <button class="btn btn-primary contractor-wizard-next{% if contractor %} contractor-edit-continue-default{% endif %}" type="button" data-contractor-next="2">Продолжить<i class="bi bi-arrow-right"></i></button>
       </div>
     </section>
 
@@ -78,7 +81,10 @@
       <p class="contractor-wizard-error" data-contractor-error="points" hidden>Выберите хотя бы один пункт ответственности.</p>
       <div class="contractor-wizard-actions">
         <button class="btn btn-outline-secondary" type="button" data-contractor-back="1"><i class="bi bi-arrow-left"></i>Назад</button>
-        <button class="btn btn-primary contractor-wizard-next" type="button" data-contractor-next="3">Продолжить<i class="bi bi-arrow-right"></i></button>
+        {% if contractor %}
+        <button class="btn btn-primary d-none contractor-edit-save-desktop" type="submit"><i class="bi bi-check2-circle"></i>Сохранить</button>
+        {% endif %}
+        <button class="btn btn-primary contractor-wizard-next{% if contractor %} contractor-edit-continue-default{% endif %}" type="button" data-contractor-next="3">Продолжить<i class="bi bi-arrow-right"></i></button>
       </div>
     </section>
 
@@ -105,7 +111,13 @@
         <label class="contractor-choice-card contractor-apartment-card" data-contractor-search-text="{{ (apartment.label ~ ' ' ~ apartment_meta)|lower }}" data-contractor-apartment-number="{{ apartment.number }}">
           <input class="form-check-input" type="checkbox" name="apartment_groups" value="{{ apartment.id }}" {% if apartment.id|string in selected_apartment_group_ids %}checked{% endif %}>
           <span class="contractor-choice-card-icon"><i class="bi bi-door-open"></i></span>
-          <span class="contractor-choice-card-copy"><strong>{{ apartment.label }}</strong><small>{{ apartment_meta or 'Объект ' ~ project.name }}</small></span>
+          <span class="contractor-choice-card-copy">
+            <strong>{{ apartment.label }}</strong>
+            <small>
+              <span class="contractor-apartment-meta-default">{{ apartment_meta or 'Объект ' ~ project.name }}</span>
+              <span class="d-none contractor-apartment-meta-desktop">{{ apartment_meta or 'Отделка не указана' }}</span>
+            </small>
+          </span>
         </label>
         {% else %}
         <div class="contractor-choice-empty">На объекте пока нет квартир для выбора.</div>
@@ -208,25 +220,42 @@
 
   let lastApartmentCard = null;
   const visibleApartmentCards = () => [...wizard.querySelectorAll('[data-contractor-list="apartments"] .contractor-choice-card:not([hidden])')];
+  const setApartmentRangeState = (card, checked) => {
+    const cards = visibleApartmentCards();
+    const from = cards.indexOf(lastApartmentCard);
+    const to = cards.indexOf(card);
+    const range = from !== -1 && to !== -1
+      ? cards.slice(Math.min(from, to), Math.max(from, to) + 1)
+      : [card];
+    range.forEach((item) => {
+      const itemCheckbox = item.querySelector('input[type="checkbox"]');
+      if (itemCheckbox) itemCheckbox.checked = checked;
+    });
+    updateCount('apartments');
+    const error = wizard.querySelector('[data-contractor-error="apartments"]');
+    if (error && checkedCount('apartments')) error.hidden = true;
+  };
   wizard.querySelectorAll('[data-contractor-list="apartments"] .contractor-choice-card').forEach((card) => {
+    card.addEventListener('mousedown', (event) => {
+      if (!document.documentElement.classList.contains('desktop-like-pointer') || !event.shiftKey) return;
+      if (event.button === 0) {
+        event.preventDefault();
+        return;
+      }
+      if (event.button !== 2) return;
+      event.preventDefault();
+      setApartmentRangeState(card, false);
+    });
+    card.addEventListener('contextmenu', (event) => {
+      if (!document.documentElement.classList.contains('desktop-like-pointer') || !event.shiftKey) return;
+      event.preventDefault();
+    });
     card.addEventListener('click', (event) => {
       const checkbox = card.querySelector('input[type="checkbox"]');
       if (!checkbox) return;
       if (event.shiftKey && lastApartmentCard && lastApartmentCard !== card) {
         event.preventDefault();
-        const cards = visibleApartmentCards();
-        const from = cards.indexOf(lastApartmentCard);
-        const to = cards.indexOf(card);
-        if (from !== -1 && to !== -1) {
-          const nextState = !checkbox.checked;
-          cards.slice(Math.min(from, to), Math.max(from, to) + 1).forEach((item) => {
-            const itemCheckbox = item.querySelector('input[type="checkbox"]');
-            if (itemCheckbox) itemCheckbox.checked = nextState;
-          });
-          updateCount('apartments');
-          const error = wizard.querySelector('[data-contractor-error="apartments"]');
-          if (error && checkedCount('apartments')) error.hidden = true;
-        }
+        setApartmentRangeState(card, !checkbox.checked);
         return;
       }
       lastApartmentCard = card;

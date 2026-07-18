@@ -216,20 +216,67 @@
     -webkit-text-fill-color: #111827 !important;
   }
 
-  /* Keep the task-details delete action red with white content. */
+  html.desktop-like-pointer body.app-body .contractor-apartment-meta-default {
+    display: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-apartment-meta-desktop {
+    display: inline !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-edit-save-desktop {
+    display: inline-flex !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-edit-continue-default {
+    display: none !important;
+  }
+
+  /* Task details: mirror the contractor delete interaction and use Problem red. */
   html.desktop-like-pointer body.app-body .task-detail-delete-btn,
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn:focus {
+    min-height: 48px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    border: 1px solid #dc4c4c !important;
+    border-radius: 12px !important;
+    background-color: #ffffff !important;
+    background-image: linear-gradient(180deg, #ffffff 0%, #fff8f8 100%) !important;
+    color: #dc4c4c !important;
+    -webkit-text-fill-color: #dc4c4c !important;
+    font-weight: 700 !important;
+    box-shadow: 0 8px 18px rgba(220, 76, 76, .12) !important;
+    transition: border-color .18s ease, background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease;
+  }
+
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn i.bi,
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn i.bi::before {
+    margin-right: 0 !important;
+    color: #dc4c4c !important;
+    -webkit-text-fill-color: #dc4c4c !important;
+    opacity: 1 !important;
+  }
+
   html.desktop-like-pointer body.app-body .task-detail-delete-btn:hover,
-  html.desktop-like-pointer body.app-body .task-detail-delete-btn:focus,
-  html.desktop-like-pointer body.app-body .task-detail-delete-btn:active {
-    border-color: #dc2626 !important;
-    background: #dc2626 !important;
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn:active,
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn:focus-visible {
+    border-color: #dc4c4c !important;
+    background: #dc4c4c !important;
+    background-image: none !important;
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
-    box-shadow: 0 10px 24px rgba(220, 38, 38, .18) !important;
+    box-shadow: 0 10px 24px rgba(220, 76, 76, .24) !important;
+    transform: translateY(-1px);
   }
 
   html.desktop-like-pointer body.app-body
-    .task-detail-delete-btn
+    :is(
+      .task-detail-delete-btn:hover,
+      .task-detail-delete-btn:active,
+      .task-detail-delete-btn:focus-visible
+    )
     :is(i, .bi, .bi::before) {
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
@@ -252,6 +299,7 @@
     -webkit-text-fill-color: #c62828 !important;
     font-weight: 700 !important;
     box-shadow: 0 8px 18px rgba(198, 40, 40, .12) !important;
+    transition: border-color .18s ease, background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease;
   }
 
   html.desktop-like-pointer body.app-body
@@ -513,6 +561,39 @@
     :is(i, .bi, .bi::before) {
     color: #111827 !important;
     -webkit-text-fill-color: #111827 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-save-state {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    gap: .55rem;
+    padding: .55rem .85rem;
+    border-radius: .8rem;
+    color: #667085;
+    font-size: .88rem;
+    font-weight: 650;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-save-state.is-saving {
+    color: #4f6f25;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-save-state.is-saved {
+    color: #356b14;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-save-state.is-error {
+    color: #b42318;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-card.is-saving {
+    background: #fbfdf8;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-card.is-saving
+    .contractor-response-options {
+    opacity: .72;
   }
 
   html.desktop-like-pointer body.app-body .contractor-response-empty {

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Для разработчика — логи удалений{% endblock %}
 {% block content %}
+<div class="developer-tools-ajax-page" data-ajax-pagination-page="developer-tools">
 <div class="page-head remarks-page-head">
   <div>
     <h1 class="page-title">Для разработчика</h1>
@@ -8,18 +9,19 @@
   </div>
 </div>
 
-<div class="developer-section-tabs">
-  <a class="developer-section-tab" href="{{ url_for('main.site_errors') }}">
+<div class="developer-section-tabs" data-ajax-pagination-tabs>
+  <a class="developer-section-tab remarks-tab-link" href="{{ url_for('main.site_errors') }}">
     <i class="bi bi-inbox"></i><span>Сообщения</span>
   </a>
-  <a class="developer-section-tab active" href="{{ url_for('main.developer_delete_logs') }}">
+  <a class="developer-section-tab remarks-tab-link active" href="{{ url_for('main.developer_delete_logs') }}">
     <i class="bi bi-clock-history"></i><span>Логи удалений</span>
   </a>
-  <a class="developer-section-tab" href="{{ url_for('main.developer_statistics', days=7) }}">
+  <a class="developer-section-tab remarks-tab-link" href="{{ url_for('main.developer_statistics', days=7) }}">
     <i class="bi bi-graph-up-arrow"></i><span>Статистика</span>
   </a>
 </div>
 
+<div class="developer-tools-tab-content" data-ajax-pagination-content>
 <div class="developer-delete-log-list">
   {% for log in logs %}
   <article class="card content-card developer-delete-log-card {% if log.is_undone %}is-undone{% endif %} {% if not log.is_undone %}is-actionable{% endif %}">
@@ -75,5 +77,7 @@
     </div>
   </div>
   {% endfor %}
+</div>
+</div>
 </div>
 {% endblock %}

@@ -14,14 +14,15 @@
   </div>
 </div>
 
-<div class="remarks-tabs mb-3">
+<div class="remarks-tabs mb-3" data-ajax-pagination-tabs>
   <ul class="nav crm-tabs">
-    <li class="nav-item glass-tab-all"><a class="nav-link {% if tab == 'all' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='all', q=q) }}">Все</a></li>
-    <li class="nav-item glass-tab-order"><a class="nav-link {% if tab == 'order' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='order', q=q) }}">Заказать</a></li>
-    <li class="nav-item glass-tab-ordered"><a class="nav-link {% if tab == 'ordered' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='ordered', q=q) }}">Заказано</a></li>
+    <li class="nav-item glass-tab-all"><a class="nav-link remarks-tab-link {% if tab == 'all' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='all', q=q) }}">Все</a></li>
+    <li class="nav-item glass-tab-order"><a class="nav-link remarks-tab-link {% if tab == 'order' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='order', q=q) }}">Заказать</a></li>
+    <li class="nav-item glass-tab-ordered"><a class="nav-link remarks-tab-link {% if tab == 'ordered' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='ordered', q=q) }}">Заказано</a></li>
   </ul>
 </div>
 
+<div class="glass-tab-content" data-ajax-pagination-content>
 {% if tab == 'all' %}
 <div class="card content-card mb-3">
   <div class="card-body">
@@ -423,6 +424,7 @@
   </ul>
 </nav>
 {% endif %}
+</div>
 </div>
 
 {% if current_user.role != 'viewer' %}

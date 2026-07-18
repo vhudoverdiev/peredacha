@@ -629,6 +629,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const customSelectBootRoot = document.documentElement;
   const finishCustomSelectBoot = () => {
     const isMobileEntrySurface = customSelectBootRoot.matches('.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device');
+    if (isMobileEntrySurface) {
+      // Mobile pages are rendered at their final coordinates from the first
+      // paint. Do not remove/re-add entry-state classes or wait for a synthetic
+      // animation: that class churn repainted the header, dock, cards and text
+      // on short/empty pages even though mobile entry motion is disabled.
+      customSelectBootRoot.classList.remove(
+        'crm-custom-select-fallback',
+        'crm-custom-select-pending',
+        'crm-mobile-entry-skip',
+        'crm-page-entry-pending',
+        'crm-page-entry-started',
+        'crm-mobile-entry-pending',
+        'crm-mobile-entry-started'
+      );
+      customSelectBootRoot.classList.add(
+        'crm-custom-select-ready',
+        'crm-page-entry-complete',
+        'crm-mobile-entry-complete'
+      );
+      return;
+    }
     customSelectBootRoot.classList.remove(
       'crm-custom-select-fallback',
       'crm-mobile-entry-skip',
@@ -640,30 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
     );
     customSelectBootRoot.classList.remove('crm-custom-select-pending');
     customSelectBootRoot.classList.add('crm-custom-select-ready');
-    if (document.body.classList.contains('app-body') && isMobileEntrySurface) {
-      const entrySurface = document.body.querySelector('.crm-page-entry-surface')
-        || document.body.querySelector('.app-content, .objects-content, .documents-content, .documents-standalone-content');
-      if (entrySurface && !entrySurface.classList.contains('crm-page-entry-surface')) {
-        entrySurface.classList.add('crm-page-entry-surface');
-      }
-      const finishMobileEntry = () => {
-        customSelectBootRoot.classList.remove('crm-mobile-entry-pending');
-        customSelectBootRoot.classList.add('crm-mobile-entry-complete');
-      };
-      if (!entrySurface) {
-        finishMobileEntry();
-        return;
-      }
-      let mobileEntryFinished = false;
-      const completeMobileEntryOnce = () => {
-        if (mobileEntryFinished) return;
-        mobileEntryFinished = true;
-        finishMobileEntry();
-      };
-      entrySurface.addEventListener('animationend', completeMobileEntryOnce, { once: true });
-      window.setTimeout(completeMobileEntryOnce, 420);
-    }
-    if (!isMobileEntrySurface) customSelectBootRoot.classList.remove('crm-mobile-entry-pending');
+    customSelectBootRoot.classList.remove('crm-mobile-entry-pending');
   };
 
   const prepareNativeSelectsForCustomUi = (scope = document) => {
@@ -2174,6 +2172,11 @@ document.addEventListener('DOMContentLoaded', () => {
           && form.dataset.statusAction === 'guarantee';
         if (needsDesktopContractorChoice) {
           formData.set('require_contractor_choice', '1');
+          if (form.dataset.guaranteeChoiceReady === '1') {
+            delete form.dataset.guaranteeChoiceReady;
+          } else {
+            formData.delete('guarantee_contractor_id');
+          }
         }
         const resp = await fetch(form.action, {
           method: 'POST',
@@ -2194,6 +2197,7 @@ document.addEventListener('DOMContentLoaded', () => {
               form.append(selectedInput);
             }
             selectedInput.value = contractorId;
+            form.dataset.guaranteeChoiceReady = '1';
             window.setTimeout(() => form.requestSubmit(submitBtn || undefined), 0);
           }
           return;
@@ -4293,6 +4297,80 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();
 })();
+
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.querySelector('[data-contractor-response-autosave]');
+  if (!form || !document.documentElement.classList.contains('desktop-like-pointer')) return;
+
+  const saveState = form.querySelector('[data-contractor-response-save-state]');
+  const saveStateIcon = saveState?.querySelector('i');
+  const saveStateText = saveState?.querySelector('span');
+  const setSaveState = (mode, message) => {
+    if (!saveState) return;
+    saveState.classList.remove('is-saving', 'is-saved', 'is-error');
+    if (mode) saveState.classList.add(`is-${mode}`);
+    if (saveStateText) saveStateText.textContent = message;
+    if (saveStateIcon) {
+      saveStateIcon.className = mode === 'saving'
+        ? 'bi bi-arrow-repeat'
+        : mode === 'error'
+          ? 'bi bi-exclamation-circle'
+          : 'bi bi-cloud-check';
+    }
+  };
+
+  form.querySelectorAll('input[type="radio"][data-contractor-id]').forEach(input => {
+    input.dataset.saved = input.checked ? '1' : '0';
+  });
+
+  form.addEventListener('submit', event => event.preventDefault());
+  form.addEventListener('change', async event => {
+    const input = event.target.closest?.('input[type="radio"][data-contractor-id]');
+    if (!input || !input.checked) return;
+
+    const card = input.closest('.contractor-response-card');
+    const options = input.closest('.contractor-response-options');
+    const radios = Array.from(options?.querySelectorAll('input[type="radio"]') || []);
+    const previouslySaved = radios.find(radio => radio.dataset.saved === '1');
+    const body = new FormData();
+    body.set('csrf_token', form.querySelector('input[name="csrf_token"]')?.value || '');
+    body.set('contractor_id', input.dataset.contractorId || '');
+    body.set('status', input.value);
+
+    radios.forEach(radio => { radio.disabled = true; });
+    card?.classList.add('is-saving');
+    card?.setAttribute('aria-busy', 'true');
+    setSaveState('saving', 'Сохраняем статус…');
+
+    try {
+      const response = await fetch(form.action || window.location.href, {
+        method: 'POST',
+        body,
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.message || 'Не удалось сохранить статус подрядчика.');
+      }
+      radios.forEach(radio => {
+        radio.dataset.saved = radio === input ? '1' : '0';
+      });
+      setSaveState('saved', 'Статус сохранён автоматически');
+    } catch (error) {
+      if (previouslySaved) previouslySaved.checked = true;
+      setSaveState('error', 'Не удалось сохранить статус');
+      window.showCrmNotice?.(error.message || 'Не удалось сохранить статус подрядчика.', 'danger');
+    } finally {
+      radios.forEach(radio => { radio.disabled = false; });
+      card?.classList.remove('is-saving');
+      card?.removeAttribute('aria-busy');
+    }
+  });
+});
 
 // Issued-day filters update only their own content. The fixed mobile header
 // and bottom navigation stay mounted, so changing Today/Tomorrow does not

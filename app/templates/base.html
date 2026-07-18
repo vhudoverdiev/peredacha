@@ -184,6 +184,14 @@
           skipNextMobileEntryTransition || navigationType === 'back_forward',
         );
       } catch (error) {}
+      const standaloneBootSessionKey = 'crm-standalone-boot-session-v1';
+      let standaloneBootSessionStarted = false;
+      if (isStandaloneDisplayMode) {
+        try {
+          standaloneBootSessionStarted = window.sessionStorage.getItem(standaloneBootSessionKey) === '1';
+          window.sessionStorage.setItem(standaloneBootSessionKey, '1');
+        } catch (error) {}
+      }
       document.documentElement.classList.add('crm-custom-select-pending');
       window.setTimeout(() => {
         if (document.documentElement.classList.contains('crm-custom-select-ready')) return;
@@ -198,6 +206,7 @@
         if (
           (isTouchAppDevice || useAdaptiveMobileViewport)
           && !skipNextMobileEntryTransition
+          && (!standaloneBootSessionStarted || navigationType === 'reload')
           && navigationType !== 'back_forward'
         ) {
           document.documentElement.classList.add('mobile-standalone-boot');
@@ -331,41 +340,31 @@
         transition: none !important;
       }
 
-      html:not(.standalone-app) body.app-body > nav.mobile-bottom-nav-root {
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body > nav.mobile-bottom-nav-root {
         position: fixed !important;
         inset: auto 0 0 0 !important;
-        width: 100% !important;
-        height: 4.5rem !important;
-        min-height: 4.5rem !important;
-        max-height: 4.5rem !important;
+        width: 100vw !important;
+        min-width: 100vw !important;
+        max-width: 100vw !important;
+        height: 72px !important;
+        min-height: 72px !important;
+        max-height: 72px !important;
         margin: 0 !important;
+        padding: 4px 5px 3px !important;
         box-sizing: border-box !important;
+        align-items: stretch !important;
+        border: 0 !important;
+        border-radius: 30px 30px 0 0 !important;
+        background: #111820 !important;
+        background-color: #111820 !important;
+        box-shadow: none !important;
         transform: none !important;
         translate: none !important;
         scale: none !important;
         animation: none !important;
         transition: none !important;
         overflow: hidden !important;
-      }
-
-      html.standalone-app body.app-body > nav.mobile-bottom-nav-root {
-        position: fixed !important;
-        inset: auto 0 0 0 !important;
-        width: 100% !important;
-        height: 4.5rem !important;
-        min-height: 4.5rem !important;
-        max-height: 4.5rem !important;
-        margin: 0 !important;
-        padding: 0 .28rem !important;
-        box-sizing: border-box !important;
-        align-items: center !important;
-        transform: none !important;
-        animation: none !important;
-        transition: none !important;
-        overflow: hidden !important;
-        background: #111820 !important;
-        background-color: #111820 !important;
-        box-shadow: none !important;
       }
 
       html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
@@ -400,7 +399,7 @@
       html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
         body.app-body
         :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout, .app-main) {
-        min-height: calc(var(--app-height, 100dvh) - 4.5rem) !important;
+        min-height: calc(var(--app-height, 100dvh) - 72px) !important;
         background-color: #f6f8fb !important;
       }
 
@@ -678,17 +677,8 @@
   <script>
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
-        const mobileServiceWorkerUpgrade = window.matchMedia('(max-width: 767.98px)').matches
-          && navigator.serviceWorker.controller
-          && !navigator.serviceWorker.controller.scriptURL.includes('v40-stable-mobile-shell');
-        if (mobileServiceWorkerUpgrade && !sessionStorage.getItem('crm-mobile-sw-v40-reloaded')) {
-          navigator.serviceWorker.addEventListener('controllerchange', () => {
-            sessionStorage.setItem('crm-mobile-sw-v40-reloaded', '1');
-            window.location.reload();
-          }, { once: true });
-        }
         navigator.serviceWorker
-          .register('/service-worker.js?v=v40-stable-mobile-shell', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v42-stable-mobile-paint', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -725,9 +715,9 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v606-stable-mobile-shell">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v33-stable-mobile-shell">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v14-contractor-delete-dark-red">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v608-stable-mobile-paint">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v35-stable-mobile-paint">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v17-contractor-edit-save-any-step">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and current_user.role == 'verifier' %} verifier-layout{% endif %}{% if current_user.is_authenticated and mobile_version_under_development %} mobile-dev-flag{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <div class="crm-offline-banner js-crm-offline-banner" hidden>Не удается обновить. Показана сохраненная версия.</div>
@@ -1319,6 +1309,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v618-stable-mobile-shell"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v620-stable-mobile-paint"></script>
 </body>
 </html>

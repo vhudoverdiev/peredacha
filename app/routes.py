@@ -2144,7 +2144,7 @@ def _build_site_visit_ip_summary(base_query, ip_address: str | None) -> dict | N
         if visit.project:
             projects_seen[visit.project.name] += 1
         elif not visit.project_id:
-            projects_seen["Р‘РµР· РѕР±СЉРµРєС‚Р°"] += 1
+            projects_seen["Без объекта"] += 1
         if first_seen is None:
             first_seen = visit.created_at
         last_seen = visit.created_at
@@ -3063,6 +3063,23 @@ def contractor_response_statuses():
         .all()
     )
     if request.method == "POST":
+        contractor_id = request.form.get("contractor_id", type=int)
+        status = str(request.form.get("status") or "").strip()
+        if contractor_id is not None:
+            contractor = next((item for item in contractors if item.id == contractor_id), None)
+            if contractor is None:
+                return jsonify({"ok": False, "message": "Подрядчик не найден."}), 404
+            if status not in CONTRACTOR_RESPONSE_STATUSES:
+                return jsonify({"ok": False, "message": "Выберите корректный статус подрядчика."}), 400
+            set_setting(_contractor_response_setting_key(project.id, contractor.id), status)
+            db.session.commit()
+            return jsonify({
+                "ok": True,
+                "contractor_id": contractor.id,
+                "status": status,
+                "message": "Статус подрядчика сохранён.",
+            })
+
         for contractor in contractors:
             status = str(request.form.get(f"contractor_status_{contractor.id}") or "").strip()
             if status in CONTRACTOR_RESPONSE_STATUSES:
