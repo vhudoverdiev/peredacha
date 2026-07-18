@@ -516,44 +516,73 @@ def _report_task_remark(task: Task) -> str:
     return remark
 
 
-def export_report_tasks_excel(tasks: Iterable[Task], filename_prefix: str) -> Path:
-    folder = Path(current_app.config["EXPORT_FOLDER"])
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Отчет"
-    ws.append(["Помещение", "Замечание", "Дата выполнения"])
-    for task in tasks:
-        ws.append(
-            [
-                (_excel_premise_label(task.apartment) if task.apartment else ""),
-                _report_task_remark(task),
-                task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
-            ]
-        )
-    apply_worksheet_style(ws, [18, 110, 20])
-    style_report_header_row(ws)
-    wb.save(path)
-    return path
+REPORT_STATUS_SHEETS = (
+    ("Выполненные", STATUS_DONE),
+    ("Не выполненные", None),
+    ("Отступные", STATUS_CONCESSION),
+    ("Подрядчики", STATUS_CONTRACTOR),
+    ("Гарантия", STATUS_GUARANTEE),
+    ("Чистовики", STATUS_FINISHERS),
+)
 
 
-def export_report_tasks_excel(tasks: Iterable[Task], filename_prefix: str, cache_key: str | None = None) -> Path:
+def _report_status_sheet(task: Task) -> str:
+    for sheet_name, status in REPORT_STATUS_SHEETS:
+        if status is not None and task.status == status:
+            return sheet_name
+    return "Не выполненные"
+
+
+def _report_status_label(task: Task) -> str:
+    label = str(task.status_label() or task.status or "").strip()
+    if task.status == STATUS_GUARANTEE and label and label.lower() != "гарантия":
+        return f"Гарантия: {label}"
+    return label
+
+
+def _report_task_row(task: Task) -> list[str]:
+    return [
+        (_excel_premise_label(task.apartment) if task.apartment else ""),
+        _report_task_remark(task),
+        _report_status_label(task),
+        task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
+    ]
+
+
+def export_report_tasks_excel(
+    tasks: Iterable[Task],
+    filename_prefix: str,
+    cache_key: str | None = None,
+    *,
+    split_by_status: bool = False,
+) -> Path:
     path = build_export_path(filename_prefix, cache_key=cache_key)
+    tasks = list(tasks)
 
     wb = Workbook(write_only=True)
-    ws = wb.create_sheet(title="Отчет")
-    set_column_widths(ws, [18, 110, 20])
-    _write_only_header_row(ws, ["Помещение", "Замечание", "Дата выполнения"], REPORT_HEADER_FILL)
-    for task in tasks:
-        ws.append(
-            [
-                (_excel_premise_label(task.apartment) if task.apartment else ""),
-                _report_task_remark(task),
-                task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
-            ]
-        )
+    headers = ["Помещение", "Замечание", "Статус", "Дата выполнения"]
+    if split_by_status:
+        grouped_tasks = {sheet_name: [] for sheet_name, _ in REPORT_STATUS_SHEETS}
+        for task in tasks:
+            grouped_tasks[_report_status_sheet(task)].append(task)
+        for sheet_name, _ in REPORT_STATUS_SHEETS:
+            ws = wb.create_sheet(title=sheet_name)
+            set_column_widths(ws, [18, 110, 28, 20])
+            _write_only_header_row(ws, headers, REPORT_HEADER_FILL)
+            for task in grouped_tasks[sheet_name]:
+                ws.append(_report_task_row(task))
+    else:
+        ws = wb.create_sheet(title="Отчет")
+        set_column_widths(ws, [18, 110, 20])
+        _write_only_header_row(ws, ["Помещение", "Замечание", "Дата выполнения"], REPORT_HEADER_FILL)
+        for task in tasks:
+            ws.append(
+                [
+                    (_excel_premise_label(task.apartment) if task.apartment else ""),
+                    _report_task_remark(task),
+                    task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
+                ]
+            )
     wb.save(path)
     return path
 

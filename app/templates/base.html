@@ -675,7 +675,7 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v602-mobile-conflict-cleanup">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v24-mobile-issued-empty">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v6-contractor-delete-colors">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v10-contractor-delete-hover">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and current_user.role == 'verifier' %} verifier-layout{% endif %}{% if current_user.is_authenticated and mobile_version_under_development %} mobile-dev-flag{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <div class="crm-offline-banner js-crm-offline-banner" hidden>Не удается обновить. Показана сохраненная версия.</div>
@@ -931,7 +931,7 @@
 {% elif request.endpoint in ['main.task_list', 'main.task_detail', 'main.task_new', 'main.task_recognition', 'main.remarks_excel_selection'] %}
   {% set mobile_title = 'Замечания' %}
   {% set mobile_active = 'remarks' %}
-{% elif request.endpoint in ['main.contractors_list', 'main.contractors_export', 'main.contractors_excel_selection', 'main.contractor_directory', 'main.contractor_new', 'main.contractor_edit', 'main.contractor_delete'] %}
+{% elif request.endpoint in ['main.contractors_list', 'main.contractors_export', 'main.contractors_excel_selection', 'main.contractor_directory', 'main.contractor_response_statuses', 'main.contractor_new', 'main.contractor_edit', 'main.contractor_delete'] %}
   {% set mobile_title = 'Подрядчики' %}
   {% set mobile_active = 'contractors' %}
 {% elif request.endpoint == 'main.avr' %}
@@ -1074,7 +1074,7 @@
       <a class="sidebar-link {% if remarks_active %}active{% endif %}" href="{{ url_for('main.task_list') }}">
         <i class="bi bi-card-checklist"></i><span>Замечания</span>
       </a>
-      <a class="sidebar-link {% if request.endpoint in ['main.contractors_list', 'main.contractors_export', 'main.contractors_excel_selection', 'main.contractor_directory', 'main.contractor_new', 'main.contractor_edit', 'main.contractor_delete'] %}active{% endif %}" href="{{ url_for('main.contractors_list') }}">
+      <a class="sidebar-link {% if request.endpoint in ['main.contractors_list', 'main.contractors_export', 'main.contractors_excel_selection', 'main.contractor_directory', 'main.contractor_response_statuses', 'main.contractor_new', 'main.contractor_edit', 'main.contractor_delete'] %}active{% endif %}" href="{{ url_for('main.contractors_list') }}">
         <i class="bi bi-person-gear"></i><span>Подрядчики</span>
       </a>
       <a class="sidebar-link {% if request.endpoint in ['main.apartments', 'main.apartment_detail'] %}active{% endif %}" href="{{ url_for('main.apartments') }}">
@@ -1243,6 +1243,26 @@
         <button class="btn btn-success" type="submit"><i class="bi bi-check2 me-2"></i>Добавить</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div class="modal fade guarantee-contractor-modal" id="guaranteeContractorModal" tabindex="-1" aria-hidden="true" aria-labelledby="guaranteeContractorModalTitle">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content guarantee-contractor-modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title" id="guaranteeContractorModalTitle">Выберите подрядчика</h5>
+          <p>Кто будет выполнять гарантийное замечание?</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="guarantee-contractor-options" data-guarantee-contractor-options></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+      </div>
+    </div>
   </div>
 </div>
 

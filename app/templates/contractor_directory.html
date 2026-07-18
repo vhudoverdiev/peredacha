@@ -11,6 +11,9 @@
     </div>
     <div class="contractor-directory-actions">
       {% if current_user.role in ['admin', 'manager'] %}
+      <a class="btn btn-outline-success d-none contractor-response-status-link" href="{{ url_for('main.contractor_response_statuses') }}">
+        <i class="bi bi-activity me-2"></i>Статусы подрядчиков
+      </a>
       <a class="btn btn-success remarks-page-primary-btn" href="{{ url_for('main.contractor_new') }}">
         <i class="bi bi-person-plus me-2"></i>Создать подрядчика
       </a>
@@ -25,8 +28,13 @@
     <article class="contractor-directory-card">
       <div class="contractor-directory-card-head">
         <span class="contractor-directory-icon"><i class="bi bi-person-gear"></i></span>
-        <div>
-          <h2>{{ contractor.name }}</h2>
+        <div class="contractor-directory-card-copy">
+          <div class="contractor-directory-title-row">
+            <h2>{{ contractor.name }}</h2>
+            <span class="d-none contractor-response-status-badge contractor-response-status-{{ row.response_status }}">
+              {{ 'Не реагирует' if row.response_status == 'not_responding' else 'Реагирует' }}
+            </span>
+          </div>
           <p>{{ row.apartment_count }} {{ 'помещение' if row.apartment_count == 1 else 'помещений' }}</p>
         </div>
       </div>

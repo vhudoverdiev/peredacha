@@ -11,7 +11,8 @@
     {% if current_user.role in ['admin', 'manager'] %}
     <a class="btn work-report-daily-btn" href="{{ url_for('main.assignments_report') }}"><i class="bi bi-calendar2-check me-2" aria-hidden="true"></i><span>Ежедневный отчет</span></a>
     {% endif %}
-    <a class="btn btn-success work-report-export-all-btn js-background-download-link" href="{{ url_for('main.work_report_export') }}" data-loading-text="Готовим Excel..."><i class="bi bi-file-earmark-arrow-down me-2 report-export-icon-white" aria-hidden="true"></i><span>Скачать Excel (все)</span></a>
+    <a class="btn btn-success work-report-export-all-btn work-report-export-desktop-only js-background-download-link" href="{{ url_for('main.work_report_export', all_statuses=1) }}" data-loading-text="Готовим Excel..."><i class="bi bi-file-earmark-arrow-down me-2 report-export-icon-white" aria-hidden="true"></i><span>Скачать Excel (все)</span></a>
+    <a class="btn btn-success work-report-export-all-btn work-report-export-mobile-only js-background-download-link" href="{{ url_for('main.work_report_export') }}" data-loading-text="Готовим Excel..."><i class="bi bi-file-earmark-arrow-down me-2 report-export-icon-white" aria-hidden="true"></i><span>Скачать Excel (все)</span></a>
   </div>
 </div>
 
@@ -20,7 +21,7 @@
   <details class="card content-card report-card">
     <summary>
       <span>
-        <b>Отчет по выполненным работам личной бригадой</b>
+        <b>Отчет по выполненным работам</b>
         <em>{{ bucket.start|ru_date }} - {{ bucket.end|ru_date }}</em>
       </span>
       <span class="report-summary-actions">

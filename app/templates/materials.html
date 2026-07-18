@@ -1,5 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Расход материалов{% endblock %}
+{% macro materials_pager(label, pagination, page_args) %}
+  {% if pagination and pagination.pages > 1 %}
+  <nav class="mt-3 materials-pagination" aria-label="{{ label }}">
+    <ul class="pagination justify-content-center mb-0">
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{% if pagination.has_prev %}{{ url_for('main.materials', page=pagination.prev_num, **page_args) }}{% else %}#{% endif %}">Назад</a>
+      </li>
+      <li class="page-item disabled"><span class="page-link">Стр. {{ pagination.page }} / {{ pagination.pages }}</span></li>
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{% if pagination.has_next %}{{ url_for('main.materials', page=pagination.next_num, **page_args) }}{% else %}#{% endif %}">Далее</a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
+{% endmacro %}
 {% block content %}
 <div class="page-head remarks-page-head materials-page-head">
   <div>
@@ -20,14 +35,14 @@
     <span class="materials-summary-icon"><i class="bi bi-receipt"></i></span>
     <div>
       <div class="materials-summary-label">Заявок</div>
-      <div class="materials-summary-value">{{ material_requests|length }}</div>
+      <div class="materials-summary-value">{{ material_requests_total }}</div>
     </div>
   </article>
   <article class="materials-summary-card" style="--delay: 70ms">
     <span class="materials-summary-icon"><i class="bi bi-arrow-down-circle"></i></span>
     <div>
       <div class="materials-summary-label">Списаний</div>
-      <div class="materials-summary-value">{{ writeoffs|length }}</div>
+      <div class="materials-summary-value">{{ writeoffs_total }}</div>
     </div>
   </article>
 </div>
@@ -96,6 +111,7 @@
     </div>
   </div>
 </div>
+{{ materials_pager('Страницы баланса материалов', materials_pagination, materials_page_args) }}
 
 {% elif active_tab == 'requests' %}
 {% if can_edit_materials %}
@@ -151,6 +167,7 @@
     </div>
   </div>
 </div>
+{{ materials_pager('Страницы заявок на материалы', materials_pagination, materials_page_args) }}
 
 {% elif active_tab == 'writeoff' %}
 <div class="card content-card mb-3 materials-animated-card">
@@ -259,6 +276,7 @@
     </div>
   </div>
 </form>
+{{ materials_pager('Страницы замечаний для списания', materials_pagination, materials_page_args) }}
 
 {% elif active_tab == 'history' %}
 {% if can_edit_materials %}
@@ -354,6 +372,7 @@
     </div>
   </div>
 </div>
+{{ materials_pager('Страницы истории списаний', materials_pagination, materials_page_args) }}
 
 {% elif active_tab == 'task' %}
 <div class="manual-writeoff-shell">

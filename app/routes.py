@@ -75,6 +75,7 @@ from app.models import (
     STATUS_GUARANTEE,
     STATUS_CONCESSION,
     DONE_STATUSES,
+    task_guarantee_contractor_setting_key,
 )
 from app.permissions import can_change_task, can_export, can_manage_mapping, can_manage_sync, role_required
 from app.security import client_ip, hit_rate_limit, resolve_site_visit_project_id
@@ -218,7 +219,7 @@ SECTION_LOCK_CHOICES = [
         "icon": "bi-person-gear",
         "endpoints": {
             "main.contractors_list", "main.contractors_export", "main.contractors_excel_selection",
-            "main.contractor_directory", "main.contractor_new", "main.contractor_edit", "main.contractor_delete",
+            "main.contractor_directory", "main.contractor_response_statuses", "main.contractor_new", "main.contractor_edit", "main.contractor_delete",
         },
     },
     {
@@ -2975,6 +2976,23 @@ def _project_contractor(project_id: int, contractor_id: int | None) -> Contracto
     return Contractor.query.filter_by(id=contractor_id, project_id=project_id).first()
 
 
+CONTRACTOR_RESPONSE_RESPONDS = "responds"
+CONTRACTOR_RESPONSE_NOT_RESPONDING = "not_responding"
+CONTRACTOR_RESPONSE_STATUSES = {
+    CONTRACTOR_RESPONSE_RESPONDS,
+    CONTRACTOR_RESPONSE_NOT_RESPONDING,
+}
+
+
+def _contractor_response_setting_key(project_id: int, contractor_id: int) -> str:
+    return f"contractor_response_status:{project_id}:{contractor_id}"
+
+
+def _contractor_response_status(project_id: int, contractor_id: int) -> str:
+    value = get_setting(_contractor_response_setting_key(project_id, contractor_id), CONTRACTOR_RESPONSE_RESPONDS)
+    return value if value in CONTRACTOR_RESPONSE_STATUSES else CONTRACTOR_RESPONSE_RESPONDS
+
+
 def _filter_tasks_for_contractor(query, contractor: Contractor | None):
     if contractor is None:
         return query
@@ -3016,9 +3034,47 @@ def contractor_directory():
             "contractor": contractor,
             "point_labels": point_labels,
             "apartment_count": len(apartment_groups),
+            "response_status": _contractor_response_status(project.id, contractor.id),
         })
     return render_template(
         "contractor_directory.html",
+        project=project,
+        contractor_rows=contractor_rows,
+    )
+
+
+@bp.route("/contractors/statuses", methods=["GET", "POST"])
+@login_required
+def contractor_response_statuses():
+    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+        abort(403)
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    contractors = (
+        Contractor.query
+        .filter_by(project_id=project.id)
+        .order_by(func.lower(Contractor.name).asc(), Contractor.id.asc())
+        .all()
+    )
+    if request.method == "POST":
+        for contractor in contractors:
+            status = str(request.form.get(f"contractor_status_{contractor.id}") or "").strip()
+            if status in CONTRACTOR_RESPONSE_STATUSES:
+                set_setting(_contractor_response_setting_key(project.id, contractor.id), status)
+        db.session.commit()
+        flash("Статусы подрядчиков сохранены.", "success")
+        return redirect(url_for("main.contractor_response_statuses"))
+
+    contractor_rows = [
+        {
+            "contractor": contractor,
+            "response_status": _contractor_response_status(project.id, contractor.id),
+        }
+        for contractor in contractors
+    ]
+    return render_template(
+        "contractor_response_statuses.html",
         project=project,
         contractor_rows=contractor_rows,
     )
@@ -5301,22 +5357,62 @@ def materials():
         .all()
     )
     writeoffs.sort(key=_writeoff_sort_value)
-    if active_tab == "history":
-        writeoffs = [_material_writeoff_history_view(writeoff) for writeoff in writeoffs]
     writeoff_tasks = _material_task_options(project.id, request.args) if active_tab == "writeoff" else []
     low_stock_count = sum(1 for row in balance_rows if 0 < float(row.get("balance") or 0) <= 5)
+    material_requests_total = len(material_requests)
+    writeoffs_total = len(writeoffs)
+    materials_pagination = None
+    materials_page = max(request.args.get("page", 1, type=int) or 1, 1)
+    materials_user_agent = (request.headers.get("User-Agent") or "").lower()
+    is_desktop_materials_request = not any(marker in materials_user_agent for marker in ("ipad", "tablet", "android", "mobile"))
+
+    def paginate_rows(rows):
+        total = len(rows)
+        per_page = 20
+        pages = max((total + per_page - 1) // per_page, 1)
+        page = min(materials_page, pages)
+        start = (page - 1) * per_page
+        return rows[start:start + per_page], SimpleNamespace(
+            page=page,
+            pages=pages,
+            total=total,
+            has_prev=page > 1,
+            has_next=page < pages,
+            prev_num=page - 1,
+            next_num=page + 1,
+        )
+
+    if is_desktop_materials_request and active_tab == "balance":
+        balance_rows, materials_pagination = paginate_rows(balance_rows)
+    elif is_desktop_materials_request and active_tab == "requests":
+        material_requests, materials_pagination = paginate_rows(material_requests)
+    elif is_desktop_materials_request and active_tab == "writeoff":
+        writeoff_tasks, materials_pagination = paginate_rows(writeoff_tasks)
+    elif is_desktop_materials_request and active_tab == "history":
+        writeoffs, materials_pagination = paginate_rows(writeoffs)
+        writeoffs = [_material_writeoff_history_view(writeoff) for writeoff in writeoffs]
+    elif active_tab == "history":
+        writeoffs = [_material_writeoff_history_view(writeoff) for writeoff in writeoffs]
+
+    materials_page_args = request.args.to_dict(flat=True)
+    materials_page_args["tab"] = active_tab
+    materials_page_args.pop("page", None)
     return render_template(
         "materials.html",
         project=project,
         active_tab=active_tab,
         material_requests=material_requests,
+        material_requests_total=material_requests_total,
         balance_rows=balance_rows,
         balance_options=balance_options,
         writeoffs=writeoffs,
+        writeoffs_total=writeoffs_total,
         writeoff_tasks=writeoff_tasks,
         material_writeoff_premise_text=_material_writeoff_premise_text,
         material_writeoff_remark_lines=_material_writeoff_remark_lines,
         low_stock_count=low_stock_count,
+        materials_pagination=materials_pagination,
+        materials_page_args=materials_page_args,
         can_edit_materials=_can_edit_materials(),
         args=request.args,
         today=date.today(),
@@ -5972,6 +6068,7 @@ def material_writeoff_new():
         return redirect(url_for("main.objects"))
     if not _can_edit_materials():
         abort(403)
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
     if request.method == "GET":
         redirect_args = request.args.to_dict()
         redirect_args["tab"] = "writeoff"
@@ -6002,19 +6099,25 @@ def material_writeoff_new():
         }
         if already_written_off_ids:
             db.session.rollback()
-            flash("Одно или несколько выбранных замечаний уже есть в истории списаний. Повторное списание отменено.", "warning")
+            message = "Одно или несколько выбранных замечаний уже есть в истории списаний. Повторное списание отменено."
+            if wants_json:
+                return jsonify({"ok": False, "message": message}), 409
+            flash(message, "warning")
             return redirect(url_for("main.materials", tab="writeoff"))
         try:
             rows = _read_balance_writeoff_rows(project.id)
         except ValueError as exc:
+            db.session.rollback()
+            if wants_json:
+                return jsonify({"ok": False, "message": str(exc), "field": "quantity"}), 400
             flash(str(exc), "danger")
-            rows = None
-        if not selected_tasks:
-            flash("Выберите одно или несколько замечаний", "warning")
-            db.session.rollback()
             return redirect(url_for("main.materials", tab="writeoff"))
-        elif rows is None:
+        if not selected_tasks:
             db.session.rollback()
+            message = "Выберите одно или несколько замечаний"
+            if wants_json:
+                return jsonify({"ok": False, "message": message, "field": "task_ids"}), 400
+            flash(message, "warning")
             return redirect(url_for("main.materials", tab="writeoff"))
         else:
             writeoff_date = parse_date(request.form.get("writeoff_date")) or date.today()
@@ -6044,8 +6147,12 @@ def material_writeoff_new():
                         message += f". Уже были в базе: {duplicate_count}"
                     flash(message, "warning")
                     return redirect(url_for("main.sync_conflicts"))
-                flash(f"Материал распределён между замечаниями: {len(selected_tasks)}", "success")
-                return redirect(url_for("main.materials", tab="history"))
+                message = f"Материал распределён между замечаниями: {len(selected_tasks)}"
+                redirect_url = url_for("main.materials", tab="history")
+                if wants_json:
+                    return jsonify({"ok": True, "message": message, "redirect_url": redirect_url})
+                flash(message, "success")
+                return redirect(redirect_url)
             writeoff = MaterialWriteOff(project_id=project.id, author_id=current_user.id, writeoff_date=writeoff_date, comment=None)
             writeoff.tasks = selected_tasks
             for row in rows:
@@ -6058,8 +6165,12 @@ def material_writeoff_new():
                 )
             db.session.add(writeoff)
             db.session.commit()
-            flash("Материал списан на выбранные замечания", "success")
-            return redirect(url_for("main.materials", tab="history"))
+            message = "Материал списан на выбранные замечания"
+            redirect_url = url_for("main.materials", tab="history")
+            if wants_json:
+                return jsonify({"ok": True, "message": message, "redirect_url": redirect_url})
+            flash(message, "success")
+            return redirect(redirect_url)
 
     return redirect(url_for("main.materials", tab="writeoff"))
 
@@ -8579,28 +8690,54 @@ def work_report_export():
         return redirect(url_for("main.objects"))
     today = date.today()
     week = request.args.get("week", type=int)
+    all_statuses = request.args.get("all_statuses") == "1"
     if week and week > 0:
         end = today - timedelta(days=(week - 1) * 7)
         start = end - timedelta(days=6)
         filename_prefix = f"{project.name}_отчет_{start.strftime('%d.%m.%Y')}-{end.strftime('%d.%m.%Y')}"
+    elif all_statuses:
+        start = today - timedelta(days=55)
+        end = today
+        filename_prefix = f"{project.name}_отчет_все замечания"
     else:
         start = today - timedelta(days=55)
         end = today
         filename_prefix = f"{project.name}_отчет_весь период"
-    # Держим Excel-выгрузку синхронной с экраном отчёта.
-    report_statuses = (STATUS_DONE, STATUS_CONCESSION)
-    base_query = Task.query.filter(
-        Task.project_id == project.id,
-        Task.is_done.is_(True),
-        Task.status.in_(report_statuses),
-        Task.work_point.has(WorkPoint.point_number.notin_(DOP_AGREEMENT_POINT_NUMBERS)),
-        Task.completed_date.isnot(None),
-        Task.completed_date >= start,
-        Task.completed_date <= end + timedelta(days=1),
-    )
+    if week and week > 0:
+        # Недельные ссылки остаются прежними: это история выполненных работ.
+        base_query = Task.query.filter(
+            Task.project_id == project.id,
+            Task.is_done.is_(True),
+            Task.status.in_((STATUS_DONE, STATUS_CONCESSION)),
+            Task.work_point.has(WorkPoint.point_number.notin_(DOP_AGREEMENT_POINT_NUMBERS)),
+            Task.completed_date.isnot(None),
+            Task.completed_date >= start,
+            Task.completed_date <= end + timedelta(days=1),
+        )
+        split_by_status = False
+    elif all_statuses:
+        # Общий десктопный отчёт содержит все актуальные замечания независимо от статуса.
+        base_query = Task.query.filter(
+            Task.project_id == project.id,
+            Task.is_archived.is_(False),
+            Task.work_point.has(WorkPoint.point_number.notin_(DOP_AGREEMENT_POINT_NUMBERS)),
+        )
+        split_by_status = True
+    else:
+        # Мобильная общая выгрузка остаётся без изменений.
+        base_query = Task.query.filter(
+            Task.project_id == project.id,
+            Task.is_done.is_(True),
+            Task.status.in_((STATUS_DONE, STATUS_CONCESSION)),
+            Task.work_point.has(WorkPoint.point_number.notin_(DOP_AGREEMENT_POINT_NUMBERS)),
+            Task.completed_date.isnot(None),
+            Task.completed_date >= start,
+            Task.completed_date <= end + timedelta(days=1),
+        )
+        split_by_status = False
     task_count, last_updated = base_query.with_entities(func.count(Task.id), func.max(Task.updated_at)).one()
     cache_stamp = last_updated.strftime("%Y%m%d%H%M%S") if last_updated else "empty"
-    cache_key = f"report-v3-concessions_count-{task_count}_updated-{cache_stamp}"
+    cache_key = f"report-v4-all-statuses-{int(split_by_status)}_count-{task_count}_updated-{cache_stamp}"
     path = build_export_path(filename_prefix, cache_key=cache_key)
     download_name = f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
     if path.exists():
@@ -8611,7 +8748,7 @@ def work_report_export():
         .order_by(Task.completed_date.desc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc())
         .all()
     )
-    path = export_report_tasks_excel(tasks, filename_prefix, cache_key=cache_key)
+    path = export_report_tasks_excel(tasks, filename_prefix, cache_key=cache_key, split_by_status=split_by_status)
     return send_file(path, as_attachment=True, download_name=download_name)
 
 
@@ -8926,6 +9063,37 @@ def quick_status(task_id: int, status: str):
         abort(403)
     if status not in TASK_STATUSES:
         abort(400)
+    if status == STATUS_GUARANTEE:
+        eligible_contractors = task.guarantee_contractors()
+        requested_contractor_id = request.form.get("guarantee_contractor_id", type=int)
+        selected_contractor = next(
+            (contractor for contractor in eligible_contractors if contractor.id == requested_contractor_id),
+            None,
+        )
+        requires_choice = request.form.get("require_contractor_choice") == "1"
+        if requested_contractor_id and selected_contractor is None:
+            message = "Выбранный подрядчик не отвечает за этот пункт и помещение."
+            if wants_json:
+                return jsonify({"ok": False, "message": message}), 400
+            flash(message, "warning")
+            return redirect(request.referrer or url_for("main.task_list"))
+        if len(eligible_contractors) > 1 and selected_contractor is None and requires_choice:
+            return jsonify({
+                "ok": False,
+                "requires_contractor_choice": True,
+                "message": "Выберите подрядчика для гарантии.",
+                "contractors": [
+                    {"id": contractor.id, "name": contractor.name}
+                    for contractor in eligible_contractors
+                ],
+            }), 409
+        if selected_contractor is None and len(eligible_contractors) == 1:
+            selected_contractor = eligible_contractors[0]
+        if selected_contractor is not None:
+            set_setting(
+                task_guarantee_contractor_setting_key(task.project_id, task.id),
+                str(selected_contractor.id),
+            )
     if is_problem_details_required(status, request.form.get("problem_comment") or task.comment):
         if wants_json:
             return jsonify({"ok": False, "message": "Для статуса 'Проблема' нужно заполнить описание проблемы"}), 400

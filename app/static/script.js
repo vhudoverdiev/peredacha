@@ -2103,6 +2103,43 @@ document.addEventListener('DOMContentLoaded', () => {
   syncStatusActionVisibility();
   syncApartmentLiveStats();
 
+  const chooseGuaranteeContractor = contractors => new Promise(resolve => {
+    const modalElement = document.getElementById('guaranteeContractorModal');
+    const options = modalElement?.querySelector('[data-guarantee-contractor-options]');
+    if (!modalElement || !options || !window.bootstrap?.Modal || !Array.isArray(contractors)) {
+      resolve(null);
+      return;
+    }
+
+    options.replaceChildren();
+    let selectedContractorId = null;
+    contractors.forEach(contractor => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'guarantee-contractor-option';
+      const icon = document.createElement('span');
+      icon.className = 'guarantee-contractor-option-icon';
+      icon.innerHTML = '<i class="bi bi-person-gear" aria-hidden="true"></i>';
+      const name = document.createElement('strong');
+      name.textContent = contractor.name || `Подрядчик ${contractor.id}`;
+      const arrow = document.createElement('i');
+      arrow.className = 'bi bi-chevron-right guarantee-contractor-option-arrow';
+      arrow.setAttribute('aria-hidden', 'true');
+      button.append(icon, name, arrow);
+      button.addEventListener('click', () => {
+        selectedContractorId = String(contractor.id);
+        modal.hide();
+      });
+      options.append(button);
+    });
+
+    const modal = window.bootstrap.Modal.getOrCreateInstance(modalElement);
+    modalElement.addEventListener('hidden.bs.modal', () => {
+      resolve(selectedContractorId);
+    }, { once: true });
+    modal.show();
+  });
+
   document.querySelectorAll('form[action*="/status/"]').forEach(form => {
     form.addEventListener('click', event => {
       event.stopPropagation();
@@ -2120,14 +2157,35 @@ document.addEventListener('DOMContentLoaded', () => {
       if (submitBtn) submitBtn.disabled = true;
 
       try {
+        const formData = new FormData(form);
+        const needsDesktopContractorChoice = document.documentElement.classList.contains('desktop-like-pointer')
+          && form.dataset.statusAction === 'guarantee';
+        if (needsDesktopContractorChoice) {
+          formData.set('require_contractor_choice', '1');
+        }
         const resp = await fetch(form.action, {
           method: 'POST',
           headers: {
             'X-Requested-With': 'XMLHttpRequest',
           },
-          body: new FormData(form),
+          body: formData,
         });
         const data = await resp.json().catch(() => null);
+        if (resp.status === 409 && data?.requires_contractor_choice) {
+          const contractorId = await chooseGuaranteeContractor(data.contractors || []);
+          if (contractorId) {
+            let selectedInput = form.querySelector('input[name="guarantee_contractor_id"]');
+            if (!selectedInput) {
+              selectedInput = document.createElement('input');
+              selectedInput.type = 'hidden';
+              selectedInput.name = 'guarantee_contractor_id';
+              form.append(selectedInput);
+            }
+            selectedInput.value = contractorId;
+            window.setTimeout(() => form.requestSubmit(submitBtn || undefined), 0);
+          }
+          return;
+        }
         if (!resp.ok) {
           if (!data || !data.message) {
             HTMLFormElement.prototype.submit.call(form);
@@ -2558,6 +2616,61 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.disabled = true;
       }
     });
+  });
+
+  document.querySelectorAll('.js-material-writeoff-add-row').forEach(btn => {
+    if (!document.documentElement.classList.contains('desktop-like-pointer')) return;
+    const form = btn.closest('.js-material-writeoff-edit-form');
+    const tbody = form?.querySelector('.material-edit-table tbody');
+    if (!tbody) return;
+
+    const bindMaterialUnitPreset = row => {
+      const nameInput = row.querySelector('.material-name-input');
+      if (!nameInput || nameInput.dataset.unitPresetBound === '1') return;
+      nameInput.dataset.unitPresetBound = '1';
+      nameInput.addEventListener('change', () => {
+        const unitInput = row.querySelector('.material-unit-input');
+        if (!unitInput || unitInput.value.trim()) return;
+        const key = nameInput.value.trim().toLowerCase();
+        if (presetUnits[key]) unitInput.value = presetUnits[key];
+      });
+    };
+
+    const updateButtonState = () => {
+      btn.disabled = tbody.querySelectorAll('tr:not(.material-writeoff-empty-row)').length >= 20;
+    };
+
+    btn.addEventListener('click', () => {
+      if (tbody.querySelectorAll('tr:not(.material-writeoff-empty-row)').length >= 20) {
+        updateButtonState();
+        return;
+      }
+      let row = tbody.querySelector('.material-writeoff-empty-row');
+      if (row) {
+        row.classList.remove('material-writeoff-empty-row');
+      } else {
+        const rows = tbody.querySelectorAll('tr');
+        const sourceRow = rows[rows.length - 1];
+        if (!sourceRow || rows.length >= 20) {
+          updateButtonState();
+          return;
+        }
+        row = sourceRow.cloneNode(true);
+        row.querySelectorAll('input').forEach(input => {
+          input.value = '';
+          input.classList.remove('is-invalid');
+          delete input.dataset.unitPresetBound;
+        });
+        const numberCell = row.querySelector('td:first-child');
+        if (numberCell) numberCell.textContent = String(rows.length + 1);
+        tbody.appendChild(row);
+      }
+      bindMaterialUnitPreset(row);
+      row.querySelector('.material-name-input')?.focus();
+      updateButtonState();
+    });
+
+    updateButtonState();
   });
 
   document.querySelectorAll('.js-material-request-form').forEach(form => {
@@ -3699,8 +3812,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!line || line.dataset.writeoffLineBound === '1') return;
     line.dataset.writeoffLineBound = '1';
     const select = line.querySelector('.js-writeoff-material-select');
+    const input = line.querySelector('.js-writeoff-quantity-input');
     const removeBtn = line.querySelector('.js-material-line-remove');
     select?.addEventListener('change', () => syncWriteoffQuantityForLine(line));
+    input?.addEventListener('input', () => input.classList.remove('is-invalid'));
     removeBtn?.addEventListener('click', () => {
       const container = line.closest('.js-material-lines');
       if (!container) return;
@@ -3823,6 +3938,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     selectWrap.dataset.materialLinesReady = '1';
     bindWriteoffLine(firstLine);
+    form.classList.add('is-material-lines-ready');
   });
 
   document.querySelectorAll('.js-material-manual-form').forEach(form => {
@@ -4517,6 +4633,55 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', () => {
       syncSelectionUi();
     });
+
+    if (document.documentElement.classList.contains('desktop-like-pointer')) {
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (form.dataset.writeoffSubmitting === '1') return;
+
+        syncSelectionUi();
+        const submitter = event.submitter;
+        const formData = new FormData(form);
+        if (submitter?.name) formData.set(submitter.name, submitter.value);
+        const previousHtml = submitter?.innerHTML || '';
+        form.dataset.writeoffSubmitting = '1';
+        form.querySelectorAll('button[type="submit"]').forEach(button => { button.disabled = true; });
+        if (submitter) {
+          submitter.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Сохраняю';
+        }
+
+        try {
+          const response = await fetch(form.action || window.location.href, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'Accept': 'application/json',
+            },
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || data.ok === false) {
+            const error = new Error(data.message || 'Не удалось списать материал');
+            error.field = data.field || '';
+            throw error;
+          }
+          showCrmNotice(data.message || 'Материал списан', 'success');
+          if (data.redirect_url) window.location.assign(data.redirect_url);
+        } catch (error) {
+          if (error.field === 'quantity') {
+            const quantityInput = form.querySelector('.js-writeoff-quantity-input');
+            quantityInput?.classList.add('is-invalid');
+            quantityInput?.focus({ preventScroll: true });
+          }
+          showCrmNotice(error.message || 'Не удалось списать материал', 'danger');
+        } finally {
+          delete form.dataset.writeoffSubmitting;
+          form.querySelectorAll('button[type="submit"]').forEach(button => { button.disabled = false; });
+          if (submitter) submitter.innerHTML = previousHtml;
+        }
+      });
+    }
 
     if (noPersistSelection) {
       window.addEventListener('pagehide', clearSelection, { once: true });

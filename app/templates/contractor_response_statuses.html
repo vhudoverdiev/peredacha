@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Статусы подрядчиков{% endblock %}
+{% block content %}
+<div class="d-none contractor-response-page">
+  <div class="page-head contractor-response-head">
+    <div>
+      <a class="contractor-create-back" href="{{ url_for('main.contractor_directory') }}">
+        <i class="bi bi-arrow-left"></i>Список подрядчиков
+      </a>
+      <h1 class="page-title">Статусы подрядчиков</h1>
+      <p class="page-subtitle">Укажите, реагирует ли подрядчик на переданные замечания.</p>
+    </div>
+  </div>
+
+  {% if contractor_rows %}
+  <form method="post" class="contractor-response-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="contractor-response-list">
+      {% for row in contractor_rows %}
+      {% set contractor = row.contractor %}
+      <article class="contractor-response-card">
+        <div class="contractor-response-name">
+          <span><i class="bi bi-person-gear"></i></span>
+          <strong>{{ contractor.name }}</strong>
+        </div>
+        <div class="contractor-response-options" role="radiogroup" aria-label="Статус подрядчика {{ contractor.name }}">
+          <label class="contractor-response-option contractor-response-option-positive">
+            <input class="visually-hidden" type="radio" name="contractor_status_{{ contractor.id }}" value="responds" {% if row.response_status != 'not_responding' %}checked{% endif %}>
+            <span><i class="bi bi-check-circle"></i>Реагирует</span>
+          </label>
+          <label class="contractor-response-option contractor-response-option-negative">
+            <input class="visually-hidden" type="radio" name="contractor_status_{{ contractor.id }}" value="not_responding" {% if row.response_status == 'not_responding' %}checked{% endif %}>
+            <span><i class="bi bi-x-circle"></i>Не реагирует</span>
+          </label>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    <div class="contractor-response-actions">
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.contractor_directory') }}"><i class="bi bi-arrow-left me-2"></i>Назад</a>
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Сохранить статусы</button>
+    </div>
+  </form>
+  {% else %}
+  <div class="contractor-directory-empty contractor-response-empty">
+    <span><i class="bi bi-person-plus"></i></span>
+    <h2>Подрядчиков пока нет</h2>
+    <p>Сначала создайте подрядчика, затем здесь можно будет указать его статус.</p>
+    <a class="btn btn-primary" href="{{ url_for('main.contractor_new') }}"><i class="bi bi-person-plus me-2"></i>Создать подрядчика</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

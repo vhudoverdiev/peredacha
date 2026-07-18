@@ -1,5 +1,47 @@
 /* Overrides in this file are intentionally limited to desktop layouts. */
+.work-report-export-desktop-only {
+  display: none !important;
+}
+
 @media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .work-report-export-desktop-only {
+    display: inline-flex !important;
+  }
+
+  html.desktop-like-pointer body.app-body .work-report-export-mobile-only {
+    display: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .js-material-writeoff-edit-form .material-writeoff-empty-row {
+    display: none;
+  }
+
+  html.desktop-like-pointer body.app-body .material-writeoff-add-row-wrap {
+    display: flex !important;
+    justify-content: flex-start;
+    margin: 0.85rem 0 1.15rem;
+  }
+
+  html.desktop-like-pointer body.app-body .js-material-writeoff-add-row {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .js-multi-material-form:has(.materials-writeoff-balance-card .js-writeoff-material-select):not(.is-material-lines-ready)
+    .materials-writeoff-balance-card .card-body {
+    visibility: hidden;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-writeoff-balance-card {
+    animation: none !important;
+    transform: none !important;
+    transition-delay: 0ms !important;
+    will-change: auto !important;
+  }
+
   html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active),
   html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active):hover,
   html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active):focus {
@@ -159,15 +201,11 @@
     -webkit-text-fill-color: #111827 !important;
   }
 
-  /* Use the same delete red and white content on both contractor and task details. */
-  html.desktop-like-pointer body.app-body
-    :is(.contractor-directory-delete-btn, .task-detail-delete-btn),
-  html.desktop-like-pointer body.app-body
-    :is(.contractor-directory-delete-btn, .task-detail-delete-btn):hover,
-  html.desktop-like-pointer body.app-body
-    :is(.contractor-directory-delete-btn, .task-detail-delete-btn):focus,
-  html.desktop-like-pointer body.app-body
-    :is(.contractor-directory-delete-btn, .task-detail-delete-btn):active {
+  /* Keep the task-details delete action red with white content. */
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn,
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn:hover,
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn:focus,
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn:active {
     border-color: #dc2626 !important;
     background: #dc2626 !important;
     color: #ffffff !important;
@@ -176,9 +214,308 @@
   }
 
   html.desktop-like-pointer body.app-body
-    :is(.contractor-directory-delete-btn, .task-detail-delete-btn)
+    .task-detail-delete-btn
     :is(i, .bi, .bi::before) {
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
+  }
+
+  /* Contractor directory: white delete button, red only on interaction. */
+  html.desktop-like-pointer body.app-body .contractor-directory-delete-btn,
+  html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:focus {
+    border-color: #dc2626 !important;
+    background: #ffffff !important;
+    background-image: none !important;
+    color: #dc2626 !important;
+    -webkit-text-fill-color: #dc2626 !important;
+    box-shadow: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-directory-delete-btn
+    :is(i, .bi, .bi::before),
+  html.desktop-like-pointer body.app-body
+    .contractor-directory-delete-btn:focus
+    :is(i, .bi, .bi::before) {
+    color: #dc2626 !important;
+    -webkit-text-fill-color: #dc2626 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:hover,
+  html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:active,
+  html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:focus-visible {
+    border-color: #dc2626 !important;
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(220, 38, 38, .18) !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    :is(
+      .contractor-directory-delete-btn:hover,
+      .contractor-directory-delete-btn:active,
+      .contractor-directory-delete-btn:focus-visible
+    )
+    :is(i, .bi, .bi::before) {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-status-link,
+  html.desktop-like-pointer body.app-body .contractor-response-page {
+    display: flex !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-page {
+    width: min(980px, 100%);
+    margin: 0 auto;
+    flex-direction: column;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-status-link {
+    align-items: center;
+    border-color: #78bb24 !important;
+    background: #ffffff !important;
+    color: #315f14 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-status-link:hover,
+  html.desktop-like-pointer body.app-body .contractor-response-status-link:focus {
+    background: #f3fae9 !important;
+    color: #244b0d !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-directory-card-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-directory-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-directory-title-row h2 {
+    min-width: 0;
+    margin: 0;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-status-badge {
+    display: inline-flex !important;
+    flex: 0 0 auto;
+    align-items: center;
+    min-height: 30px;
+    padding: .35rem .72rem;
+    border: 1px solid rgba(104, 170, 29, .28);
+    border-radius: 999px;
+    background: #eef8e2;
+    color: #356b14;
+    font-size: .78rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-status-not_responding {
+    border-color: rgba(220, 38, 38, .24);
+    background: #fff0f0;
+    color: #b42318;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-head {
+    margin-bottom: 1.25rem;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-head .page-subtitle {
+    margin: .4rem 0 0;
+    color: var(--crm-muted);
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-form {
+    overflow: hidden;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--crm-radius);
+    background: #ffffff;
+    box-shadow: var(--crm-shadow-soft);
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-list {
+    display: grid;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1.5rem;
+    min-height: 92px;
+    padding: 1.15rem 1.35rem;
+    border-bottom: 1px solid var(--crm-border);
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-name {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: .9rem;
+    color: var(--crm-title);
+    font-size: 1rem;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-name > span {
+    display: grid;
+    flex: 0 0 2.7rem;
+    width: 2.7rem;
+    height: 2.7rem;
+    place-items: center;
+    border-radius: .85rem;
+    background: rgba(141, 214, 44, .15);
+    color: #5f991c;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-options {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-option {
+    cursor: pointer;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-option > span {
+    display: inline-flex;
+    min-width: 145px;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    padding: .55rem .85rem;
+    border: 1px solid #d9e3d0;
+    border-radius: .8rem;
+    background: #ffffff;
+    color: #596274;
+    font-weight: 750;
+    transition: border-color .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-response-option-positive input:checked + span {
+    border-color: #78bb24;
+    background: #eef8e2;
+    color: #356b14;
+    box-shadow: 0 7px 18px rgba(120, 187, 36, .14);
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-response-option-negative input:checked + span {
+    border-color: #dc2626;
+    background: #fff0f0;
+    color: #b42318;
+    box-shadow: 0 7px 18px rgba(220, 38, 38, .12);
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.2rem 1.35rem;
+    background: #fbfdf8;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-actions .btn {
+    display: inline-flex;
+    min-width: 180px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-empty {
+    display: flex;
+    min-height: 330px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-modal-content {
+    overflow: hidden;
+    border: 1px solid var(--crm-border);
+    border-radius: 1.35rem;
+    box-shadow: 0 24px 70px rgba(31, 52, 90, .18);
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-modal .modal-header {
+    align-items: flex-start;
+    padding: 1.35rem 1.4rem 1rem;
+    border-bottom-color: var(--crm-border);
+    background: linear-gradient(135deg, #fbfef7 0%, #f2f8e9 100%);
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-modal .modal-title {
+    color: var(--crm-title);
+    font-weight: 850;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-modal .modal-header p {
+    margin: .3rem 0 0;
+    color: var(--crm-muted);
+    font-size: .9rem;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-modal .modal-body {
+    padding: 1.2rem 1.4rem;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-options {
+    display: grid;
+    gap: .65rem;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-option {
+    display: grid;
+    grid-template-columns: 2.55rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .8rem;
+    width: 100%;
+    min-height: 62px;
+    padding: .65rem .85rem;
+    border: 1px solid #dce7d2;
+    border-radius: .95rem;
+    background: #ffffff;
+    color: var(--crm-title);
+    text-align: left;
+    transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-option:hover,
+  html.desktop-like-pointer body.app-body .guarantee-contractor-option:focus {
+    border-color: #8dd62c;
+    background: #f8fdf2;
+    box-shadow: 0 8px 20px rgba(120, 187, 36, .13);
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-option-icon {
+    display: grid;
+    width: 2.55rem;
+    height: 2.55rem;
+    place-items: center;
+    border-radius: .8rem;
+    background: rgba(141, 214, 44, .15);
+    color: #5f991c;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-option-arrow {
+    color: #8a9580;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-modal .modal-footer {
+    padding: 1rem 1.4rem 1.2rem;
+    border-top-color: var(--crm-border);
+    background: #fbfdf8;
   }
 }

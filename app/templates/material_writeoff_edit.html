@@ -9,7 +9,7 @@
   <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='history') }}">Назад</a>
 </div>
 
-<form method="post" class="card content-card material-form-card">
+<form method="post" class="card content-card material-form-card js-material-writeoff-edit-form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="card-body">
     <div class="row g-3 mb-3">
@@ -41,7 +41,7 @@
         <tbody>
         {% for i in range(0, max_rows) %}
           {% set item = writeoff.items[i] if i < writeoff.items|length else None %}
-          <tr>
+          <tr{% if not item %} class="material-writeoff-empty-row"{% endif %}>
             <td class="text-muted">{{ i + 1 }}</td>
             <td><input class="form-control material-name-input" name="name[]" value="{{ item.name if item else '' }}" placeholder="Например: Ротбанд"></td>
             <td><input class="form-control" name="quantity[]" inputmode="decimal" value="{{ fmt_quantity(item.quantity) if item else '' }}" placeholder="Например: 5"></td>
@@ -50,6 +50,12 @@
         {% endfor %}
         </tbody>
       </table>
+    </div>
+
+    <div class="material-writeoff-add-row-wrap d-none">
+      <button class="btn btn-outline-primary js-material-writeoff-add-row" type="button">
+        <i class="bi bi-plus-lg me-2"></i>Добавить строку
+      </button>
     </div>
 
     <div class="material-form-footer">

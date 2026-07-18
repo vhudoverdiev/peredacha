@@ -59,6 +59,10 @@ TASK_STATUSES = {
 }
 DONE_STATUSES = {STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR, STATUS_GUARANTEE, STATUS_CONCESSION}
 
+
+def task_guarantee_contractor_setting_key(project_id: int, task_id: int) -> str:
+    return f"task_guarantee_contractor:{project_id}:{task_id}"
+
 PRIORITIES = ["low", "normal", "high", "critical"]
 
 category_workpoint = db.Table(
@@ -479,14 +483,37 @@ class Task(TimestampMixin, db.Model):
     comments = db.relationship("TaskComment", back_populates="task", cascade="all, delete-orphan", order_by="desc(TaskComment.created_at)")
     glass_measurement = db.relationship("GlassMeasurement", back_populates="task", uselist=False, cascade="all, delete-orphan")
 
+    def guarantee_contractors(self) -> list[Contractor]:
+        if not self.apartment or not self.work_point:
+            return []
+        apartment_contractor_ids = {contractor.id for contractor in self.apartment.contractors}
+        contractors = {
+            contractor.id: contractor
+            for contractor in self.work_point.contractors
+            if contractor.id in apartment_contractor_ids and contractor.name
+        }
+        return sorted(contractors.values(), key=lambda contractor: (contractor.name.lower(), contractor.id))
+
+    def selected_guarantee_contractor(self) -> Contractor | None:
+        if not self.id or not self.project_id:
+            return None
+        setting = AppSetting.query.filter_by(
+            key=task_guarantee_contractor_setting_key(self.project_id, self.id)
+        ).first()
+        try:
+            selected_id = int(setting.value) if setting and setting.value else None
+        except (TypeError, ValueError):
+            selected_id = None
+        if selected_id is None:
+            return None
+        return next((contractor for contractor in self.guarantee_contractors() if contractor.id == selected_id), None)
+
     def status_label(self) -> str:
-        if self.status == STATUS_GUARANTEE and self.apartment and self.work_point:
-            apartment_contractors = {contractor.id: contractor for contractor in self.apartment.contractors}
-            names = sorted({
-                contractor.name
-                for contractor in self.work_point.contractors
-                if contractor.id in apartment_contractors and contractor.name
-            }, key=str.lower)
+        if self.status == STATUS_GUARANTEE:
+            selected_contractor = self.selected_guarantee_contractor()
+            if selected_contractor:
+                return selected_contractor.name
+            names = [contractor.name for contractor in self.guarantee_contractors()]
             if names:
                 return ", ".join(names)
         return TASK_STATUSES.get(self.status, {}).get("label", self.status)
