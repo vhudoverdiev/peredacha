@@ -1403,7 +1403,7 @@
 
   html body.app-body.app-body.app-body:not(:has(.task-single-form))
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
-    padding-bottom: calc(4.5rem + .75rem) !important;
+    padding-bottom: calc(4.5rem + 1.5rem) !important;
   }
 
   html body.app-body.app-body.app-body:not(:has(.task-single-form)) .crm-mobile-page-shell,
@@ -1415,16 +1415,68 @@
   /* A short issued-task list still fills the canvas down to the fixed dock.
      This is intentionally limited to the empty state so normal long pages do
      not regain the large blank scrolling tail removed above. */
-  html body.app-body.app-body.app-body:has(.assignment-issued-empty):not(:has(.task-single-form)),
-  html body.app-body.app-body.app-body:has(.assignment-issued-empty):not(:has(.task-single-form))
+  html body.app-body.app-body.app-body:is(
+    :has(.assignment-issued-empty),
+    :has(.assignment-empty-row),
+    :has(.remarks-empty-row)
+  ):not(:has(.task-single-form)),
+  html body.app-body.app-body.app-body:is(
+    :has(.assignment-issued-empty),
+    :has(.assignment-empty-row),
+    :has(.remarks-empty-row)
+  ):not(:has(.task-single-form))
     :is(.app-layout, .app-main) {
     min-height: 100dvh !important;
     background: #f5f7fc !important;
   }
 
-  html body.app-body.app-body.app-body:has(.assignment-issued-empty):not(:has(.task-single-form))
+  html body.app-body.app-body.app-body:is(
+    :has(.assignment-issued-empty),
+    :has(.assignment-empty-row),
+    :has(.remarks-empty-row)
+  ):not(:has(.task-single-form))
     :is(.app-content, [data-ajax-pagination-page="assignments"]) {
     min-height: calc(100dvh - 4.5rem) !important;
     background: #f5f7fc !important;
+  }
+
+  /* Keep the mobile shell visually fixed while documents are switched. The
+     loader still spins on a cold launch, but its card/logo no longer jump. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.mobile-app-topbar, .mobile-project-topbar, .mobile-bottom-nav) {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root {
+    inset: auto 0 0 0 !important;
+    width: 100% !important;
+    height: 4.5rem !important;
+    min-height: 4.5rem !important;
+    max-height: 4.5rem !important;
+    padding-block: .28rem .18rem !important;
+    box-sizing: border-box !important;
+    contain: layout paint !important;
+    overflow: hidden !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root
+    :is(.mobile-nav-item, .mobile-menu-toggle) {
+    align-self: stretch !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    .site-page-loader :is(.site-page-loader-card, .mobile-loading-mark) {
+    animation: none !important;
+    transform: none !important;
   }
 }

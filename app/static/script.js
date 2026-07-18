@@ -72,7 +72,7 @@ const rememberInstantMobileEntryForNextNavigation = href => {
     const currentUrl = new URL(window.location.href);
     if (targetUrl.origin !== currentUrl.origin) return;
     if (`${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}` === `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`) return;
-    window.sessionStorage.removeItem(mobileEntrySkipStorageKey);
+    window.sessionStorage.setItem(mobileEntrySkipStorageKey, '1');
   } catch (error) {}
 };
 const getTouchViewportProfile = () => {
@@ -3705,6 +3705,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const isJson = (response.headers.get('content-type') || '').includes('application/json');
       if (!isJson) {
+        if (!response.ok) {
+          throw new Error(response.status === 403
+            ? 'Нет доступа к удалению задачи. Обновите страницу и войдите снова.'
+            : 'Сервер не смог удалить задачу. Попробуйте ещё раз.');
+        }
         form.dataset.assignmentNativeSubmit = '1';
         form.submit();
         return;

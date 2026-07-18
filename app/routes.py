@@ -155,10 +155,10 @@ def service_worker_reset():
       const openCrm = () => {
         if (finished) return;
         finished = true;
-        window.location.replace('/?worker=v30');
+        window.location.replace('/?worker=v33');
       };
       navigator.serviceWorker?.addEventListener('controllerchange', openCrm, { once: true });
-      navigator.serviceWorker?.register('/service-worker.js?v=v30-mobile-issued-empty-actions', { scope: '/', updateViaCache: 'none' })
+      navigator.serviceWorker?.register('/service-worker.js?v=v33-mobile-stable-shell', { scope: '/', updateViaCache: 'none' })
         .then(registration => registration.update())
         .catch(() => {})
         .finally(() => window.setTimeout(openCrm, 1200));
@@ -1982,6 +1982,8 @@ def _mobile_phone_allowed_endpoints() -> set[str]:
     if current_user.role in {ROLE_ADMIN, ROLE_MANAGER}:
         allowed.update({
             "main.assignments",
+            "main.assignment_unassign",
+            "main.assignment_delete_from_employee",
             "main.assignment_manual_task_new",
             "main.assignment_issued_employee_export",
         })
