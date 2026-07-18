@@ -343,7 +343,9 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
                 apartment.first_inspection_present = bool(first_inspection_present or scheduled_inspection)
                 apartment.reinspection_date = None
                 apartment.deadline_date = accepted_date
-                apartment.inspection_note = _inspection_schedule_marker(scheduled_inspection) or None
+                # Dates use the internal schedule marker; free-form text in the
+                # same source column is the apartment inspection comment.
+                apartment.inspection_note = _inspection_schedule_marker(scheduled_inspection) or inspection_text or None
                 apartment.is_app_mode = is_app_mode
                 remark_deadline_value = _value_at(row, mapping.get("remark_deadline_date"))
                 if remark_deadline_value is not None and str(remark_deadline_value).strip():

@@ -59,3 +59,82 @@
     box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 0.2rem rgba(220, 53, 69, 0.14) !important;
   }
 }
+
+/* Contractors: keep the complete filter toolbar on one desktop row. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .contractor-filter-form {
+    display: grid !important;
+    grid-template-columns:
+      minmax(0, 1.55fr)
+      minmax(0, 1.35fr)
+      minmax(0, .82fr)
+      minmax(0, .9fr)
+      minmax(0, 1.45fr)
+      auto !important;
+    grid-template-areas: "search contractor mode status finishing actions" !important;
+    align-items: end !important;
+    gap: .65rem !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > div:has(input[name="q"]) {
+    grid-area: search !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > div:has(select[name="contractor_id"]) {
+    grid-area: contractor !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > div:has(select[name="acceptance_status"]) {
+    grid-area: mode !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > div:has(select[name="status"]) {
+    grid-area: status !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > [class*="col-"] {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+    flex: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form :is(.form-control, .form-select, .custom-select-trigger) {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .remarks-filter-finishing-col {
+    grid-area: finishing !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form .remarks-filter-checks {
+    display: flex !important;
+    min-height: 3.05rem !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: .5rem !important;
+    white-space: nowrap !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form .remarks-filter-check {
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .contractor-filter-actions {
+    grid-area: actions !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    gap: .5rem !important;
+    white-space: nowrap !important;
+  }
+}
