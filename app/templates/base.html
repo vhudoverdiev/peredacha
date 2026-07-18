@@ -679,7 +679,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v44-mobile-role-shell-fix', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v46-mobile-loader-edge-fix', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -716,9 +716,9 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v610-mobile-role-shell-fix">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v37-mobile-role-shell-fix">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v18-partial-tabs-narrow-desktop">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v612-mobile-loader-edge-fix">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v39-mobile-loader-edge-fix">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v19-desktop-layout-polish">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and current_user.role == 'verifier' %} verifier-layout{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <div class="crm-offline-banner js-crm-offline-banner" hidden>Не удается обновить. Показана сохраненная версия.</div>
@@ -1310,6 +1310,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v622-partial-tabs-narrow-desktop"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v623-desktop-layout-polish"></script>
 </body>
 </html>

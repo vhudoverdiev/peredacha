@@ -1463,7 +1463,7 @@
     body.app-body.verifier-layout:has(.work-report-page) .app-layout {
     min-height: calc(var(--app-height, 100dvh) - 72px) !important;
     margin-top: 0 !important;
-    padding-top: 0 !important;
+    padding-top: var(--ref-mobile-topbar-height, calc(4.18rem + var(--ios-safe-top, 0px))) !important;
     box-sizing: border-box !important;
   }
 
@@ -1584,6 +1584,44 @@
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
+  }
+
+  /* The old painted containment clipped the soft logo shadow to a visible
+     translucent square. Keep the circular rings/glow, but let them paint
+     naturally and remove every rectangular layer around the mark. */
+  html.mobile-standalone-boot .mobile-standalone-boot-screen__orbit {
+    contain: layout !important;
+    overflow: visible !important;
+    border: 0 !important;
+    outline: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html.mobile-standalone-boot .mobile-standalone-boot-screen__mark,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    .app-launch-loader .mobile-loading-mark {
+    border: 0 !important;
+    outline: 0 !important;
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html.mobile-standalone-boot .mobile-standalone-boot-screen__mark::before,
+  html.mobile-standalone-boot .mobile-standalone-boot-screen__mark::after,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    .app-launch-loader .mobile-loading-mark::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    .app-launch-loader .mobile-loading-mark::after {
+    content: none !important;
+    display: none !important;
   }
 
   html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)

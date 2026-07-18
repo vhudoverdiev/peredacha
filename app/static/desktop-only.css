@@ -39,6 +39,167 @@ html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   background-clip: padding-box !important;
 }
 
+/* Contractors can use a full company name as the status. Reserve real table
+   columns for it and for all action buttons so neither cell can cover the
+   other in a narrow desktop window. */
+html.desktop-like-pointer body.app-body
+  .contractor-task-table :is(th.task-col-status, td.task-status-cell) {
+  width: 11rem !important;
+  min-width: 11rem !important;
+  max-width: 11rem !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table :is(th.task-col-actions, td.task-actions-cell) {
+  width: 13.5rem !important;
+  min-width: 13.5rem !important;
+  max-width: 13.5rem !important;
+}
+
+html.desktop-like-pointer body.app-body .contractor-task-table td.task-status-cell {
+  box-sizing: border-box !important;
+  padding-right: .7rem !important;
+  overflow: hidden !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table td.task-status-cell > .status-pill {
+  display: -webkit-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: .38rem .5rem !important;
+  overflow: hidden !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  line-height: 1.15 !important;
+  text-align: center !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table td.task-status-cell > .contractor-status-pill.has-contractor-break {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table .contractor-status-desktop {
+  display: inline-flex !important;
+  width: 100% !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: .08rem !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table .contractor-status-default {
+  display: none !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table .contractor-status-line {
+  display: block !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  text-overflow: clip !important;
+  line-height: 1.05 !important;
+  text-align: center !important;
+}
+
+html.desktop-like-pointer body.app-body .contractor-task-table td.task-actions-cell {
+  box-sizing: border-box !important;
+  padding-left: .55rem !important;
+  overflow: hidden !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table td.task-actions-cell > .actions-cell {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  justify-content: flex-end !important;
+  gap: .3rem !important;
+  overflow: hidden !important;
+}
+
+/* The first assignment tab contains its label in a span. It is text, not the
+   numeric badge used by the second tab, so it must not receive a translucent
+   pill of its own. */
+html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+  .assignment-subtab .assignment-desktop-issue-content {
+  display: inline-flex !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  gap: .45rem !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Both write-off steps enter together with exactly the same motion. */
+html.desktop-like-pointer body.app-body
+  .material-writeoff-form .materials-animated-card {
+  animation: desktopMaterialWriteoffRise .35s ease both !important;
+  animation-delay: 0ms !important;
+  transition-delay: 0ms !important;
+  will-change: transform, opacity !important;
+}
+
+@keyframes desktopMaterialWriteoffRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Replayed after an in-place Measurements tab update so All, To order and
+   Ordered use the same table entrance. */
+html.desktop-like-pointer body.app-body .glass-table-shell.crm-tab-enter {
+  animation: desktopGlassTableRise .35s ease both !important;
+}
+
+@keyframes desktopGlassTableRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Statistics keeps the same fixed upper section as Messages. The statistics
+   root used to become a stretching grid, which moved and widened the tabs. */
+html.desktop-like-pointer body.app-body
+  .developer-tools-ajax-page.developer-statistics-page {
+  display: block !important;
+  gap: 0 !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
+  .developer-tools-ajax-page > .developer-stat-shell-head {
+  margin-bottom: 1rem !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
+  .developer-tools-ajax-page > .developer-stat-top-tabs {
+  width: fit-content !important;
+  margin: 0 0 .85rem !important;
+  justify-self: start !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
+  .developer-stat-hero-card {
+  margin-bottom: .85rem !important;
+}
+
 @media (min-width: 768px) {
   html.desktop-like-pointer body.app-body .work-report-export-desktop-only {
     display: inline-flex !important;
@@ -68,14 +229,11 @@ html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   html.desktop-like-pointer body.app-body
     .js-multi-material-form:has(.materials-writeoff-balance-card .js-writeoff-material-select):not(.is-material-lines-ready)
     .materials-writeoff-balance-card .card-body {
-    visibility: hidden;
+    visibility: visible;
   }
 
   html.desktop-like-pointer body.app-body .materials-writeoff-balance-card {
-    animation: none !important;
-    transform: none !important;
     transition-delay: 0ms !important;
-    will-change: auto !important;
   }
 
   html.desktop-like-pointer body.app-body .materials-writeoff-list-column {

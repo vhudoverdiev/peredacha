@@ -4330,6 +4330,20 @@ document.addEventListener('DOMContentLoaded', () => {
   else start();
 })();
 
+// The pagination morph keeps compatible DOM nodes mounted, so a CSS entrance
+// animation on a Measurements table would otherwise not restart when the user
+// returns to the All tab. Replay one shared animation for every desktop tab.
+document.addEventListener('crm:ajax-pagination-updated', event => {
+  if (event.detail?.pageKey !== 'glass-measurements') return;
+  if (!document.documentElement.classList.contains('desktop-like-pointer')) return;
+  const shell = event.detail?.content?.querySelector?.('.glass-table-shell')
+    || document.querySelector('[data-ajax-pagination-page="glass-measurements"] .glass-table-shell');
+  if (!shell) return;
+  shell.classList.remove('crm-tab-enter');
+  void shell.offsetWidth;
+  shell.classList.add('crm-tab-enter');
+});
+
 document.addEventListener('click', event => {
   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   if (!document.documentElement.classList.contains('desktop-like-pointer')) return;

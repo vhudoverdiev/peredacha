@@ -233,7 +233,7 @@
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle task-table">
+      <table class="table table-hover align-middle task-table{% if contractor_page %} contractor-task-table{% endif %}">
         <thead>
           <tr>
             <th class="assignment-check-cell"><input class="form-check-input js-bulk-master" type="checkbox" aria-label="Выбрать все замечания"></th>
@@ -286,7 +286,17 @@
             {% endif %}
           </td>
           <td class="task-status-cell" data-label="Статус">
-            <span class="status-pill {{ status_pill_classes.get(task.status, 'status-pill-muted') }}" data-status-pill>{{ task_status_label }}</span>
+            <span class="status-pill {{ status_pill_classes.get(task.status, 'status-pill-muted') }}{% if contractor_page %} contractor-status-pill{% endif %}{% if contractor_page and '(' in task_status_label %} has-contractor-break{% endif %}" data-status-pill>
+              {% if contractor_page and '(' in task_status_label %}
+                <span class="contractor-status-desktop" hidden>
+                  <span class="contractor-status-line">{{ task_status_label.split('(', 1)[0]|trim }}</span>
+                  <span class="contractor-status-line">({{ task_status_label.split('(', 1)[1] }}</span>
+                </span>
+                <span class="contractor-status-default">{{ task_status_label }}</span>
+              {% else %}
+                {{ task_status_label }}
+              {% endif %}
+            </span>
           </td>
           <td class="task-actions-cell" data-label="Действия">
             <div class="actions-cell" data-current-status="{{ task.status }}">
