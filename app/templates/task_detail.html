@@ -106,7 +106,7 @@
         {% if can_delete_task %}
         <form method="post" action="{{ url_for('main.task_delete', task_id=task.id) }}" data-confirm="Удалить это замечание? Это действие нельзя отменить.">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn btn-outline-danger w-100" type="submit"><i class="bi bi-trash me-2"></i>Удалить</button>
+          <button class="btn btn-outline-danger w-100 task-detail-delete-btn" type="submit"><i class="bi bi-trash me-2"></i>Удалить</button>
         </form>
         {% endif %}
         {% endif %}

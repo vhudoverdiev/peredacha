@@ -13,7 +13,7 @@ from openpyxl.cell.rich_text import CellRichText, TextBlock
 from openpyxl.cell.text import InlineFont
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
-from app.models import Apartment, SyncLog, Task, STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR, STATUS_CONCESSION
+from app.models import Apartment, SyncLog, Task, STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR, STATUS_GUARANTEE, STATUS_CONCESSION
 from app.services.excel_import import inspect_remarks_workbook
 from app.services.task_service import get_setting
 
@@ -325,6 +325,32 @@ def _combined_task_lines(tasks: list[Task], include_status: bool = True, include
     return "\n".join(lines)
 
 
+def _task_completed_by_label(task: Task) -> str:
+    if task.status in {STATUS_DONE, STATUS_FINISHERS}:
+        return "Личная бригада"
+    if task.status == STATUS_CONCESSION:
+        return "Отступные"
+    if task.status == STATUS_GUARANTEE:
+        contractor_names = str(task.status_label() or "").strip()
+        if contractor_names and contractor_names.lower() != "гарантия":
+            return contractor_names
+        return "Подрядчик не указан"
+    if task.status == STATUS_CONTRACTOR:
+        return "Подрядчик"
+    return ""
+
+
+def _combined_completed_by(tasks: list[Task]) -> str:
+    labels = []
+    seen = set()
+    for task in tasks:
+        label = _task_completed_by_label(task)
+        if label and label not in seen:
+            seen.add(label)
+            labels.append(label)
+    return "\n".join(labels)
+
+
 def export_simple_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title: str = "Задачи", *, report_header: bool = False, include_point_in_remarks: bool = False) -> Path:
     tasks = list(tasks)
     path = build_export_path(filename_prefix)
@@ -382,25 +408,36 @@ def export_remark_tasks_excel(tasks: Iterable[Task], filename_prefix: str, title
     ws_open = wb.active
     ws_open.title = "Не выполненные"
     ws_done = wb.create_sheet("Выполненные")
-    headers = ["Помещение", "Отделка", "Замечания"]
+    open_headers = ["Помещение", "Отделка", "Замечания"]
+    done_headers = [*open_headers, "Кем выполнено"]
     if title:
         ws_open.append([title])
         ws_done.append([title])
-    ws_open.append(headers)
-    ws_done.append(headers)
+    ws_open.append(open_headers)
+    ws_done.append(done_headers)
 
-    for ws, grouped_tasks in ((ws_open, [task for task in tasks if not task.is_done]), (ws_done, [task for task in tasks if task.is_done])):
+    sheet_groups = (
+        (ws_open, [task for task in tasks if not task.is_done], False),
+        (ws_done, [task for task in tasks if task.is_done], True),
+    )
+    for ws, grouped_tasks, include_completed_by in sheet_groups:
         for apartment, group_tasks in _group_tasks_by_apartment(grouped_tasks):
             remark_text = _combined_task_lines(group_tasks, include_status=False, include_point=False)
-            ws.append([
+            row = [
                 _excel_premise_label(apartment) or "—",
                 _excel_finish_label(apartment),
                 remark_text,
-            ])
+            ]
+            if include_completed_by:
+                row.append(_combined_completed_by(group_tasks))
+            ws.append(row)
             _apply_remark_strike_style(ws.cell(row=ws.max_row, column=3), remark_text)
 
-    for ws in (ws_open, ws_done):
-        apply_worksheet_style(ws, [24, 24, 120])
+    for ws, headers, widths in (
+        (ws_open, open_headers, [24, 24, 120]),
+        (ws_done, done_headers, [24, 24, 100, 28]),
+    ):
+        apply_worksheet_style(ws, widths)
         if title:
             _style_remark_export_title(ws, len(headers))
     wb.save(path)

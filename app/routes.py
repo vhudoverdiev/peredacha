@@ -3346,8 +3346,8 @@ def _selected_premise_ids_from_request() -> list[int]:
 
 def _export_tasks_from_request(query_args: dict, project_id: int, category_id: int | None = None):
     export_options = (
-        selectinload(Task.apartment),
-        selectinload(Task.work_point),
+        selectinload(Task.apartment).selectinload(Apartment.contractors),
+        selectinload(Task.work_point).selectinload(WorkPoint.contractors),
         selectinload(Task.responsible),
     )
     task_ids = _selected_task_ids_from_request()
@@ -8510,7 +8510,11 @@ def apartment_remarks_export(apartment_id: int):
         apartment_ids = [apartment.id]
     tasks = (
         Task.query.join(Apartment).join(WorkPoint)
-        .options(selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.responsible))
+        .options(
+            selectinload(Task.apartment).selectinload(Apartment.contractors),
+            selectinload(Task.work_point).selectinload(WorkPoint.contractors),
+            selectinload(Task.responsible),
+        )
         .filter(
             Task.project_id == project.id,
             Task.apartment_id.in_(apartment_ids),

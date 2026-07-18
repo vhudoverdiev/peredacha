@@ -572,6 +572,8 @@ def _parse_inspection_schedule_value(value) -> date | datetime | None:
     if not text:
         return None
     for fmt in (
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%dT%H:%M",
         "%Y-%m-%d %H:%M:%S",
         "%Y-%m-%d %H:%M",
         "%d.%m.%Y %H:%M:%S",
@@ -1974,6 +1976,7 @@ def _premise_rows_from_query(query):
         Apartment.is_app_mode,
         Apartment.first_inspection_present,
         Apartment.first_inspection_date,
+        Apartment.inspection_note,
     ).all()
 
 
@@ -2029,12 +2032,18 @@ def _row_premise_type(row) -> str:
 
 
 def _has_first_inspection(rows: list) -> bool:
-    # Считаем именно первичный осмотр из таблицы передач.
-    # Непроданные квартиры в интерфейсе фиксируются как «Был» автоматически.
-    # АПП/дата подписания/комментарии не должны раздувать счетчик осмотров.
-    if any(is_apartment_unsold(row) for row in rows):
-        return True
-    return any(bool(row.first_inspection_present) or row.first_inspection_date is not None for row in rows)
+    # Единственный источник счетчика — дата и время из колонки
+    # «Запись на осмотр». Комментарии, отдельная дата первичного осмотра,
+    # непроданные помещения и будущие записи осмотром не считаются.
+    now = datetime.now()
+    for row in rows:
+        note = str(getattr(row, "inspection_note", None) or "").strip()
+        if not _is_inspection_schedule_marker(note):
+            continue
+        scheduled = _parse_inspection_schedule_value(note[len(INSPECTION_SCHEDULE_PREFIX):])
+        if isinstance(scheduled, datetime) and scheduled <= now:
+            return True
+    return False
 
 
 def _finishing_bucket(value: str | None) -> str:

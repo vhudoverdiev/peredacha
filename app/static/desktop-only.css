@@ -137,4 +137,48 @@
     gap: .5rem !important;
     white-space: nowrap !important;
   }
+
+  /* Contractor wizard: keep desktop step accents aligned with its green buttons. */
+  html.desktop-like-pointer body.app-body
+    .contractor-wizard-tab.active .contractor-wizard-tab-number {
+    border-color: var(--crm-primary-dark, #78bb24) !important;
+    background: linear-gradient(
+      180deg,
+      var(--crm-primary, #8dd62c),
+      var(--crm-primary-dark, #78bb24)
+    ) !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-choice-toolbar .btn[data-contractor-clear="apartments"],
+  html.desktop-like-pointer body.app-body
+    .contractor-choice-toolbar .btn[data-contractor-clear="apartments"]:hover,
+  html.desktop-like-pointer body.app-body
+    .contractor-choice-toolbar .btn[data-contractor-clear="apartments"]:focus {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+
+  /* Use the same delete red and white content on both contractor and task details. */
+  html.desktop-like-pointer body.app-body
+    :is(.contractor-directory-delete-btn, .task-detail-delete-btn),
+  html.desktop-like-pointer body.app-body
+    :is(.contractor-directory-delete-btn, .task-detail-delete-btn):hover,
+  html.desktop-like-pointer body.app-body
+    :is(.contractor-directory-delete-btn, .task-detail-delete-btn):focus,
+  html.desktop-like-pointer body.app-body
+    :is(.contractor-directory-delete-btn, .task-detail-delete-btn):active {
+    border-color: #dc2626 !important;
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(220, 38, 38, .18) !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    :is(.contractor-directory-delete-btn, .task-detail-delete-btn)
+    :is(i, .bi, .bi::before) {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
 }

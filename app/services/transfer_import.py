@@ -297,12 +297,12 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
                 finishing_type = normalize_finishing_type(_value_at(row, mapping.get("finishing_type")))
                 inspection_note = _value_at(row, mapping.get("inspection_note"))
                 first_inspection_value = _value_at(row, mapping.get("first_inspection_date"))
-                first_inspection_present = bool(str(first_inspection_value or "").strip())
                 inspection_text = str(inspection_note or "").strip()
                 # Принято / АПП считаем по цвету ячейки номера помещения:
                 # зелёная ячейка в колонке «№ кв» / «№ ком.» = принято.
                 accepted_date = _parse_app_date(inspection_note)
                 scheduled_inspection = _parse_inspection_schedule(inspection_note)
+                inspection_has_happened = isinstance(scheduled_inspection, datetime) and scheduled_inspection <= datetime.now()
                 is_app_mode = bool((_is_green_fill(number_cell) and not is_unsold) or accepted_date)
 
                 premise_type = "commercial" if is_commercial_sheet else "apartment"
@@ -341,7 +341,7 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
                 apartment.finishing_type = finishing_type
                 apartment.inspection_date = accepted_date or (scheduled_inspection.date() if isinstance(scheduled_inspection, datetime) else scheduled_inspection)
                 apartment.first_inspection_date = parse_date(first_inspection_value)
-                apartment.first_inspection_present = bool(first_inspection_present or scheduled_inspection)
+                apartment.first_inspection_present = inspection_has_happened
                 apartment.reinspection_date = None
                 apartment.deadline_date = accepted_date
                 # Dates use the internal schedule marker; free-form text in the
