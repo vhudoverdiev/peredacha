@@ -1018,4 +1018,155 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     border-top-color: var(--crm-border);
     background: #fbfdf8;
   }
+
+  /* Issued assignments: keep remark names readable and make employee actions
+     permanently visible instead of revealing white icons only on hover. */
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-table .assignment-task-text {
+    color: #182230 !important;
+    font-weight: 400 !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-table :is(
+      col.assignment-issued-col-actions,
+      th:nth-child(5),
+      td:nth-child(5)
+    ) {
+    width: 272px !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-table .assignment-issued-actions-cell {
+    min-width: 272px !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions {
+    gap: .5rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-change-assignee-btn,
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-remove-user-btn {
+    display: inline-flex !important;
+    width: auto !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .38rem !important;
+    padding: 0 .72rem !important;
+    border-width: 1px !important;
+    border-style: solid !important;
+    border-radius: .75rem !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    font-size: .82rem !important;
+    font-weight: 750 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    -webkit-text-fill-color: currentColor !important;
+    transition: background-color .18s ease, border-color .18s ease,
+      color .18s ease, box-shadow .18s ease, transform .18s ease !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-change-assignee-btn {
+    min-width: 104px !important;
+    border-color: #b9d995 !important;
+    background: #eef8e3 !important;
+    color: #4e811c !important;
+    box-shadow: 0 5px 14px rgba(93, 148, 31, .12) !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-remove-user-btn {
+    min-width: 92px !important;
+    border-color: #efb2ae !important;
+    background: #fff3f2 !important;
+    color: #c43d36 !important;
+    box-shadow: 0 5px 14px rgba(196, 61, 54, .09) !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-change-assignee-btn
+    :is(i, .bi, .bi::before),
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-remove-user-btn
+    :is(i, .bi, .bi::before, svg, svg *) {
+    color: currentColor !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: currentColor !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-remove-user-icon {
+    display: block !important;
+    width: 1rem !important;
+    height: 1rem !important;
+    stroke-width: 1.9 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    :is(.assignment-change-assignee-text, .assignment-remove-user-text) {
+    display: inline !important;
+    color: currentColor !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: currentColor !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-change-assignee-btn:hover,
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-change-assignee-btn:focus-visible {
+    border-color: #67ad1e !important;
+    background: #67ad1e !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 18px rgba(103, 173, 30, .22) !important;
+    transform: translateY(-1px);
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-remove-user-btn:hover,
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-remove-user-btn:focus-visible {
+    border-color: #d7473f !important;
+    background: #d7473f !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 18px rgba(215, 71, 63, .2) !important;
+    transform: translateY(-1px);
+  }
+
+  /* The backdrop is attached to <body>; keep the reparented assignee dialog
+     one layer above it and explicitly interactive. */
+  html.desktop-like-pointer body.app-body:has(#assignmentChangeAssigneeModal.show)
+    > .modal-backdrop {
+    z-index: 20020 !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    > #assignmentChangeAssigneeModal {
+    z-index: 20030 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    > #assignmentChangeAssigneeModal
+    :is(
+      .modal-dialog,
+      .modal-content,
+      button,
+      label,
+      input,
+      .assignment-change-assignee-option
+    ) {
+    pointer-events: auto !important;
+  }
 }

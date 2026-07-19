@@ -22,7 +22,7 @@
   <meta name="msapplication-TileColor" content="{% if current_user.is_authenticated %}#111820{% else %}#f9fbf5{% endif %}">
   <meta name="msapplication-tap-highlight" content="no">
   <link rel="preload" href="{{ url_for('static', filename='brand-logo.png') }}" as="image" fetchpriority="high">
-  <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap/fonts/bootstrap-icons.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap/fonts/bootstrap-icons.woff2') }}?dd67030699838ea613ee6dbda90effa6" as="font" type="font/woff2" crossorigin>
   <script>
     window.__CRM_OFFLINE_MESSAGE__ = 'Не удается обновить. Показана сохраненная версия.';
   </script>
@@ -152,9 +152,10 @@
       );
       if (shouldUseStableStandaloneAppHeight) {
         const layoutViewportHeight = Math.round(window.innerHeight || document.documentElement.clientHeight || DESKTOP_REFERENCE_HEIGHT);
-        const visualViewportHeight = Math.round(window.visualViewport?.height || 0);
-        const deviceScreenHeight = Math.round(window.screen?.height || window.screen?.availHeight || 0);
-        const stableAppHeight = Math.max(layoutViewportHeight, visualViewportHeight, deviceScreenHeight);
+        // The full screen height is larger than the CSS viewport in an
+        // installed iOS PWA. Using it here created an artificial strip below
+        // the fixed dock and changed the page geometry after CSS initialised.
+        const stableAppHeight = layoutViewportHeight;
         if (stableAppHeight > 0) {
           document.documentElement.style.setProperty('--app-height', `${stableAppHeight}px`);
         }
@@ -397,7 +398,7 @@
          The dock stays fixed; the light page background reaches its top. */
       html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
         body.app-body {
-        min-height: var(--app-height, 100dvh) !important;
+        min-height: 100dvh !important;
         background: #111820 !important;
         background-color: #111820 !important;
       }
@@ -405,7 +406,7 @@
       html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
         body.app-body
         :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
-        min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+        min-height: calc(100dvh - 72px) !important;
         background-color: #f6f8fb !important;
       }
 
@@ -692,7 +693,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v64-mobile-nav-stable-transition', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v67-mobile-pwa-icon-stability', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -730,8 +731,8 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v623-mobile-nav-no-transient-state">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v54-mobile-po-gap-transition-stability">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v28-forced-table-heading-alignment">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v56-mobile-pwa-fixed-dock-po">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v29-issued-assignee-actions">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and current_user.role == 'verifier' %} verifier-layout{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <div class="crm-offline-banner js-crm-offline-banner" hidden>Не удается обновить. Показана сохраненная версия.</div>
@@ -1323,6 +1324,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v628-mobile-nav-no-intermediate-state"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v629-mobile-pwa-viewport-stability"></script>
 </body>
 </html>

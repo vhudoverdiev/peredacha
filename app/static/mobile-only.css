@@ -5,8 +5,10 @@
     display: inline-flex !important;
     visibility: visible !important;
     opacity: 1 !important;
-    /* Keep the PO button close to the dock: the former .5rem gap reduced exactly fourfold. */
-    bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .125rem) !important;
+    /* The legacy body overrides --ref-mobile-nav-height with 5.45rem, so use
+       the dock's real fixed height here: 72px + a precise 4px visual gap. */
+    top: auto !important;
+    bottom: 76px !important;
   }
 
   /* One mobile action system for remark edit/split controls across every page. */
@@ -1372,7 +1374,7 @@
   }
 
   html body.app-body.app-body.app-body {
-    min-height: var(--app-height, 100dvh) !important;
+    min-height: 100dvh !important;
     height: auto !important;
     padding-bottom: 0 !important;
     background: #111820 !important;
@@ -1381,7 +1383,7 @@
 
   html body.app-body.app-body.app-body:not(:has(.mobile-short-page-marker))
     :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
-    min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+    min-height: calc(100dvh - 72px) !important;
     height: auto !important;
     max-height: none !important;
     background-color: #f6f8fb !important;
@@ -1389,7 +1391,7 @@
 
   html body.app-body.app-body.app-body:not(:has(.mobile-short-page-marker))
     .app-main {
-    min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+    min-height: calc(100dvh - 72px) !important;
     height: auto !important;
     max-height: none !important;
     padding-bottom: 0 !important;
@@ -1423,7 +1425,7 @@
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.mobile-worker-project-topbar):not(:has(.mobile-short-page-marker))
     .app-layout.worker-layout {
-    min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+    min-height: calc(100dvh - 72px) !important;
     height: auto !important;
     max-height: none !important;
     box-sizing: border-box !important;
@@ -1444,7 +1446,7 @@
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body .documents-standalone-layout.settings-standalone-layout {
-    min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+    min-height: calc(100dvh - 72px) !important;
     height: auto !important;
     max-height: none !important;
     box-sizing: border-box !important;
@@ -1464,7 +1466,7 @@
      height on app-layout once more, producing the thick white strip. */
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body.verifier-layout:has(.work-report-page) .app-layout {
-    min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+    min-height: calc(100dvh - 72px) !important;
     margin-top: 0 !important;
     padding-top: var(--ref-mobile-topbar-height, calc(4.18rem + var(--ios-safe-top, 0px))) !important;
     box-sizing: border-box !important;
@@ -1666,18 +1668,17 @@
   }
 }
 
-/* Short standalone pages use the physical application canvas, not iOS's
-   temporarily shortened dynamic viewport. This is the same canvas that a
-   naturally scrollable Main page reaches, so the 72px dock stays at the
-   physical bottom instead of leaving a second dark strip beneath it. */
+/* Empty and regular mobile pages use the same viewport geometry. Switching
+   the dock from fixed to absolute after the external stylesheet loaded caused
+   the visible jump and the extra dark strip in installed iOS PWAs. */
 @media (max-width: 767.98px) {
   body.app-body:has(.mobile-short-page-marker) {
     --mobile-empty-dock-height: 72px;
     --mobile-empty-content-gap: .75rem;
     box-sizing: border-box !important;
     width: 100% !important;
-    min-height: var(--app-height, 100dvh) !important;
-    height: var(--app-height, 100dvh) !important;
+    min-height: 100dvh !important;
+    height: auto !important;
     max-height: none !important;
     padding-bottom: 0 !important;
     overflow-x: hidden !important;
@@ -1697,26 +1698,12 @@
     > :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
     box-sizing: border-box !important;
     width: 100% !important;
-    min-height: calc(var(--app-height, 100dvh) - var(--mobile-empty-dock-height)) !important;
+    min-height: calc(100dvh - var(--mobile-empty-dock-height)) !important;
     height: auto !important;
     max-height: none !important;
     overflow: visible !important;
     background: #f6f8fb !important;
     background-color: #f6f8fb !important;
-  }
-
-  /* On an installed iPhone app fixed positioning uses the temporarily reduced
-     dynamic viewport on these short pages. Anchor only their dock to the
-     stable body canvas; long/scrolling pages keep the normal fixed dock. */
-  html.standalone-app
-    body.app-body.app-body.app-body:has(.mobile-short-page-marker)
-    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
-    position: absolute !important;
-    top: calc(var(--app-height, 100dvh) - var(--mobile-empty-dock-height)) !important;
-    right: 0 !important;
-    bottom: auto !important;
-    left: 0 !important;
-    inset: calc(var(--app-height, 100dvh) - var(--mobile-empty-dock-height)) 0 auto 0 !important;
   }
 
   body.app-body:has(.mobile-short-page-marker) .app-main {

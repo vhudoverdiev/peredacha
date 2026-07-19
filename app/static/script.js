@@ -377,8 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const layoutViewportHeight = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
     const visualViewportHeight = Math.round(window.visualViewport?.height || 0);
     if (shouldUseStableStandaloneAppHeight()) {
-      const deviceScreenHeight = Math.round(window.screen?.height || window.screen?.availHeight || 0);
-      return Math.max(layoutViewportHeight, visualViewportHeight, deviceScreenHeight);
+      return layoutViewportHeight || visualViewportHeight;
     }
     return Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0);
   };
@@ -3494,6 +3493,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const changeAssigneeModal = document.getElementById('assignmentChangeAssigneeModal');
   if (changeAssigneeModal) {
+    // Bootstrap appends its backdrop directly to <body>. Keep the modal there
+    // as well so page-entry stacking contexts cannot place the backdrop above
+    // the dialog and intercept every click.
+    if (changeAssigneeModal.parentElement !== document.body) {
+      document.body.append(changeAssigneeModal);
+    }
+
     changeAssigneeModal.addEventListener('show.bs.modal', event => {
       const button = event.relatedTarget?.closest?.('.js-assignment-change-assignee-open') || event.relatedTarget;
       const taskId = button?.dataset?.taskId || '';

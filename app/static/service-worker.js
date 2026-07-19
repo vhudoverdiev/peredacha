@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v64-mobile-nav-stable-transition';
+const STATIC_CACHE = 'peredacha-static-v67-mobile-pwa-icon-stability';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -10,12 +10,12 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.min.css?v=5.3.3',
   '/static/vendor/bootstrap/bootstrap-icons.min.css?v=1.11.3',
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
-  '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
-  '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
+  '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
+  '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v623-mobile-nav-no-transient-state',
-  '/static/mobile-only.css?v=v54-mobile-po-gap-transition-stability',
+  '/static/mobile-only.css?v=v56-mobile-pwa-fixed-dock-po',
   '/static/desktop-only.css?v=v24-compact-status-actions',
-  '/static/script.js?v=v628-mobile-nav-no-intermediate-state',
+  '/static/script.js?v=v629-mobile-pwa-viewport-stability',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>
@@ -220,6 +220,11 @@ self.addEventListener('fetch', event => {
 
   if (!url.pathname.startsWith('/static/')) return;
 
+  if (url.pathname.startsWith('/static/vendor/bootstrap/fonts/')) {
+    event.respondWith(staticCacheFirst(request));
+    return;
+  }
+
   event.respondWith(staticNetworkFirst(request));
 });
 
@@ -251,4 +256,14 @@ async function staticNetworkFirst(request) {
     if (cached) return cached;
     throw error;
   }
+}
+
+async function staticCacheFirst(request) {
+  const cache = await caches.open(STATIC_CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  const response = await fetch(request);
+  if (response && response.ok) await cache.put(request, response.clone());
+  return response;
 }

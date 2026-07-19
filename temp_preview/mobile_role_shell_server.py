@@ -7,7 +7,7 @@ from flask import request, session
 from flask_login import current_user, login_user, logout_user
 
 from app import create_app, db, login_manager
-from app.models import Project, ROLE_HANDYMAN, ROLE_VERIFIER, User
+from app.models import Project, ROLE_ADMIN, ROLE_HANDYMAN, ROLE_VERIFIER, User
 from config import Config
 
 
@@ -34,6 +34,7 @@ with app.app_context():
         db.session.add(project)
         db.session.flush()
     for username, full_name, role in (
+        ("preview-admin", "Администратор", ROLE_ADMIN),
         ("preview-handyman", "Ширяев Степан", ROLE_HANDYMAN),
         ("preview-verifier", "Сверщик", ROLE_VERIFIER),
     ):
@@ -53,7 +54,7 @@ with app.app_context():
 @app.before_request
 def preview_login():
     requested_role = request.args.get("preview_role")
-    if requested_role in {ROLE_HANDYMAN, ROLE_VERIFIER}:
+    if requested_role in {ROLE_ADMIN, ROLE_HANDYMAN, ROLE_VERIFIER}:
         session["preview_role"] = requested_role
         if current_user.is_authenticated and current_user.role != requested_role:
             logout_user()
