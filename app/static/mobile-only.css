@@ -1379,7 +1379,7 @@
     background-color: #111820 !important;
   }
 
-  html body.app-body.app-body.app-body
+  html body.app-body.app-body.app-body:not(:has(.mobile-short-page-marker))
     :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
     min-height: calc(100dvh - 72px) !important;
     height: auto !important;
@@ -1387,7 +1387,7 @@
     background-color: #f6f8fb !important;
   }
 
-  html body.app-body.app-body.app-body
+  html body.app-body.app-body.app-body:not(:has(.mobile-short-page-marker))
     .app-main {
     min-height: calc(100dvh - 72px) !important;
     height: auto !important;
@@ -1396,7 +1396,7 @@
     background-color: #f6f8fb !important;
   }
 
-  html body.app-body.app-body.app-body
+  html body.app-body.app-body.app-body:not(:has(.mobile-short-page-marker))
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
     min-height: 0 !important;
     height: auto !important;
@@ -1404,7 +1404,7 @@
     flex: 0 0 auto !important;
   }
 
-  html body.app-body.app-body.app-body [data-ajax-pagination-page] {
+  html body.app-body.app-body.app-body:not(:has(.mobile-short-page-marker)) [data-ajax-pagination-page] {
     min-height: 0 !important;
     height: auto !important;
     max-height: none !important;
@@ -1412,7 +1412,7 @@
     padding-bottom: 0 !important;
   }
 
-  html body.app-body.app-body.app-body
+  html body.app-body.app-body.app-body:not(:has(.mobile-short-page-marker))
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
     padding-bottom: calc(72px + .75rem) !important;
   }
@@ -1549,8 +1549,11 @@
     will-change: auto !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root {
+  /* The dock is a viewport component, so its geometry must not depend on
+     JavaScript device classes.  Those classes can be added a frame later in
+     an installed iOS web app and previously left the legacy tall dock visible
+     on empty pages.  The media query is the only mobile boundary we need. */
+  body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root {
     position: fixed !important;
     top: auto !important;
     right: 0 !important;
@@ -1633,13 +1636,18 @@
     pointer-events: none !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root
+  body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root
     :is(.mobile-nav-item, .mobile-menu-toggle) {
+    display: grid !important;
     align-self: stretch !important;
     height: 100% !important;
     min-height: 0 !important;
     max-height: 100% !important;
+    align-content: center !important;
+    justify-items: center !important;
+    gap: .12rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
     box-sizing: border-box !important;
   }
 
@@ -1650,85 +1658,80 @@
   }
 }
 
-/* iPhone PWA short-page contract.
-   Empty Remarks, Issued Tasks, the Add form and empty worker task lists use
-   one light canvas that ends exactly at the top edge of the 72px dock. The
-   content remains naturally sized; the canvas, rather than the dock, fills the
-   free viewport area. */
+/* v44: short mobile pages now use the same natural document geometry as the
+   working empty Measurements page.  The previous contract fixed body/layout
+   heights from a JavaScript viewport variable and restyled the dock a second
+   time.  On iOS standalone that produced a dark strip and could turn an empty
+   message into a narrow column.  Only the light content canvas is stretched;
+   the global 72px dock above remains the single owner of navigation geometry. */
 @media (max-width: 767.98px) {
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.mobile-short-page-marker) {
+  body.app-body:has(.mobile-short-page-marker) {
     --mobile-empty-dock-height: 72px;
     --mobile-empty-content-gap: .75rem;
     box-sizing: border-box !important;
     width: 100% !important;
-    min-height: var(--app-height, 100dvh) !important;
-    height: var(--app-height, 100dvh) !important;
-    max-height: var(--app-height, 100dvh) !important;
-    overflow: hidden !important;
-    background: #111820 !important;
-    background-color: #111820 !important;
+    min-height: 100dvh !important;
+    height: auto !important;
+    max-height: none !important;
+    padding-bottom: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.mobile-short-page-marker)::before,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.mobile-short-page-marker)::after {
+  body.app-body:has(.mobile-short-page-marker)::before,
+  body.app-body:has(.mobile-short-page-marker)::after {
     content: none !important;
     display: none !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.mobile-short-page-marker)
+  body.app-body:has(.mobile-short-page-marker)
     > :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
     box-sizing: border-box !important;
     width: 100% !important;
-    min-height: calc(var(--app-height, 100dvh) - var(--mobile-empty-dock-height)) !important;
-    height: calc(var(--app-height, 100dvh) - var(--mobile-empty-dock-height)) !important;
-    max-height: calc(var(--app-height, 100dvh) - var(--mobile-empty-dock-height)) !important;
-    overflow: hidden !important;
+    min-height: calc(100dvh - var(--mobile-empty-dock-height)) !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
     background: #f6f8fb !important;
     background-color: #f6f8fb !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.mobile-short-page-marker)
-    .app-main {
+  body.app-body:has(.mobile-short-page-marker) .app-main {
     box-sizing: border-box !important;
     display: flex !important;
-    min-height: 0 !important;
-    height: 100% !important;
-    max-height: 100% !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
-    background: #f6f8fb !important;
-    background-color: #f6f8fb !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.mobile-short-page-marker)
-    .app-content {
-    box-sizing: border-box !important;
     min-height: 0 !important;
     height: auto !important;
     max-height: none !important;
     flex: 1 1 auto !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    overscroll-behavior-y: contain !important;
+    flex-direction: column !important;
+    overflow: visible !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  body.app-body:has(.mobile-short-page-marker) .app-content {
+    box-sizing: border-box !important;
+    display: flex !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    overflow: visible !important;
     padding-bottom: var(--mobile-empty-content-gap) !important;
     scroll-padding-bottom: var(--mobile-empty-content-gap) !important;
     background: #f6f8fb !important;
     background-color: #f6f8fb !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.mobile-short-page-marker)
-    .crm-mobile-page-shell {
+  body.app-body:has(.mobile-short-page-marker) .crm-mobile-page-shell {
     box-sizing: border-box !important;
     display: flex !important;
     width: 100% !important;
-    min-height: 100% !important;
+    min-height: 0 !important;
+    flex: 1 0 auto !important;
     flex-direction: column !important;
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
@@ -1736,25 +1739,23 @@
     background-color: #f6f8fb !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body .remarks-empty-table-shell {
+  body.app-body .remarks-empty-table-shell {
     display: none !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body .remarks-mobile-empty-page {
+  body.app-body .remarks-mobile-empty-page,
+  body.app-body [data-ajax-pagination-page="assignments"]:has(.assignment-issued-layout-empty) {
     box-sizing: border-box !important;
     display: flex !important;
     width: 100% !important;
-    min-height: 100% !important;
+    min-height: 0 !important;
     flex: 1 0 auto !important;
     flex-direction: column !important;
     margin: 0 !important;
     padding: 0 !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body .remarks-mobile-empty-page .remarks-export-scope {
+  body.app-body .remarks-mobile-empty-page .remarks-export-scope {
     box-sizing: border-box !important;
     display: flex !important;
     width: 100% !important;
@@ -1765,8 +1766,7 @@
     padding: 0 !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body .remarks-mobile-empty-panel {
+  body.app-body .remarks-mobile-empty-panel {
     box-sizing: border-box !important;
     display: flex !important;
     width: 100% !important;
@@ -1776,35 +1776,32 @@
     align-items: center !important;
     justify-content: center !important;
     margin: 0 !important;
-    padding: 1rem 1.15rem !important;
+    padding: 1rem .8rem !important;
     border: 1px solid rgba(207, 221, 195, .96) !important;
     border-radius: 1.15rem !important;
     background:
       radial-gradient(circle at 84% 10%, rgba(141, 214, 44, .09), transparent 32%),
       rgba(255, 255, 255, .96) !important;
     color: #172033 !important;
-    font-size: clamp(.94rem, 4vw, 1.03rem) !important;
+    font-size: clamp(.84rem, 3.5vw, 1.03rem) !important;
     font-weight: 760 !important;
     line-height: 1.28 !important;
     text-align: center !important;
-    overflow-wrap: anywhere !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
     box-shadow: 0 14px 30px rgba(31, 45, 61, .06) !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body [data-ajax-pagination-page="assignments"]:has(.assignment-issued-layout-empty) {
-    box-sizing: border-box !important;
-    display: flex !important;
-    width: 100% !important;
-    min-height: 100% !important;
-    flex: 1 0 auto !important;
-    flex-direction: column !important;
-    margin: 0 !important;
-    padding: 0 !important;
+  body.app-body .remarks-mobile-empty-panel > span {
+    display: block !important;
+    width: auto !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body .assignment-issued-layout-empty {
+  body.app-body .assignment-issued-layout-empty,
+  body.app-body .assignment-issued-layout-empty > .assignment-issued-empty {
     box-sizing: border-box !important;
     display: flex !important;
     width: 100% !important;
@@ -1815,78 +1812,80 @@
     padding: 0 !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body .assignment-issued-layout-empty > .assignment-issued-empty {
-    box-sizing: border-box !important;
+  body.app-body .assignment-issued-layout-empty > .assignment-issued-empty > .card-body {
     display: flex !important;
-    width: 100% !important;
     min-height: 12rem !important;
-    flex: 0 0 auto !important;
-    margin: 0 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body .assignment-issued-layout-empty > .assignment-issued-empty > .card-body {
-    display: flex !important;
-    min-height: 100% !important;
     flex: 1 0 auto !important;
     align-items: center !important;
     justify-content: center !important;
     flex-direction: column !important;
   }
 
-  /* This is deliberately repeated inside the empty-page contract.  Several
-     older role/page rules also style the dock; this final selector owns its
-     geometry for the two empty screens and prevents a safe-area strip from
-     being painted as extra panel height. */
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.mobile-short-page-marker)
-    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
+  /* A no-results table row must occupy the complete mobile card.  Legacy
+     mobile table columns otherwise leave only one narrow cell, which rendered
+     “Задач по этому поиску нет” vertically. */
+  body.app-body:has(.assignments-page-head)
+    .assignment-contractor-table:has(.assignment-empty-row) {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: auto !important;
+  }
+
+  body.app-body:has(.assignments-page-head)
+    .assignment-contractor-table:has(.assignment-empty-row) tbody {
     box-sizing: border-box !important;
-    width: 100vw !important;
-    min-width: 100vw !important;
-    max-width: 100vw !important;
-    height: var(--mobile-empty-dock-height) !important;
-    min-height: var(--mobile-empty-dock-height) !important;
-    max-height: var(--mobile-empty-dock-height) !important;
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: .82rem !important;
+  }
+
+  body.app-body:has(.assignments-page-head)
+    .assignment-contractor-table tbody > .assignment-empty-row,
+  body.app-body:has(.assignments-page-head)
+    .assignment-contractor-table tbody > .assignment-empty-row > .assignment-empty-cell {
+    box-sizing: border-box !important;
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.app-body:has(.assignments-page-head)
+    .assignment-contractor-table tbody > .assignment-empty-row {
+    gap: 0 !important;
     margin: 0 !important;
-    padding: 4px 5px 3px !important;
-    border: 0 !important;
-    border-radius: 30px 30px 0 0 !important;
-    background: #111820 !important;
-    background-color: #111820 !important;
-    box-shadow: none !important;
-    overflow: hidden !important;
-    transform: none !important;
-    translate: none !important;
-    scale: none !important;
+    padding: 0 !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.mobile-short-page-marker)
-    > nav.mobile-bottom-nav.mobile-bottom-nav-root::before,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.mobile-short-page-marker)
-    > nav.mobile-bottom-nav.mobile-bottom-nav-root::after {
-    content: none !important;
-    display: none !important;
+  body.app-body:has(.assignments-page-head)
+    .assignment-contractor-table tbody > .assignment-empty-row > .assignment-empty-cell {
+    grid-column: 1 / -1 !important;
+    padding: 0 !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.mobile-short-page-marker)
-    > nav.mobile-bottom-nav.mobile-bottom-nav-root
-    :is(.mobile-nav-item, .mobile-menu-toggle) {
-    align-self: stretch !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    max-height: 100% !important;
+  body.app-body:has(.assignments-page-head)
+    .assignment-empty-state {
     box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 3.5rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .8rem .65rem !important;
+    font-size: clamp(.78rem, 3.35vw, .96rem) !important;
+    line-height: 1.2 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.remarks-mobile-empty-panel) [data-ajax-pagination-summary] .search-result-summary {
+  body.app-body:has(.remarks-mobile-empty-panel) [data-ajax-pagination-summary] .search-result-summary {
     box-sizing: border-box !important;
     display: flex !important;
     width: 100% !important;

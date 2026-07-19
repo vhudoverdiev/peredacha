@@ -40734,9 +40734,9 @@ html.desktop-like-pointer body.app-body:has(.apartments-page) .floating-error-co
     padding-top: 0 !important;
   }
 
-  html.mobile-viewport body.app-body .app-content,
-  html.mobile-viewport body.app-body .objects-content,
-  html.mobile-viewport body.app-body .documents-content {
+  html.mobile-viewport body.app-body:not(:has(.mobile-short-page-marker)) .app-content,
+  html.mobile-viewport body.app-body:not(:has(.mobile-short-page-marker)) .objects-content,
+  html.mobile-viewport body.app-body:not(:has(.mobile-short-page-marker)) .documents-content {
     padding-right: .92rem !important;
     padding-left: .92rem !important;
     padding-bottom: calc(var(--ref-mobile-nav-height) + 1.1rem) !important;
@@ -54512,7 +54512,7 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
    again left a large empty strip at the end of task and apartment pages. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:not(:has(.task-single-form))
+    body.app-body:not(:has(.task-single-form)):not(:has(.mobile-short-page-marker))
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
     padding-bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .62rem) !important;
   }
