@@ -3491,14 +3491,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!rowsLeft) card.remove();
   };
 
-  const changeAssigneeModal = document.getElementById('assignmentChangeAssigneeModal');
-  if (changeAssigneeModal) {
+  const initAssignmentChangeAssigneeModal = () => {
+    const changeAssigneeModal = document.getElementById('assignmentChangeAssigneeModal');
+    if (!changeAssigneeModal) return null;
+
     // Bootstrap appends its backdrop directly to <body>. Keep the modal there
     // as well so page-entry stacking contexts cannot place the backdrop above
     // the dialog and intercept every click.
     if (changeAssigneeModal.parentElement !== document.body) {
       document.body.append(changeAssigneeModal);
     }
+
+    if (changeAssigneeModal.dataset.assignmentChangeAssigneeReady === '1') {
+      return changeAssigneeModal;
+    }
+    changeAssigneeModal.dataset.assignmentChangeAssigneeReady = '1';
 
     changeAssigneeModal.addEventListener('show.bs.modal', event => {
       const button = event.relatedTarget?.closest?.('.js-assignment-change-assignee-open') || event.relatedTarget;
@@ -3529,17 +3536,22 @@ document.addEventListener('DOMContentLoaded', () => {
         first?.focus();
       }, 120);
     });
-  }
 
-  document.querySelectorAll('.assignment-change-assignee-list input[name="new_responsible_id"]').forEach(input => {
-    input.addEventListener('change', () => {
+    changeAssigneeModal.addEventListener('change', event => {
+      const input = event.target.closest?.('input[name="new_responsible_id"]');
+      if (!input || !changeAssigneeModal.contains(input)) return;
       const list = input.closest('.assignment-change-assignee-list');
       list?.querySelectorAll('.assignment-change-assignee-option').forEach(option => {
         const optionInput = option.querySelector('input[name="new_responsible_id"]');
         option.classList.toggle('is-picked', Boolean(optionInput?.checked));
       });
     });
-  });
+
+    return changeAssigneeModal;
+  };
+
+  window.crmInitAssignmentChangeAssigneeModal = initAssignmentChangeAssigneeModal;
+  initAssignmentChangeAssigneeModal();
 
   const pad2 = value => String(value).padStart(2, '0');
   const toIsoDate = date => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
@@ -3776,9 +3788,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const row = form.closest('.assignment-issued-row');
       if (row) refreshIssuedCountsAfterRemoval(row, data);
-      if (typeof window.crmRefreshIssuedAssignments === 'function') {
-        await window.crmRefreshIssuedAssignments();
-      }
       showCrmNotice(data.message || 'Задача удалена у сотрудника', 'success');
     } catch (error) {
       showCrmNotice(error.message || 'Не удалось удалить задачу у сотрудника', 'danger');
@@ -4396,12 +4405,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const nextTabs = nextRoot?.querySelector('.assignment-subtabs');
       if (!nextRoot || !nextStart || !nextEnd || !nextTabs) throw new Error('assignment partial region missing');
 
+      const mountedAssigneeModal = document.querySelector('body > #assignmentChangeAssigneeModal');
+      if (mountedAssigneeModal) {
+        window.bootstrap?.Modal?.getInstance?.(mountedAssigneeModal)?.dispose();
+        mountedAssigneeModal.remove();
+      }
+
       nodesBetween(currentStart, currentEnd).forEach(node => node.remove());
       nodesBetween(nextStart, nextEnd).forEach(node => {
         currentEnd.before(document.importNode(node, true));
       });
       currentTabs.replaceChildren(...Array.from(nextTabs.childNodes, node => document.importNode(node, true)));
       root.dataset.assignmentView = nextRoot.dataset.assignmentView || assignmentViewForUrl(targetUrl);
+      window.crmInitAssignmentChangeAssigneeModal?.();
 
       if (pushHistory) window.history.pushState({ assignmentTabs: true }, '', targetUrl);
       document.title = sourceDocument.title || document.title;

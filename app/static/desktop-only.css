@@ -1232,7 +1232,23 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
       var(--peredacha-action-green) 0%,
       var(--peredacha-action-green-hover) 100%
     ) !important;
+    color: #ffffff !important;
     box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    > #assignmentChangeAssigneeModal
+    .assignment-change-assignee-icon
+    :is(i, .bi, .bi::before),
+  html.desktop-like-pointer body.app-body
+    > #assignmentChangeAssigneeModal
+    .assignment-change-assignee-icon
+    :is(i, .bi)::before {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
   }
 
   html.desktop-like-pointer body.app-body

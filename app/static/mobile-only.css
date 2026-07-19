@@ -1763,6 +1763,14 @@
     padding-top: 0 !important;
   }
 
+  /* The populated worker task feed uses the same fixed project bar as its
+     empty state. Do not reserve the bar height on worker-layout a second
+     time: that legacy padding pushed the employee/day card far down. */
+  html body.app-body.app-body:has(.worker-page-minimal)
+    > .app-layout.worker-layout {
+    padding-top: 0 !important;
+  }
+
   html body.app-body.app-body:has(.worker-page-empty) .worker-page-empty {
     align-self: stretch !important;
     margin: 0 auto auto !important;

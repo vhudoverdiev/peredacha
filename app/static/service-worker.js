@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v67-mobile-pwa-icon-stability';
+const STATIC_CACHE = 'peredacha-static-v68-mobile-pwa-unified-dock';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,9 +13,9 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v623-mobile-nav-no-transient-state',
-  '/static/mobile-only.css?v=v56-mobile-pwa-fixed-dock-po',
-  '/static/desktop-only.css?v=v24-compact-status-actions',
-  '/static/script.js?v=v629-mobile-pwa-viewport-stability',
+  '/static/mobile-only.css?v=v57-mobile-pwa-unified-dock-worker-gap',
+  '/static/desktop-only.css?v=v34-issued-modal-icon-match-save',
+  '/static/script.js?v=v630-issued-assignee-modal-layer',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>

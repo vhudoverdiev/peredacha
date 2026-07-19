@@ -1455,37 +1455,15 @@ def upsert_task_from_cell(
     task.source_hash = task.source_hash or new_hash
     task.is_missing_in_latest_sync = False
     task.last_seen_at = sync_time
-    # Главное правило: status/is_done/completed_date не сбрасываем при обновлении из таблицы,
-    # кроме автоматического правила по чистовой отделке и пунктам 11-14.
+    # Новая таблица может автоматически назначить статус только замечанию,
+    # которое в CRM всё ещё находится в статусе «Не выполнено». Уже выставленные
+    # статусы являются приоритетными и импортом не перезаписываются.
     auto_status = detect_status_marker(remark_text)
     if source_cell_is_struck and auto_status is None:
         auto_status = STATUS_DONE
     if should_auto_finishers(apartment, work_point):
         auto_status = STATUS_FINISHERS
-    should_apply_auto_status = bool(
-        auto_status
-        and (
-            auto_status != STATUS_DONE
-            or not _task_has_manual_non_done_status_override(task)
-        )
-        and (
-            not task.manually_edited
-            or task.status == STATUS_NOT_STARTED
-            or task.status in DONE_STATUSES
-            or should_auto_finishers(apartment, work_point)
-            or auto_status == STATUS_DONE
-        )
-    )
-    if auto_status == STATUS_DONE and _task_has_manual_non_done_status_override(task):
-        _queue_task_status_sync_conflict(
-            task,
-            new_status=auto_status,
-            sheet_name=sheet_name,
-            row_index=row_index,
-            column_index=column_index,
-            cell_address=source_cell_address,
-        )
-    elif should_apply_auto_status:
+    if auto_status and task.status == STATUS_NOT_STARTED:
         old_status = task.status
         task.status = auto_status
         task.is_done = auto_status in DONE_STATUSES
