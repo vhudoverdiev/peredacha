@@ -26,7 +26,7 @@
     {% if active_tab == 'requests' and can_edit_materials %}
       <a class="btn btn-primary material-pick-style-btn" href="{{ url_for('main.material_request_new') }}"><i class="bi bi-plus-lg me-2"></i>Добавить заявку</a>
     {% elif active_tab == 'history' %}
-      <a class="btn btn-outline-success download-excel-btn" href="{{ url_for('main.material_expense_export') }}"><i class="bi bi-file-earmark-excel me-2"></i><span>Скачать Excel</span></a>
+      <a class="btn btn-outline-success download-excel-btn materials-history-export-page-head" href="{{ url_for('main.material_expense_export') }}"><i class="bi bi-file-earmark-excel me-2"></i><span>Скачать Excel</span></a>
     {% endif %}
   </div>
 </div>
@@ -292,13 +292,16 @@
 {% endif %}
 <div class="materials-list-page-region" data-ajax-pagination-content data-ajax-items-selector=".js-bulk-row">
 <div class="card table-shell task-table-shell materials-animated-card js-bulk-selectable" data-bulk-label-one="списание" data-bulk-label-few="списания" data-bulk-label-many="списаний">
-  {% if can_edit_materials %}
   <div class="card-header material-bulk-header">
     <div>
       <b>История списаний</b>
       <div class="text-muted small"></div>
     </div>
+    <a class="btn btn-success btn-sm download-excel-btn materials-history-inline-export" href="{{ url_for('main.material_expense_export') }}">
+      <i class="bi bi-file-earmark-excel me-2"></i><span>Скачать Excel</span>
+    </a>
   </div>
+  {% if can_edit_materials %}
   <div class="bulk-actions-panel js-bulk-panel d-none">
     <div class="bulk-actions-count">Выбрано: <b class="js-bulk-count">0</b> <span class="js-bulk-label">списаний</span></div>
     <button class="btn btn-outline-secondary btn-sm js-check-all" type="button" data-target=".material-writeoff-check">Выбрать все</button>

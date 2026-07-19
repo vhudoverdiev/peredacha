@@ -10,7 +10,6 @@ from app import db
 from app.models import (
     AppSetting,
     Apartment,
-    ChangeLog,
     Project,
     SyncConflict,
     Task,
@@ -772,74 +771,6 @@ def _pending_text_sync_conflict(task_id: int) -> SyncConflict | None:
         .order_by(SyncConflict.id.desc())
         .first()
     )
-
-
-def _pending_status_sync_conflict(task_id: int) -> SyncConflict | None:
-    return (
-        SyncConflict.query.filter_by(
-            task_id=task_id,
-            status="pending",
-            target_type="task",
-            field_name="status",
-        )
-        .order_by(SyncConflict.id.desc())
-        .first()
-    )
-
-
-def _task_has_manual_non_done_status_override(task: Task | None) -> bool:
-    if task is None or task.status in DONE_STATUSES:
-        return False
-    return (
-        ChangeLog.query.filter_by(
-            task_id=task.id,
-            action="status_change",
-            field_name="status",
-        )
-        .filter(ChangeLog.user_id.isnot(None))
-        .first()
-        is not None
-    )
-
-
-def _queue_task_status_sync_conflict(
-    task: Task,
-    *,
-    new_status: str,
-    sheet_name: str,
-    row_index: int,
-    column_index: int,
-    cell_address: str,
-) -> None:
-    old_status = str(task.status or "")
-    existing = _pending_status_sync_conflict(task.id)
-    if existing is None:
-        db.session.add(
-            SyncConflict(
-                task_id=task.id,
-                target_type="task",
-                field_name="status",
-                field_label="РЎС‚Р°С‚СѓСЃ",
-                source_type="excel",
-                sheet_name=sheet_name,
-                row_index=row_index,
-                column_index=column_index,
-                cell_address=cell_address,
-                old_value=old_status,
-                new_value=new_status,
-                old_hash=cell_hash(old_status),
-                new_hash=cell_hash(new_status),
-            )
-        )
-        return
-    existing.old_value = old_status
-    existing.new_value = new_status
-    existing.old_hash = cell_hash(old_status)
-    existing.new_hash = cell_hash(new_status)
-    existing.sheet_name = sheet_name
-    existing.row_index = row_index
-    existing.column_index = column_index
-    existing.cell_address = cell_address
 
 
 def is_non_white_finishing(finishing_type: str | None) -> bool:

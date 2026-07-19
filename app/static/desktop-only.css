@@ -3,6 +3,10 @@
   display: none !important;
 }
 
+.materials-history-inline-export {
+  display: none !important;
+}
+
 /* Narrow desktop windows keep only the lower paginator and must not let a
    long contractor/status label intrude into the action controls. */
 html.desktop-like-pointer body.app-body :is(.page-pagination-top, .glass-ordered-pagination-top) {
@@ -345,6 +349,19 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
 }
 
 @media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .materials-history-export-page-head {
+    display: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-history-inline-export {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.4rem;
+    border-radius: .75rem;
+    font-weight: 700 !important;
+  }
+
   html.desktop-like-pointer body.app-body .work-report-export-desktop-only {
     display: inline-flex !important;
   }
