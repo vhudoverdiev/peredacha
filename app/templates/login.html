@@ -5,7 +5,7 @@
   <div class="card login-card shadow-sm">
     <div class="login-card-glow" aria-hidden="true"></div>
     <div class="card-body p-4">
-      <form method="post" action="{{ url_for('auth.login') }}" class="login-form">
+      <form method="post" action="{{ url_for('auth.login') }}" class="login-form js-login-fresh-csrf" data-csrf-refresh-url="{{ url_for('auth.csrf_token_refresh') }}">
         {{ form.hidden_tag() }}
         {% set login_next = request.args.get('next') or (request.path if request.path in ['/', '/object'] else '') %}
         {% if login_next %}

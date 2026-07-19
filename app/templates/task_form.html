@@ -46,7 +46,7 @@
 {% endif %}
 
 {% if current_mode == 'manual' and current_kind == 'single' %}
-<form method="post" class="card content-card task-manual-form compact-task-form task-single-form">
+<form method="post" class="card content-card task-manual-form compact-task-form task-single-form mobile-fill-card">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="add_mode" value="manual">
   <input type="hidden" name="manual_kind" value="single">

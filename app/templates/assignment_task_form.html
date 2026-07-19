@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Добавить ручную задачу{% endblock %}
 {% block content %}
-<div class="page-head remarks-page-head">
+<div class="page-head remarks-page-head assignment-add-page mobile-short-page-marker mobile-form-fill-page">
   <div>
     <h1 class="page-title">Добавить ручную задачу</h1>
   </div>
   <a class="btn btn-outline-secondary" href="{{ url_for('main.assignments') }}">Назад</a>
 </div>
 
-<form method="post" class="card content-card task-manual-form">
+<form method="post" class="card content-card task-manual-form assignment-manual-task-form mobile-fill-card">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="card-body">
     <div class="row g-3">

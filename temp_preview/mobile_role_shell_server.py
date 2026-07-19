@@ -77,7 +77,7 @@ def preview_mobile_profile(response):
     marker = """<script>
 (() => {
   const forcePreviewMobileProfile = () => {
-    const mobileClasses = ['mobile-viewport', 'touch-app-device', 'real-phone-device'];
+    const mobileClasses = ['mobile-viewport', 'touch-app-device', 'real-phone-device', 'standalone-app'];
     document.documentElement.classList.remove('desktop-like-pointer');
     document.documentElement.classList.add(...mobileClasses);
     document.body?.classList.remove('desktop-like-pointer');

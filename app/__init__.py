@@ -1,10 +1,11 @@
 import time
 
-from flask import Flask, abort, g, request, session
+from flask import Flask, abort, g, redirect, request, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user, logout_user
 from flask_wtf import CSRFProtect
+from flask_wtf.csrf import CSRFError
 from flask_compress import Compress
 from config import Config
 from sqlalchemy import inspect, text
@@ -111,10 +112,25 @@ def create_app(config_class=Config):
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         if request.endpoint == "static" or request.path.startswith("/static/"):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-        elif current_user.is_authenticated:
-            response.headers.setdefault("Cache-Control", "private, no-store")
+        elif current_user.is_authenticated or response.mimetype == "text/html" or request.blueprint == "auth":
+            # An installed iOS PWA can restore an old login document from its
+            # page cache after the session cookie has changed.  Never cache
+            # dynamic HTML or authentication responses with an embedded CSRF
+            # token.
+            response.headers["Cache-Control"] = "private, no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
         record_site_visit(response)
         return response
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(error):
+        # Do not leave the PWA on Flask's raw 400 page when WebKit restored a
+        # stale login form.  A fresh GET creates a matching session/token pair.
+        if request.endpoint == "auth.login" or request.path == "/login":
+            session.pop("csrf_token", None)
+            return redirect(url_for("auth.login"), code=303)
+        return error.get_response()
 
     @app.template_filter("msk_datetime")
     def msk_datetime(value, fmt=None):

@@ -1308,13 +1308,13 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
   }
 
   html.desktop-like-pointer.avr-modal-open body.app-body
-    #avrDataModal {
+    > #avrDataModal {
     z-index: 20030 !important;
     pointer-events: auto !important;
   }
 
   html.desktop-like-pointer.avr-modal-open body.app-body
-    #avrDataModal .modal-dialog {
+    > #avrDataModal .modal-dialog {
     width: min(1180px, calc(100vw - 3rem)) !important;
     max-width: min(1180px, calc(100vw - 3rem)) !important;
     height: min(720px, calc(100vh - 3rem)) !important;
@@ -1324,7 +1324,7 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
   }
 
   html.desktop-like-pointer.avr-modal-open body.app-body
-    #avrDataModal .modal-content {
+    > #avrDataModal .modal-content {
     width: 100% !important;
     height: 100% !important;
     min-height: 0 !important;
@@ -1332,12 +1332,12 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
   }
 
   html.desktop-like-pointer.avr-modal-open body.app-body
-    #avrDataModal :is(.modal-body, .modal-header, .modal-footer, button, input, select, textarea, label) {
+    > #avrDataModal :is(.modal-body, .modal-header, .modal-footer, button, input, select, textarea, label) {
     pointer-events: auto !important;
   }
 
   html.desktop-like-pointer.avr-modal-open body.app-body
-    #avrDataModal .modal-body {
+    > #avrDataModal .modal-body {
     min-height: 0 !important;
     overflow-y: auto !important;
   }

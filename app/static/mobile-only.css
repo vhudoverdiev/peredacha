@@ -1947,4 +1947,99 @@
     overflow-wrap: anywhere !important;
     box-shadow: 0 12px 26px rgba(31, 45, 61, .06) !important;
   }
+
+  /* Mobile short-page geometry. The dock is already an exact fixed 72px.
+     Fill the content canvas instead of changing the dock height: this keeps
+     only a small, stable gap between the final control and the dock. */
+  html body.app-body.app-body:has(.mobile-form-fill-page) .app-content,
+  html body.app-body.app-body:has(.task-single-form) .app-content {
+    padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
+    scroll-padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
+  }
+
+  html body.app-body.app-body:has(.mobile-form-fill-page) .crm-mobile-page-shell,
+  html body.app-body.app-body:has(.task-single-form) .crm-mobile-page-shell {
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    padding-bottom: 0 !important;
+  }
+
+  html body.app-body.app-body .mobile-fill-card {
+    box-sizing: border-box !important;
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    margin-bottom: 0 !important;
+  }
+
+  html body.app-body.app-body .mobile-fill-card > .card-body {
+    box-sizing: border-box !important;
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+  }
+
+  html body.app-body.app-body .mobile-fill-card .material-form-footer {
+    margin-top: auto !important;
+    padding-top: .9rem !important;
+  }
+
+  /* The empty worker feed keeps its heading at the top. Only the empty-state
+     card expands, so its lower edge reaches the same 12px content gap used by
+     the engineer pages. */
+  html body.app-body.app-body:has(.worker-page-empty) .worker-page-empty {
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+  }
+
+  html body.app-body.app-body:has(.worker-page-empty) .worker-task-list-minimal {
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+  }
+
+  html body.app-body.app-body:has(.worker-page-empty) .worker-empty-card {
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-direction: column !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Worker Account uses the settings shell, but must consume exactly the same
+     canvas above the shared dock as Tasks. */
+  html body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
+    .documents-content,
+  html body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
+    .crm-mobile-page-shell {
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+  }
+
+  html body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
+    .account-page {
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* The add-assignment selects inherit desktop emphasis from the custom-select
+     component. Keep labels bold, but selected values and options regular. */
+  html body.app-body.app-body .assignment-manual-task-form
+    :is(select, option, .form-select, .developer-select-button,
+        .developer-select-value, .developer-select-option) {
+    font-weight: 400 !important;
+  }
 }

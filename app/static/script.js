@@ -271,6 +271,43 @@ window.addEventListener('load', () => {
   syncDesktopViewportLock({ force: true });
 }, { once: true });
 
+// iOS standalone can restore the login document while creating a new cookie
+// session. Refresh the CSRF value immediately before the first submit so the
+// token and the active session always belong together.
+document.addEventListener('submit', async event => {
+  const form = event.target.closest?.('.js-login-fresh-csrf');
+  if (!form || form.dataset.csrfReady === '1') return;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  const submitter = event.submitter || form.querySelector('[type="submit"]');
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+
+  if (submitter) submitter.disabled = true;
+  try {
+    const response = await fetch(form.dataset.csrfRefreshUrl || '/csrf-token', {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.csrf_token) throw new Error('csrf-refresh-failed');
+    const field = form.querySelector('input[name="csrf_token"]');
+    if (!field) throw new Error('csrf-field-missing');
+    field.value = data.csrf_token;
+    form.dataset.csrfReady = '1';
+    if (submitter) submitter.disabled = false;
+    form.requestSubmit(submitter || undefined);
+  } catch (error) {
+    if (submitter) submitter.disabled = false;
+    window.location.replace(form.action || '/login');
+  }
+}, true);
+
 document.addEventListener('DOMContentLoaded', () => {
   const mobileProjectToggle = document.querySelector('[data-mobile-project-toggle]');
   const mobileProjectPanel = document.querySelector('[data-mobile-project-panel]');
@@ -6433,6 +6470,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const select = form.querySelector('[data-avr-apartment]');
   const modalElement = form.querySelector('[data-avr-modal]');
   const openModalButton = form.querySelector('[data-avr-open-modal]');
+  const desktopAvrModal = document.documentElement.classList.contains('desktop-like-pointer');
+  const associateModalControls = () => {
+    if (!desktopAvrModal || !modalElement) return;
+    if (!form.id) form.id = 'avrForm';
+    modalElement.querySelectorAll('input, select, textarea, button[type="submit"]').forEach(control => {
+      control.setAttribute('form', form.id);
+    });
+  };
+
+  // A modal left inside the animated page surface is trapped in that surface's
+  // stacking context, while Bootstrap places its backdrop directly under body.
+  // Put both layers at the same root so the dialog always receives pointer events.
+  if (modalElement && desktopAvrModal) {
+    associateModalControls();
+    if (modalElement.parentElement !== document.body) {
+      document.body.append(modalElement);
+    }
+  }
   const modal = modalElement && window.bootstrap ? bootstrap.Modal.getOrCreateInstance(modalElement) : null;
   modalElement?.addEventListener('show.bs.modal', () => {
     if (document.documentElement.classList.contains('desktop-like-pointer')) {
@@ -6450,14 +6505,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const fields = {
-    number: form.querySelector('[data-avr-number]'),
-    floor: form.querySelector('[data-avr-floor]'),
-    floorField: form.querySelector('[data-avr-floor-field]'),
-    owner: form.querySelector('[data-avr-owner]'),
-    address: form.querySelector('[data-avr-address]'),
+    number: modalElement?.querySelector('[data-avr-number]'),
+    floor: modalElement?.querySelector('[data-avr-floor]'),
+    floorField: modalElement?.querySelector('[data-avr-floor-field]'),
+    owner: modalElement?.querySelector('[data-avr-owner]'),
+    address: modalElement?.querySelector('[data-avr-address]'),
     inspectionDate: form.querySelector('[data-avr-inspection-date]'),
     premiseType: form.querySelector('[data-avr-premise-type]'),
-    phrase: form.querySelector('[data-avr-phrase]')
+    phrase: modalElement?.querySelector('[data-avr-phrase]')
   };
 
   const formatRuDate = value => {
@@ -6491,6 +6546,7 @@ document.addEventListener('DOMContentLoaded', () => {
       label.appendChild(text);
       fields.owner.appendChild(label);
     });
+    associateModalControls();
   };
 
   const applyApartment = () => {
@@ -6516,6 +6572,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const openApartmentModal = () => {
     const selected = applyApartment();
     if (selected && modal) {
+      associateModalControls();
       modal.show();
     }
   };

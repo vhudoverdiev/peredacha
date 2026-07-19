@@ -1,7 +1,8 @@
 from urllib.parse import urlparse
 
-from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
+from flask_wtf.csrf import generate_csrf
 
 from app import db
 from app.forms import LoginCaptchaForm, LoginForm, LoginTwoFactorForm
@@ -100,6 +101,16 @@ def _redirect_after_login(user: User, next_url: str | None = None):
             return redirect(url_for("main.objects"))
         return redirect(url_for("main.work_report"))
     return redirect(url_for("main.dashboard"))
+
+
+@bp.get("/csrf-token")
+def csrf_token_refresh():
+    """Return a token tied to the current PWA session, never a cached page token."""
+    response = jsonify({"csrf_token": generate_csrf()})
+    response.headers["Cache-Control"] = "private, no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @bp.route("/login", methods=["GET", "POST"])
