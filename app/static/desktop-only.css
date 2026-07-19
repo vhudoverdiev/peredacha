@@ -1104,11 +1104,28 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
   }
 
   html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-change-assignee-btn
+    :is(i, .bi, .bi::before) {
+    color: #4e811c !important;
+    -webkit-text-fill-color: #4e811c !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    .assignment-change-assignee-btn
+    :is(i, .bi)::before {
+    color: #4e811c !important;
+    -webkit-text-fill-color: #4e811c !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
     .assignment-issued-actions .assignment-remove-user-icon {
     display: block !important;
-    width: 1rem !important;
-    height: 1rem !important;
-    stroke-width: 1.9 !important;
+    width: 1.22rem !important;
+    height: 1.22rem !important;
+    color: #c43d36 !important;
+    stroke: #c43d36 !important;
+    stroke-width: 2.35 !important;
     stroke-linecap: round !important;
     stroke-linejoin: round !important;
   }
@@ -1134,6 +1151,22 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
   }
 
   html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    .assignment-change-assignee-btn:is(:hover, :focus-visible)
+    :is(i, .bi, .bi::before) {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    .assignment-change-assignee-btn:is(:hover, :focus-visible)
+    :is(i, .bi)::before {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
     .assignment-issued-actions .assignment-remove-user-btn:hover,
   html.desktop-like-pointer body.app-body:has(.assignments-page-head)
     .assignment-issued-actions .assignment-remove-user-btn:focus-visible {
@@ -1142,6 +1175,14 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     color: #ffffff !important;
     box-shadow: 0 8px 18px rgba(215, 71, 63, .2) !important;
     transform: translateY(-1px);
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    .assignment-remove-user-btn:is(:hover, :focus-visible)
+    .assignment-remove-user-icon {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
   }
 
   /* The backdrop is attached to <body>; keep the reparented assignee dialog
@@ -1155,6 +1196,17 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     > #assignmentChangeAssigneeModal {
     z-index: 20030 !important;
     pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    > #assignmentChangeAssigneeModal
+    .assignment-change-assignee-icon {
+    background: linear-gradient(
+      180deg,
+      var(--peredacha-action-green) 0%,
+      var(--peredacha-action-green-hover) 100%
+    ) !important;
+    box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
   }
 
   html.desktop-like-pointer body.app-body
