@@ -256,6 +256,7 @@
         {% for task in tasks %}
         {% set task_status_label = task.status_label() %}
         {% set is_returnable_status = task.status in ['done', 'finishers', 'contractor', 'guarantee', 'concession'] %}
+        {% set has_contractor_status = '(' in task_status_label and ')' in task_status_label %}
         {% if is_dop %}
           {% if task.status == 'done' %}{% set task_status_label = 'Занесен' %}{% elif task.status == 'not_started' %}{% set task_status_label = 'Не занесен' %}{% endif %}
         {% endif %}
@@ -292,8 +293,8 @@
             {% endif %}
           </td>
           <td class="task-status-cell" data-label="Статус">
-            <span class="status-pill {{ status_pill_classes.get(task.status, 'status-pill-muted') }}{% if contractor_page %} contractor-status-pill{% endif %}{% if contractor_page and '(' in task_status_label %} has-contractor-break{% endif %}" data-status-pill>
-              {% if contractor_page and '(' in task_status_label %}
+            <span class="status-pill {{ status_pill_classes.get(task.status, 'status-pill-muted') }}{% if has_contractor_status %} contractor-status-pill has-contractor-break{% endif %}" data-status-pill>
+              {% if has_contractor_status %}
                 <span class="contractor-status-desktop" hidden>
                   <span class="contractor-status-line">{{ task_status_label.split('(', 1)[0]|trim }}</span>
                   <span class="contractor-status-line">({{ task_status_label.split('(', 1)[1] }}</span>

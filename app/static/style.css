@@ -49700,7 +49700,7 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     line-height: 1.12 !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-layout,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-layout:not(.assignment-issued-layout-empty),
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-cards {
     display: grid !important;
     gap: .82rem !important;
@@ -51621,7 +51621,7 @@ body.app-body:has(.remarks-page-head)
     box-shadow: 0 16px 30px rgba(214, 79, 67, .2) !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-layout,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-issued-layout:not(.assignment-issued-layout-empty),
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-cards {
     display: grid !important;
     gap: .92rem !important;
@@ -52817,7 +52817,7 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
    animates on the compositor; the original dock size is preserved. */
 @media (max-width: 767.98px) {
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:not(:has(.remarks-empty-row))
+    body.app-body:not(:has(.remarks-empty-row)):not(:has(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
   html.standalone-app body.app-body
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {

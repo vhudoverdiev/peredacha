@@ -780,7 +780,8 @@
 
   /* One clean mobile system for issued-day, employee and task cards. */
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.assignment-issued-filters) .assignment-issued-layout {
+    body.app-body:has(.assignment-issued-filters)
+    .assignment-issued-layout:not(.assignment-issued-layout-empty) {
     display: grid !important;
     gap: 1rem !important;
   }
@@ -1647,15 +1648,31 @@
   }
 }
 
-/* Empty Remarks and Issued Tasks are independent mobile canvases. The old
-   table-row empty states were affected by several legacy card/table rules and
-   could leave the dark body visible below the dock. These pages now own one
-   scroll surface that ends exactly above the fixed navigation. */
+/* iPhone PWA empty-page contract.
+   Empty Remarks and Issued Tasks use one light canvas that ends exactly at
+   the top edge of the 72px dock.  The empty cards stay content-sized; only the
+   page canvas grows, so the dock can never look taller when there are no rows. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty)) {
-    --mobile-empty-dock-gap: .75rem;
+    --mobile-empty-dock-height: 72px;
+    --mobile-empty-content-gap: .75rem;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-height: 100dvh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
     overflow: hidden !important;
+    background: #111820 !important;
+    background-color: #111820 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))::after {
+    content: none !important;
+    display: none !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
@@ -1663,9 +1680,9 @@
     > :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
     box-sizing: border-box !important;
     width: 100% !important;
-    min-height: calc(100dvh - 72px) !important;
-    height: calc(100dvh - 72px) !important;
-    max-height: calc(100dvh - 72px) !important;
+    min-height: calc(100dvh - var(--mobile-empty-dock-height)) !important;
+    height: calc(100dvh - var(--mobile-empty-dock-height)) !important;
+    max-height: calc(100dvh - var(--mobile-empty-dock-height)) !important;
     overflow: hidden !important;
     background: #f6f8fb !important;
     background-color: #f6f8fb !important;
@@ -1696,7 +1713,8 @@
     overflow-x: hidden !important;
     overflow-y: auto !important;
     overscroll-behavior-y: contain !important;
-    padding-bottom: var(--mobile-empty-dock-gap) !important;
+    padding-bottom: var(--mobile-empty-content-gap) !important;
+    scroll-padding-bottom: var(--mobile-empty-content-gap) !important;
     background: #f6f8fb !important;
     background-color: #f6f8fb !important;
   }
@@ -1737,8 +1755,8 @@
     box-sizing: border-box !important;
     display: flex !important;
     width: 100% !important;
-    min-height: 5.6rem !important;
-    flex: 1 0 auto !important;
+    min-height: 0 !important;
+    flex: 0 0 auto !important;
     flex-direction: column !important;
     margin: .7rem 0 0 !important;
     padding: 0 !important;
@@ -1750,8 +1768,8 @@
     display: flex !important;
     width: 100% !important;
     min-width: 0 !important;
-    min-height: 5.6rem !important;
-    flex: 1 0 auto !important;
+    min-height: 4.5rem !important;
+    flex: 0 0 auto !important;
     align-items: center !important;
     justify-content: center !important;
     margin: 0 !important;
@@ -1788,7 +1806,7 @@
     display: flex !important;
     width: 100% !important;
     min-height: 12rem !important;
-    flex: 1 0 auto !important;
+    flex: 0 0 auto !important;
     flex-direction: column !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -1800,7 +1818,7 @@
     display: flex !important;
     width: 100% !important;
     min-height: 12rem !important;
-    flex: 1 0 auto !important;
+    flex: 0 0 auto !important;
     margin: 0 !important;
   }
 
@@ -1812,6 +1830,56 @@
     align-items: center !important;
     justify-content: center !important;
     flex-direction: column !important;
+  }
+
+  /* This is deliberately repeated inside the empty-page contract.  Several
+     older role/page rules also style the dock; this final selector owns its
+     geometry for the two empty screens and prevents a safe-area strip from
+     being painted as extra panel height. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    box-sizing: border-box !important;
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+    height: var(--mobile-empty-dock-height) !important;
+    min-height: var(--mobile-empty-dock-height) !important;
+    max-height: var(--mobile-empty-dock-height) !important;
+    margin: 0 !important;
+    padding: 4px 5px 3px !important;
+    border: 0 !important;
+    border-radius: 30px 30px 0 0 !important;
+    background: #111820 !important;
+    background-color: #111820 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root
+    :is(.mobile-nav-item, .mobile-menu-toggle) {
+    align-self: stretch !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    box-sizing: border-box !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)

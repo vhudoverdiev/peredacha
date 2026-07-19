@@ -4487,15 +4487,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const formatContractorStatuses = scope => {
     if (!document.documentElement.classList.contains('desktop-like-pointer')) return;
     const pills = [];
-    if (scope?.matches?.('.contractor-task-table .task-status-cell .status-pill')) pills.push(scope);
-    scope?.querySelectorAll?.('.contractor-task-table .task-status-cell .status-pill').forEach(pill => pills.push(pill));
+    const selector = '.remarks-export-table-shell .task-table .task-status-cell .status-pill';
+    if (scope?.matches?.(selector)) pills.push(scope);
+    scope?.querySelectorAll?.(selector).forEach(pill => pills.push(pill));
     pills.forEach(formatContractorStatusPill);
   };
 
   const bindContractorStatusObservers = scope => {
     const tables = [];
-    if (scope?.matches?.('.contractor-task-table')) tables.push(scope);
-    scope?.querySelectorAll?.('.contractor-task-table').forEach(table => tables.push(table));
+    const selector = '.remarks-export-table-shell .task-table';
+    if (scope?.matches?.(selector)) tables.push(scope);
+    scope?.querySelectorAll?.(selector).forEach(table => tables.push(table));
     tables.forEach(table => {
       formatContractorStatuses(table);
       if (table.dataset.contractorStatusObserverBound === '1') return;
