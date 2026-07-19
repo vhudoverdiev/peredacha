@@ -81,7 +81,7 @@
 {% endmacro %}
 
 {% block content %}
-<div data-ajax-pagination-page="assignments">
+<div data-ajax-pagination-page="assignments" data-assignment-view="{{ 'issued' if view_mode == 'issued' else 'issue' }}">
 <div class="page-head remarks-page-head assignments-page-head">
   <div class="assignment-page-head-main">
     <h1 class="page-title">Выдача задач</h1>
@@ -103,6 +103,8 @@
   </a>
   <a class="assignment-subtab {% if view_mode == 'issued' %}active{% endif %}" href="{{ url_for('main.assignments', view='issued') }}"><i class="bi bi-people"></i>Выданные сотрудникам{% if issued_total %}<span title="{{ task_count_label(issued_total) }}">{{ issued_total }}</span>{% endif %}</a>
 </div>
+
+<div data-assignment-tab-content-start hidden></div>
 
 {% if view_mode == 'issued' %}
 <div class="assignment-issued-filters mb-3">
@@ -415,5 +417,6 @@
   </div>
 </div>
 {% endif %}
+<div data-assignment-tab-content-end hidden></div>
 </div>
 {% endblock %}

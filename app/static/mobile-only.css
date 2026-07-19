@@ -1371,7 +1371,7 @@
   }
 
   html body.app-body.app-body.app-body {
-    min-height: var(--app-height, 100dvh) !important;
+    min-height: 100dvh !important;
     height: auto !important;
     padding-bottom: 0 !important;
     background: #111820 !important;
@@ -1380,7 +1380,7 @@
 
   html body.app-body.app-body.app-body
     :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
-    min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+    min-height: calc(100dvh - 72px) !important;
     height: auto !important;
     max-height: none !important;
     background-color: #f6f8fb !important;
@@ -1388,7 +1388,7 @@
 
   html body.app-body.app-body.app-body
     .app-main {
-    min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+    min-height: calc(100dvh - 72px) !important;
     height: auto !important;
     max-height: none !important;
     padding-bottom: 0 !important;
@@ -1421,7 +1421,7 @@
      which made the dark body look like an enormously stretched navigation. */
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body:has(.mobile-worker-project-topbar) .app-layout.worker-layout {
-    min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+    min-height: calc(100dvh - 72px) !important;
     height: auto !important;
     max-height: none !important;
     box-sizing: border-box !important;
@@ -1441,7 +1441,7 @@
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body .documents-standalone-layout.settings-standalone-layout {
-    min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+    min-height: calc(100dvh - 72px) !important;
     height: auto !important;
     max-height: none !important;
     box-sizing: border-box !important;
@@ -1461,7 +1461,7 @@
      height on app-layout once more, producing the thick white strip. */
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body.verifier-layout:has(.work-report-page) .app-layout {
-    min-height: calc(var(--app-height, 100dvh) - 72px) !important;
+    min-height: calc(100dvh - 72px) !important;
     margin-top: 0 !important;
     padding-top: var(--ref-mobile-topbar-height, calc(4.18rem + var(--ios-safe-top, 0px))) !important;
     box-sizing: border-box !important;
@@ -1476,7 +1476,7 @@
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body.verifier-layout:has(.work-report-page) .app-layout > .app-main > .app-content {
-    padding-top: .12rem !important;
+    padding-top: .65rem !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)

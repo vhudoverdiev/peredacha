@@ -51,9 +51,9 @@ html.desktop-like-pointer body.app-body
 
 html.desktop-like-pointer body.app-body
   .contractor-task-table :is(th.task-col-actions, td.task-actions-cell) {
-  width: 13.5rem !important;
-  min-width: 13.5rem !important;
-  max-width: 13.5rem !important;
+  width: 17.5rem !important;
+  min-width: 17.5rem !important;
+  max-width: 17.5rem !important;
 }
 
 html.desktop-like-pointer body.app-body .contractor-task-table td.task-status-cell {
@@ -134,6 +134,11 @@ html.desktop-like-pointer body.app-body
   overflow: hidden !important;
 }
 
+html.desktop-like-pointer body.app-body
+  .contractor-task-table td.task-actions-cell .btn {
+  flex: 0 0 auto !important;
+}
+
 /* The first assignment tab contains its label in a span. It is text, not the
    numeric badge used by the second tab, so it must not receive a translucent
    pill of its own. */
@@ -148,6 +153,18 @@ html.desktop-like-pointer body.app-body:has(.assignments-page-head)
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
+  font-family: inherit !important;
+  font-size: .95rem !important;
+  font-weight: 600 !important;
+  line-height: 1.1 !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+  .assignment-subtabs > .assignment-subtab {
+  font-family: inherit !important;
+  font-size: .95rem !important;
+  font-weight: 600 !important;
+  line-height: 1.1 !important;
 }
 
 /* Both write-off steps enter together with exactly the same motion. */

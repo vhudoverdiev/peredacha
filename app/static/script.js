@@ -4312,6 +4312,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   window.addEventListener('popstate', event => {
+    const assignmentsRoot = document.querySelector('[data-ajax-pagination-page="assignments"]');
+    if (assignmentsRoot) {
+      const targetUrl = new URL(window.location.href);
+      const targetView = targetUrl.searchParams.get('view') === 'issued' ? 'issued' : 'issue';
+      const currentView = assignmentsRoot.dataset.assignmentView || 'issue';
+      if (targetView !== currentView) return;
+    }
     const pageKey = event.state?.pageKey || '';
     const pageRoot = pageKey
       ? document.querySelector(`[data-ajax-pagination-page="${CSS.escape(pageKey)}"]`)
@@ -4330,6 +4337,108 @@ document.addEventListener('DOMContentLoaded', () => {
   else start();
 })();
 
+// Assignment view tabs keep the page chrome mounted and replace only the
+// region between the markers immediately below the buttons. Mobile navigation
+// remains the original full-page flow.
+(() => {
+  let assignmentTabRequest = null;
+
+  const nodesBetween = (start, end) => {
+    const nodes = [];
+    let node = start?.nextSibling || null;
+    while (node && node !== end) {
+      nodes.push(node);
+      node = node.nextSibling;
+    }
+    return nodes;
+  };
+
+  const assignmentViewForUrl = url => url.searchParams.get('view') === 'issued' ? 'issued' : 'issue';
+
+  const loadAssignmentTab = async (targetUrl, pushHistory = true) => {
+    const root = document.querySelector('[data-ajax-pagination-page="assignments"]');
+    const currentStart = root?.querySelector('[data-assignment-tab-content-start]');
+    const currentEnd = root?.querySelector('[data-assignment-tab-content-end]');
+    const currentTabs = root?.querySelector('.assignment-subtabs');
+    if (!root || !currentStart || !currentEnd || !currentTabs) {
+      window.location.assign(targetUrl.toString());
+      return false;
+    }
+
+    assignmentTabRequest?.abort();
+    assignmentTabRequest = new AbortController();
+    root.classList.add('ajax-pagination-loading');
+    root.setAttribute('aria-busy', 'true');
+
+    try {
+      const response = await fetch(targetUrl.toString(), {
+        credentials: 'same-origin',
+        signal: assignmentTabRequest.signal,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CRM-Partial-Navigation': '1',
+          'Accept': 'text/html',
+        },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const sourceDocument = new DOMParser().parseFromString(await response.text(), 'text/html');
+      const nextRoot = sourceDocument.querySelector('[data-ajax-pagination-page="assignments"]');
+      const nextStart = nextRoot?.querySelector('[data-assignment-tab-content-start]');
+      const nextEnd = nextRoot?.querySelector('[data-assignment-tab-content-end]');
+      const nextTabs = nextRoot?.querySelector('.assignment-subtabs');
+      if (!nextRoot || !nextStart || !nextEnd || !nextTabs) throw new Error('assignment partial region missing');
+
+      nodesBetween(currentStart, currentEnd).forEach(node => node.remove());
+      nodesBetween(nextStart, nextEnd).forEach(node => {
+        currentEnd.before(document.importNode(node, true));
+      });
+      currentTabs.replaceChildren(...Array.from(nextTabs.childNodes, node => document.importNode(node, true)));
+      root.dataset.assignmentView = nextRoot.dataset.assignmentView || assignmentViewForUrl(targetUrl);
+
+      if (pushHistory) window.history.pushState({ assignmentTabs: true }, '', targetUrl);
+      document.title = sourceDocument.title || document.title;
+      document.dispatchEvent(new CustomEvent('crm:ajax-pagination-updated', {
+        detail: { pageKey: 'assignments', url: targetUrl.toString(), content: root },
+      }));
+      return true;
+    } catch (error) {
+      if (error?.name === 'AbortError') return false;
+      window.location.assign(targetUrl.toString());
+      return false;
+    } finally {
+      root.classList.remove('ajax-pagination-loading');
+      root.removeAttribute('aria-busy');
+    }
+  };
+
+  document.addEventListener('click', event => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (!document.documentElement.classList.contains('desktop-like-pointer')) return;
+    const link = event.target.closest('.assignment-subtabs .assignment-subtab[href]');
+    if (!link || link.target || link.hasAttribute('download')) return;
+    const root = link.closest('[data-ajax-pagination-page="assignments"]');
+    if (!root) return;
+    const targetUrl = new URL(link.href, window.location.href);
+    if (targetUrl.origin !== window.location.origin) return;
+    event.preventDefault();
+    if (targetUrl.href === window.location.href) return;
+    root.querySelectorAll('.assignment-subtab').forEach(tab => tab.classList.toggle('active', tab === link));
+    void loadAssignmentTab(targetUrl, true);
+  }, true);
+
+  window.addEventListener('popstate', () => {
+    if (!document.documentElement.classList.contains('desktop-like-pointer')) return;
+    const root = document.querySelector('[data-ajax-pagination-page="assignments"]');
+    if (!root) return;
+    const targetUrl = new URL(window.location.href);
+    const targetView = assignmentViewForUrl(targetUrl);
+    const currentView = root.dataset.assignmentView || 'issue';
+    if (targetView === currentView) return;
+    void loadAssignmentTab(targetUrl, false);
+  });
+})();
+
 // The pagination morph keeps compatible DOM nodes mounted, so a CSS entrance
 // animation on a Measurements table would otherwise not restart when the user
 // returns to the All tab. Replay one shared animation for every desktop tab.
@@ -4342,6 +4451,72 @@ document.addEventListener('crm:ajax-pagination-updated', event => {
   shell.classList.remove('crm-tab-enter');
   void shell.offsetWidth;
   shell.classList.add('crm-tab-enter');
+});
+
+// Contractor names are also written into the status pill by quick actions.
+// Rebuild the two-line desktop label after any such in-place update so the
+// specialization never falls back to arbitrary word wrapping.
+document.addEventListener('DOMContentLoaded', () => {
+  const formatContractorStatusPill = pill => {
+    if (!pill || pill.querySelector('.contractor-status-desktop')) return;
+    const label = String(pill.textContent || '').replace(/\s+/g, ' ').trim();
+    const match = label.match(/^(.+?)\s*(\([^()]+\))$/);
+    if (!match) return;
+
+    const desktopLabel = document.createElement('span');
+    desktopLabel.className = 'contractor-status-desktop';
+    desktopLabel.hidden = true;
+
+    const nameLine = document.createElement('span');
+    nameLine.className = 'contractor-status-line';
+    nameLine.textContent = match[1].trim();
+
+    const specializationLine = document.createElement('span');
+    specializationLine.className = 'contractor-status-line';
+    specializationLine.textContent = match[2];
+
+    const defaultLabel = document.createElement('span');
+    defaultLabel.className = 'contractor-status-default';
+    defaultLabel.textContent = label;
+
+    desktopLabel.append(nameLine, specializationLine);
+    pill.replaceChildren(desktopLabel, defaultLabel);
+    pill.classList.add('contractor-status-pill', 'has-contractor-break');
+  };
+
+  const formatContractorStatuses = scope => {
+    if (!document.documentElement.classList.contains('desktop-like-pointer')) return;
+    const pills = [];
+    if (scope?.matches?.('.contractor-task-table .task-status-cell .status-pill')) pills.push(scope);
+    scope?.querySelectorAll?.('.contractor-task-table .task-status-cell .status-pill').forEach(pill => pills.push(pill));
+    pills.forEach(formatContractorStatusPill);
+  };
+
+  const bindContractorStatusObservers = scope => {
+    const tables = [];
+    if (scope?.matches?.('.contractor-task-table')) tables.push(scope);
+    scope?.querySelectorAll?.('.contractor-task-table').forEach(table => tables.push(table));
+    tables.forEach(table => {
+      formatContractorStatuses(table);
+      if (table.dataset.contractorStatusObserverBound === '1') return;
+      let scheduled = false;
+      const observer = new MutationObserver(() => {
+        if (scheduled) return;
+        scheduled = true;
+        window.requestAnimationFrame(() => {
+          scheduled = false;
+          formatContractorStatuses(table);
+        });
+      });
+      observer.observe(table, { childList: true, subtree: true, characterData: true });
+      table.dataset.contractorStatusObserverBound = '1';
+    });
+  };
+
+  bindContractorStatusObservers(document);
+  document.addEventListener('crm:ajax-pagination-updated', event => {
+    bindContractorStatusObservers(event.detail?.content || document);
+  });
 });
 
 document.addEventListener('click', event => {
