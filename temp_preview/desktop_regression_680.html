@@ -1,0 +1,119 @@
+<!doctype html>
+<html class="desktop-like-pointer">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="/app/static/desktop-only.css">
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    .crm-page-entry-surface { padding: 24px; transform: translateY(8px); contain: layout paint; }
+    .modal { position: fixed; inset: 0; display: none; }
+    .modal.show { display: block; }
+    .modal-dialog { margin: 24px auto; }
+    .modal-content { display: flex; flex-direction: column; background: #fff; }
+    .modal-body { flex: 1 1 auto; }
+    .d-none { display: none !important; }
+    .material-line { display: flex; gap: 8px; }
+    button { min-height: 40px; }
+  </style>
+  <script>
+    window.testState = { fetches: [], hides: 0, refreshes: 0, deleteSubmits: 0 };
+    document.addEventListener('submit', event => {
+      if (event.target.classList?.contains('material-writeoff-delete-form') && event.target.dataset.confirmed === '1') {
+        event.preventDefault();
+        window.testState.deleteSubmits += 1;
+      }
+    }, true);
+    window.fetch = async (url, options = {}) => {
+      window.testState.fetches.push({ url: String(url), method: options.method || 'GET' });
+      return new Response(JSON.stringify({ ok: true, message: 'ok', responsible_name: 'New User' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    };
+    const modalInstances = new WeakMap();
+    window.bootstrap = {
+      Modal: {
+        getOrCreateInstance(element) {
+          if (!modalInstances.has(element)) {
+            modalInstances.set(element, {
+              show() {
+                element.dispatchEvent(new Event('show.bs.modal'));
+                element.classList.add('show');
+              },
+              hide() {
+                element.classList.remove('show');
+                element.dispatchEvent(new Event('hidden.bs.modal'));
+                window.testState.hides += 1;
+              },
+              dispose() {}
+            });
+          }
+          return modalInstances.get(element);
+        },
+        getInstance(element) { return modalInstances.get(element) || null; }
+      }
+    };
+  </script>
+</head>
+<body class="app-body">
+  <div class="crm-page-entry-surface">
+    <form class="material-writeoff-form js-material-writeoff-form js-multi-material-form"
+          action="/wrong-endpoint" data-submit-url="/materials/write-off"
+          data-selection-key="test-writeoff" data-no-persist-selection="1">
+      <div class="js-material-selected-hidden"></div>
+      <div class="js-material-selected-strip d-none"><b class="js-material-selected-count">0</b></div>
+      <button class="js-material-selected-clear" type="button">clear</button>
+      <table><tbody><tr class="material-select-row"><td><input class="material-task-check" type="checkbox" value="101"></td></tr></tbody></table>
+      <div>
+        <select class="js-writeoff-material-select" name="material_key" required>
+          <option value="">select</option><option value="Primer|||pcs" data-unit="pcs" data-balance="10">Primer</option>
+        </select>
+      </div>
+      <div class="js-writeoff-quantity-block d-none"><input class="js-writeoff-quantity-input" name="quantity"></div>
+      <button id="materialSubmit" type="submit" name="action" value="writeoff">writeoff</button>
+    </form>
+
+    <form class="material-writeoff-delete-form" action="/delete" data-confirm="Delete?">
+      <button id="materialDelete" class="material-writeoff-delete-btn" type="submit"><span>Delete</span></button>
+    </form>
+
+    <div class="assignments-page-head"></div>
+    <div class="assignment-issued-filters"></div>
+    <div class="assignment-issued-layout"></div>
+    <button id="assigneeOpen" type="button">Открыть смену исполнителя</button>
+    <div id="assignmentChangeAssigneeModal" class="modal assignment-change-assignee-modal">
+      <div class="modal-dialog">
+        <form class="modal-content assignment-change-assignee-card" action="/assignments?view=issued">
+          <input name="change_assignee_task_id" value="22" class="js-change-assignee-task-id">
+          <div class="js-change-assignee-room"></div><div class="js-change-assignee-current"></div><div class="js-change-assignee-task-text"></div>
+          <label class="assignment-change-assignee-option"><input type="radio" name="new_responsible_id" value="7" checked></label>
+          <button id="assigneeSave" type="submit">Save</button>
+          <button id="assigneeCancel" class="js-assignment-change-assignee-cancel" type="button" data-bs-dismiss="modal">Cancel</button>
+        </form>
+      </div>
+    </div>
+
+    <form data-avr-form>
+      <script type="application/json" data-avr-apartments>[{"id":"1","number":"1","floor":"2","owner":"Owner","address":"Address","inspection_date":"2026-07-19","premise_type":"apartment"}]</script>
+      <select data-avr-apartment><option value="1" selected>1</option></select>
+      <button id="avrOpen" data-avr-open-modal type="button">Open AVR</button>
+      <input data-avr-inspection-date value="2026-07-19"><input data-avr-premise-type>
+      <div id="avrDataModal" class="modal avr-data-modal" data-avr-modal>
+        <div class="modal-dialog"><div class="modal-content"><div class="modal-header">AVR</div><div class="modal-body">
+          <input data-avr-number><input data-avr-floor><div data-avr-floor-field></div><div data-avr-owner></div><input data-avr-address><textarea data-avr-phrase></textarea>
+        </div><div class="modal-footer"><button type="button">Close</button></div></div></div>
+      </div>
+    </form>
+  </div>
+  <script src="/app/static/script.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('assigneeOpen').addEventListener('click', () => {
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('assignmentChangeAssigneeModal')).show();
+      });
+      window.crmRefreshIssuedAssignments = async () => { window.testState.refreshes += 1; return true; };
+    });
+  </script>
+</body>
+</html>
