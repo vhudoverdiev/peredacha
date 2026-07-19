@@ -18,14 +18,20 @@
   </style>
   <script>
     window.testState = { fetches: [], hides: 0, refreshes: 0, deleteSubmits: 0 };
+    document.documentElement.dataset.testFetches = '[]';
+    document.documentElement.dataset.testHides = '0';
+    document.documentElement.dataset.testRefreshes = '0';
+    document.documentElement.dataset.testDeleteSubmits = '0';
     document.addEventListener('submit', event => {
       if (event.target.classList?.contains('material-writeoff-delete-form') && event.target.dataset.confirmed === '1') {
         event.preventDefault();
         window.testState.deleteSubmits += 1;
+        document.documentElement.dataset.testDeleteSubmits = String(window.testState.deleteSubmits);
       }
     }, true);
     window.fetch = async (url, options = {}) => {
       window.testState.fetches.push({ url: String(url), method: options.method || 'GET' });
+      document.documentElement.dataset.testFetches = JSON.stringify(window.testState.fetches);
       return new Response(JSON.stringify({ ok: true, message: 'ok', responsible_name: 'New User' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -45,6 +51,7 @@
                 element.classList.remove('show');
                 element.dispatchEvent(new Event('hidden.bs.modal'));
                 window.testState.hides += 1;
+                document.documentElement.dataset.testHides = String(window.testState.hides);
               },
               dispose() {}
             });
@@ -112,7 +119,11 @@
       document.getElementById('assigneeOpen').addEventListener('click', () => {
         bootstrap.Modal.getOrCreateInstance(document.getElementById('assignmentChangeAssigneeModal')).show();
       });
-      window.crmRefreshIssuedAssignments = async () => { window.testState.refreshes += 1; return true; };
+      window.crmRefreshIssuedAssignments = async () => {
+        window.testState.refreshes += 1;
+        document.documentElement.dataset.testRefreshes = String(window.testState.refreshes);
+        return true;
+      };
     });
   </script>
 </body>
