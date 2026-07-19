@@ -5626,7 +5626,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
     if (form.classList.contains('assignment-remove-user-form')) return;
-    const submitter = event.submitter;
+    const submitter = event.submitter
+      || (form.classList.contains('material-writeoff-delete-form')
+        ? form.querySelector('.material-writeoff-delete-btn')
+        : null);
     const confirmText = normalizeConfirmText(submitter?.dataset?.confirmResolved || submitter?.dataset?.confirm || form.dataset.confirm);
     if (!confirmText || form.dataset.confirmed === '1') return;
     event.preventDefault();

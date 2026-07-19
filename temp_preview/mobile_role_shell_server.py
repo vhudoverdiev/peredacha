@@ -74,21 +74,28 @@ def preview_mobile_profile(response):
     if response.mimetype != "text/html":
         return response
     html = response.get_data(as_text=True)
+    preview_ios = request.args.get("preview_ios") == "1"
+    preview_app_height = request.args.get("preview_app_height", type=int)
     marker = """<script>
 (() => {
   const forcePreviewMobileProfile = () => {
     const mobileClasses = ['mobile-viewport', 'touch-app-device', 'real-phone-device', 'standalone-app'];
+    const previewIos = __PREVIEW_IOS__;
+    const previewAppHeight = __PREVIEW_APP_HEIGHT__;
     document.documentElement.classList.remove('desktop-like-pointer');
     document.documentElement.classList.add(...mobileClasses);
+    document.documentElement.classList.toggle('ios-standalone-bottom-chrome', previewIos);
     document.body?.classList.remove('desktop-like-pointer');
     document.body?.classList.add(...mobileClasses);
-    document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+    document.documentElement.style.setProperty('--app-height', `${previewAppHeight || window.innerHeight}px`);
   };
   forcePreviewMobileProfile();
   window.addEventListener('load', forcePreviewMobileProfile, { once: true });
   window.setTimeout(forcePreviewMobileProfile, 150);
 })();
 </script>"""
+    marker = marker.replace("__PREVIEW_IOS__", "true" if preview_ios else "false")
+    marker = marker.replace("__PREVIEW_APP_HEIGHT__", str(preview_app_height or 0))
     html = html.replace("</body>", f"{marker}</body>")
     response.set_data(html)
     response.headers["Content-Length"] = len(response.get_data())

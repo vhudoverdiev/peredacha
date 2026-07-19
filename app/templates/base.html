@@ -708,7 +708,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v76-material-assignment-fixes', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v77-material-assignment-delete-fixes', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1339,6 +1339,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v636-material-assignment-fixes"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v637-material-assignment-fixes"></script>
 </body>
 </html>
