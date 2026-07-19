@@ -377,7 +377,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const layoutViewportHeight = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
     const visualViewportHeight = Math.round(window.visualViewport?.height || 0);
     if (shouldUseStableStandaloneAppHeight()) {
-      return Math.max(layoutViewportHeight, visualViewportHeight);
+      const deviceScreenHeight = Math.round(window.screen?.height || window.screen?.availHeight || 0);
+      return Math.max(layoutViewportHeight, visualViewportHeight, deviceScreenHeight);
     }
     return Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0);
   };
