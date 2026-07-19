@@ -51978,7 +51978,7 @@ html.standalone-app {
 html.standalone-app body:not(:has(.mobile-short-page-marker)) {
   width: 100%;
   min-width: 0;
-  min-height: var(--app-height, 100dvh) !important;
+  min-height: var(--mobile-layout-height, 100dvh) !important;
   margin: 0 !important;
   background: #f6f8fb;
   overscroll-behavior-y: none;
@@ -51986,7 +51986,7 @@ html.standalone-app body:not(:has(.mobile-short-page-marker)) {
 
 html.standalone-app body.app-body:not(:has(.mobile-short-page-marker)) :is(.app-layout, .objects-layout, .documents-standalone-layout) {
   min-width: 0 !important;
-  min-height: var(--app-height, 100dvh) !important;
+  min-height: var(--mobile-layout-height, 100dvh) !important;
 }
 
 html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-content, .documents-standalone-content) {
@@ -52963,7 +52963,7 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
 
   html.app-root.standalone-app,
   html.app-root.standalone-app body.app-body {
-    min-height: var(--app-height, 100dvh) !important;
+    min-height: var(--mobile-layout-height, 100dvh) !important;
   }
 
   html.app-root.standalone-app body.app-body::after {

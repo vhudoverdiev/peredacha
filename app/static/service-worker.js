@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v77-material-assignment-delete-fixes';
+const STATIC_CACHE = 'peredacha-static-v80-ios-mobile-canvas-height-inline-fix';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -12,8 +12,8 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v625-unified-mobile-dock',
-  '/static/mobile-only.css?v=v64-mobile-short-page-layout',
+  '/static/style.css?v=v626-ios-mobile-canvas-height-inline-fix',
+  '/static/mobile-only.css?v=v66-ios-mobile-canvas-height-inline-fix',
   '/static/desktop-only.css?v=v38-material-delete-stable',
   '/static/script.js?v=v637-material-assignment-fixes',
 ];
