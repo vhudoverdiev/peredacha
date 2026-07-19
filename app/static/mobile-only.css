@@ -1553,7 +1553,9 @@
      JavaScript device classes.  Those classes can be added a frame later in
      an installed iOS web app and previously left the legacy tall dock visible
      on empty pages.  The media query is the only mobile boundary we need. */
-  body.app-body > .mobile-bottom-nav.mobile-bottom-nav-root {
+  html body.app-body.app-body.app-body > nav.mobile-bottom-nav.mobile-bottom-nav-root,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.app-body > nav.mobile-bottom-nav.mobile-bottom-nav-root {
     position: fixed !important;
     top: auto !important;
     right: 0 !important;
@@ -1574,6 +1576,7 @@
     border-radius: 30px 30px 0 0 !important;
     background: #111820 !important;
     background-color: #111820 !important;
+    background-image: none !important;
     box-shadow: none !important;
     contain: layout paint !important;
     overflow: hidden !important;
@@ -1737,6 +1740,34 @@
     padding-bottom: 0 !important;
     background: #f6f8fb !important;
     background-color: #f6f8fb !important;
+  }
+
+  /* Empty worker dashboards must start directly below the fixed project bar.
+     A legacy flex-centering rule could vertically centre the entire day card
+     when no task cards followed it. */
+  html body.app-body.app-body:has(.worker-page-empty) .app-main,
+  html body.app-body.app-body:has(.worker-page-empty) .app-content,
+  html body.app-body.app-body:has(.worker-page-empty) .crm-mobile-page-shell {
+    align-content: flex-start !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+  }
+
+  html body.app-body.app-body:has(.worker-page-empty)
+    > .app-layout.worker-layout {
+    padding-top: 0 !important;
+  }
+
+  html body.app-body.app-body:has(.worker-page-empty) .worker-page-empty {
+    align-self: stretch !important;
+    margin: 0 auto auto !important;
+    padding-top: 0 !important;
+    translate: none !important;
+    transform: none !important;
+  }
+
+  html body.app-body.app-body:has(.worker-page-empty) .worker-day-head {
+    margin-top: 0 !important;
   }
 
   body.app-body .remarks-empty-table-shell {

@@ -52280,7 +52280,7 @@ html.standalone-app {
   overscroll-behavior: none;
 }
 
-html.standalone-app body {
+html.standalone-app body:not(:has(.mobile-short-page-marker)) {
   width: 100%;
   min-width: 0;
   min-height: var(--app-height, 100dvh) !important;
@@ -52289,7 +52289,7 @@ html.standalone-app body {
   overscroll-behavior-y: none;
 }
 
-html.standalone-app body.app-body :is(.app-layout, .objects-layout, .documents-standalone-layout) {
+html.standalone-app body.app-body:not(:has(.mobile-short-page-marker)) :is(.app-layout, .objects-layout, .documents-standalone-layout) {
   min-width: 0 !important;
   min-height: var(--app-height, 100dvh) !important;
 }
@@ -54477,29 +54477,10 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   }
 }
 
-/* v507: The compact one-remark form fits between the fixed mobile bars.
-   Keep that screen stationary and use regular-weight text in its picker. */
+/* The compact one-remark form uses the shared mobile page geometry.  Older
+   fixed-height/overflow rules were removed because they lifted the dock in
+   iOS standalone mode. Keep only regular-weight text in its picker. */
 @media (max-width: 767.98px) {
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device):has(body.app-body .task-single-form),
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.task-single-form) {
-    width: 100% !important;
-    height: var(--app-height, 100dvh) !important;
-    min-height: var(--app-height, 100dvh) !important;
-    max-height: var(--app-height, 100dvh) !important;
-    overflow: hidden !important;
-    overscroll-behavior: none !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.task-single-form)
-    :is(.app-layout, .app-main, .app-content, .crm-mobile-page-shell) {
-    max-height: 100% !important;
-    overflow: hidden !important;
-    overscroll-behavior: none !important;
-    scroll-behavior: auto !important;
-  }
-
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.task-single-form) .task-single-form
     :is(select, option, .form-select, .mobile-native-select, .developer-select-button, .developer-select-value, .developer-select-option) {
