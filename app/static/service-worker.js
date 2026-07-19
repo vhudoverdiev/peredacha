@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v59-mobile-dock-owner';
+const STATIC_CACHE = 'peredacha-static-v62-mobile-dock-single-owner';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -12,8 +12,8 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
-  '/static/style.css?v=v619-mobile-dock-owner',
-  '/static/mobile-only.css?v=v49-mobile-dock-owner',
+  '/static/style.css?v=v622-mobile-dock-single-owner',
+  '/static/mobile-only.css?v=v52-mobile-dock-single-owner',
   '/static/desktop-only.css?v=v24-compact-status-actions',
   '/static/script.js?v=v626-remarks-contractor-status',
 ];

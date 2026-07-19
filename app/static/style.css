@@ -345,11 +345,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     padding-bottom: calc(5.05rem + env(safe-area-inset-bottom)) !important;
   }
 
-  body.app-body:not(.worker-layout) .mobile-bottom-nav {
-    bottom: 0 !important;
-    margin-bottom: env(safe-area-inset-bottom) !important;
-  }
-
 }
 
 .materials-filter-icon-btn {
@@ -1042,11 +1037,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     padding-bottom: calc(5.05rem + env(safe-area-inset-bottom)) !important;
   }
 
-  body.app-body:not(.worker-layout) .mobile-bottom-nav {
-    bottom: 0 !important;
-    margin-bottom: env(safe-area-inset-bottom) !important;
-  }
-
 }
 
 /* v183 final override: iOS install hint and bottom nav scroll boundary. */
@@ -1134,11 +1124,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     padding-bottom: calc(5.05rem + env(safe-area-inset-bottom)) !important;
   }
 
-  body.app-body:not(.worker-layout) .mobile-bottom-nav {
-    bottom: 0 !important;
-    margin-bottom: env(safe-area-inset-bottom) !important;
-  }
-
 }
 
 /* v183: iOS install hint readability and mobile scroll stop above bottom nav. */
@@ -1224,11 +1209,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
   body.app-body:not(.worker-layout) .objects-content,
   body.app-body:not(.worker-layout) .documents-standalone-content {
     padding-bottom: calc(5.05rem + env(safe-area-inset-bottom)) !important;
-  }
-
-  body.app-body:not(.worker-layout) .mobile-bottom-nav {
-    bottom: 0 !important;
-    margin-bottom: env(safe-area-inset-bottom) !important;
   }
 
 }
@@ -1323,12 +1303,6 @@ body.standalone-app.app-body {
   .documents-standalone-layout > .objects-topbar,
   .objects-layout > .objects-topbar {
     display: none !important;
-  }
-
-  .mobile-bottom-nav {
-    bottom: env(safe-area-inset-bottom) !important;
-    padding: .44rem !important;
-    border-radius: 1.22rem 1.22rem max(1.22rem, env(safe-area-inset-bottom)) max(1.22rem, env(safe-area-inset-bottom)) !important;
   }
 
   .mobile-nav-item.active {
@@ -12585,24 +12559,6 @@ h1, h2, h3, h4, h5, h6,
     bottom: calc(78px + env(safe-area-inset-bottom)) !important;
   }
 
-  .mobile-bottom-nav {
-    position: fixed;
-    left: max(.6rem, env(safe-area-inset-left));
-    right: max(.6rem, env(safe-area-inset-right));
-    bottom: max(.55rem, env(safe-area-inset-bottom));
-    z-index: 1041;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: .12rem;
-    min-height: 62px;
-    padding: .42rem .44rem;
-    border: 1px solid rgba(213, 223, 239, .88);
-    border-radius: 1.15rem;
-    background: rgba(255, 255, 255, .94);
-    box-shadow: 0 18px 42px rgba(12, 27, 57, .16);
-    backdrop-filter: blur(20px);
-  }
-
   .mobile-nav-item,
   .mobile-bottom-nav .mobile-menu-toggle {
     position: static !important;
@@ -12706,15 +12662,6 @@ h1, h2, h3, h4, h5, h6,
   .mobile-card-table td {
     grid-template-columns: 1fr !important;
     gap: .22rem;
-  }
-
-  .mobile-bottom-nav {
-    left: max(.42rem, env(safe-area-inset-left));
-    right: max(.42rem, env(safe-area-inset-right));
-    bottom: max(.42rem, env(safe-area-inset-bottom));
-    border-radius: 1rem;
-    min-height: 60px;
-    padding: .36rem;
   }
 
   .mobile-nav-item,
@@ -31274,15 +31221,6 @@ textarea {
 }
 
 @media (max-width: 767.98px) and (hover: none) and (pointer: coarse) {
-  .mobile-bottom-nav {
-    grid-template-columns: repeat(var(--mobile-nav-count, 4), minmax(0, 1fr)) !important;
-    gap: clamp(.08rem, .8vw, .18rem) !important;
-    min-height: 64px !important;
-    padding: .42rem clamp(.28rem, 1.6vw, .48rem) !important;
-    padding-bottom: calc(.42rem + max(0px, env(safe-area-inset-bottom) * .12)) !important;
-    border-radius: clamp(.95rem, 4vw, 1.2rem) !important;
-  }
-
   .mobile-nav-item,
   .mobile-bottom-nav .mobile-menu-toggle {
     min-height: 50px !important;
@@ -31312,11 +31250,6 @@ textarea {
 }
 
 @media (max-width: 340px) and (hover: none) and (pointer: coarse) {
-  .mobile-bottom-nav {
-    left: max(.32rem, env(safe-area-inset-left)) !important;
-    right: max(.32rem, env(safe-area-inset-right)) !important;
-  }
-
   .mobile-nav-item span {
     font-size: .56rem !important;
   }
@@ -31803,20 +31736,6 @@ html.standalone-app .site-page-loader {
     display: none !important;
   }
 
-  .mobile-bottom-nav {
-    left: .72rem;
-    right: .72rem;
-    bottom: max(.62rem, env(safe-area-inset-bottom));
-    width: auto;
-    grid-template-columns: repeat(var(--mobile-nav-count), minmax(0, 1fr));
-    padding: .52rem;
-    border-radius: 1.35rem;
-    background: rgba(255, 255, 255, .94);
-    box-shadow: 0 18px 42px rgba(22, 32, 18, .14);
-    -webkit-backdrop-filter: blur(18px);
-    backdrop-filter: blur(18px);
-  }
-
   .mobile-nav-item {
     min-width: 0;
     min-height: 3.45rem;
@@ -31830,10 +31749,6 @@ html.standalone-app .site-page-loader {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: .72rem;
-  }
-
-  .worker-layout .mobile-bottom-nav {
-    display: none !important;
   }
 
   .worker-layout .app-main,
@@ -32289,13 +32204,6 @@ body.standalone-app.app-body {
     display: none !important;
   }
 
-  .mobile-bottom-nav {
-    bottom: env(safe-area-inset-bottom) !important;
-    padding: .44rem !important;
-    border-radius: 1.22rem !important;
-    background: rgba(255, 255, 255, .96) !important;
-  }
-
   .mobile-nav-item.active {
     color: #fff !important;
     background: linear-gradient(135deg, #83d925, #57ad13) !important;
@@ -32643,11 +32551,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     padding-bottom: calc(5.05rem + env(safe-area-inset-bottom)) !important;
   }
 
-  body.app-body:not(.worker-layout) .mobile-bottom-nav {
-    bottom: 0 !important;
-    margin-bottom: env(safe-area-inset-bottom) !important;
-  }
-
 }
 
 /* ======================================================================
@@ -32787,28 +32690,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
 
   .mobile-sidebar-backdrop {
     min-height: var(--ios-app-height) !important;
-  }
-
-  .mobile-bottom-nav {
-    position: fixed !important;
-    left: max(.48rem, var(--ios-safe-left)) !important;
-    right: max(.48rem, var(--ios-safe-right)) !important;
-    bottom: max(.42rem, var(--ios-safe-bottom)) !important;
-    z-index: 1038 !important;
-    display: grid !important;
-    grid-template-columns: repeat(var(--mobile-nav-count, 5), minmax(0, 1fr)) !important;
-    gap: .26rem !important;
-    width: auto !important;
-    max-width: none !important;
-    margin: 0 !important;
-    padding: .38rem !important;
-    padding-bottom: max(.38rem, calc(.38rem + var(--ios-safe-bottom) * .18)) !important;
-    border-radius: 1.28rem !important;
-    background: rgba(255,255,255,.94) !important;
-    border: 1px solid rgba(121,191,37,.20) !important;
-    box-shadow: 0 18px 46px rgba(26, 35, 22, .18) !important;
-    backdrop-filter: saturate(135%) blur(18px);
-    -webkit-backdrop-filter: saturate(135%) blur(18px);
   }
 
   .mobile-nav-item {
@@ -33782,13 +33663,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     pointer-events: none !important;
   }
 
-  body.app-body:not(.worker-layout) .mobile-bottom-nav {
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-    border-color: rgba(214, 222, 206, .95) !important;
-    box-shadow: 0 14px 36px rgba(26, 35, 22, .15) !important;
-  }
-
 }
 
 /* v191 mobile project chrome fix: no top white strip, PC-colored object panel, white bottom safe zone. */
@@ -33902,14 +33776,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     pointer-events: none !important;
   }
 
-  body.app-body.has-mobile-project-topbar .mobile-bottom-nav,
-  body.app-body:has(.mobile-project-topbar) .mobile-bottom-nav {
-    bottom: max(.2rem, var(--ios-safe-bottom)) !important;
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-    border-color: rgba(214, 222, 206, .95) !important;
-    box-shadow: 0 14px 36px rgba(26, 35, 22, .15) !important;
-  }
 }
 
 /* v192 mobile-only fix: fixed object topbar, no desktop strip, no empty account strip. */
@@ -34260,10 +34126,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     pointer-events: none !important;
   }
 
-  body.app-body .mobile-bottom-nav {
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-  }
 }
 
 /* v196 desktop loader fix: mobile development loader must never block the PC version. */
@@ -34788,11 +34650,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     border-radius: .98rem !important;
   }
 
-  body.app-body .mobile-bottom-nav {
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-    bottom: max(.36rem, var(--ios-safe-bottom)) !important;
-  }
 }
 
 /* v200 tablet/intermediate layout: usable 768-1199px version instead of loader/blank screen. */
@@ -39874,9 +39731,7 @@ html.desktop-like-pointer body.app-body .settings-standalone-layout > .objects-t
   html.mobile-viewport body.app-body::after,
   html.adaptive-mobile-viewport body.app-body::after,
   html.mobile-viewport body.app-body .mobile-shell-brand,
-  html.adaptive-mobile-viewport body.app-body .mobile-shell-brand,
-  html.mobile-viewport body.app-body .mobile-bottom-nav,
-  html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav {
+  html.adaptive-mobile-viewport body.app-body .mobile-shell-brand {
     background-color: rgb(29, 35, 40) !important;
     background-image: linear-gradient(rgb(35, 41, 47) 0%, rgb(26, 31, 36) 100%) !important;
   }
@@ -39895,26 +39750,6 @@ html.desktop-like-pointer body.app-body .settings-standalone-layout > .objects-t
   html.mobile-viewport body.app-body .mobile-shell-brand .mobile-top-avatar-logo,
   html.adaptive-mobile-viewport body.app-body .mobile-shell-brand .mobile-top-avatar-logo {
     opacity: 0 !important;
-  }
-
-  html.mobile-viewport body.app-body .mobile-bottom-nav,
-  html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav {
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: .54rem .28rem calc(.58rem + var(--ios-safe-bottom)) !important;
-    background: linear-gradient(135deg, var(--crm-topbar-start, #5e656a) 0%, var(--crm-topbar-end, #4f565b) 100%) !important;
-    background-image: linear-gradient(135deg, var(--crm-topbar-start, #5e656a) 0%, var(--crm-topbar-end, #4f565b) 100%) !important;
-    background-color: var(--crm-topbar-start, #5e656a) !important;
-    border: 0 !important;
-    border-top: 1px solid rgba(255, 255, 255, .06) !important;
-    border-radius: 1.55rem 1.55rem 0 0 !important;
-    box-shadow: 0 -16px 34px rgba(11, 17, 25, .28) !important;
-    overflow: hidden !important;
   }
 
   html.mobile-viewport body.app-body .mobile-bottom-nav .mobile-nav-item,
@@ -40353,12 +40188,6 @@ html.desktop-like-pointer body.app-body:has(.apartments-page) .floating-error-co
     background-color: rgb(31, 36, 41) !important;
   }
 
-  html.mobile-viewport body.app-body nav.mobile-bottom-nav,
-  html.adaptive-mobile-viewport body.app-body nav.mobile-bottom-nav {
-    background: linear-gradient(rgb(35, 41, 47) 0%, rgb(26, 31, 36) 100%) !important;
-    background-color: rgb(29, 35, 40) !important;
-  }
-
   html.mobile-viewport body.app-body a.mobile-top-avatar.mobile-shell-brand,
   html.adaptive-mobile-viewport body.app-body a.mobile-top-avatar.mobile-shell-brand {
     background: url("brand-logo.png") center / cover no-repeat !important;
@@ -40373,26 +40202,6 @@ html.desktop-like-pointer body.app-body:has(.apartments-page) .floating-error-co
 }
 
 @media (max-width: 767.98px) {
-  html.mobile-viewport body.app-body .mobile-bottom-nav,
-  html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav {
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: .54rem .28rem calc(.58rem + var(--ios-safe-bottom)) !important;
-    background: linear-gradient(135deg, var(--crm-topbar-start, #5e656a) 0%, var(--crm-topbar-end, #4f565b) 100%) !important;
-    background-image: linear-gradient(135deg, var(--crm-topbar-start, #5e656a) 0%, var(--crm-topbar-end, #4f565b) 100%) !important;
-    background-color: var(--crm-topbar-start, #5e656a) !important;
-    border: 0 !important;
-    border-top: 1px solid rgba(255, 255, 255, .06) !important;
-    border-radius: 1.55rem 1.55rem 0 0 !important;
-    box-shadow: 0 -16px 34px rgba(11, 17, 25, .28) !important;
-    overflow: hidden !important;
-  }
-
   html.mobile-viewport body.app-body .mobile-bottom-nav .mobile-nav-item,
   html.mobile-viewport body.app-body .mobile-bottom-nav .mobile-menu-toggle,
   html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav .mobile-nav-item,
@@ -40439,26 +40248,6 @@ html.desktop-like-pointer body.app-body:has(.apartments-page) .floating-error-co
 }
 
 @media (max-width: 767.98px) {
-  html.mobile-viewport body.app-body .mobile-bottom-nav,
-  html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav {
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: .54rem .28rem calc(.58rem + var(--ios-safe-bottom)) !important;
-    background: linear-gradient(135deg, var(--crm-topbar-start, #5e656a) 0%, var(--crm-topbar-end, #4f565b) 100%) !important;
-    background-image: linear-gradient(135deg, var(--crm-topbar-start, #5e656a) 0%, var(--crm-topbar-end, #4f565b) 100%) !important;
-    background-color: var(--crm-topbar-start, #5e656a) !important;
-    border: 0 !important;
-    border-top: 1px solid rgba(255, 255, 255, .06) !important;
-    border-radius: 1.55rem 1.55rem 0 0 !important;
-    box-shadow: 0 -16px 34px rgba(11, 17, 25, .28) !important;
-    overflow: hidden !important;
-  }
-
   html.mobile-viewport body.app-body .mobile-bottom-nav .mobile-nav-item,
   html.mobile-viewport body.app-body .mobile-bottom-nav .mobile-menu-toggle,
   html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav .mobile-nav-item,
@@ -40740,27 +40529,6 @@ html.desktop-like-pointer body.app-body:has(.apartments-page) .floating-error-co
     padding-right: .92rem !important;
     padding-left: .92rem !important;
     padding-bottom: calc(var(--ref-mobile-nav-height) + 1.1rem) !important;
-  }
-
-  html.mobile-viewport body.app-body .mobile-bottom-nav {
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    z-index: 1058 !important;
-    display: grid !important;
-    grid-template-columns: repeat(var(--mobile-nav-count), minmax(0, 1fr)) !important;
-    align-items: stretch !important;
-    gap: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: .5rem .28rem calc(.54rem + var(--ios-safe-bottom)) !important;
-    background: linear-gradient(180deg, #252e3a 0%, #1a212c 100%) !important;
-    background-image: linear-gradient(180deg, #252e3a 0%, #1a212c 100%) !important;
-    background-color: #1b222d !important;
-    border: 0 !important;
-    border-top: 1px solid rgba(255, 255, 255, .06) !important;
-    border-radius: 1.55rem 1.55rem 0 0 !important;
-    box-shadow: 0 -14px 28px rgba(11, 17, 25, .24) !important;
-    overflow: hidden !important;
   }
 
   html.mobile-viewport body.app-body .mobile-nav-item,
@@ -41555,27 +41323,6 @@ html.adaptive-mobile-viewport body.mobile-menu-open .app-sidebar {
   transform: translateX(0) !important;
 }
 
-html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav {
-  position: fixed !important;
-  left: calc(var(--adaptive-mobile-shell-offset) + .48rem) !important;
-  right: calc(var(--adaptive-mobile-shell-offset) + .48rem) !important;
-  bottom: max(.42rem, var(--ios-safe-bottom)) !important;
-  z-index: 1038 !important;
-  display: grid !important;
-  grid-template-columns: repeat(var(--mobile-nav-count, 5), minmax(0, 1fr)) !important;
-  gap: .26rem !important;
-  width: auto !important;
-  margin: 0 !important;
-  padding: .38rem !important;
-  padding-bottom: max(.38rem, calc(.38rem + var(--ios-safe-bottom) * .18)) !important;
-  border-radius: 1.28rem !important;
-  background: rgba(255, 255, 255, .96) !important;
-  border: 1px solid rgba(121, 191, 37, .20) !important;
-  box-shadow: 0 18px 46px rgba(26, 35, 22, .18) !important;
-  backdrop-filter: saturate(135%) blur(18px) !important;
-  -webkit-backdrop-filter: saturate(135%) blur(18px) !important;
-}
-
 html.adaptive-mobile-viewport body.app-body .mobile-nav-item {
   min-width: 0 !important;
   min-height: 3.2rem !important;
@@ -42028,26 +41775,6 @@ html.desktop-like-pointer body.app-body .settings-standalone-layout > .objects-t
   will-change: auto !important;
 }
 @media (max-width: 767.98px) {
-  html.mobile-viewport body.app-body .mobile-bottom-nav,
-  html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav {
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: .54rem .28rem calc(.58rem + var(--ios-safe-bottom)) !important;
-    background: linear-gradient(180deg, #252e3a 0%, #1a212c 100%) !important;
-    background-image: linear-gradient(180deg, #252e3a 0%, #1a212c 100%) !important;
-    background-color: #1a212c !important;
-    border: 0 !important;
-    border-top: 1px solid rgba(255, 255, 255, .06) !important;
-    border-radius: 1.55rem 1.55rem 0 0 !important;
-    box-shadow: 0 -16px 34px rgba(11, 17, 25, .28) !important;
-    overflow: hidden !important;
-  }
-
   html.mobile-viewport body.app-body .mobile-bottom-nav .mobile-nav-item,
   html.mobile-viewport body.app-body .mobile-bottom-nav .mobile-menu-toggle,
   html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav .mobile-nav-item,
@@ -43867,19 +43594,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     padding-top: 0 !important;
   }
 
-  html.mobile-viewport body.app-body .mobile-bottom-nav,
-  html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav {
-    left: var(--crm-mobile-shell-side) !important;
-    right: var(--crm-mobile-shell-side-right) !important;
-    bottom: .42rem !important;
-    width: auto !important;
-    min-height: 4.18rem !important;
-    padding-top: .46rem !important;
-    padding-bottom: calc(.46rem + max(0px, env(safe-area-inset-bottom) * .18)) !important;
-    border-radius: var(--crm-mobile-shell-bar-radius) !important;
-    box-shadow: 0 16px 34px rgba(8, 15, 24, .22) !important;
-  }
-
   html.mobile-viewport body.app-body .mobile-bottom-nav .mobile-nav-item,
   html.mobile-viewport body.app-body .mobile-bottom-nav .mobile-menu-toggle,
   html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav .mobile-nav-item,
@@ -44096,17 +43810,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     border-radius: 0 0 var(--crm-mobile-shell-bar-radius) var(--crm-mobile-shell-bar-radius) !important;
   }
 
-  html.mobile-viewport body.app-body .mobile-bottom-nav,
-  html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav {
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    padding-left: max(.28rem, var(--ios-safe-left)) !important;
-    padding-right: max(.28rem, var(--ios-safe-right)) !important;
-    padding-bottom: calc(.46rem + var(--ios-safe-bottom)) !important;
-    border-radius: var(--crm-mobile-shell-bar-radius) var(--crm-mobile-shell-bar-radius) 0 0 !important;
-  }
 }
 
 /* v333 fixed phone viewport reference: keep one 430px mobile composition on real phones. */
@@ -44597,8 +44300,7 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   html.real-phone-device body.app-body::before,
   html.real-phone-device body.app-body::after,
   html.real-phone-device body.app-body .mobile-app-topbar.mobile-shell-topbar,
-  html.real-phone-device body.app-body .mobile-project-topbar.mobile-shell-topbar,
-  html.real-phone-device body.app-body .mobile-bottom-nav {
+  html.real-phone-device body.app-body .mobile-project-topbar.mobile-shell-topbar {
     left: 50% !important;
     right: auto !important;
     width: min(100vw, var(--mobile-reference-width, 430px)) !important;
@@ -46657,17 +46359,14 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   html.mobile-viewport body.app-body::after,
   html.mobile-viewport body.app-body .mobile-app-topbar.mobile-shell-topbar,
   html.mobile-viewport body.app-body .mobile-project-topbar.mobile-shell-topbar,
-  html.mobile-viewport body.app-body .mobile-bottom-nav,
   html.adaptive-mobile-viewport body.app-body::before,
   html.adaptive-mobile-viewport body.app-body::after,
   html.adaptive-mobile-viewport body.app-body .mobile-app-topbar.mobile-shell-topbar,
   html.adaptive-mobile-viewport body.app-body .mobile-project-topbar.mobile-shell-topbar,
-  html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav,
   html.touch-app-device body.app-body::before,
   html.touch-app-device body.app-body::after,
   html.touch-app-device body.app-body .mobile-app-topbar.mobile-shell-topbar,
-  html.touch-app-device body.app-body .mobile-project-topbar.mobile-shell-topbar,
-  html.touch-app-device body.app-body .mobile-bottom-nav {
+  html.touch-app-device body.app-body .mobile-project-topbar.mobile-shell-topbar {
     left: 0 !important;
     right: 0 !important;
     width: 100vw !important;
@@ -46755,12 +46454,6 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     max-width: none !important;
   }
 
-  html.mobile-viewport body.app-body .mobile-bottom-nav,
-  html.adaptive-mobile-viewport body.app-body .mobile-bottom-nav,
-  html.touch-app-device body.app-body .mobile-bottom-nav {
-    padding-left: max(.32rem, env(safe-area-inset-left)) !important;
-    padding-right: max(.32rem, env(safe-area-inset-right)) !important;
-  }
 }
 
 /* v346 objects search field bugfix */

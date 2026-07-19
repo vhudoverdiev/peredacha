@@ -1557,6 +1557,10 @@
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
     body.app-body.app-body > nav.mobile-bottom-nav.mobile-bottom-nav-root {
     position: fixed !important;
+    z-index: 2147481000 !important;
+    display: grid !important;
+    grid-template-columns: repeat(var(--mobile-nav-count, 4), minmax(0, 1fr)) !important;
+    gap: 0 !important;
     top: auto !important;
     right: 0 !important;
     bottom: 0 !important;
@@ -1580,6 +1584,7 @@
     box-shadow: none !important;
     contain: layout paint !important;
     overflow: hidden !important;
+    transform: none !important;
     translate: none !important;
     scale: none !important;
   }
