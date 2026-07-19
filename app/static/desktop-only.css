@@ -1120,14 +1120,24 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
 
   html.desktop-like-pointer body.app-body:has(.assignments-page-head)
     .assignment-issued-actions .assignment-remove-user-icon {
-    display: block !important;
-    width: 1.22rem !important;
-    height: 1.22rem !important;
+    display: inline-flex !important;
+    width: auto !important;
+    height: auto !important;
+    align-items: center !important;
+    justify-content: center !important;
     color: #c43d36 !important;
-    stroke: #c43d36 !important;
-    stroke-width: 2.35 !important;
-    stroke-linecap: round !important;
-    stroke-linejoin: round !important;
+    font-size: 1.18rem !important;
+    line-height: 1 !important;
+    -webkit-text-fill-color: #c43d36 !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    .assignment-remove-user-icon::before {
+    color: #c43d36 !important;
+    font-size: 1.18rem !important;
+    line-height: 1 !important;
+    -webkit-text-fill-color: #c43d36 !important;
   }
 
   html.desktop-like-pointer body.app-body:has(.assignments-page-head)
@@ -1182,11 +1192,27 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     .assignment-remove-user-btn:is(:hover, :focus-visible)
     .assignment-remove-user-icon {
     color: #ffffff !important;
-    stroke: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    .assignment-remove-user-btn:is(:hover, :focus-visible)
+    .assignment-remove-user-icon::before {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
   }
 
   /* The backdrop is attached to <body>; keep the reparented assignee dialog
      one layer above it and explicitly interactive. */
+  html.desktop-like-pointer body.app-body:has(#assignmentChangeAssigneeModal.show)
+    .crm-page-entry-surface {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
+  }
+
   html.desktop-like-pointer body.app-body:has(#assignmentChangeAssigneeModal.show)
     > .modal-backdrop {
     z-index: 20020 !important;
