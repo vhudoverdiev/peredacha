@@ -51,9 +51,9 @@ html.desktop-like-pointer body.app-body
 
 html.desktop-like-pointer body.app-body
   .contractor-task-table :is(th.task-col-actions, td.task-actions-cell) {
-  width: 17.5rem !important;
-  min-width: 17.5rem !important;
-  max-width: 17.5rem !important;
+  width: 20rem !important;
+  min-width: 20rem !important;
+  max-width: 20rem !important;
 }
 
 html.desktop-like-pointer body.app-body .contractor-task-table td.task-status-cell {
@@ -119,24 +119,40 @@ html.desktop-like-pointer body.app-body
 
 html.desktop-like-pointer body.app-body .contractor-task-table td.task-actions-cell {
   box-sizing: border-box !important;
-  padding-left: .55rem !important;
+  padding-left: 1.15rem !important;
+  padding-right: .7rem !important;
   overflow: hidden !important;
 }
 
 html.desktop-like-pointer body.app-body
   .contractor-task-table td.task-actions-cell > .actions-cell {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
+  width: max-content !important;
+  min-width: max-content !important;
+  max-width: none !important;
+  margin: 0 0 0 auto !important;
   box-sizing: border-box !important;
   justify-content: flex-end !important;
-  gap: .3rem !important;
+  gap: .38rem !important;
   overflow: hidden !important;
 }
 
 html.desktop-like-pointer body.app-body
   .contractor-task-table td.task-actions-cell .btn {
   flex: 0 0 auto !important;
+}
+
+/* The objects page is shorter than the viewport when there are only a few
+   cards. Its desktop canvas must still cover the dark application body. */
+html.desktop-like-pointer body.app-body:has(.objects-page) {
+  min-height: 100vh !important;
+  background: #f6f8fb !important;
+  background-color: #f6f8fb !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.objects-page) .objects-layout {
+  min-height: calc(100vh / var(--desktop-stage-scale, 1)) !important;
+  background: #f6f8fb !important;
+  background-color: #f6f8fb !important;
 }
 
 /* The first assignment tab contains its label in a span. It is text, not the

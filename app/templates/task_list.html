@@ -4,7 +4,7 @@
 {% set is_dop = active_category and active_category.name == 'Доп.Соглашение' %}
 {% set status_pill_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'guarantee': 'status-pill-primary', 'concession': 'status-pill-muted', 'problem': 'status-pill-danger'} %}
 {% set selected_finishing_groups = args.getlist('finishing_group') %}
-<div data-ajax-pagination-page="remarks">
+<div class="{% if not tasks %}mobile-empty-results-page remarks-mobile-empty-page{% endif %}" data-ajax-pagination-page="remarks">
 <div class="page-head remarks-page-head" data-ajax-pagination-head>
   <div>
     <h1 class="page-title">{{ page_title or 'Замечания' }}</h1>
@@ -224,7 +224,13 @@
 
 <div class="remarks-export-scope js-bulk-selectable js-remark-export-scope" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" data-export-form="#{{ export_form_id }}" {% if current_user.role != 'viewer' %}data-bulk-persist-form="#{{ bulk_delete_form_id }}"{% endif %} data-selection-storage="local" data-premise-storage-key="{{ premise_storage_key }}" data-ajax-pagination-content data-ajax-items-selector=".task-row-link">
 
-<div class="card table-shell task-table-shell remarks-export-table-shell" data-search-query="{{ args.get('q', '')|e }}">
+{% if not tasks %}
+<div class="remarks-mobile-empty-panel" role="status" aria-live="polite">
+  <span>Замечаний по этому фильтру нет</span>
+</div>
+{% endif %}
+
+<div class="card table-shell task-table-shell remarks-export-table-shell{% if not tasks %} remarks-empty-table-shell{% endif %}" data-search-query="{{ args.get('q', '')|e }}">
   <div class="bulk-actions-panel js-bulk-panel d-none remarks-export-bulk-panel">
     <div class="bulk-actions-count">Выбрано: <b class="js-bulk-count">0</b> <span class="js-bulk-label">замечаний</span></div>
     {% if current_user.role != 'viewer' %}

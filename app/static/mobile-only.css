@@ -1646,3 +1646,191 @@
     transform: none !important;
   }
 }
+
+/* Empty Remarks and Issued Tasks are independent mobile canvases. The old
+   table-row empty states were affected by several legacy card/table rules and
+   could leave the dark body visible below the dock. These pages now own one
+   scroll surface that ends exactly above the fixed navigation. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty)) {
+    --mobile-empty-dock-gap: .75rem;
+    overflow: hidden !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    > :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-height: calc(100dvh - 72px) !important;
+    height: calc(100dvh - 72px) !important;
+    max-height: calc(100dvh - 72px) !important;
+    overflow: hidden !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    .app-main {
+    box-sizing: border-box !important;
+    display: flex !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    .app-content {
+    box-sizing: border-box !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: 1 1 auto !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain !important;
+    padding-bottom: var(--mobile-empty-dock-gap) !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    .crm-mobile-page-shell {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 100% !important;
+    flex-direction: column !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .remarks-empty-table-shell {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .remarks-mobile-empty-page {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 100% !important;
+    flex: 1 0 auto !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .remarks-mobile-empty-page .remarks-export-scope {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 5.6rem !important;
+    flex: 1 0 auto !important;
+    flex-direction: column !important;
+    margin: .7rem 0 0 !important;
+    padding: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .remarks-mobile-empty-panel {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 5.6rem !important;
+    flex: 1 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 1rem 1.15rem !important;
+    border: 1px solid rgba(207, 221, 195, .96) !important;
+    border-radius: 1.15rem !important;
+    background:
+      radial-gradient(circle at 84% 10%, rgba(141, 214, 44, .09), transparent 32%),
+      rgba(255, 255, 255, .96) !important;
+    color: #172033 !important;
+    font-size: clamp(.94rem, 4vw, 1.03rem) !important;
+    font-weight: 760 !important;
+    line-height: 1.28 !important;
+    text-align: center !important;
+    overflow-wrap: anywhere !important;
+    box-shadow: 0 14px 30px rgba(31, 45, 61, .06) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body [data-ajax-pagination-page="assignments"]:has(.assignment-issued-layout-empty) {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 100% !important;
+    flex: 1 0 auto !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .assignment-issued-layout-empty {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 12rem !important;
+    flex: 1 0 auto !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .assignment-issued-layout-empty > .assignment-issued-empty {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 12rem !important;
+    flex: 1 0 auto !important;
+    margin: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .assignment-issued-layout-empty > .assignment-issued-empty > .card-body {
+    display: flex !important;
+    min-height: 100% !important;
+    flex: 1 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-direction: column !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-mobile-empty-panel) [data-ajax-pagination-summary] .search-result-summary {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 4.25rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: .7rem 0 0 !important;
+    padding: .95rem 1rem !important;
+    border: 1px solid rgba(214, 226, 204, .95) !important;
+    border-radius: 1.05rem !important;
+    background: rgba(255, 255, 255, .94) !important;
+    color: #172033 !important;
+    font-weight: 760 !important;
+    text-align: center !important;
+    overflow-wrap: anywhere !important;
+    box-shadow: 0 12px 26px rgba(31, 45, 61, .06) !important;
+  }
+}

@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v47-mobile-dock-canvas-fix';
+const STATIC_CACHE = 'peredacha-static-v49-offline-retry-reconnect';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -12,14 +12,14 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
-  '/static/style.css?v=v612-mobile-loader-edge-fix',
-  '/static/mobile-only.css?v=v40-mobile-dock-canvas-fix',
+  '/static/style.css?v=v613-mobile-empty-canvas-rebuild',
+  '/static/mobile-only.css?v=v41-mobile-empty-canvas-rebuild',
   '/static/desktop-only.css?v=v22-assignment-tabs-partial',
   '/static/script.js?v=v625-assignment-tabs-partial',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>
-<html lang="ru">
+<html lang="ru" class="loading">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
@@ -97,6 +97,7 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
       box-shadow: 0 .9rem 1.9rem rgba(105,170,31,.22);
     }
     .retry svg { display: block; width: 1.12rem; height: 1.12rem; flex: 0 0 1.12rem; overflow: visible; fill: none; stroke: currentColor; }
+    .retry:disabled { cursor: wait; }
     html.loading .offline-card { opacity: 0; pointer-events: none; transform: translate(-50%,calc(-50% + 1rem)) scale(.97); }
     html.ready .offline-loader { opacity: 0; pointer-events: none; transform: translate(-50%,calc(-50% - .8rem)) scale(.97); }
     html.ready .offline-card { opacity: 1; transform: translate(-50%,-50%) scale(1); }
@@ -118,10 +119,72 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
       <div class="offline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a10.9 10.9 0 0 1 14.1 0"/><path d="M8.5 16a6.1 6.1 0 0 1 7 0"/><path d="M12 19.5h.01"/><path d="m3 3 18 18"/></svg></div>
       <h1>Упссс…</h1><h2>Нет интернета</h2>
       <p>Проверьте подключение к сети и попробуйте открыть приложение ещё раз.</p>
-      <button class="retry" type="button" onclick="location.reload()"><svg viewBox="-1 -1 26 26" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6v5h-5"/><path d="M20 11a8 8 0 1 0 1.2 5.7"/></svg><span>Попробовать снова</span></button>
+      <button class="retry" id="offlineRetryButton" type="button"><svg viewBox="-1 -1 26 26" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6v5h-5"/><path d="M20 11a8 8 0 1 0 1.2 5.7"/></svg><span>Попробовать снова</span></button>
     </section>
   </main>
-  <script>setTimeout(()=>{document.documentElement.classList.remove('loading');document.documentElement.classList.add('ready')},1150);document.documentElement.classList.add('loading');addEventListener('online',()=>setTimeout(()=>location.reload(),250),{once:true});</script>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const retryButton = document.getElementById('offlineRetryButton');
+      const description = document.querySelector('.offline-card p');
+      const defaultDescription = description ? description.textContent : '';
+      const showCard = () => {
+        root.classList.remove('loading', 'retrying');
+        root.classList.add('ready');
+        if (retryButton) retryButton.disabled = false;
+      };
+      const showLoader = () => {
+        root.classList.remove('ready');
+        root.classList.add('loading', 'retrying');
+        if (retryButton) retryButton.disabled = true;
+      };
+      const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+      const retryOnline = async () => {
+        if (!retryButton || retryButton.disabled) return;
+        showLoader();
+        if (description) description.textContent = defaultDescription;
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 9000);
+        const minimumLogoTime = wait(520);
+
+        try {
+          const probeUrl = new URL(location.href);
+          probeUrl.searchParams.set('_crm_online_probe', Date.now().toString());
+          const response = await fetch(probeUrl.toString(), {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-store',
+            redirect: 'follow',
+            headers: {
+              'Accept': 'text/html',
+              'X-CRM-Online-Probe': '1'
+            },
+            signal: controller.signal
+          });
+          if (!response.ok) throw new Error('CRM is not reachable');
+
+          await minimumLogoTime;
+          const targetUrl = new URL(location.href);
+          targetUrl.searchParams.delete('_crm_online_probe');
+          targetUrl.searchParams.set('_crm_retry', Date.now().toString());
+          location.replace(targetUrl.toString());
+        } catch (error) {
+          await minimumLogoTime;
+          if (description) {
+            description.textContent = 'Соединение пока не восстановлено. Проверьте сеть и попробуйте снова.';
+          }
+          showCard();
+        } finally {
+          clearTimeout(timeout);
+        }
+      };
+
+      retryButton?.addEventListener('click', retryOnline);
+      setTimeout(showCard, 1150);
+    })();
+  </script>
 </body>
 </html>`;
 

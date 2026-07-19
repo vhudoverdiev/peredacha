@@ -52270,57 +52270,6 @@ html.tablet-touch-device body.app-body .crm-mobile-page-shell {
     inset 0 1px 0 rgba(255, 255, 255, 0.78) !important;
 }
 
-/* v404: compact, full-width empty state on the mobile remarks page. */
-@media (max-width: 767.98px) {
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-page-head) .remarks-export-table-shell:has(.remarks-empty-row) {
-    margin-bottom: 0 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table
-    tbody:has(.remarks-empty-row) {
-    display: block !important;
-    width: 100% !important;
-    padding: 0 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table
-    .remarks-empty-row {
-    display: block !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-page-head) .remarks-export-table-shell .task-table.mobile-card-table
-    .remarks-empty-cell {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 4.6rem !important;
-    margin: 0 !important;
-    padding: .9rem .72rem !important;
-    border: 0 !important;
-    color: #5f6a59 !important;
-    font-size: clamp(.76rem, 3.35vw, .9rem) !important;
-    font-weight: 500 !important;
-    line-height: 1.25 !important;
-    text-align: center !important;
-    white-space: nowrap !important;
-    overflow-wrap: normal !important;
-    word-break: normal !important;
-  }
-
-}
-
 /* v405: final installed-app geometry for iOS/Android home-screen launches. */
 html.standalone-app {
   width: 100%;
@@ -55985,35 +55934,8 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
   box-shadow: 0 10px 24px rgba(31, 45, 61, .05);
 }
 
-@media (max-width: 767.98px) {
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .assignment-empty-row,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .remarks-empty-row {
-    display: block !important;
-    width: 100% !important;
-    border: 0 !important;
-    background: transparent !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .assignment-empty-cell,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .remarks-empty-cell {
-    display: block !important;
-    width: 100% !important;
-    padding: 1.1rem !important;
-    border: 0 !important;
-    background: transparent !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .assignment-empty-state,
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .remarks-empty-state {
-    display: flex !important;
-    width: min(100%, 22rem) !important;
-    min-height: 4.2rem !important;
-    margin: 0 auto !important;
-    padding: .9rem 1rem !important;
-    font-size: 1rem !important;
-    white-space: nowrap !important;
-    overflow-wrap: normal !important;
-  }
+.remarks-mobile-empty-panel {
+  display: none;
 }
 
 /* Mobile measurements: ordered list only, compact header and stable inline edit. */
@@ -56344,85 +56266,6 @@ body.app-body .material-detail-actions .js-material-request-edit .bi::before {
 
 /* v561: mobile remarks edit/split buttons belong under the remark text,
    not under the left "Замечание" label column. */
-/* v563: mobile empty states for Remarks and Assignments should be full-width
-   readable cards, not clipped table cells or tiny floating buttons. */
-@media (max-width: 767.98px) {
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body :is(.remarks-empty-row, .assignment-empty-row) {
-    display: block !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    overflow: visible !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body :is(.remarks-empty-cell, .assignment-empty-cell) {
-    box-sizing: border-box !important;
-    display: block !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: .65rem .72rem !important;
-    border: 0 !important;
-    background: transparent !important;
-    text-align: center !important;
-    white-space: normal !important;
-    overflow: visible !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body :is(.remarks-empty-cell, .assignment-empty-cell)::before {
-    display: none !important;
-    content: none !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body :is(.remarks-empty-state, .assignment-empty-state),
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-page-head) [data-ajax-pagination-summary] .search-result-summary {
-    box-sizing: border-box !important;
-    display: flex !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-height: 4.25rem !important;
-    align-items: center !important;
-    justify-content: center !important;
-    margin: 0 auto !important;
-    padding: .95rem 1rem !important;
-    border: 1px solid rgba(214, 226, 204, .95) !important;
-    border-radius: 1.05rem !important;
-    background: rgba(255, 255, 255, .94) !important;
-    color: #172033 !important;
-    font-size: clamp(.94rem, 4.1vw, 1.04rem) !important;
-    font-weight: 760 !important;
-    line-height: 1.25 !important;
-    text-align: center !important;
-    white-space: normal !important;
-    overflow: visible !important;
-    overflow-wrap: anywhere !important;
-    word-break: normal !important;
-    box-shadow: 0 12px 26px rgba(31, 45, 61, .06) !important;
-    transform: none !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-page-head) [data-ajax-pagination-summary] {
-    display: block !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: .7rem 0 0 !important;
-    padding: 0 .72rem !important;
-  }
-}
-
 /* v566: rebuild issued-to-employees remark cards on mobile web. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
