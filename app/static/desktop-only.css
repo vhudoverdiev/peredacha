@@ -1317,7 +1317,7 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     > #avrDataModal .modal-dialog {
     width: min(1180px, calc(100vw - 3rem)) !important;
     max-width: min(1180px, calc(100vw - 3rem)) !important;
-    height: min(720px, calc(100vh - 3rem)) !important;
+    height: auto !important;
     max-height: calc(100vh - 3rem) !important;
     margin: 1.5rem auto !important;
     pointer-events: auto !important;
@@ -1326,7 +1326,8 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
   html.desktop-like-pointer.avr-modal-open body.app-body
     > #avrDataModal .modal-content {
     width: 100% !important;
-    height: 100% !important;
+    height: auto !important;
+    max-height: calc(100vh - 3rem) !important;
     min-height: 0 !important;
     pointer-events: auto !important;
   }
@@ -1338,7 +1339,18 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
 
   html.desktop-like-pointer.avr-modal-open body.app-body
     > #avrDataModal .modal-body {
+    flex: 0 1 auto !important;
     min-height: 0 !important;
     overflow-y: auto !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    > #avrDataModal .modal-footer .btn.btn-outline-secondary,
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    > #avrDataModal .modal-footer .btn.btn-outline-secondary:hover,
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    > #avrDataModal .modal-footer .btn.btn-outline-secondary:focus {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
   }
 }
