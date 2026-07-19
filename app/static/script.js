@@ -3528,6 +3528,52 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!rowsLeft) card.remove();
   };
 
+  const isDesktopAssignmentAction = () => {
+    if (document.documentElement.classList.contains('mobile-viewport')
+      || document.documentElement.classList.contains('adaptive-mobile-viewport')
+      || document.documentElement.classList.contains('touch-app-device')) {
+      return false;
+    }
+    return document.documentElement.classList.contains('desktop-like-pointer')
+      || window.matchMedia?.('(min-width: 768px) and (hover: hover) and (pointer: fine)').matches;
+  };
+
+  const submitChangeAssigneeForm = async (changeAssigneeForm, submitter = null) => {
+    if (!changeAssigneeForm || changeAssigneeForm.dataset.pending === '1') return;
+
+    const changeAssigneeModal = changeAssigneeForm.closest('#assignmentChangeAssigneeModal');
+    const selected = changeAssigneeForm.querySelector('input[name="new_responsible_id"]:checked:not(:disabled)');
+    if (!selected) {
+      showCrmNotice('Выберите нового исполнителя', 'warning');
+      return;
+    }
+
+    const saveButton = submitter || changeAssigneeForm.querySelector('button[type="submit"]');
+    const previousHtml = saveButton?.innerHTML || '';
+    changeAssigneeForm.dataset.pending = '1';
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Сохраняем';
+    }
+
+    try {
+      const data = await fetchAssignmentAction(changeAssigneeForm, new FormData(changeAssigneeForm));
+      window.bootstrap?.Modal?.getOrCreateInstance(changeAssigneeModal)?.hide();
+      if (window.crmRefreshIssuedAssignments) {
+        await window.crmRefreshIssuedAssignments();
+      }
+      showCrmNotice(data.message || 'Исполнитель изменён', 'success');
+    } catch (error) {
+      showCrmNotice(error.message || 'Не удалось изменить исполнителя', 'danger');
+    } finally {
+      delete changeAssigneeForm.dataset.pending;
+      if (saveButton) {
+        saveButton.disabled = false;
+        saveButton.innerHTML = previousHtml;
+      }
+    }
+  };
+
   const initAssignmentChangeAssigneeModal = () => {
     const changeAssigneeModal = document.getElementById('assignmentChangeAssigneeModal');
     if (!changeAssigneeModal) return null;
@@ -3584,55 +3630,20 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    const changeAssigneeForm = changeAssigneeModal.querySelector('.assignment-change-assignee-card');
-    const cancelButton = changeAssigneeModal.querySelector('.js-assignment-change-assignee-cancel');
-    cancelButton?.addEventListener('click', event => {
-      if (!document.documentElement.classList.contains('desktop-like-pointer')) return;
-      event.preventDefault();
-      event.stopPropagation();
-      window.bootstrap?.Modal?.getOrCreateInstance(changeAssigneeModal)?.hide();
-    });
-
-    changeAssigneeForm?.addEventListener('submit', async event => {
-      if (!document.documentElement.classList.contains('desktop-like-pointer')) return;
-      event.preventDefault();
-      event.stopPropagation();
-      if (changeAssigneeForm.dataset.pending === '1') return;
-
-      const selected = changeAssigneeForm.querySelector('input[name="new_responsible_id"]:checked:not(:disabled)');
-      if (!selected) {
-        showCrmNotice('Выберите нового исполнителя', 'warning');
-        return;
-      }
-
-      const submitter = event.submitter || changeAssigneeForm.querySelector('button[type="submit"]');
-      const previousHtml = submitter?.innerHTML || '';
-      changeAssigneeForm.dataset.pending = '1';
-      if (submitter) {
-        submitter.disabled = true;
-        submitter.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Сохраняем';
-      }
-
-      try {
-        const data = await fetchAssignmentAction(changeAssigneeForm, new FormData(changeAssigneeForm));
-        window.bootstrap?.Modal?.getOrCreateInstance(changeAssigneeModal)?.hide();
-        if (window.crmRefreshIssuedAssignments) {
-          await window.crmRefreshIssuedAssignments();
-        }
-        showCrmNotice(data.message || 'Исполнитель изменён', 'success');
-      } catch (error) {
-        showCrmNotice(error.message || 'Не удалось изменить исполнителя', 'danger');
-      } finally {
-        delete changeAssigneeForm.dataset.pending;
-        if (submitter) {
-          submitter.disabled = false;
-          submitter.innerHTML = previousHtml;
-        }
-      }
-    });
-
     return changeAssigneeModal;
   };
+
+  // The issued tab is injected without a page reload. Capture these two
+  // actions at document level so newly injected modal forms cannot fall back
+  // to a native navigation before their local initializer runs.
+  document.addEventListener('submit', event => {
+    const changeAssigneeForm = event.target.closest?.('.assignment-change-assignee-card');
+    if (!changeAssigneeForm || !isDesktopAssignmentAction()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    void submitChangeAssigneeForm(changeAssigneeForm, event.submitter);
+  }, true);
 
   window.crmInitAssignmentChangeAssigneeModal = initAssignmentChangeAssigneeModal;
   initAssignmentChangeAssigneeModal();
@@ -5648,7 +5659,7 @@ document.addEventListener('DOMContentLoaded', () => {
             submitter.style.width = `${currentWidth}px`;
             submitter.style.minWidth = `${currentWidth}px`;
           }
-          submitter.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>';
+          submitter.classList.add('is-submitting');
         } else {
           submitter.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Удаление...';
         }
@@ -6489,6 +6500,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   const modal = modalElement && window.bootstrap ? bootstrap.Modal.getOrCreateInstance(modalElement) : null;
+  if (desktopAvrModal) {
+    modalElement?.querySelectorAll('[data-avr-close]').forEach(button => {
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        modal?.hide();
+      });
+    });
+
+    // Closing the dialog must never be treated as an implicit form submit.
+    // Only the explicit download button is allowed to send the AVR form.
+    form.addEventListener('submit', event => {
+      if (event.submitter?.matches('[data-avr-download]')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    }, true);
+  }
   modalElement?.addEventListener('show.bs.modal', () => {
     if (document.documentElement.classList.contains('desktop-like-pointer')) {
       document.documentElement.classList.add('avr-modal-open');

@@ -54,7 +54,7 @@
             <h5 class="modal-title">Данные АВР</h5>
             <div class="small text-muted">Проверьте поля перед скачиванием Word.</div>
           </div>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-avr-close aria-label="Закрыть"></button>
         </div>
         <div class="modal-body">
           <div class="avr-form-grid">
@@ -108,8 +108,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
-          <button class="btn btn-primary" type="submit" {% if not apartments %}disabled{% endif %}>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-avr-close>Закрыть</button>
+          <button class="btn btn-primary" type="submit" data-avr-download {% if not apartments %}disabled{% endif %}>
             <i class="bi bi-download me-2"></i>Скачать АВР
           </button>
         </div>

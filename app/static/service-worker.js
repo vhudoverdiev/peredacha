@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v72-mobile-short-page-layout';
+const STATIC_CACHE = 'peredacha-static-v76-material-assignment-fixes';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,9 +13,9 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v625-unified-mobile-dock',
-  '/static/mobile-only.css?v=v61-mobile-short-page-layout',
-  '/static/desktop-only.css?v=v34-issued-modal-icon-match-save',
-  '/static/script.js?v=v633-login-csrf-refresh',
+  '/static/mobile-only.css?v=v64-mobile-short-page-layout',
+  '/static/desktop-only.css?v=v38-material-delete-stable',
+  '/static/script.js?v=v636-material-assignment-fixes',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>

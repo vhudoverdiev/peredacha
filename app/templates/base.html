@@ -708,7 +708,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v72-mobile-short-page-layout', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v76-material-assignment-fixes', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -746,8 +746,8 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v625-unified-mobile-dock">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v61-mobile-short-page-layout">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v37-avr-modal-compact">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v64-mobile-short-page-layout">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v38-material-delete-stable">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and current_user.role == 'verifier' %} verifier-layout{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <div class="crm-offline-banner js-crm-offline-banner" hidden>Не удается обновить. Показана сохраненная версия.</div>
@@ -1339,6 +1339,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v633-login-csrf-refresh"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v636-material-assignment-fixes"></script>
 </body>
 </html>

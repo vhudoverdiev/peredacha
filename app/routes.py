@@ -260,7 +260,7 @@ SECTION_LOCK_CHOICES = [
             "main.material_request_rename", "main.material_request_update", "main.material_request_delete",
             "main.material_requests_bulk_delete", "main.material_request_export", "main.material_writeoff_edit",
             "main.material_writeoff_delete", "main.material_writeoffs_bulk_delete", "main.material_expense_export",
-            "main.material_request_new", "main.material_writeoff_new", "main.material_manual_task_new",
+            "main.material_request_new", "main.material_writeoff_new", "main.material_writeoff_submit", "main.material_manual_task_new",
         },
     },
     {
@@ -6221,6 +6221,18 @@ def material_writeoff_new():
     return redirect(url_for("main.materials", tab="writeoff"))
 
 
+@bp.route("/materials/writeoff/submit", methods=["POST"])
+@login_required
+def material_writeoff_submit():
+    """Stable JSON target for the desktop write-off form.
+
+    Keep the legacy URL for direct navigation and old clients, while the
+    desktop AJAX form posts to a dedicated endpoint that cannot be confused
+    with the GET redirect route by a proxy or an outdated partial document.
+    """
+    return material_writeoff_new()
+
+
 def _project_apartment_options(project_id: int) -> list[Apartment]:
     grouped: dict[str, list[Apartment]] = {}
     for apartment in Apartment.query.filter(Apartment.project_id == project_id).all():
@@ -8785,7 +8797,7 @@ def work_report_export():
     task_count, last_updated = base_query.with_entities(func.count(Task.id), func.max(Task.updated_at)).one()
     cache_stamp = last_updated.strftime("%Y%m%d%H%M%S") if last_updated else "empty"
     cache_key = (
-        f"report-v5-all-statuses-{int(split_by_status)}"
+        f"report-v6-done-executor-only-all-statuses-{int(split_by_status)}"
         f"_executor-{int(include_executor)}_count-{task_count}_updated-{cache_stamp}"
     )
     path = build_export_path(filename_prefix, cache_key=cache_key)

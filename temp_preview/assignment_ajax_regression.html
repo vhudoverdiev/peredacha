@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ru" class="desktop-like-pointer">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Assignment AJAX regression</title>
+  <link rel="stylesheet" href="/app/static/vendor/bootstrap/bootstrap.min.css">
+</head>
+<body class="app-body">
+  <main>
+    <div data-ajax-pagination-page="assignments" data-assignment-view="issue">
+      <div class="assignment-subtabs mb-3">
+        <a class="assignment-subtab active" href="/assignments">Выдать задачи</a>
+        <a class="assignment-subtab" href="/assignments?view=issued">Выданные сотрудникам</a>
+      </div>
+      <div data-assignment-tab-content-start hidden></div>
+      <div id="issue-content">Выдача задач</div>
+      <div data-assignment-tab-content-end hidden></div>
+    </div>
+  </main>
+  <script>
+    window.__assignmentTest = { beforeUnload: 0, posts: 0, gets: 0 };
+    window.addEventListener('beforeunload', () => { window.__assignmentTest.beforeUnload += 1; });
+    window.__issuedDocument = `<!doctype html><html><head><title>Выданные</title></head><body>
+      <div data-ajax-pagination-page="assignments" data-assignment-view="issued">
+        <div class="assignment-subtabs mb-3">
+          <a class="assignment-subtab" href="/assignments">Выдать задачи</a>
+          <a class="assignment-subtab active" href="/assignments?view=issued">Выданные сотрудникам</a>
+        </div>
+        <div data-assignment-tab-content-start hidden></div>
+        <div class="assignment-issued-filters"><a class="assignment-filter-pill active" href="/assignments?view=issued&amp;issued_day=today">Сегодня</a></div>
+        <section class="assignment-issued-layout">
+          <article class="assignment-issued-card">
+            <div class="assignment-issued-row">
+              <button class="js-assignment-change-assignee-open" type="button" data-bs-toggle="modal" data-bs-target="#assignmentChangeAssigneeModal" data-task-id="10" data-room="кв 1" data-task-text="Тестовая задача" data-current-responsible-id="1" data-current-responsible-name="Первый">Сменить</button>
+            </div>
+          </article>
+        </section>
+        <div class="modal fade assignment-change-assignee-modal" id="assignmentChangeAssigneeModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content assignment-change-assignee-card" method="post" action="/assignments?view=issued">
+              <input type="hidden" name="change_assignee_task_id" value="" class="js-change-assignee-task-id">
+              <div class="assignment-change-assignee-head">
+                <button type="button" data-bs-dismiss="modal">Закрыть</button>
+              </div>
+              <div class="assignment-change-assignee-taskbox">
+                <b class="js-change-assignee-room">—</b>
+                <b class="js-change-assignee-current">—</b>
+                <p class="js-change-assignee-task-text">—</p>
+              </div>
+              <div class="assignment-change-assignee-list">
+                <label class="assignment-change-assignee-option"><input type="radio" name="new_responsible_id" value="1"><span>Первый</span></label>
+                <label class="assignment-change-assignee-option"><input type="radio" name="new_responsible_id" value="2"><span>Второй</span></label>
+              </div>
+              <div class="assignment-change-assignee-actions">
+                <button type="submit">Сохранить</button>
+                <button type="button" class="js-assignment-change-assignee-cancel" data-bs-dismiss="modal">Отмена</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div data-assignment-tab-content-end hidden></div>
+      </div>
+    </body></html>`;
+    window.fetch = async (input, options = {}) => {
+      if (String(options.method || 'GET').toUpperCase() === 'POST') {
+        window.__assignmentTest.posts += 1;
+        return new Response(JSON.stringify({ ok: true, message: 'Исполнитель изменён' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      window.__assignmentTest.gets += 1;
+      return new Response(window.__issuedDocument, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    };
+  </script>
+  <script src="/app/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="/app/static/script.js"></script>
+</body>
+</html>

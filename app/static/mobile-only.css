@@ -2028,6 +2028,32 @@
     flex-direction: column !important;
   }
 
+  /* The shared mobile documents rule reserves a second 72px dock inside the
+     page. The dock is fixed already, so Account ended 77px above it while
+     Tasks ended 12px above it. Remove only that duplicate content reserve. */
+  html.standalone-app body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
+    main.documents-content.documents-content {
+    padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
+    scroll-padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
+  }
+
+  /* Empty "Issued to employees" is another short page, but its assignment
+     filter selector had greater specificity than the shared short-page rule.
+     Keep the final card/surface 12px above the same fixed dock. */
+  html.standalone-app body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)
+    main.app-content.app-content {
+    padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
+    scroll-padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
+  }
+
+  html.standalone-app body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)
+    .crm-mobile-page-shell {
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+  }
+
   html body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
     .account-page {
     min-height: 0 !important;
@@ -2040,6 +2066,11 @@
   html body.app-body.app-body .assignment-manual-task-form
     :is(select, option, .form-select, .developer-select-button,
         .developer-select-value, .developer-select-option) {
+    font-weight: 400 !important;
+  }
+
+  html body.app-body.app-body .assignment-manual-task-form
+    .developer-native-select.form-select {
     font-weight: 400 !important;
   }
 }

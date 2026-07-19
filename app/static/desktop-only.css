@@ -1283,6 +1283,7 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
 
   html.desktop-like-pointer body.app-body
     .material-writeoff-delete-btn {
+    position: relative !important;
     display: inline-grid !important;
     place-items: center !important;
     width: 40px !important;
@@ -1291,6 +1292,25 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     padding: 0 !important;
     overflow: hidden !important;
     white-space: nowrap !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .material-writeoff-delete-btn.is-submitting > i {
+    opacity: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .material-writeoff-delete-btn.is-submitting::after {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border .75s linear infinite;
   }
 
   html.desktop-like-pointer.avr-modal-open body.app-body

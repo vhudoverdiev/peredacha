@@ -197,7 +197,7 @@
   </div>
 </div>
 
-<form method="post" action="{{ url_for('main.material_writeoff_new') }}" class="material-writeoff-form js-material-writeoff-form js-multi-material-form" data-submit-url="{{ url_for('main.material_writeoff_new') }}" data-selection-key="material-writeoff-{{ project.id }}" data-no-persist-selection="1">
+<form method="post" action="{{ url_for('main.material_writeoff_new') }}" class="material-writeoff-form js-material-writeoff-form js-multi-material-form" data-submit-url="{{ url_for('main.material_writeoff_submit') }}" data-selection-key="material-writeoff-{{ project.id }}" data-no-persist-selection="1">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="js-material-selected-hidden"></div>
   <div class="row g-3">

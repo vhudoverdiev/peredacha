@@ -570,23 +570,24 @@ def export_report_tasks_excel(
     tasks = list(tasks)
 
     wb = Workbook(write_only=True)
-    headers = ["Помещение", "Замечание", "Статус"]
-    widths = [18, 110, 28]
-    if include_executor:
-        headers.append("Исполнитель")
-        widths.append(28)
-    headers.append("Дата выполнения")
-    widths.append(20)
     if split_by_status:
         grouped_tasks = {sheet_name: [] for sheet_name, _ in REPORT_STATUS_SHEETS}
         for task in tasks:
             grouped_tasks[_report_status_sheet(task)].append(task)
         for sheet_name, _ in REPORT_STATUS_SHEETS:
+            sheet_has_executor = include_executor and sheet_name == "Выполненные"
+            headers = ["Помещение", "Замечание", "Статус"]
+            widths = [18, 110, 28]
+            if sheet_has_executor:
+                headers.append("Исполнитель")
+                widths.append(28)
+            headers.append("Дата выполнения")
+            widths.append(20)
             ws = wb.create_sheet(title=sheet_name)
             set_column_widths(ws, widths)
             _write_only_header_row(ws, headers, REPORT_HEADER_FILL)
             for task in grouped_tasks[sheet_name]:
-                ws.append(_report_task_row(task, include_executor=include_executor))
+                ws.append(_report_task_row(task, include_executor=sheet_has_executor))
     else:
         ws = wb.create_sheet(title="Отчет")
         simple_headers = ["Помещение", "Замечание"]
