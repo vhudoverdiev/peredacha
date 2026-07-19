@@ -3547,6 +3547,53 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
+    const changeAssigneeForm = changeAssigneeModal.querySelector('.assignment-change-assignee-card');
+    const cancelButton = changeAssigneeModal.querySelector('.js-assignment-change-assignee-cancel');
+    cancelButton?.addEventListener('click', event => {
+      if (!document.documentElement.classList.contains('desktop-like-pointer')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      window.bootstrap?.Modal?.getOrCreateInstance(changeAssigneeModal)?.hide();
+    });
+
+    changeAssigneeForm?.addEventListener('submit', async event => {
+      if (!document.documentElement.classList.contains('desktop-like-pointer')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (changeAssigneeForm.dataset.pending === '1') return;
+
+      const selected = changeAssigneeForm.querySelector('input[name="new_responsible_id"]:checked:not(:disabled)');
+      if (!selected) {
+        showCrmNotice('Выберите нового исполнителя', 'warning');
+        return;
+      }
+
+      const submitter = event.submitter || changeAssigneeForm.querySelector('button[type="submit"]');
+      const previousHtml = submitter?.innerHTML || '';
+      changeAssigneeForm.dataset.pending = '1';
+      if (submitter) {
+        submitter.disabled = true;
+        submitter.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Сохраняем';
+      }
+
+      try {
+        const data = await fetchAssignmentAction(changeAssigneeForm, new FormData(changeAssigneeForm));
+        window.bootstrap?.Modal?.getOrCreateInstance(changeAssigneeModal)?.hide();
+        if (window.crmRefreshIssuedAssignments) {
+          await window.crmRefreshIssuedAssignments();
+        }
+        showCrmNotice(data.message || 'Исполнитель изменён', 'success');
+      } catch (error) {
+        showCrmNotice(error.message || 'Не удалось изменить исполнителя', 'danger');
+      } finally {
+        delete changeAssigneeForm.dataset.pending;
+        if (submitter) {
+          submitter.disabled = false;
+          submitter.innerHTML = previousHtml;
+        }
+      }
+    });
+
     return changeAssigneeModal;
   };
 
@@ -5092,7 +5139,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-          const response = await fetch(form.action || window.location.href, {
+          const submitUrl = form.dataset.submitUrl || form.getAttribute('action') || window.location.href;
+          const response = await fetch(new URL(submitUrl, document.baseURI).toString(), {
             method: 'POST',
             body: formData,
             credentials: 'same-origin',
@@ -5553,7 +5601,20 @@ document.addEventListener('DOMContentLoaded', () => {
         submitter.classList.add('disabled');
         submitter.setAttribute('aria-disabled', 'true');
         submitter.style.pointerEvents = 'none';
-        submitter.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Удаление...';
+        const keepCompactMaterialDelete = (
+          document.documentElement.classList.contains('desktop-like-pointer')
+          && submitter.classList.contains('material-writeoff-delete-btn')
+        );
+        if (keepCompactMaterialDelete) {
+          const currentWidth = Math.ceil(submitter.getBoundingClientRect().width);
+          if (currentWidth > 0) {
+            submitter.style.width = `${currentWidth}px`;
+            submitter.style.minWidth = `${currentWidth}px`;
+          }
+          submitter.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>';
+        } else {
+          submitter.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Удаление...';
+        }
       }
       close();
       if (submitter) {
@@ -6373,6 +6434,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalElement = form.querySelector('[data-avr-modal]');
   const openModalButton = form.querySelector('[data-avr-open-modal]');
   const modal = modalElement && window.bootstrap ? bootstrap.Modal.getOrCreateInstance(modalElement) : null;
+  modalElement?.addEventListener('show.bs.modal', () => {
+    if (document.documentElement.classList.contains('desktop-like-pointer')) {
+      document.documentElement.classList.add('avr-modal-open');
+    }
+  });
+  modalElement?.addEventListener('hidden.bs.modal', () => {
+    document.documentElement.classList.remove('avr-modal-open');
+  });
   let apartments = [];
   try {
     apartments = JSON.parse(source?.textContent || '[]');

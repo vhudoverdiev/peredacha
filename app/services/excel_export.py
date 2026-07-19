@@ -540,13 +540,22 @@ def _report_status_label(task: Task) -> str:
     return label
 
 
-def _report_task_row(task: Task) -> list[str]:
-    return [
+def _report_task_executor(task: Task) -> str:
+    if task.status != STATUS_DONE or not task.responsible:
+        return ""
+    return str(task.responsible.full_name or task.responsible.username or "").strip()
+
+
+def _report_task_row(task: Task, *, include_executor: bool = False) -> list[str]:
+    row = [
         (_excel_premise_label(task.apartment) if task.apartment else ""),
         _report_task_remark(task),
         _report_status_label(task),
-        task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
     ]
+    if include_executor:
+        row.append(_report_task_executor(task))
+    row.append(task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "")
+    return row
 
 
 def export_report_tasks_excel(
@@ -555,34 +564,49 @@ def export_report_tasks_excel(
     cache_key: str | None = None,
     *,
     split_by_status: bool = False,
+    include_executor: bool = False,
 ) -> Path:
     path = build_export_path(filename_prefix, cache_key=cache_key)
     tasks = list(tasks)
 
     wb = Workbook(write_only=True)
-    headers = ["Помещение", "Замечание", "Статус", "Дата выполнения"]
+    headers = ["Помещение", "Замечание", "Статус"]
+    widths = [18, 110, 28]
+    if include_executor:
+        headers.append("Исполнитель")
+        widths.append(28)
+    headers.append("Дата выполнения")
+    widths.append(20)
     if split_by_status:
         grouped_tasks = {sheet_name: [] for sheet_name, _ in REPORT_STATUS_SHEETS}
         for task in tasks:
             grouped_tasks[_report_status_sheet(task)].append(task)
         for sheet_name, _ in REPORT_STATUS_SHEETS:
             ws = wb.create_sheet(title=sheet_name)
-            set_column_widths(ws, [18, 110, 28, 20])
+            set_column_widths(ws, widths)
             _write_only_header_row(ws, headers, REPORT_HEADER_FILL)
             for task in grouped_tasks[sheet_name]:
-                ws.append(_report_task_row(task))
+                ws.append(_report_task_row(task, include_executor=include_executor))
     else:
         ws = wb.create_sheet(title="Отчет")
-        set_column_widths(ws, [18, 110, 20])
-        _write_only_header_row(ws, ["Помещение", "Замечание", "Дата выполнения"], REPORT_HEADER_FILL)
+        simple_headers = ["Помещение", "Замечание"]
+        simple_widths = [18, 110]
+        if include_executor:
+            simple_headers.append("Исполнитель")
+            simple_widths.append(28)
+        simple_headers.append("Дата выполнения")
+        simple_widths.append(20)
+        set_column_widths(ws, simple_widths)
+        _write_only_header_row(ws, simple_headers, REPORT_HEADER_FILL)
         for task in tasks:
-            ws.append(
-                [
-                    (_excel_premise_label(task.apartment) if task.apartment else ""),
-                    _report_task_remark(task),
-                    task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
-                ]
-            )
+            row = [
+                (_excel_premise_label(task.apartment) if task.apartment else ""),
+                _report_task_remark(task),
+            ]
+            if include_executor:
+                row.append(_report_task_executor(task))
+            row.append(task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "")
+            ws.append(row)
     wb.save(path)
     return path
 

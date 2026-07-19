@@ -197,7 +197,7 @@
   </div>
 </div>
 
-<form method="post" action="{{ url_for('main.material_writeoff_new') }}" class="material-writeoff-form js-material-writeoff-form js-multi-material-form" data-selection-key="material-writeoff-{{ project.id }}" data-no-persist-selection="1">
+<form method="post" action="{{ url_for('main.material_writeoff_new') }}" class="material-writeoff-form js-material-writeoff-form js-multi-material-form" data-submit-url="{{ url_for('main.material_writeoff_new') }}" data-selection-key="material-writeoff-{{ project.id }}" data-no-persist-selection="1">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="js-material-selected-hidden"></div>
   <div class="row g-3">
@@ -366,9 +366,9 @@
               {% if can_edit_materials %}
               <div class="material-history-actions">
                 <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.material_writeoff_edit', writeoff_id=writeoff.id) }}" title="Редактировать списание" aria-label="Редактировать списание"><i class="bi bi-pencil-square"></i></a>
-                <form method="post" action="{{ url_for('main.material_writeoff_delete', writeoff_id=writeoff.id) }}" data-confirm="Удалить это списание? Материал вернётся на баланс.">
+                <form method="post" action="{{ url_for('main.material_writeoff_delete', writeoff_id=writeoff.id) }}" class="material-writeoff-delete-form" data-confirm="Удалить это списание? Материал вернётся на баланс.">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-outline-danger btn-sm" type="submit" title="Удалить списание" aria-label="Удалить списание"><i class="bi bi-trash"></i></button>
+                  <button class="btn btn-outline-danger btn-sm material-writeoff-delete-btn" type="submit" title="Удалить списание" aria-label="Удалить списание"><i class="bi bi-trash"></i></button>
                 </form>
               </div>
               {% endif %}

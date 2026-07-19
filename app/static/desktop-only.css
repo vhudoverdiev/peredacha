@@ -1280,4 +1280,65 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     ) {
     pointer-events: auto !important;
   }
+
+  html.desktop-like-pointer body.app-body
+    .material-writeoff-delete-btn {
+    display: inline-grid !important;
+    place-items: center !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    .crm-page-entry-surface {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
+    contain: none !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    > .modal-backdrop {
+    z-index: 20020 !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    #avrDataModal {
+    z-index: 20030 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    #avrDataModal .modal-dialog {
+    width: min(1180px, calc(100vw - 3rem)) !important;
+    max-width: min(1180px, calc(100vw - 3rem)) !important;
+    height: min(720px, calc(100vh - 3rem)) !important;
+    max-height: calc(100vh - 3rem) !important;
+    margin: 1.5rem auto !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    #avrDataModal .modal-content {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    #avrDataModal :is(.modal-body, .modal-header, .modal-footer, button, input, select, textarea, label) {
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    #avrDataModal .modal-body {
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
 }

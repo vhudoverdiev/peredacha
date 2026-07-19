@@ -8737,6 +8737,7 @@ def work_report_export():
     today = date.today()
     week = request.args.get("week", type=int)
     all_statuses = request.args.get("all_statuses") == "1"
+    include_executor = request.args.get("include_executor") == "1"
     if week and week > 0:
         end = today - timedelta(days=(week - 1) * 7)
         start = end - timedelta(days=6)
@@ -8783,18 +8784,27 @@ def work_report_export():
         split_by_status = False
     task_count, last_updated = base_query.with_entities(func.count(Task.id), func.max(Task.updated_at)).one()
     cache_stamp = last_updated.strftime("%Y%m%d%H%M%S") if last_updated else "empty"
-    cache_key = f"report-v4-all-statuses-{int(split_by_status)}_count-{task_count}_updated-{cache_stamp}"
+    cache_key = (
+        f"report-v5-all-statuses-{int(split_by_status)}"
+        f"_executor-{int(include_executor)}_count-{task_count}_updated-{cache_stamp}"
+    )
     path = build_export_path(filename_prefix, cache_key=cache_key)
     download_name = f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
     if path.exists():
         return send_file(path, as_attachment=True, download_name=download_name)
     tasks = (
-        base_query.options(selectinload(Task.apartment))
+        base_query.options(selectinload(Task.apartment), selectinload(Task.responsible))
         .join(Apartment)
         .order_by(Task.completed_date.desc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc())
         .all()
     )
-    path = export_report_tasks_excel(tasks, filename_prefix, cache_key=cache_key, split_by_status=split_by_status)
+    path = export_report_tasks_excel(
+        tasks,
+        filename_prefix,
+        cache_key=cache_key,
+        split_by_status=split_by_status,
+        include_executor=include_executor,
+    )
     return send_file(path, as_attachment=True, download_name=download_name)
 
 
