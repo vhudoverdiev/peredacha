@@ -40308,7 +40308,9 @@ html.desktop-like-pointer body.app-body:has(.apartments-page) .floating-error-co
     --ref-mobile-shell-border: rgba(15, 23, 40, .08);
     --ref-mobile-shell-shadow: 0 20px 44px rgba(15, 23, 42, .08);
     --ref-mobile-topbar-height: calc(4.9rem + var(--ios-safe-top));
-    --ref-mobile-nav-height: calc(5.45rem + var(--ios-safe-bottom));
+    /* The fixed dock already covers the iOS bottom edge. Adding the safe-area
+       inset here made the two-item worker dock taller than the main CRM dock. */
+    --ref-mobile-nav-height: 72px;
     background: var(--ref-mobile-shell-bg) !important;
   }
 

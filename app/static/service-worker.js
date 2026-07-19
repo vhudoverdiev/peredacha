@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v69-mobile-pwa-stable-viewport-dock';
+const STATIC_CACHE = 'peredacha-static-v70-worker-dock-geometry';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -12,8 +12,8 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v623-mobile-nav-no-transient-state',
-  '/static/mobile-only.css?v=v58-mobile-pwa-stable-viewport-dock',
+  '/static/style.css?v=v624-worker-dock-geometry',
+  '/static/mobile-only.css?v=v59-worker-dock-geometry',
   '/static/desktop-only.css?v=v34-issued-modal-icon-match-save',
   '/static/script.js?v=v630-issued-assignee-modal-layer',
 ];

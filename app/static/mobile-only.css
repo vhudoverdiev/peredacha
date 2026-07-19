@@ -1373,6 +1373,27 @@
     background-color: #111820 !important;
   }
 
+  /* Worker roles render a separate two-item dock. Keep it on the same fixed
+     72px geometry as the four-item CRM dock, including before/after an empty
+     task list is replaced by populated content. */
+  html body.app-body.app-body > nav.mobile-worker-bottom-nav.mobile-bottom-nav-root {
+    --ref-mobile-nav-height: 72px !important;
+    height: 72px !important;
+    min-height: 72px !important;
+    max-height: 72px !important;
+    padding: 4px 5px 3px !important;
+  }
+
+  html body.app-body.app-body
+    > nav.mobile-worker-bottom-nav.mobile-bottom-nav-root
+    > .mobile-nav-item {
+    align-self: stretch !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    padding-block: 0 !important;
+  }
+
   html body.app-body.app-body.app-body {
     min-height: var(--app-height, 100dvh) !important;
     height: auto !important;
