@@ -52453,13 +52453,6 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
     -webkit-tap-highlight-color: transparent !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
-    .mobile-bottom-nav .mobile-nav-item:is(.is-touching, .is-navigation-pending) {
-    color: #8dde2c !important;
-    -webkit-text-fill-color: #8dde2c !important;
-    opacity: 1 !important;
-    transform: none !important;
-  }
 }
 
 /* v416: clip scrolling page content below the fixed mobile header. */

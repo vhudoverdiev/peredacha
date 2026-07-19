@@ -4722,53 +4722,23 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', () => {
   let mobileNavGesture = null;
 
-  const activateMobileNavLink = link => {
-    const nav = link?.closest?.('.mobile-bottom-nav');
-    if (!nav) return null;
-    const previousActive = nav.querySelector('.mobile-nav-item.active');
-    nav.querySelectorAll('.mobile-nav-item').forEach(item => {
-      item.classList.remove('active', 'is-navigation-pending', 'is-touching');
-      item.removeAttribute('aria-current');
-    });
-    link.classList.add('active', 'is-navigation-pending');
-    link.setAttribute('aria-current', 'page');
-    return previousActive;
-  };
-
-  const restoreMobileNavLink = gesture => {
-    const nav = gesture?.link?.closest?.('.mobile-bottom-nav');
-    if (!nav) return;
-    nav.querySelectorAll('.mobile-nav-item').forEach(item => {
-      item.classList.remove('active', 'is-navigation-pending', 'is-touching');
-      item.removeAttribute('aria-current');
-    });
-    if (gesture.previousActive) {
-      gesture.previousActive.classList.add('active');
-      gesture.previousActive.setAttribute('aria-current', 'page');
-    }
-  };
-
   document.addEventListener('pointerdown', event => {
     const link = event.target.closest('.mobile-bottom-nav .mobile-nav-item[href]');
     if (!link || event.button !== 0) return;
     const targetUrl = new URL(link.href, window.location.href);
     const currentUrl = new URL(window.location.href);
     if (targetUrl.href === currentUrl.href) return;
-    const previousActive = activateMobileNavLink(link);
     if (event.pointerType !== 'touch') return;
     mobileNavGesture = {
       link,
-      previousActive,
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
       startedAt: Date.now(),
     };
-    link.classList.add('is-touching');
   }, { passive: true, capture: true });
 
   document.addEventListener('pointercancel', () => {
-    restoreMobileNavLink(mobileNavGesture);
     mobileNavGesture = null;
   }, { passive: true, capture: true });
 
@@ -4776,13 +4746,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const gesture = mobileNavGesture;
     mobileNavGesture = null;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
-    gesture.link.classList.remove('is-touching');
     const moved = Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y);
     const heldFor = Date.now() - gesture.startedAt;
-    if (moved > 12 || heldFor > 700) {
-      restoreMobileNavLink(gesture);
-      return;
-    }
+    if (moved > 12 || heldFor > 700) return;
 
     const targetUrl = new URL(gesture.link.href, window.location.href);
     const currentUrl = new URL(window.location.href);
@@ -4799,7 +4765,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!link || link.dataset.touchNavigationCommitted === '1') return;
     const targetUrl = new URL(link.href, window.location.href);
     if (targetUrl.href === window.location.href) return;
-    activateMobileNavLink(link);
     rememberInstantMobileEntryForNextNavigation(targetUrl.href);
   }, true);
 
