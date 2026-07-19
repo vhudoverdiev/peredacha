@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v51-iphone16-empty-dock';
+const STATIC_CACHE = 'peredacha-static-v52-mobile-short-page-shell';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -12,8 +12,8 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff',
-  '/static/style.css?v=v614-iphone16-empty-dock',
-  '/static/mobile-only.css?v=v42-iphone16-empty-dock',
+  '/static/style.css?v=v615-mobile-short-page-shell',
+  '/static/mobile-only.css?v=v43-mobile-short-page-shell',
   '/static/desktop-only.css?v=v24-compact-status-actions',
   '/static/script.js?v=v626-remarks-contractor-status',
 ];

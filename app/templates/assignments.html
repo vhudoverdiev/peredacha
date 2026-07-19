@@ -113,7 +113,7 @@
   <a class="assignment-filter-pill assignment-filter-pill-danger js-assignment-issued-filter {% if issued_filter == 'overdue' %}active{% endif %}" data-no-loader="1" href="{{ url_for('main.assignments', view='issued', issued_day='overdue') }}"><i class="bi bi-exclamation-triangle"></i>Просроченные{% if overdue_total %}<span>{{ overdue_total }}</span>{% endif %}</a>
 </div>
 {% set issued_page_empty = (issued_filter == 'overdue' and not issued_overdue_day_groups) or (issued_filter != 'overdue' and not issued_groups) %}
-<section class="assignment-issued-layout {% if issued_filter == 'overdue' %}assignment-overdue-layout{% endif %}{% if issued_page_empty %} assignment-issued-layout-empty mobile-empty-results-page{% endif %}">
+<section class="assignment-issued-layout {% if issued_filter == 'overdue' %}assignment-overdue-layout{% endif %}{% if issued_page_empty %} assignment-issued-layout-empty mobile-empty-results-page mobile-short-page-marker{% endif %}">
   {% if issued_filter == 'overdue' %}
     {% if issued_overdue_day_groups %}
       {% for day_group in issued_overdue_day_groups %}

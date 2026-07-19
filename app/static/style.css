@@ -52320,7 +52320,7 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
   }
 
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body
+    body.app-body:not(:has(.mobile-short-page-marker))
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
     padding-bottom: calc(var(--ref-mobile-nav-height, 4.18rem) + env(safe-area-inset-bottom) + .7rem) !important;
   }
@@ -52817,9 +52817,7 @@ html.standalone-app body.app-body :is(.app-main, .objects-content, .documents-co
    animates on the compositor; the original dock size is preserved. */
 @media (max-width: 767.98px) {
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:not(:has(.remarks-empty-row)):not(:has(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
-    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content),
-  html.standalone-app body.app-body
+    body.app-body:not(:has(.remarks-empty-row)):not(:has(.mobile-short-page-marker))
     :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
     padding-bottom: calc(var(--ref-mobile-nav-height) + env(safe-area-inset-bottom) + .34rem) !important;
   }
@@ -54652,33 +54650,9 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   }
 }
 
-/* v521: Final worker mobile shell. Reserve the fixed developer-style header
-   exactly once and keep only the dock clearance below the final card. */
+/* v521: Worker card spacing only. The worker shell and dock geometry now come
+   from mobile-only.css so empty and populated task lists cannot disagree. */
 @media (max-width: 767.98px) {
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.mobile-worker-project-topbar) .app-layout.worker-layout {
-    min-height: calc(var(--app-height, 100dvh) - var(--ref-mobile-nav-height, 4.5rem)) !important;
-    margin-top: 0 !important;
-    padding-top: calc(3.75rem + var(--ios-safe-top, 0px)) !important;
-    box-sizing: border-box !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.mobile-worker-project-topbar) .app-layout.worker-layout > .app-main {
-    min-height: 0 !important;
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    flex: 1 0 auto !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.mobile-worker-project-topbar) .app-layout.worker-layout > .app-main > .app-content {
-    min-height: auto !important;
-    padding-top: .5rem !important;
-    padding-bottom: calc(var(--ref-mobile-nav-height, 4.5rem) + .62rem) !important;
-  }
-
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.worker-page-minimal) .worker-page-minimal,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)

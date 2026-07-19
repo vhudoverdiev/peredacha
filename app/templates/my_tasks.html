@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Мои задачи{% endblock %}
 {% block content %}
-<section class="worker-page worker-page-minimal">
+<section class="worker-page worker-page-minimal{% if not tasks %} worker-page-empty mobile-short-page-marker{% endif %}">
   <div class="worker-day-head">
     <div>
       <p class="worker-person-name">{{ current_user.full_name or current_user.username }}</p>
@@ -40,7 +40,7 @@
       </div>
     </article>
     {% else %}
-    <div class="worker-empty-card">
+    <div class="worker-empty-card mobile-empty-state-card">
       <i class="bi bi-check2-circle"></i>
       <h2>На сегодня задач нет</h2>
       <p>Когда инженер выдаст задачи на день, они появятся здесь.</p>

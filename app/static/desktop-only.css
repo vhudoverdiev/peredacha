@@ -51,14 +51,16 @@ html.desktop-like-pointer body.app-body
 
 html.desktop-like-pointer body.app-body
   .contractor-task-table :is(th.task-col-actions, td.task-actions-cell) {
-  width: 20rem !important;
-  min-width: 20rem !important;
-  max-width: 20rem !important;
+  width: 13rem !important;
+  min-width: 13rem !important;
+  max-width: 13rem !important;
 }
 
 html.desktop-like-pointer body.app-body .contractor-task-table td.task-status-cell {
   box-sizing: border-box !important;
-  padding-right: .7rem !important;
+  padding-left: .5rem !important;
+  padding-right: 1.25rem !important;
+  text-align: center !important;
   overflow: hidden !important;
 }
 
@@ -119,8 +121,8 @@ html.desktop-like-pointer body.app-body
 
 html.desktop-like-pointer body.app-body .contractor-task-table td.task-actions-cell {
   box-sizing: border-box !important;
-  padding-left: 1.15rem !important;
-  padding-right: .7rem !important;
+  padding-left: .75rem !important;
+  padding-right: .65rem !important;
   overflow: hidden !important;
 }
 
@@ -129,11 +131,11 @@ html.desktop-like-pointer body.app-body
   width: max-content !important;
   min-width: max-content !important;
   max-width: none !important;
-  margin: 0 0 0 auto !important;
+  margin: 0 !important;
   box-sizing: border-box !important;
-  justify-content: flex-end !important;
-  gap: .38rem !important;
-  overflow: hidden !important;
+  justify-content: flex-start !important;
+  gap: .2rem !important;
+  overflow: visible !important;
 }
 
 html.desktop-like-pointer body.app-body
@@ -144,22 +146,22 @@ html.desktop-like-pointer body.app-body
 /* Keep every status action, including the red Problem button, fully inside
    the fixed desktop table at narrow widths. The same sizing is shared by the
    Contractors and Remarks tables. */
-html.desktop-like-pointer body.app-body
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   .remarks-export-table-shell .task-table :is(th.task-col-actions, td.task-actions-cell) {
   width: 13rem !important;
   min-width: 13rem !important;
   max-width: 13rem !important;
 }
 
-html.desktop-like-pointer body.app-body
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   .remarks-export-table-shell .task-table th.task-col-status {
   box-sizing: border-box !important;
   padding-left: .5rem !important;
   padding-right: 1.25rem !important;
-  text-align: center !important;
+  text-align: left !important;
 }
 
-html.desktop-like-pointer body.app-body
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   .remarks-export-table-shell .task-table th.task-col-actions {
   box-sizing: border-box !important;
   padding-left: .75rem !important;
@@ -167,7 +169,7 @@ html.desktop-like-pointer body.app-body
   text-align: left !important;
 }
 
-html.desktop-like-pointer body.app-body
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   .remarks-export-table-shell .task-table td.task-actions-cell {
   box-sizing: border-box !important;
   padding-left: .75rem !important;
@@ -175,14 +177,14 @@ html.desktop-like-pointer body.app-body
   overflow: hidden !important;
 }
 
-html.desktop-like-pointer body.app-body
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   .remarks-export-table-shell .task-table td.task-status-cell {
   padding-left: .5rem !important;
   padding-right: 1.25rem !important;
-  text-align: center !important;
+  text-align: left !important;
 }
 
-html.desktop-like-pointer body.app-body
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   .remarks-export-table-shell .task-table td.task-actions-cell > .actions-cell {
   width: max-content !important;
   min-width: max-content !important;
@@ -193,7 +195,7 @@ html.desktop-like-pointer body.app-body
   overflow: visible !important;
 }
 
-html.desktop-like-pointer body.app-body
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   .remarks-export-table-shell .task-table td.task-actions-cell .actions-cell .btn.btn-sm {
   flex: 0 0 1.65rem !important;
   width: 1.65rem !important;
@@ -209,7 +211,7 @@ html.desktop-like-pointer body.app-body
 
 /* A contractor label in the regular Remarks table gets the same intentional
    two-line desktop presentation as it does on the Contractors page. */
-html.desktop-like-pointer body.app-body
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   .remarks-export-table-shell .task-table td.task-status-cell > .contractor-status-pill.has-contractor-break {
   display: inline-flex !important;
   width: 100% !important;
@@ -224,7 +226,7 @@ html.desktop-like-pointer body.app-body
   text-align: center !important;
 }
 
-html.desktop-like-pointer body.app-body
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   .remarks-export-table-shell .task-table .contractor-status-desktop {
   display: inline-flex !important;
   width: 100% !important;
@@ -234,12 +236,12 @@ html.desktop-like-pointer body.app-body
   gap: .08rem !important;
 }
 
-html.desktop-like-pointer body.app-body
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   .remarks-export-table-shell .task-table .contractor-status-default {
   display: none !important;
 }
 
-html.desktop-like-pointer body.app-body
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   .remarks-export-table-shell .task-table .contractor-status-line {
   display: block !important;
   width: 100% !important;

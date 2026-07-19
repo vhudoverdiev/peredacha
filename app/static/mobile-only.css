@@ -1421,7 +1421,8 @@
      the way to the real 72px dock. Legacy worker rules used min-height:auto,
      which made the dark body look like an enormously stretched navigation. */
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.mobile-worker-project-topbar) .app-layout.worker-layout {
+    body.app-body:has(.mobile-worker-project-topbar):not(:has(.mobile-short-page-marker))
+    .app-layout.worker-layout {
     min-height: calc(100dvh - 72px) !important;
     height: auto !important;
     max-height: none !important;
@@ -1431,7 +1432,8 @@
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(.mobile-worker-project-topbar) .app-layout.worker-layout > .app-main {
+    body.app-body:has(.mobile-worker-project-topbar):not(:has(.mobile-short-page-marker))
+    .app-layout.worker-layout > .app-main {
     min-height: 0 !important;
     height: auto !important;
     max-height: none !important;
@@ -1648,48 +1650,49 @@
   }
 }
 
-/* iPhone PWA empty-page contract.
-   Empty Remarks and Issued Tasks use one light canvas that ends exactly at
-   the top edge of the 72px dock.  The empty cards stay content-sized; only the
-   page canvas grows, so the dock can never look taller when there are no rows. */
+/* iPhone PWA short-page contract.
+   Empty Remarks, Issued Tasks, the Add form and empty worker task lists use
+   one light canvas that ends exactly at the top edge of the 72px dock. The
+   content remains naturally sized; the canvas, rather than the dock, fills the
+   free viewport area. */
 @media (max-width: 767.98px) {
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty)) {
+    body.app-body:has(.mobile-short-page-marker) {
     --mobile-empty-dock-height: 72px;
     --mobile-empty-content-gap: .75rem;
     box-sizing: border-box !important;
     width: 100% !important;
-    min-height: 100dvh !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
+    min-height: var(--app-height, 100dvh) !important;
+    height: var(--app-height, 100dvh) !important;
+    max-height: var(--app-height, 100dvh) !important;
     overflow: hidden !important;
     background: #111820 !important;
     background-color: #111820 !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))::before,
+    body.app-body:has(.mobile-short-page-marker)::before,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))::after {
+    body.app-body:has(.mobile-short-page-marker)::after {
     content: none !important;
     display: none !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    body.app-body:has(.mobile-short-page-marker)
     > :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
     box-sizing: border-box !important;
     width: 100% !important;
-    min-height: calc(100dvh - var(--mobile-empty-dock-height)) !important;
-    height: calc(100dvh - var(--mobile-empty-dock-height)) !important;
-    max-height: calc(100dvh - var(--mobile-empty-dock-height)) !important;
+    min-height: calc(var(--app-height, 100dvh) - var(--mobile-empty-dock-height)) !important;
+    height: calc(var(--app-height, 100dvh) - var(--mobile-empty-dock-height)) !important;
+    max-height: calc(var(--app-height, 100dvh) - var(--mobile-empty-dock-height)) !important;
     overflow: hidden !important;
     background: #f6f8fb !important;
     background-color: #f6f8fb !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    body.app-body:has(.mobile-short-page-marker)
     .app-main {
     box-sizing: border-box !important;
     display: flex !important;
@@ -1703,7 +1706,7 @@
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    body.app-body:has(.mobile-short-page-marker)
     .app-content {
     box-sizing: border-box !important;
     min-height: 0 !important;
@@ -1720,7 +1723,7 @@
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    body.app-body:has(.mobile-short-page-marker)
     .crm-mobile-page-shell {
     box-sizing: border-box !important;
     display: flex !important;
@@ -1837,7 +1840,7 @@
      geometry for the two empty screens and prevents a safe-area strip from
      being painted as extra panel height. */
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    body.app-body:has(.mobile-short-page-marker)
     > nav.mobile-bottom-nav.mobile-bottom-nav-root {
     position: fixed !important;
     inset: auto 0 0 0 !important;
@@ -1862,17 +1865,17 @@
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    body.app-body:has(.mobile-short-page-marker)
     > nav.mobile-bottom-nav.mobile-bottom-nav-root::before,
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    body.app-body:has(.mobile-short-page-marker)
     > nav.mobile-bottom-nav.mobile-bottom-nav-root::after {
     content: none !important;
     display: none !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body:has(:is(.remarks-mobile-empty-panel, .assignment-issued-layout-empty))
+    body.app-body:has(.mobile-short-page-marker)
     > nav.mobile-bottom-nav.mobile-bottom-nav-root
     :is(.mobile-nav-item, .mobile-menu-toggle) {
     align-self: stretch !important;
