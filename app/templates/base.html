@@ -896,7 +896,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v132-restore-desktop-entry', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v133-preserve-partial-navigation', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1537,6 +1537,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v657-restore-desktop-entry"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v658-preserve-partial-navigation"></script>
 </body>
 </html>

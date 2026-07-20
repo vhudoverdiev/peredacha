@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v132-restore-desktop-entry';
+const STATIC_CACHE = 'peredacha-static-v133-preserve-partial-navigation';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -15,7 +15,7 @@ const STATIC_ASSETS = [
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
   '/static/mobile-only.css?v=v86-remark-add-screen-height',
   '/static/desktop-only.css?v=v60-restore-desktop-entry',
-  '/static/script.js?v=v657-restore-desktop-entry',
+  '/static/script.js?v=v658-preserve-partial-navigation',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>

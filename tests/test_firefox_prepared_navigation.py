@@ -56,11 +56,24 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         self.assertNotIn("crm-desktop-navigation-leaving", self.script)
         self.assertNotIn("crm-desktop-navigation-entering", self.script)
 
-    def test_child_links_are_captured_by_the_persistent_host(self):
+    def test_child_links_reach_partial_handlers_before_the_persistent_host(self):
         self.assertIn(
-            "frameWindow.addEventListener('click', handleDesktopFirefoxNavigationClick, true)",
+            "frameWindow.addEventListener('click', handleDesktopFirefoxNavigationClick)",
             self.script,
         )
+        self.assertIn(
+            "window.addEventListener('click', handleDesktopFirefoxNavigationClick)",
+            self.script,
+        )
+        self.assertNotIn(
+            "addEventListener('click', handleDesktopFirefoxNavigationClick, true)",
+            self.script,
+        )
+        navigation_gate = self.script[
+            self.script.index("const getDesktopFirefoxFrameNavigationUrl"):
+            self.script.index("const createDesktopFirefoxNavigationFrame")
+        ]
+        self.assertIn("event.defaultPrevented", navigation_gate)
         self.assertIn("event.stopImmediatePropagation()", self.script)
         self.assertIn("window.__crmNavigateDesktopFirefoxFrame = href =>", self.script)
         self.assertIn("window.top !== window.self ? window.top : window", self.script)
@@ -150,7 +163,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v132-restore-desktop-entry")
+        self.assertEqual(worker_version, "v133-preserve-partial-navigation")
 
     def test_script_and_css_cache_busters_are_synchronized(self):
         script_version = re.search(
@@ -168,7 +181,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
 
         self.assertEqual(script_version, worker_script_version)
         self.assertEqual(css_version, worker_css_version)
-        self.assertEqual(script_version, "v657-restore-desktop-entry")
+        self.assertEqual(script_version, "v658-preserve-partial-navigation")
         self.assertEqual(css_version, "v60-restore-desktop-entry")
 
 

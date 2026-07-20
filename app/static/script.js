@@ -272,8 +272,10 @@ const bindDesktopFirefoxNavigationFrame = frame => {
   const frameWindow = frame.contentWindow;
   if (!frameWindow || frameWindow.__crmFirefoxNavigationBridgeBound) return;
   frameWindow.__crmFirefoxNavigationBridgeBound = true;
-  // Window capture runs before the child document's own link handlers.
-  frameWindow.addEventListener('click', handleDesktopFirefoxNavigationClick, true);
+  // Run after the child document's handlers. Partial navigation marks its
+  // click as handled with preventDefault(); only an unhandled full-page link
+  // reaches the persistent Firefox host.
+  frameWindow.addEventListener('click', handleDesktopFirefoxNavigationClick);
 };
 
 const revealDesktopFirefoxBufferedPageAnimations = frameDocument => {
@@ -379,7 +381,10 @@ const requestDesktopFirefoxFrameNavigation = href => {
   }
 };
 
-window.addEventListener('click', handleDesktopFirefoxNavigationClick, true);
+// Document-level AJAX handlers run before Window in the bubbling phase. This
+// keeps partial tabs and filters mounted on every page while full navigation
+// still uses the Firefox frame buffer.
+window.addEventListener('click', handleDesktopFirefoxNavigationClick);
 window.addEventListener('popstate', event => {
   if (!desktopFirefoxFrameNavigationActive || !isDesktopFirefoxFrameNavigation()) return;
   event.stopImmediatePropagation();
