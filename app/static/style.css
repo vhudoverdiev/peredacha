@@ -32571,7 +32571,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     width: 100% !important;
     max-width: 100% !important;
     min-height: 100svh;
-    min-height: var(--ios-app-height) !important;
     overflow-x: clip !important;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -32579,7 +32578,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     background: #f7faef !important;
   }
 
-  body.app-body,
   body.auth-body {
     min-height: var(--ios-app-height) !important;
     overscroll-behavior-y: none;
@@ -33228,7 +33226,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
     body.ios-device,
     body.ios-device.auth-body,
     body.ios-device.app-body {
-      min-height: var(--ios-app-height) !important;
       background-attachment: scroll !important;
     }
 
@@ -34348,7 +34345,6 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
   }
 
   body.app-body {
-    min-height: var(--ios-app-height) !important;
     overflow-x: clip !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;

@@ -384,14 +384,6 @@
         overflow: hidden !important;
       }
 
-      /* A short Account document can leave the iOS standalone fixed viewport
-         above the physical screen bottom. Anchor this dock by its top edge to
-         the full dynamic viewport, matching the Objects dock's visible 72px. */
-      html.standalone-app body.app-body:has(.account-page) {
-        --mobile-dock-top: calc(var(--mobile-layout-height, 100dvh) - var(--ref-mobile-nav-height, 72px));
-        --mobile-dock-bottom: auto;
-      }
-
       html body.app-body nav.mobile-worker-bottom-nav.mobile-bottom-nav-root
         > .mobile-nav-item {
         align-self: stretch !important;
@@ -722,7 +714,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v81-account-dock-height-parity', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v83-mobile-root-height-conflicts-removed', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -759,8 +751,8 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v626-ios-mobile-canvas-height-inline-fix">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v67-account-dock-height-parity">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v628-mobile-root-height-conflicts-removed">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v68-stable-account-dock">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v38-material-delete-stable">
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and current_user.role == 'verifier' %} verifier-layout{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
@@ -938,7 +930,7 @@
 
 {% macro mobile_bottom_nav(active='dashboard') -%}
   {% if worker_role %}
-  <nav class="mobile-bottom-nav mobile-bottom-nav-root mobile-worker-bottom-nav" aria-label="Основная навигация" data-mobile-dock="unified" style="--mobile-nav-count: 2; --ref-mobile-nav-height: 72px !important; position: fixed !important; inset: var(--mobile-dock-top, auto) 0 var(--mobile-dock-bottom, 0px) 0 !important; width: 100vw !important; min-width: 100vw !important; max-width: 100vw !important; height: 72px !important; min-height: 72px !important; max-height: 72px !important; margin: 0 !important; padding: 4px 5px 3px !important; box-sizing: border-box !important">
+  <nav class="mobile-bottom-nav mobile-bottom-nav-root mobile-worker-bottom-nav" aria-label="Основная навигация" data-mobile-dock="unified" style="--mobile-nav-count: 2; --ref-mobile-nav-height: 72px !important; position: fixed !important; inset: auto 0 0 0 !important; width: 100vw !important; min-width: 100vw !important; max-width: 100vw !important; height: 72px !important; min-height: 72px !important; max-height: 72px !important; margin: 0 !important; padding: 4px 5px 3px !important; box-sizing: border-box !important">
     <a class="mobile-nav-item {% if active == 'tasks' %}active{% endif %}" href="{{ url_for('main.my_tasks') }}">
       <i class="bi bi-card-checklist"></i><span>Задачи</span>
     </a>
@@ -950,7 +942,7 @@
   {% set primary_mobile_shell = current_project and layout_mode.strip() == 'app' and request.endpoint not in ['main.account', 'main.site_settings'] %}
   {% set no_mobile_project = not primary_mobile_shell %}
   {% set nav_count = 2 if report_only_role or no_mobile_project else (4 if current_user.role in ['admin', 'manager'] else 3) %}
-  <nav class="mobile-bottom-nav mobile-bottom-nav-root{% if report_only_role %} mobile-verifier-bottom-nav{% endif %}" aria-label="Основная навигация" data-mobile-dock="unified" style="--mobile-nav-count: {{ nav_count }}; --ref-mobile-nav-height: 72px !important; position: fixed !important; inset: var(--mobile-dock-top, auto) 0 var(--mobile-dock-bottom, 0px) 0 !important; width: 100vw !important; min-width: 100vw !important; max-width: 100vw !important; height: 72px !important; min-height: 72px !important; max-height: 72px !important; margin: 0 !important; padding: 4px 5px 3px !important; box-sizing: border-box !important">
+  <nav class="mobile-bottom-nav mobile-bottom-nav-root{% if report_only_role %} mobile-verifier-bottom-nav{% endif %}" aria-label="Основная навигация" data-mobile-dock="unified" style="--mobile-nav-count: {{ nav_count }}; --ref-mobile-nav-height: 72px !important; position: fixed !important; inset: auto 0 0 0 !important; width: 100vw !important; min-width: 100vw !important; max-width: 100vw !important; height: 72px !important; min-height: 72px !important; max-height: 72px !important; margin: 0 !important; padding: 4px 5px 3px !important; box-sizing: border-box !important">
     {% if report_only_role %}
       {% if primary_mobile_shell %}
     <a class="mobile-nav-item {% if active == 'report' %}active{% endif %}" href="{{ url_for('main.work_report') }}">
