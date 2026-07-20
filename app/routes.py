@@ -9543,12 +9543,16 @@ def upload_excel():
             validate_upload(transfer_form.file.data, ["xlsx"], max_size=current_app.config.get("MAX_UPLOAD_FILE_BYTES"))
             path = save_upload(transfer_form.file.data)
             _validate_uploaded_excel_kind(path, "transfers")
-            result = sync_transfer_statistics(path, project_name=project.name)
+            sync_transfer_statistics(path, project_name=project.name)
+            transfer_stats = dashboard_stats(
+                project.id,
+                include_all_completed_statuses=True,
+            )
             flash(
                 "Статистика передач обновлена: "
-                f"принято - {result.get('accepted_count', 0)}, "
-                f"ждёт - {result.get('waiting_count', 0)}, "
-                f"не продано - {result.get('unsold_count', 0)}",
+                f"принято - {transfer_stats.get('accepted', 0)}, "
+                f"ждёт - {transfer_stats.get('not_accepted', 0)}, "
+                f"не продано - {transfer_stats.get('unsold', 0)}",
                 "success",
             )
         except Exception as exc:

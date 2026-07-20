@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from openpyxl import Workbook
 from openpyxl.styles import Color, PatternFill
@@ -106,6 +107,35 @@ class DashboardInspectionFillStatsTests(unittest.TestCase):
         workbook.save(path)
         return path
 
+    def _duplicated_transfer_workbook(self) -> Path:
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Статистика"
+        sheet.append([
+            "№ кв",
+            "Ф.И.О. дольщиков",
+            "Телефон",
+            "Вид отделки",
+            "Дата осмотра",
+            "Дата первичного осмотра",
+        ])
+        rows = [
+            ["1", "Owner 1", "+1", "Белая", None, None],
+            ["1", "Owner 1", "+1", "Белая", None, None],
+            ["2", "Owner 2", "+2", "Белая", None, None],
+            ["2", "Owner 2", "+2", "Белая", None, None],
+            ["3", "не продано", None, "Белая", None, None],
+            ["3", "не продано", None, "Белая", None, None],
+        ]
+        for row in rows:
+            sheet.append(row)
+        for cell_address in ("A2", "A3"):
+            sheet[cell_address].fill = PatternFill(patternType="solid", fgColor="FF70AD47")
+
+        path = Path(self.tempdir.name) / "duplicated-transfer-statistics.xlsx"
+        workbook.save(path)
+        return path
+
     def test_red_and_yellow_cells_are_the_only_not_inspected_rows(self):
         path = self._statistics_workbook()
         self.assertTrue(inspect_transfer_workbook(path)["ok"])
@@ -145,6 +175,26 @@ class DashboardInspectionFillStatsTests(unittest.TestCase):
                 self.assertIsNotNone(inspection_card)
                 self.assertIn("<b>3</b>", inspection_card.group(0))
                 self.assertIn("<b>2</b>", inspection_card.group(0))
+
+    def test_transfer_upload_notification_uses_grouped_dashboard_counts(self):
+        path = self._duplicated_transfer_workbook()
+
+        with path.open("rb") as upload, patch("app.routes.save_upload", return_value=path):
+            response = self.client.post(
+                "/upload-excel",
+                data={
+                    "upload_kind": "transfers",
+                    "transfer-file": (upload, path.name),
+                    "transfer-submit": "Загрузить статистику",
+                },
+                content_type="multipart/form-data",
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn("принято - 1, ждёт - 1, не продано - 1", html)
+        self.assertNotIn("принято - 2, ждёт - 2, не продано - 2", html)
 
 
 if __name__ == "__main__":

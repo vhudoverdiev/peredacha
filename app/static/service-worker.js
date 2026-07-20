@@ -1,5 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v127-ajax-native-row-links';
-const DESKTOP_NAVIGATION_CACHE = 'crm-desktop-navigation-v1';
+const STATIC_CACHE = 'peredacha-static-v128-firefox-frame-buffer';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -15,8 +14,8 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
   '/static/mobile-only.css?v=v86-remark-add-screen-height',
-  '/static/desktop-only.css?v=v55-dop-action-compact',
-  '/static/script.js?v=v653-global-escape-html',
+  '/static/desktop-only.css?v=v56-firefox-frame-buffer',
+  '/static/script.js?v=v654-firefox-frame-buffer',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>
@@ -207,13 +206,6 @@ self.addEventListener('activate', event => {
   })());
 });
 
-self.addEventListener('message', event => {
-  if (event.data?.type !== 'crm-desktop-navigation-capability') return;
-  event.ports?.[0]?.postMessage({
-    type: 'crm-desktop-navigation-capability-ready',
-  });
-});
-
 self.addEventListener('fetch', event => {
   const { request } = event;
   if (request.method !== 'GET') return;
@@ -228,17 +220,6 @@ self.addEventListener('fetch', event => {
 
   if (!url.pathname.startsWith('/static/')) return;
 
-  // Firefox commits a prepared document as soon as its cached HTML response
-  // arrives. Waiting for network-first CSS revalidation after that commit left
-  // the destination on the shell-only canvas for a couple of frames. The
-  // prepared URL is unique and desktop-Firefox-only, so serve its versioned
-  // static dependencies from the worker cache and let the complete page reach
-  // first paint in one browser frame.
-  if (isPreparedDesktopNavigationSubresource(request)) {
-    event.respondWith(staticCacheFirst(request));
-    return;
-  }
-
   if (url.pathname.startsWith('/static/vendor/bootstrap/fonts/')) {
     event.respondWith(staticCacheFirst(request));
     return;
@@ -247,41 +228,7 @@ self.addEventListener('fetch', event => {
   event.respondWith(staticNetworkFirst(request));
 });
 
-function isPreparedDesktopNavigationSubresource(request) {
-  if (!request.referrer) return false;
-
-  try {
-    const referrerUrl = new URL(request.referrer);
-    return referrerUrl.origin === self.location.origin
-      && referrerUrl.searchParams.has('_crm_prepared_navigation');
-  } catch (error) {
-    return false;
-  }
-}
-
 async function navigationNetworkFirst(request) {
-  const requestUrl = new URL(request.url);
-  if (requestUrl.searchParams.has('_crm_prepared_navigation')) {
-    const preparedNavigationCache = await caches.open(DESKTOP_NAVIGATION_CACHE);
-    const preparedResponse = await preparedNavigationCache.match(request, {
-      ignoreVary: true,
-    });
-    if (preparedResponse) {
-      // CacheStorage may expose the response body to Firefox as a stream. If
-      // that stream is returned directly, Gecko can commit after the headers
-      // and paint a partially parsed destination. Materialize the already
-      // downloaded HTML before resolving the navigation response so parsing
-      // starts from one complete in-memory body.
-      const preparedBody = await preparedResponse.arrayBuffer();
-      await preparedNavigationCache.delete(request, { ignoreVary: true });
-      return new Response(preparedBody, {
-        status: preparedResponse.status,
-        statusText: preparedResponse.statusText,
-        headers: preparedResponse.headers,
-      });
-    }
-  }
-
   try {
     return await fetch(request);
   } catch (error) {

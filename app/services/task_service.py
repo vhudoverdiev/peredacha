@@ -1341,6 +1341,10 @@ def upsert_task_from_cell(
             title=f"Пункт {work_point.point_number}: {work_point.display_name}",
         )
         db.session.add(task)
+        # Status markers from Excel can create a change-log entry below during
+        # the same import pass. Persist the new task first so that history never
+        # receives a NULL task_id.
+        db.session.flush()
     task.apartment_id = apartment.id
     task.work_point_id = work_point.id
     task.title = f"Пункт {work_point.point_number}: {work_point.display_name}"

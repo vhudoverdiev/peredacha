@@ -192,47 +192,33 @@ document.addEventListener('click', event => {
   rememberInstantMobileEntryForNextNavigation(link.href);
 }, true);
 
-// Firefox paints its default white document for one frame while replacing
-// two server-rendered pages. On desktop, fully receive the next HTML response
-// first and hand it to the service worker as a one-use navigation response.
-// The old document therefore stays visible until the destination is ready,
-// while the real page navigation (and all page scripts) still runs normally.
-const desktopFirefoxNavigationCache = 'crm-desktop-navigation-v1';
-let desktopFirefoxNavigationInFlight = false;
+// Firefox clears its viewport between two top-level documents even when the
+// destination HTML and CSS are already cached. Keep the top document alive on
+// desktop Firefox and swap between two same-origin, fully loaded frames. The
+// outgoing page remains the compositor's visible layer until the incoming
+// page has fired load, so Gecko never gets a chance to expose its white canvas.
+let desktopFirefoxFrameNavigationInFlight = false;
+let desktopFirefoxFrameNavigationActive = false;
+let desktopFirefoxActiveFrame = null;
+const desktopFirefoxNavigationFrames = [];
+const desktopFirefoxNavigationFallbackMs = 15000;
 
-const requestDesktopNavigationWorkerCapability = () => new Promise(resolve => {
-  const controller = navigator.serviceWorker?.controller;
-  if (!controller || typeof MessageChannel !== 'function') {
-    resolve(false);
-    return;
+const isTopLevelWindow = () => {
+  try {
+    return window.top === window.self;
+  } catch (error) {
+    return false;
   }
+};
 
-  const channel = new MessageChannel();
-  const timeout = window.setTimeout(() => resolve(false), 300);
-  channel.port1.onmessage = event => {
-    window.clearTimeout(timeout);
-    resolve(event.data?.type === 'crm-desktop-navigation-capability-ready');
-  };
-  controller.postMessage(
-    { type: 'crm-desktop-navigation-capability' },
-    [channel.port2],
-  );
-});
-
-let desktopNavigationWorkerCapability = requestDesktopNavigationWorkerCapability();
-navigator.serviceWorker?.addEventListener('controllerchange', () => {
-  desktopNavigationWorkerCapability = requestDesktopNavigationWorkerCapability();
-});
-
-const isDesktopFirefoxPreparedNavigation = () => (
-  document.body?.classList.contains('app-body')
+const isDesktopFirefoxFrameNavigation = () => (
+  isTopLevelWindow()
+  && document.body?.classList.contains('app-body')
   && isDesktopLikePointer()
   && /Firefox\//i.test(getNavigatorInfo().userAgent || '')
-  && 'caches' in window
-  && Boolean(navigator.serviceWorker?.controller)
 );
 
-const getPreparedDesktopNavigationUrl = (event, link) => {
+const getDesktopFirefoxFrameNavigationUrl = (event, link) => {
   if (!link || event.defaultPrevented || event.button !== 0) return null;
   if (link.hasAttribute('download') || link.dataset.downloadMode) return null;
   if (link.target && link.target !== '_self') return null;
@@ -254,61 +240,145 @@ const getPreparedDesktopNavigationUrl = (event, link) => {
   }
 };
 
-document.addEventListener('click', async event => {
-  if (!isDesktopFirefoxPreparedNavigation()) return;
-  const link = event.target.closest?.('a[href]');
-  const targetUrl = getPreparedDesktopNavigationUrl(event, link);
+const createDesktopFirefoxNavigationFrame = () => {
+  const frame = document.createElement('iframe');
+  frame.className = 'crm-firefox-navigation-frame';
+  frame.title = 'Передача';
+  frame.setAttribute('aria-hidden', 'true');
+  frame.setAttribute('referrerpolicy', 'same-origin');
+  frame.tabIndex = -1;
+  document.body.appendChild(frame);
+  desktopFirefoxNavigationFrames.push(frame);
+  return frame;
+};
+
+const getDesktopFirefoxStandbyFrame = () => (
+  desktopFirefoxNavigationFrames.find(frame => frame !== desktopFirefoxActiveFrame)
+  || createDesktopFirefoxNavigationFrame()
+);
+
+const handleDesktopFirefoxNavigationClick = event => {
+  if (!isDesktopFirefoxFrameNavigation() && !desktopFirefoxFrameNavigationActive) return;
+  const link = event.target?.closest?.('a[href]');
+  const targetUrl = getDesktopFirefoxFrameNavigationUrl(event, link);
   if (!targetUrl) return;
 
   event.preventDefault();
-  await navigateDesktopFirefoxPreparedNavigation(targetUrl);
-}, true);
-
-const navigateDesktopFirefoxPreparedNavigation = async targetUrl => {
-  if (desktopFirefoxNavigationInFlight) return;
-  desktopFirefoxNavigationInFlight = true;
-
-  let navigationUrl = targetUrl;
-  try {
-    if (!await desktopNavigationWorkerCapability) {
-      throw new Error('prepared-navigation-worker-is-not-ready');
-    }
-    const response = await fetch(targetUrl.href, {
-      method: 'GET',
-      credentials: 'same-origin',
-      cache: 'no-store',
-      redirect: 'follow',
-      headers: {
-        Accept: 'text/html,application/xhtml+xml',
-        'X-CRM-Prepared-Navigation': '1',
-      },
-    });
-    const contentType = response.headers.get('Content-Type') || '';
-    if (!response.ok || !contentType.toLowerCase().includes('text/html')) {
-      throw new Error('prepared-navigation-response-is-not-html');
-    }
-
-    navigationUrl = new URL(response.url || targetUrl.href, window.location.href);
-    if (navigationUrl.origin !== window.location.origin) {
-      throw new Error('prepared-navigation-cross-origin-redirect');
-    }
-
-    const cache = await window.caches.open(desktopFirefoxNavigationCache);
-    navigationUrl.searchParams.set(
-      '_crm_prepared_navigation',
-      `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
-    );
-    const cacheKey = new Request(navigationUrl.href, {
-      method: 'GET',
-      credentials: 'same-origin',
-    });
-    await cache.put(cacheKey, response);
-  } catch (error) {
-    // Navigation must remain functional when the worker/cache is unavailable.
-  }
-
-  window.location.assign(navigationUrl.href);
+  event.stopImmediatePropagation();
+  void navigateDesktopFirefoxFrame(targetUrl);
 };
+
+const bindDesktopFirefoxNavigationFrame = frame => {
+  const frameWindow = frame.contentWindow;
+  if (!frameWindow || frameWindow.__crmFirefoxNavigationBridgeBound) return;
+  frameWindow.__crmFirefoxNavigationBridgeBound = true;
+  // Window capture runs before the child document's own link handlers.
+  frameWindow.addEventListener('click', handleDesktopFirefoxNavigationClick, true);
+};
+
+const navigateDesktopFirefoxFrame = (targetUrl, { pushHistory = true } = {}) => {
+  if (desktopFirefoxFrameNavigationInFlight) return;
+  desktopFirefoxFrameNavigationInFlight = true;
+
+  const frame = getDesktopFirefoxStandbyFrame();
+  const navigationToken = `${Date.now()}-${Math.random()}`;
+  frame.dataset.navigationToken = navigationToken;
+  frame.classList.remove('is-active');
+  frame.setAttribute('aria-hidden', 'true');
+  frame.tabIndex = -1;
+
+  const fallbackTimer = window.setTimeout(() => {
+    if (frame.dataset.navigationToken !== navigationToken) return;
+    desktopFirefoxFrameNavigationInFlight = false;
+    window.location.assign(targetUrl.href);
+  }, desktopFirefoxNavigationFallbackMs);
+
+  frame.onload = () => {
+    if (frame.dataset.navigationToken !== navigationToken) return;
+    window.clearTimeout(fallbackTimer);
+
+    let frameDocument;
+    let finalUrl;
+    try {
+      frameDocument = frame.contentDocument;
+      finalUrl = new URL(frame.contentWindow.location.href);
+      if (
+        !frameDocument
+        || finalUrl.origin !== window.location.origin
+        || !frameDocument.body?.classList.contains('app-body')
+      ) {
+        throw new Error('firefox-frame-navigation-invalid-document');
+      }
+      bindDesktopFirefoxNavigationFrame(frame);
+    } catch (error) {
+      desktopFirefoxFrameNavigationInFlight = false;
+      window.location.assign(targetUrl.href);
+      return;
+    }
+
+    // load guarantees that the destination styles and page scripts are ready.
+    // One animation frame lets Gecko submit that hidden layer before it becomes
+    // the visible surface; the old page remains visible throughout.
+    frame.contentWindow.requestAnimationFrame(() => {
+      if (frame.dataset.navigationToken !== navigationToken) return;
+      document.documentElement.classList.add('crm-firefox-frame-host-active');
+      frame.style.zIndex = '2147483001';
+      frame.classList.add('is-active');
+      frame.setAttribute('aria-hidden', 'false');
+      frame.tabIndex = 0;
+
+      if (desktopFirefoxActiveFrame && desktopFirefoxActiveFrame !== frame) {
+        desktopFirefoxActiveFrame.style.zIndex = '2147483000';
+        desktopFirefoxActiveFrame.classList.remove('is-active');
+        desktopFirefoxActiveFrame.setAttribute('aria-hidden', 'true');
+        desktopFirefoxActiveFrame.tabIndex = -1;
+      }
+
+      desktopFirefoxActiveFrame = frame;
+      desktopFirefoxFrameNavigationActive = true;
+      desktopFirefoxFrameNavigationInFlight = false;
+      document.title = frameDocument.title || document.title;
+      if (pushHistory) {
+        window.history.pushState(
+          { crmFirefoxFrameNavigation: true },
+          '',
+          `${finalUrl.pathname}${finalUrl.search}${finalUrl.hash}`,
+        );
+      }
+      frame.contentWindow.focus();
+    });
+  };
+
+  frame.src = targetUrl.href;
+};
+
+window.__crmNavigateDesktopFirefoxFrame = href => {
+  if (!isDesktopFirefoxFrameNavigation() && !desktopFirefoxFrameNavigationActive) return false;
+  try {
+    const targetUrl = new URL(href, window.location.href);
+    if (targetUrl.origin !== window.location.origin) return false;
+    void navigateDesktopFirefoxFrame(targetUrl);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
+const requestDesktopFirefoxFrameNavigation = href => {
+  try {
+    const navigationHost = window.top !== window.self ? window.top : window;
+    return navigationHost.__crmNavigateDesktopFirefoxFrame?.(href) === true;
+  } catch (error) {
+    return false;
+  }
+};
+
+window.addEventListener('click', handleDesktopFirefoxNavigationClick, true);
+window.addEventListener('popstate', event => {
+  if (!desktopFirefoxFrameNavigationActive || !isDesktopFirefoxFrameNavigation()) return;
+  event.stopImmediatePropagation();
+  void navigateDesktopFirefoxFrame(new URL(window.location.href), { pushHistory: false });
+});
 
 const getTouchViewportProfile = () => {
   const viewportWidth = getViewportWidth();
@@ -1763,19 +1833,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!href) return;
     rememberInstantMobileEntryForNextNavigation(href);
     showViewportTransitionLoader();
-    if (isDesktopFirefoxPreparedNavigation()) {
-      let targetUrl;
-      try {
-        targetUrl = new URL(href, window.location.href);
-      } catch (error) {
-        window.location.href = href;
-        return;
-      }
-      if (targetUrl.origin === window.location.origin) {
-        void navigateDesktopFirefoxPreparedNavigation(targetUrl);
-        return;
-      }
-    }
+    if (requestDesktopFirefoxFrameNavigation(href)) return;
     window.location.href = href;
   };
 

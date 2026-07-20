@@ -1634,4 +1634,33 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     will-change: auto !important;
   }
 
+  /* Firefox briefly clears the native viewport between top-level documents.
+     Same-origin page frames are double-buffered by script: the next page is
+     fully painted below the current one and then becomes visible atomically. */
+  html.desktop-like-pointer.crm-firefox-frame-host-active,
+  html.desktop-like-pointer.crm-firefox-frame-host-active body.app-body {
+    overflow: hidden !important;
+  }
+
+  html.desktop-like-pointer body.app-body > .crm-firefox-navigation-frame {
+    position: fixed !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #fefdfe !important;
+    opacity: 0 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
+    transition: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body > .crm-firefox-navigation-frame.is-active {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
 }

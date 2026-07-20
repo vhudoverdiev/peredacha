@@ -887,7 +887,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v127-ajax-native-row-links', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v128-firefox-frame-buffer', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -926,7 +926,7 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v628-mobile-root-height-conflicts-removed">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v86-remark-add-screen-height">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v55-dop-action-compact">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v56-firefox-frame-buffer">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
     // Releasing the gate here guarantees that desktop body markup cannot be
@@ -1528,6 +1528,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v653-global-escape-html"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v654-firefox-frame-buffer"></script>
 </body>
 </html>

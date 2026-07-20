@@ -10,7 +10,7 @@ SERVICE_WORKER = PROJECT_ROOT / "app" / "static" / "service-worker.js"
 DESKTOP_CSS = PROJECT_ROOT / "app" / "static" / "desktop-only.css"
 
 
-class FirefoxPreparedNavigationTests(unittest.TestCase):
+class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.template = BASE_TEMPLATE.read_text(encoding="utf-8")
@@ -18,48 +18,83 @@ class FirefoxPreparedNavigationTests(unittest.TestCase):
         cls.worker = SERVICE_WORKER.read_text(encoding="utf-8")
         cls.desktop_css = DESKTOP_CSS.read_text(encoding="utf-8")
 
-    def test_prepared_navigation_is_desktop_firefox_only(self):
-        gate = self.script.index("const isDesktopFirefoxPreparedNavigation")
-        handler = self.script.index("document.addEventListener('click', async event", gate)
+    def test_frame_buffer_is_top_level_desktop_firefox_only(self):
+        gate = self.script.index("const isDesktopFirefoxFrameNavigation")
+        handler = self.script.index(
+            "const getDesktopFirefoxFrameNavigationUrl", gate
+        )
         section = self.script[gate:handler]
 
+        self.assertIn("isTopLevelWindow()", section)
         self.assertIn("document.body?.classList.contains('app-body')", section)
         self.assertIn("isDesktopLikePointer()", section)
         self.assertIn("/Firefox\\//i.test", section)
         self.assertNotIn("isMobileViewport()", section)
 
-    def test_prepared_html_is_consumed_once_by_the_navigation_worker(self):
-        self.assertIn("const DESKTOP_NAVIGATION_CACHE = 'crm-desktop-navigation-v1'", self.worker)
-        self.assertIn("requestUrl.searchParams.has('_crm_prepared_navigation')", self.worker)
-        self.assertIn("preparedNavigationCache.match(request", self.worker)
-        self.assertIn("await preparedResponse.arrayBuffer()", self.worker)
-        self.assertIn("preparedNavigationCache.delete(request", self.worker)
-        self.assertIn("return new Response(preparedBody", self.worker)
-        self.assertLess(
-            self.worker.index("preparedNavigationCache.match(request"),
-            self.worker.index("return await fetch(request)"),
-        )
-        self.assertLess(
-            self.worker.index("await preparedResponse.arrayBuffer()"),
-            self.worker.index("preparedNavigationCache.delete(request"),
-        )
-
-    def test_prepared_page_dependencies_do_not_wait_for_network_revalidation(self):
-        prepared_static = self.worker.index(
-            "if (isPreparedDesktopNavigationSubresource(request))"
-        )
-        regular_static = self.worker.index("event.respondWith(staticNetworkFirst(request))")
-        helper = self.worker.index(
-            "function isPreparedDesktopNavigationSubresource(request)"
-        )
-
-        self.assertLess(prepared_static, regular_static)
-        self.assertIn("request.referrer", self.worker[helper:])
+    def test_navigation_uses_two_reusable_same_origin_frames(self):
+        self.assertIn("const desktopFirefoxNavigationFrames = []", self.script)
+        self.assertIn("createDesktopFirefoxNavigationFrame", self.script)
         self.assertIn(
-            "searchParams.has('_crm_prepared_navigation')",
-            self.worker[helper:],
+            "desktopFirefoxNavigationFrames.find(frame => frame !== desktopFirefoxActiveFrame)",
+            self.script,
         )
-        self.assertIn("event.respondWith(staticCacheFirst(request))", self.worker)
+        self.assertIn("finalUrl.origin !== window.location.origin", self.script)
+        self.assertIn("frameDocument.body?.classList.contains('app-body')", self.script)
+
+    def test_outgoing_page_stays_visible_until_loaded_frame_is_ready(self):
+        load_handler = self.script.index("frame.onload = () =>")
+        next_active = self.script.index("frame.classList.add('is-active')", load_handler)
+        old_hidden = self.script.index(
+            "desktopFirefoxActiveFrame.classList.remove('is-active')", next_active
+        )
+
+        self.assertLess(load_handler, next_active)
+        self.assertLess(next_active, old_hidden)
+        self.assertIn("frame.contentWindow.requestAnimationFrame", self.script)
+        self.assertNotIn("crm-desktop-navigation-leaving", self.script)
+        self.assertNotIn("crm-desktop-navigation-entering", self.script)
+
+    def test_child_links_are_captured_by_the_persistent_host(self):
+        self.assertIn(
+            "frameWindow.addEventListener('click', handleDesktopFirefoxNavigationClick, true)",
+            self.script,
+        )
+        self.assertIn("event.stopImmediatePropagation()", self.script)
+        self.assertIn("window.__crmNavigateDesktopFirefoxFrame = href =>", self.script)
+        self.assertIn("window.top !== window.self ? window.top : window", self.script)
+        self.assertIn("requestDesktopFirefoxFrameNavigation(href)", self.script)
+
+    def test_history_and_redirected_destination_stay_in_sync(self):
+        self.assertIn("finalUrl = new URL(frame.contentWindow.location.href)", self.script)
+        self.assertIn("window.history.pushState(", self.script)
+        self.assertIn("crmFirefoxFrameNavigation: true", self.script)
+        self.assertIn("window.addEventListener('popstate'", self.script)
+        self.assertIn("{ pushHistory: false }", self.script)
+
+    def test_downloads_and_non_page_links_keep_native_behavior(self):
+        self.assertIn("link.hasAttribute('download')", self.script)
+        self.assertIn("link.dataset.downloadMode", self.script)
+        self.assertIn("link.hasAttribute('data-bs-toggle')", self.script)
+        self.assertIn("link.target && link.target !== '_self'", self.script)
+
+    def test_frame_layer_is_desktop_only_and_has_no_fade(self):
+        marker = self.desktop_css.index(".crm-firefox-navigation-frame")
+        media_start = self.desktop_css.rfind("@media (min-width: 768px)", 0, marker)
+        section = self.desktop_css[media_start:]
+
+        self.assertGreaterEqual(media_start, 0)
+        self.assertIn("opacity: 0 !important", section)
+        self.assertIn(".crm-firefox-navigation-frame.is-active", section)
+        self.assertIn("opacity: 1 !important", section)
+        self.assertIn("transition: none !important", section)
+        self.assertNotIn("touch-app-device", section)
+
+    def test_obsolete_prepared_cache_path_is_removed(self):
+        self.assertNotIn("desktopFirefoxNavigationCache", self.script)
+        self.assertNotIn("requestDesktopNavigationWorkerCapability", self.script)
+        self.assertNotIn("DESKTOP_NAVIGATION_CACHE", self.worker)
+        self.assertNotIn("crm-desktop-navigation-capability", self.worker)
+        self.assertNotIn("isPreparedDesktopNavigationSubresource", self.worker)
 
     def test_service_worker_cache_buster_is_synchronized(self):
         worker_version = re.search(
@@ -70,36 +105,15 @@ class FirefoxPreparedNavigationTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertTrue(worker_version.startswith("v"))
+        self.assertEqual(worker_version, "v128-firefox-frame-buffer")
 
-    def test_page_and_worker_use_the_same_navigation_cache(self):
-        page_cache = re.search(
-            r"desktopFirefoxNavigationCache = '([^']+)'", self.script
-        ).group(1)
-        worker_cache = re.search(
-            r"DESKTOP_NAVIGATION_CACHE = '([^']+)'", self.worker
-        ).group(1)
-        self.assertEqual(page_cache, worker_cache)
-
-    def test_page_confirms_worker_capability_before_staging(self):
-        self.assertIn("requestDesktopNavigationWorkerCapability", self.script)
-        self.assertIn("crm-desktop-navigation-capability", self.script)
-        self.assertIn("crm-desktop-navigation-capability-ready", self.script)
-        self.assertIn("if (!await desktopNavigationWorkerCapability)", self.script)
-        self.assertIn("crm-desktop-navigation-capability", self.worker)
-        self.assertIn("crm-desktop-navigation-capability-ready", self.worker)
-
-    def test_script_cache_buster_is_synchronized(self):
+    def test_script_and_css_cache_busters_are_synchronized(self):
         script_version = re.search(
             r"script\.js'\) }}\?v=([^\"]+)", self.template
         ).group(1)
         worker_script_version = re.search(
             r"'/static/script\.js\?v=([^']+)'", self.worker
         ).group(1)
-
-        self.assertEqual(script_version, worker_script_version)
-
-    def test_desktop_css_cache_buster_is_synchronized(self):
         css_version = re.search(
             r"desktop-only\.css'\) }}\?v=([^\"]+)", self.template
         ).group(1)
@@ -107,56 +121,10 @@ class FirefoxPreparedNavigationTests(unittest.TestCase):
             r"'/static/desktop-only\.css\?v=([^']+)'", self.worker
         ).group(1)
 
+        self.assertEqual(script_version, worker_script_version)
         self.assertEqual(css_version, worker_css_version)
-
-    def test_downloads_and_non_html_responses_are_not_staged(self):
-        self.assertIn("link.hasAttribute('download')", self.script)
-        self.assertIn("link.dataset.downloadMode", self.script)
-        self.assertIn("contentType.toLowerCase().includes('text/html')", self.script)
-
-    def test_programmatic_card_navigation_uses_the_same_desktop_firefox_path(self):
-        helper = self.script.index(
-            "const navigateDesktopFirefoxPreparedNavigation = async targetUrl"
-        )
-        viewport_navigation = self.script.index(
-            "const navigateWithViewportTransition = href =>"
-        )
-        viewport_section = self.script[viewport_navigation : viewport_navigation + 1000]
-
-        self.assertLess(helper, viewport_navigation)
-        self.assertIn("if (isDesktopFirefoxPreparedNavigation())", viewport_section)
-        self.assertIn(
-            "void navigateDesktopFirefoxPreparedNavigation(targetUrl)",
-            viewport_section,
-        )
-        self.assertLess(
-            viewport_section.index(
-                "void navigateDesktopFirefoxPreparedNavigation(targetUrl)"
-            ),
-            viewport_section.rindex("window.location.href = href"),
-        )
-
-    def test_prepared_navigation_assigns_immediately_after_staging(self):
-        cache_put = self.script.index("await cache.put(cacheKey, response)")
-        assign = self.script.index("window.location.assign(navigationUrl.href)")
-        between_staging_and_navigation = self.script[cache_put:assign]
-
-        self.assertLess(cache_put, assign)
-        self.assertNotIn("waitForDesktopFirefoxExitTransition", self.script)
-        self.assertNotIn("crm-desktop-navigation-leaving", between_staging_and_navigation)
-
-    def test_prepared_navigation_has_no_content_fade_classes(self):
-        self.assertNotIn("crm-desktop-navigation-leaving", self.script)
-        self.assertNotIn("crm-desktop-navigation-entering", self.script)
-        self.assertNotIn("crm-desktop-navigation-enter-active", self.script)
-        self.assertNotIn("crm-desktop-navigation-leaving", self.desktop_css)
-        self.assertNotIn("crm-desktop-navigation-entering", self.desktop_css)
-
-    def test_prepared_response_uses_a_one_time_url_and_cleans_it_from_history(self):
-        self.assertIn("navigationUrl.searchParams.set(\n      '_crm_prepared_navigation'", self.script)
-        self.assertIn("searchParams.has('_crm_prepared_navigation')", self.script)
-        self.assertIn("searchParams.delete('_crm_prepared_navigation')", self.script)
-        self.assertIn("window.history.replaceState", self.script)
+        self.assertEqual(script_version, "v654-firefox-frame-buffer")
+        self.assertEqual(css_version, "v56-firefox-frame-buffer")
 
 
 if __name__ == "__main__":

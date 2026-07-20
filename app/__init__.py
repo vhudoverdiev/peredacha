@@ -92,7 +92,16 @@ def create_app(config_class=Config):
     def add_security_headers(response):
         from app.security import record_site_visit
 
-        response.headers.setdefault("X-Frame-Options", "DENY")
+        # Authenticated pages may be embedded only by this same origin. Desktop
+        # Firefox uses that narrow permission to double-buffer internal page
+        # transitions without exposing Gecko's white top-level canvas. Public
+        # and authentication pages keep the stricter cross-origin protection.
+        allow_same_origin_frame = current_user.is_authenticated
+        frame_ancestors = "'self'" if allow_same_origin_frame else "'none'"
+        response.headers.setdefault(
+            "X-Frame-Options",
+            "SAMEORIGIN" if allow_same_origin_frame else "DENY",
+        )
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "same-origin")
         response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
@@ -101,7 +110,7 @@ def create_app(config_class=Config):
             "default-src 'self'; "
             "base-uri 'self'; "
             "form-action 'self'; "
-            "frame-ancestors 'none'; "
+            f"frame-ancestors {frame_ancestors}; "
             "img-src 'self' data:; "
             "font-src 'self' data:; "
             "style-src 'self' 'unsafe-inline'; "
