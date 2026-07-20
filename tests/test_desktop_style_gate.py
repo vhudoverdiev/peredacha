@@ -23,7 +23,15 @@ class DesktopStyleGateMarkupTests(unittest.TestCase):
         self.assertLess(desktop_branch, gate_enabled)
         self.assertLess(gate_enabled, first_stylesheet)
 
-    def test_desktop_body_is_hidden_while_styles_are_pending(self):
+    def test_desktop_shell_canvas_stays_visible_while_body_is_pending(self):
+        self.assertIn(
+            "desktop-styles-pending.desktop-shell-with-sidebar::before",
+            self.template,
+        )
+        self.assertIn(
+            "html.app-root.desktop-like-pointer.desktop-styles-pending::after",
+            self.template,
+        )
         self.assertIn(
             "html.desktop-like-pointer.desktop-styles-pending body",
             self.template,

@@ -7,6 +7,14 @@
   display: none !important;
 }
 
+/* Materials forces generic button text to black. Keep the destructive action
+   readable when its outline button becomes filled on desktop interaction. */
+html.desktop-like-pointer body.app-body:has(.materials-page-head)
+  .material-request-detail-delete-btn:is(:hover, :focus, :focus-visible, :active) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
 /* Narrow desktop windows keep only the lower paginator and must not let a
    long contractor/status label intrude into the action controls. */
 html.desktop-like-pointer body.app-body :is(.page-pagination-top, .glass-ordered-pagination-top) {
@@ -1372,5 +1380,79 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     > #avrDataModal .modal-footer .btn.btn-outline-secondary:focus {
     color: #111827 !important;
     -webkit-text-fill-color: #111827 !important;
+  }
+}
+
+/* Cross-browser desktop shell. The shared stylesheet ends with legacy
+   relative/sticky overrides; explicit fixed positioning here wins after it
+   in Chrome, Firefox, Safari and Edge. Content offsets reserve the same space,
+   so fixing the chrome does not move or cover the working area. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .app-layout {
+    position: relative !important;
+    display: block !important;
+    min-height: calc(100vh / var(--desktop-stage-scale, 1)) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .app-layout > .app-sidebar {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    width: var(--desktop-sidebar-width, 230px) !important;
+    min-width: var(--desktop-sidebar-width, 230px) !important;
+    max-width: var(--desktop-sidebar-width, 230px) !important;
+    height: calc(100vh / var(--desktop-stage-scale, 1)) !important;
+    min-height: calc(100vh / var(--desktop-stage-scale, 1)) !important;
+    margin: 0 !important;
+    overflow-y: auto !important;
+    z-index: 4090 !important;
+    transform: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .app-layout > .app-main {
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: calc(var(--desktop-reference-width, 1920px) - var(--desktop-sidebar-width, 230px)) !important;
+    min-width: 0 !important;
+    min-height: calc(100vh / var(--desktop-stage-scale, 1)) !important;
+    margin-left: var(--desktop-sidebar-width, 230px) !important;
+    padding-top: 4.9rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body .app-layout > .app-main > .app-topbar {
+    position: fixed !important;
+    inset: 0 auto auto var(--desktop-sidebar-width, 230px) !important;
+    box-sizing: border-box !important;
+    width: calc(var(--desktop-reference-width, 1920px) - var(--desktop-sidebar-width, 230px)) !important;
+    min-height: 4.9rem !important;
+    height: 4.9rem !important;
+    margin: 0 !important;
+    z-index: 4080 !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    :is(.objects-layout, .documents-standalone-layout, .settings-standalone-layout) {
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: calc(100vh / var(--desktop-stage-scale, 1)) !important;
+    padding-top: 5.75rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    :is(.objects-layout, .documents-standalone-layout, .settings-standalone-layout)
+    > .objects-topbar {
+    position: fixed !important;
+    inset: 0 auto auto 0 !important;
+    box-sizing: border-box !important;
+    width: var(--desktop-reference-width, 1920px) !important;
+    min-height: 5.75rem !important;
+    height: 5.75rem !important;
+    margin: 0 !important;
+    z-index: 4080 !important;
+    transform: none !important;
+    will-change: auto !important;
   }
 }

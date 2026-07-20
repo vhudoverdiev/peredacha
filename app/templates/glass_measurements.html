@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Замеры{% endblock %}
 {% block content %}
-<div class="glass-page{% if tab == 'ordered' and not ordered_rows %} glass-ordered-empty-page{% endif %}" data-ajax-pagination-page="glass-measurements">
+<div class="glass-page{% if tab == 'ordered' and not ordered_rows %} glass-ordered-empty-page mobile-short-page-marker{% endif %}" data-ajax-pagination-page="glass-measurements">
 <div class="page-head remarks-page-head glass-page-head">
   <a class="btn btn-outline-secondary glass-mobile-back-btn mobile-shared-back-btn" href="{{ url_for('main.task_list') }}">
     <span class="glass-mobile-back-content mobile-shared-back-content">

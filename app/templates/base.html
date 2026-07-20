@@ -1,5 +1,6 @@
+{% set layout_mode %}{% block layout_mode %}app{% endblock %}{% endset %}
 <!doctype html>
-<html lang="ru" class="{% if current_user.is_authenticated %}app-root{% else %}auth-root{% endif %}">
+<html lang="ru" class="{% if current_user.is_authenticated %}app-root{% else %}auth-root{% endif %}{% if current_user.is_authenticated and layout_mode.strip() == 'app' %} desktop-shell-with-sidebar{% endif %}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -174,6 +175,9 @@
         // document while the service worker resolves the CSS requests.
         document.documentElement.classList.add('desktop-styles-pending');
         const desktopStageScale = getDesktopStageScale();
+        const desktopShellHasSidebar = document.documentElement.classList.contains('desktop-shell-with-sidebar');
+        document.documentElement.style.setProperty('--desktop-shell-sidebar-visual-width', `${desktopShellHasSidebar ? 230 * desktopStageScale : 0}px`);
+        document.documentElement.style.setProperty('--desktop-shell-topbar-visual-height', `${(desktopShellHasSidebar ? 78.4 : 92) * desktopStageScale}px`);
         document.documentElement.style.setProperty('--desktop-reference-width', `${DESKTOP_REFERENCE_WIDTH}px`);
         document.documentElement.style.setProperty('--desktop-reference-height', `${DESKTOP_REFERENCE_HEIGHT}px`);
         document.documentElement.style.setProperty('--desktop-lock-width', `${DESKTOP_REFERENCE_WIDTH}px`);
@@ -226,8 +230,38 @@
        above. Keep the new document on its final canvas until the blocking
        stylesheet barrier at the end of <head> releases the first paint. */
     html.app-root.desktop-like-pointer.desktop-styles-pending {
-      background: #f6f8fb !important;
-      background-color: #f6f8fb !important;
+      background: #fefdfe !important;
+      background-color: #fefdfe !important;
+    }
+
+    /* Preserve the desktop chrome surfaces while a new document waits for
+       its external stylesheets. These root layers exist before <body>, so a
+       browser refresh never clears the fixed shell to a white frame. */
+    html.app-root.desktop-like-pointer.desktop-styles-pending.desktop-shell-with-sidebar::before,
+    html.app-root.desktop-like-pointer.desktop-styles-pending::after {
+      content: "";
+      position: fixed;
+      z-index: 2147480000;
+      display: block;
+      pointer-events: none;
+    }
+
+    html.app-root.desktop-like-pointer.desktop-styles-pending.desktop-shell-with-sidebar::before {
+      inset: 0 auto 0 0;
+      width: var(--desktop-shell-sidebar-visual-width, 230px);
+      background: linear-gradient(180deg, #23292f 0%, #1a1f24 100%);
+    }
+
+    html.app-root.desktop-like-pointer.desktop-styles-pending::after {
+      top: 0;
+      right: 0;
+      left: var(--desktop-shell-sidebar-visual-width, 0px);
+      height: var(--desktop-shell-topbar-visual-height, 78.4px);
+      background:
+        radial-gradient(circle at 7% 26%, rgba(141, 214, 44, .06), transparent 15rem),
+        linear-gradient(180deg, #23292f 0%, #1a1f24 100%);
+      border-bottom: 1px solid rgba(255, 255, 255, .05);
+      box-shadow: 0 10px 28px rgba(86, 93, 98, .16);
     }
 
     html.desktop-like-pointer.desktop-styles-pending body {
@@ -731,7 +765,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v87-task-add-safe-gap', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v92-fixed-desktop-shell', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -769,8 +803,8 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v628-mobile-root-height-conflicts-removed">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v72-task-add-safe-gap">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v38-material-delete-stable">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v75-glass-empty-shared-dock">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v40-fixed-desktop-shell">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
     // Releasing the gate here guarantees that desktop body markup cannot be
@@ -855,7 +889,6 @@
 {% if current_user.is_authenticated %}
 <div class="mobile-fixed-top-scroll-mask" aria-hidden="true"></div>
 {% endif %}
-{% set layout_mode %}{% block layout_mode %}app{% endblock %}{% endset %}
 {% set page_content %}{% block content %}{% endblock %}{% endset %}
 {% set worker_role = current_user.is_authenticated and current_user.role in ['executor', 'painter', 'handyman', 'glazier'] %}
 {% set report_only_role = current_user.is_authenticated and current_user.role == 'verifier' %}

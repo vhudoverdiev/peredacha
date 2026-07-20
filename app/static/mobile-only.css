@@ -1524,7 +1524,7 @@
 
   html body.app-body.app-body.app-body .crm-mobile-page-shell,
   html body.app-body.app-body.app-body .crm-mobile-page-shell
-    > :last-child:not(.crm-toast-stack):not(.account-page):not(.glass-ordered-empty-page):not(.task-single-form) {
+    > :last-child:not(.crm-toast-stack):not(.account-page):not(.task-single-form):not(.assignment-manual-task-form):not(.assignment-issued-empty-page) {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
   }
@@ -1542,17 +1542,6 @@
     padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
   }
 
-  /* The empty Ordered Measurements view is another short last child of the
-     mobile shell. Preserve only the iPhone home-indicator clearance below
-     its empty card so the dark dock stays the same 72px height as Objects.
-     Populated measurement pages continue to use the regular page reset. */
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.glass-ordered-empty-page)
-    .crm-mobile-page-shell > .glass-ordered-empty-page {
-    margin-bottom: 0 !important;
-    padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
-  }
-
   /* The direct Add Remark form is also the final child of the short mobile
      shell. The generic reset used to remove its iPhone home-indicator gap,
      joining the dark root canvas to the 72px dock. Preserve only that safe
@@ -1561,6 +1550,16 @@
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body:has(.task-single-form)
     .crm-mobile-page-shell > .task-single-form {
+    margin-bottom: 0 !important;
+    padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* The manual assignment form is the final child of the same short shell.
+     Keep its controls above the iPhone home-indicator clearance without
+     changing the shared 72px dock or any desktop assignment layout. */
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-manual-task-form)
+    .crm-mobile-page-shell > .assignment-manual-task-form {
     margin-bottom: 0 !important;
     padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
   }
@@ -2096,6 +2095,17 @@
     flex-direction: column !important;
   }
 
+  /* The empty issued-tasks AJAX page is the final child of the mobile shell.
+     Its own layout reset otherwise removes the iPhone home-indicator space
+     after the generic last-child reset has run. Restore only that safe area;
+     the fixed dock keeps the exact shared 72px geometry used by Objects. */
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body:has(.assignment-issued-empty-page)
+    .crm-mobile-page-shell > .assignment-issued-empty-page {
+    margin-bottom: 0 !important;
+    padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
   html body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
     .account-page {
     min-height: 0 !important;
@@ -2113,6 +2123,27 @@
 
   html body.app-body.app-body .assignment-manual-task-form
     .developer-native-select.form-select {
+    font-weight: 400 !important;
+  }
+
+  /* iOS uses native selects in the installed app, while the web fallback
+     renders custom select/date buttons and a body-level options portal.
+     Normalize every displayed value and option, but leave field labels bold. */
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-manual-task-form)
+    :is(
+      .assignment-manual-task-form select,
+      .assignment-manual-task-form select option,
+      .assignment-manual-task-form .form-select,
+      .assignment-manual-task-form .developer-native-select,
+      .assignment-manual-task-form .developer-select-button,
+      .assignment-manual-task-form .developer-select-button *,
+      .assignment-manual-task-form .developer-select-value,
+      .assignment-manual-task-form .global-date-button,
+      .assignment-manual-task-form .global-date-button *,
+      .assignment-manual-task-form .global-date-value,
+      .developer-select-menu-portal .developer-select-option
+    ) {
     font-weight: 400 !important;
   }
 }
