@@ -50,14 +50,16 @@ class DesktopFixedShellTests(unittest.TestCase):
             self.shell_css,
         )
 
-    def test_desktop_page_surface_never_starts_transparent(self):
-        self.assertIn(
-            "html.desktop-like-pointer body.app-body .crm-page-entry-surface",
+    def test_desktop_page_surface_is_not_forced_static(self):
+        self.assertNotIn(
+            "html.desktop-like-pointer body.app-body .crm-page-entry-surface {",
             self.shell_css,
         )
-        self.assertIn("visibility: visible !important", self.shell_css)
-        self.assertIn("opacity: 1 !important", self.shell_css)
-        self.assertIn("animation: none !important", self.shell_css)
+        self.assertIn(
+            ".crm-firefox-buffered-page:not(.crm-firefox-buffer-revealed)",
+            self.shell_css,
+        )
+        self.assertIn("animation-play-state: paused !important", self.shell_css)
 
 
 if __name__ == "__main__":
