@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v113-remark-add-screen-height';
+const STATIC_CACHE = 'peredacha-static-v114-firefox-content-handoff';
 const DESKTOP_NAVIGATION_CACHE = 'crm-desktop-navigation-v1';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
@@ -15,8 +15,8 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
   '/static/mobile-only.css?v=v86-remark-add-screen-height',
-  '/static/desktop-only.css?v=v45-narrow-desktop-dock',
-  '/static/script.js?v=v643-bulk-pagination-selection',
+  '/static/desktop-only.css?v=v46-firefox-content-handoff',
+  '/static/script.js?v=v644-firefox-content-handoff',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>

@@ -1487,4 +1487,41 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     transition: none !important;
     will-change: auto !important;
   }
+
+  /* Firefox does not yet provide cross-document View Transitions for this
+     multi-page flow. Use a restrained content-only handoff: the fixed shell
+     never participates, and the page stays mostly opaque so no white flash is
+     introduced between the outgoing and incoming documents. */
+  html.desktop-like-pointer.crm-desktop-navigation-leaving
+    body.app-body .crm-page-entry-surface {
+    opacity: .72 !important;
+    transition: opacity 105ms cubic-bezier(.4, 0, .6, 1) !important;
+    will-change: opacity !important;
+    pointer-events: none !important;
+  }
+
+  html.desktop-like-pointer.crm-desktop-navigation-entering
+    body.app-body .crm-page-entry-surface {
+    opacity: .72 !important;
+    transition: none !important;
+    will-change: opacity !important;
+  }
+
+  html.desktop-like-pointer.crm-desktop-navigation-entering.crm-desktop-navigation-enter-active
+    body.app-body .crm-page-entry-surface {
+    opacity: 1 !important;
+    transition: opacity 170ms cubic-bezier(.22, .72, .18, 1) !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.desktop-like-pointer:is(
+      .crm-desktop-navigation-leaving,
+      .crm-desktop-navigation-entering,
+      .crm-desktop-navigation-enter-active
+    ) body.app-body .crm-page-entry-surface {
+      opacity: 1 !important;
+      transition: none !important;
+      will-change: auto !important;
+    }
+  }
 }

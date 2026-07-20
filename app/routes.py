@@ -1556,7 +1556,11 @@ def _measurement_request_groups(old_items: list[MaterialRequestItem]) -> list[di
     if not old_item_ids:
         return []
     linked_measurements = (
-        GlassMeasurement.query.options(selectinload(GlassMeasurement.material_writeoff))
+        GlassMeasurement.query.options(
+            selectinload(GlassMeasurement.material_writeoff),
+            selectinload(GlassMeasurement.apartment),
+            selectinload(GlassMeasurement.task).selectinload(Task.apartment),
+        )
         .filter(GlassMeasurement.material_request_item_id.in_(old_item_ids))
         .all()
     )
@@ -1575,6 +1579,39 @@ def _measurement_request_groups(old_items: list[MaterialRequestItem]) -> list[di
         end = int(group.get("end") or start + 1)
         group["item_ids"] = [item.id for item in old_items[start:end] if item.id]
     return groups
+
+
+def _material_request_display_rows(material_request: MaterialRequest) -> list[dict[str, object]]:
+    items = list(material_request.items)
+    apartment_by_item_id: dict[int, tuple[str, str]] = {}
+    if _is_measurement_material_request(material_request):
+        for group in _measurement_request_groups(items):
+            measurement = group.get("measurement")
+            if measurement is None:
+                continue
+            apartment = getattr(measurement, "apartment", None)
+            if apartment is None:
+                apartment = getattr(getattr(measurement, "task", None), "apartment", None)
+            apartment_number = apartment.display_number(fallback_to_id=False) if apartment is not None else ""
+            apartment_label = apartment.label() if apartment is not None else ""
+            for item_id in group.get("item_ids") or []:
+                apartment_by_item_id[int(item_id)] = (apartment_number, apartment_label)
+
+    rows: list[dict[str, object]] = []
+    for item in items:
+        apartment_number, apartment_label = apartment_by_item_id.get(item.id, ("", ""))
+        display_name = str(item.name or "").strip()
+        suffix = f" {apartment_label}" if apartment_label else ""
+        if suffix and display_name.casefold().endswith(suffix.casefold()):
+            display_name = display_name[:-len(suffix)].rstrip()
+        rows.append(
+            {
+                "item": item,
+                "apartment_number": apartment_number,
+                "display_name": display_name,
+            }
+        )
+    return rows
 
 
 def _sync_measurement_writeoffs_from_request_groups(
@@ -4691,7 +4728,11 @@ def _task_search_blob(task: Task) -> str:
 GLASS_WORK_POINT_NUMBERS = {"16", "17", "18", "19", "20"}
 
 
-def _all_project_tasks(project_id: int, point_numbers: set[str] | None = None) -> list[Task]:
+def _all_project_tasks(
+    project_id: int,
+    point_numbers: set[str] | None = None,
+    source_sheet_names: set[str] | None = None,
+) -> list[Task]:
     query = (
         Task.query.options(
             selectinload(Task.apartment),
@@ -4705,8 +4746,13 @@ def _all_project_tasks(project_id: int, point_numbers: set[str] | None = None) -
         .join(WorkPoint)
         .filter(Task.project_id == project_id)
     )
+    filters = []
     if point_numbers:
-        query = query.filter(WorkPoint.point_number.in_(sorted(point_numbers)))
+        filters.append(WorkPoint.point_number.in_(sorted(point_numbers)))
+    if source_sheet_names:
+        filters.append(Task.source_sheet_name.in_(sorted(source_sheet_names)))
+    if filters:
+        query = query.filter(or_(*filters))
     return (
         query.order_by(Apartment.premise_type.asc(), Apartment.building.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc(), Task.id.asc())
         .limit(3000)
@@ -4716,8 +4762,14 @@ def _all_project_tasks(project_id: int, point_numbers: set[str] | None = None) -
 
 def _glass_tasks(project_id: int) -> list[Task]:
     # В «Замерах» работают только замечания по оконным пунктам 16–20.
+    # Ручные задачи раздела сохраняются в «Прочее» (пункт 22), поэтому
+    # включаем их отдельно по источнику, не захватывая остальные задачи пункта 22.
     # Основной статус задачи не влияет на статус замера.
-    return _all_project_tasks(project_id, point_numbers=GLASS_WORK_POINT_NUMBERS)
+    return _all_project_tasks(
+        project_id,
+        point_numbers=GLASS_WORK_POINT_NUMBERS,
+        source_sheet_names={"manual_glass"},
+    )
 
 
 GLASS_ORDERED_REQUEST_NONE = "none"
@@ -4799,7 +4851,14 @@ def _glass_tasks_without_ordered_apartments(tasks: list[Task]) -> list[Task]:
         return tasks
     return [
         task for task in tasks
-        if task.apartment is not None and _apartment_group_key(task.apartment) not in ordered_apartment_keys
+        if task.apartment is not None
+        and (
+            (
+                task.source_sheet_name == "manual_glass"
+                and _measurement_status(task.glass_measurement) not in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}
+            )
+            or _apartment_group_key(task.apartment) not in ordered_apartment_keys
+        )
     ]
 
 
@@ -5342,7 +5401,6 @@ def glass_create_material_request():
     db.session.add(material_request)
     for measurement in measurements:
         task = measurement.task
-        apt = task.apartment.label() if task and task.apartment else ""
         first_item_for_measurement = None
         writeoff = measurement.material_writeoff
         if writeoff is None:
@@ -5357,8 +5415,7 @@ def glass_create_material_request():
         if task is not None:
             writeoff.tasks.append(task)
         for item_row in _glass_item_rows(measurement):
-            title = str(item_row.get("title_label") or "").strip()
-            item_name = f"{title} {apt}".strip()
+            item_name = str(item_row.get("title_label") or "").strip()
             quantity = item_row.get("quantity") or 1
             request_item = MaterialRequestItem(
                 name=item_name,
@@ -5759,11 +5816,13 @@ def material_request_detail(request_id: int):
         .filter(MaterialRequest.id == request_id, MaterialRequest.project_id == project.id)
         .first()
     ) or abort(404)
+    material_request_rows = _material_request_display_rows(material_request)
     max_rows = len(material_request.items) + 1
     return render_template(
         "material_request_detail.html",
         project=project,
         material_request=material_request,
+        material_request_rows=material_request_rows,
         can_edit_materials=_can_edit_materials(),
         can_export_material_request=can_export(current_user),
         max_rows=max_rows,
@@ -5965,18 +6024,21 @@ def material_request_export(request_id: int):
     wb = Workbook()
     ws = wb.active
     ws.title = "Заявка"
-    ws.append(["Дата", "Название заявки", "Наименование", "Количество", "Ед. измерения"])
+    ws.append(["Дата", "Название заявки", "№ квартиры", "Наименование", "Количество", "Ед. измерения"])
     request_title = material_request.title or material_request.comment or f"Заявка №{material_request.id}"
-    for item in material_request.items:
+    material_request_rows = _material_request_display_rows(material_request)
+    for row in material_request_rows:
+        item = row["item"]
         ws.append([
             material_request.request_date.strftime("%d.%m.%Y") if material_request.request_date else "",
             request_title,
-            item.name,
+            row["apartment_number"],
+            row["display_name"],
             fmt_quantity(item.quantity),
             item.unit,
         ])
-    if not material_request.items:
-        ws.append([material_request.request_date.strftime("%d.%m.%Y") if material_request.request_date else "", request_title, "", "", ""])
+    if not material_request_rows:
+        ws.append([material_request.request_date.strftime("%d.%m.%Y") if material_request.request_date else "", request_title, "", "", "", ""])
     _style_excel_header(ws)
     filename = f"{project.name}_{request_title}_{date.today().strftime('%Y-%m-%d')}.xlsx".replace("/", "-")
     return _make_excel_response(wb, filename)

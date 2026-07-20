@@ -7,6 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 BASE_TEMPLATE = PROJECT_ROOT / "app" / "templates" / "base.html"
 SCRIPT = PROJECT_ROOT / "app" / "static" / "script.js"
 SERVICE_WORKER = PROJECT_ROOT / "app" / "static" / "service-worker.js"
+DESKTOP_CSS = PROJECT_ROOT / "app" / "static" / "desktop-only.css"
 
 
 class FirefoxPreparedNavigationTests(unittest.TestCase):
@@ -15,6 +16,7 @@ class FirefoxPreparedNavigationTests(unittest.TestCase):
         cls.template = BASE_TEMPLATE.read_text(encoding="utf-8")
         cls.script = SCRIPT.read_text(encoding="utf-8")
         cls.worker = SERVICE_WORKER.read_text(encoding="utf-8")
+        cls.desktop_css = DESKTOP_CSS.read_text(encoding="utf-8")
 
     def test_prepared_navigation_is_desktop_firefox_only(self):
         gate = self.script.index("const isDesktopFirefoxPreparedNavigation")
@@ -97,6 +99,16 @@ class FirefoxPreparedNavigationTests(unittest.TestCase):
 
         self.assertEqual(script_version, worker_script_version)
 
+    def test_desktop_css_cache_buster_is_synchronized(self):
+        css_version = re.search(
+            r"desktop-only\.css'\) }}\?v=([^\"]+)", self.template
+        ).group(1)
+        worker_css_version = re.search(
+            r"'/static/desktop-only\.css\?v=([^']+)'", self.worker
+        ).group(1)
+
+        self.assertEqual(css_version, worker_css_version)
+
     def test_downloads_and_non_html_responses_are_not_staged(self):
         self.assertIn("link.hasAttribute('download')", self.script)
         self.assertIn("link.dataset.downloadMode", self.script)
@@ -123,6 +135,34 @@ class FirefoxPreparedNavigationTests(unittest.TestCase):
             ),
             viewport_section.rindex("window.location.href = href"),
         )
+
+    def test_content_handoff_runs_after_staging_and_before_navigation(self):
+        cache_put = self.script.index("await cache.put(cacheKey, response)")
+        exit_wait = self.script.index(
+            "await waitForDesktopFirefoxExitTransition()", cache_put
+        )
+        assign = self.script.index("window.location.assign(navigationUrl.href)")
+
+        self.assertLess(cache_put, exit_wait)
+        self.assertLess(exit_wait, assign)
+        self.assertIn("prefers-reduced-motion: reduce", self.script)
+        self.assertIn("event.propertyName === 'opacity'", self.script)
+
+    def test_handoff_animates_only_the_page_surface(self):
+        handoff_marker = self.desktop_css.index(
+            "Firefox does not yet provide cross-document View Transitions"
+        )
+        handoff_css = self.desktop_css[handoff_marker:]
+
+        self.assertIn("crm-desktop-navigation-leaving", handoff_css)
+        self.assertIn("crm-desktop-navigation-entering", handoff_css)
+        self.assertIn("body.app-body .crm-page-entry-surface", handoff_css)
+        self.assertIn("opacity: .72 !important", handoff_css)
+        self.assertIn("transition: opacity 105ms", handoff_css)
+        self.assertIn("transition: opacity 170ms", handoff_css)
+        self.assertIn("prefers-reduced-motion: reduce", handoff_css)
+        self.assertNotIn(".app-sidebar", handoff_css)
+        self.assertNotIn(".app-topbar", handoff_css)
 
     def test_prepared_response_uses_a_one_time_url_and_cleans_it_from_history(self):
         self.assertIn("navigationUrl.searchParams.set(\n      '_crm_prepared_navigation'", self.script)

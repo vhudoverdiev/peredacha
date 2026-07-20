@@ -1,6 +1,8 @@
+let isPreparedDesktopNavigationEntry = false;
 try {
   const preparedNavigationUrl = new URL(window.location.href);
   if (preparedNavigationUrl.searchParams.has('_crm_prepared_navigation')) {
+    isPreparedDesktopNavigationEntry = true;
     preparedNavigationUrl.searchParams.delete('_crm_prepared_navigation');
     window.history.replaceState(
       window.history.state,
@@ -9,6 +11,20 @@ try {
     );
   }
 } catch (error) {}
+
+if (isPreparedDesktopNavigationEntry) {
+  window.requestAnimationFrame(() => {
+    const root = document.documentElement;
+    if (!root.classList.contains('crm-desktop-navigation-entering')) return;
+    root.classList.add('crm-desktop-navigation-enter-active');
+    window.setTimeout(() => {
+      root.classList.remove(
+        'crm-desktop-navigation-entering',
+        'crm-desktop-navigation-enter-active',
+      );
+    }, 220);
+  });
+}
 
 const desktopPointerQueries = ['(hover: hover)', '(any-hover: hover)', '(pointer: fine)', '(any-pointer: fine)'];
 const getNavigatorInfo = () => window.navigator || {};
@@ -105,7 +121,35 @@ document.addEventListener('click', event => {
 // The old document therefore stays visible until the destination is ready,
 // while the real page navigation (and all page scripts) still runs normally.
 const desktopFirefoxNavigationCache = 'crm-desktop-navigation-v1';
+const desktopFirefoxExitTransitionTimeout = 160;
 let desktopFirefoxNavigationInFlight = false;
+
+const waitForDesktopFirefoxExitTransition = () => new Promise(resolve => {
+  const root = document.documentElement;
+  const surface = document.querySelector('body.app-body .crm-page-entry-surface');
+  if (
+    !surface
+    || window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ) {
+    resolve();
+    return;
+  }
+
+  let completed = false;
+  const finish = () => {
+    if (completed) return;
+    completed = true;
+    window.clearTimeout(timeout);
+    surface.removeEventListener('transitionend', handleTransitionEnd);
+    resolve();
+  };
+  const handleTransitionEnd = event => {
+    if (event.target === surface && event.propertyName === 'opacity') finish();
+  };
+  const timeout = window.setTimeout(finish, desktopFirefoxExitTransitionTimeout);
+  surface.addEventListener('transitionend', handleTransitionEnd);
+  root.classList.add('crm-desktop-navigation-leaving');
+});
 
 const requestDesktopNavigationWorkerCapability = () => new Promise(resolve => {
   const controller = navigator.serviceWorker?.controller;
@@ -214,6 +258,7 @@ const navigateDesktopFirefoxPreparedNavigation = async targetUrl => {
     // Navigation must remain functional when the worker/cache is unavailable.
   }
 
+  await waitForDesktopFirefoxExitTransition();
   window.location.assign(navigationUrl.href);
 };
 

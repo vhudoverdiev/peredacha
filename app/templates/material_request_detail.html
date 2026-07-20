@@ -49,21 +49,24 @@
         <thead>
           <tr>
             <th>Дата</th>
+            {% if not is_mobile_phone_request %}<th>№ квартиры</th>{% endif %}
             <th>Наименование</th>
             <th>Количество</th>
             <th>Ед.измерения</th>
           </tr>
         </thead>
         <tbody>
-        {% for item in material_request.items %}
+        {% for row in material_request_rows %}
+          {% set item = row.item %}
           <tr>
             <td>{{ material_request.request_date|ru_date if material_request.request_date else '' }}</td>
-            <td>{{ item.name }}</td>
+            {% if not is_mobile_phone_request %}<td>{{ row.apartment_number or '—' }}</td>{% endif %}
+            <td>{{ row.display_name if not is_mobile_phone_request else item.name }}</td>
             <td>{{ fmt_quantity(item.quantity) }}</td>
             <td>{{ item.unit }}</td>
           </tr>
         {% else %}
-          <tr><td colspan="4" class="text-center text-muted py-5">В заявке нет позиций</td></tr>
+          <tr><td colspan="{{ 4 if is_mobile_phone_request else 5 }}" class="text-center text-muted py-5">В заявке нет позиций</td></tr>
         {% endfor %}
         </tbody>
       </table>
@@ -107,7 +110,7 @@
             <td class="text-muted">{{ i + 1 }}</td>
             <td>
               <input type="hidden" name="item_id[]" value="{{ item.id if item else '' }}">
-              <input class="form-control material-name-input" name="name[]" value="{{ item.name if item else '' }}" placeholder="Например: Стекло">
+              <input class="form-control material-name-input" name="name[]" value="{{ (material_request_rows[i].display_name if not is_mobile_phone_request else item.name) if item else '' }}" placeholder="Например: Стекло">
             </td>
             <td><input class="form-control" name="quantity[]" inputmode="decimal" value="{{ fmt_quantity(item.quantity) if item else '' }}" placeholder="Например: 5"></td>
             <td><input class="form-control material-unit-input" name="unit[]" value="{{ item.unit if item else '' }}" placeholder="меш / кг / шт / м²"></td>

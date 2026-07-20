@@ -12,6 +12,11 @@
     <h1 class="page-title">Замеры</h1>
     <p class="page-subtitle"></p>
   </div>
+  {% if current_user.role != 'viewer' and not is_mobile_phone_request %}
+  <div class="glass-head-actions">
+    <button class="btn btn-primary js-glass-manual-open" type="button"><i class="bi bi-plus-lg me-2"></i>Добавить задачу</button>
+  </div>
+  {% endif %}
 </div>
 
 <div class="remarks-tabs mb-3" data-ajax-pagination-tabs>

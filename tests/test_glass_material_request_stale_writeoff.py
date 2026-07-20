@@ -106,6 +106,8 @@ class GlassMaterialRequestStaleWriteoffTests(unittest.TestCase):
         self.assertEqual(self.measurement.material_writeoff_id, self.writeoff.id)
         self.assertEqual(len(self.writeoff.items), 1)
         self.assertIn("600", self.writeoff.items[0].name)
+        self.assertNotIn("кв 101", MaterialRequestItem.query.one().name)
+        self.assertNotIn("кв 101", self.writeoff.items[0].name)
 
     def test_balance_deletion_clears_both_measurement_links(self):
         self.client.post(
