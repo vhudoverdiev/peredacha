@@ -1455,4 +1455,12 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     transform: none !important;
     will-change: auto !important;
   }
+
+  /* Partial tab navigation keeps surplus nodes as hidden spares. The filter
+     action layout uses display:flex!important, so preserve the hidden state
+     when moving from "Ordered" to the shorter "Order" filter. */
+  html.desktop-like-pointer body.app-body
+    .glass-page [data-ajax-pagination-spare][hidden] {
+    display: none !important;
+  }
 }

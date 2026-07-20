@@ -167,7 +167,7 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             self.assertIn(control, rule)
         self.assertIn("font-weight: 400 !important;", rule)
 
-    def test_only_empty_issued_assignments_keep_iphone_safe_area(self):
+    def test_only_empty_issued_assignments_use_shared_short_page_geometry(self):
         self.assertIn(
             "{% if issued_page_empty %} class=\"assignment-issued-empty-page\"{% endif %}",
             self.assignments_template,
@@ -177,19 +177,27 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             self.assignments_template,
         )
         self.assertIn(
-            ":not(.assignment-manual-task-form):not(.assignment-issued-empty-page)",
+            "assignment-issued-layout-empty mobile-empty-results-page mobile-short-page-marker",
+            self.assignments_template,
+        )
+        reset_selector_start = self.mobile_css.index(
+            ".crm-mobile-page-shell\n"
+            "    > :last-child:not(.crm-toast-stack)"
+        )
+        reset_selector_end = self.mobile_css.index("{", reset_selector_start)
+        reset_selector = self.mobile_css[reset_selector_start:reset_selector_end]
+        self.assertNotIn(
+            ":not(.assignment-issued-empty-page)",
+            reset_selector,
+        )
+        self.assertNotIn(
+            "body.app-body.app-body:has(.assignment-issued-empty-page)\n"
+            "    .crm-mobile-page-shell > .assignment-issued-empty-page",
             self.mobile_css,
         )
-        selector = (
-            "body.app-body.app-body:has(.assignment-issued-empty-page)\n"
-            "    .crm-mobile-page-shell > .assignment-issued-empty-page"
-        )
-        selector_start = self.mobile_css.index(selector)
-        rule_end = self.mobile_css.index("}", selector_start)
-        rule = self.mobile_css[selector_start:rule_end]
         self.assertIn(
-            "padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;",
-            rule,
+            "body.app-body:has(.mobile-short-page-marker)",
+            self.mobile_css,
         )
 
     def test_empty_issued_assignments_do_not_get_a_page_specific_dock_anchor(self):

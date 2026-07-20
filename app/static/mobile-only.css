@@ -1524,7 +1524,7 @@
 
   html body.app-body.app-body.app-body .crm-mobile-page-shell,
   html body.app-body.app-body.app-body .crm-mobile-page-shell
-    > :last-child:not(.crm-toast-stack):not(.account-page):not(.task-single-form):not(.assignment-manual-task-form):not(.assignment-issued-empty-page) {
+    > :last-child:not(.crm-toast-stack):not(.account-page):not(.task-single-form):not(.assignment-manual-task-form) {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
   }
@@ -2093,17 +2093,6 @@
     min-height: 0 !important;
     flex: 1 1 auto !important;
     flex-direction: column !important;
-  }
-
-  /* The empty issued-tasks AJAX page is the final child of the mobile shell.
-     Its own layout reset otherwise removes the iPhone home-indicator space
-     after the generic last-child reset has run. Restore only that safe area;
-     the fixed dock keeps the exact shared 72px geometry used by Objects. */
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body.app-body:has(.assignment-issued-empty-page)
-    .crm-mobile-page-shell > .assignment-issued-empty-page {
-    margin-bottom: 0 !important;
-    padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
   }
 
   html body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
