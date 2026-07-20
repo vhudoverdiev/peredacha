@@ -1524,7 +1524,7 @@
 
   html body.app-body.app-body.app-body .crm-mobile-page-shell,
   html body.app-body.app-body.app-body .crm-mobile-page-shell
-    > :last-child:not(.crm-toast-stack):not(.account-page):not(.assignment-manual-task-form) {
+    > :last-child:not(.crm-toast-stack):not(.account-page) {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
   }
@@ -1538,16 +1538,6 @@
     body.app-body:has(.account-page) .crm-mobile-page-shell > .account-page,
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body.has-account-page .crm-mobile-page-shell > .account-page {
-    margin-bottom: 0 !important;
-    padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
-  }
-
-  /* The manual assignment form is the final child of the same short shell.
-     Keep its controls above the iPhone home-indicator clearance without
-     changing the shared 72px dock or any desktop assignment layout. */
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.assignment-manual-task-form)
-    .crm-mobile-page-shell > .assignment-manual-task-form {
     margin-bottom: 0 !important;
     padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
   }

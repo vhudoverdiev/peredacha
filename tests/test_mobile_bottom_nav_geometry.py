@@ -12,6 +12,7 @@ GLASS_TEMPLATE = ROOT / "app" / "templates" / "glass_measurements.html"
 TASK_FORM_TEMPLATE = ROOT / "app" / "templates" / "task_form.html"
 ASSIGNMENT_FORM_TEMPLATE = ROOT / "app" / "templates" / "assignment_task_form.html"
 ASSIGNMENTS_TEMPLATE = ROOT / "app" / "templates" / "assignments.html"
+MY_TASKS_TEMPLATE = ROOT / "app" / "templates" / "my_tasks.html"
 
 
 class MobileBottomNavGeometryTest(unittest.TestCase):
@@ -25,6 +26,7 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         cls.task_form_template = TASK_FORM_TEMPLATE.read_text(encoding="utf-8")
         cls.assignment_form_template = ASSIGNMENT_FORM_TEMPLATE.read_text(encoding="utf-8")
         cls.assignments_template = ASSIGNMENTS_TEMPLATE.read_text(encoding="utf-8")
+        cls.my_tasks_template = MY_TASKS_TEMPLATE.read_text(encoding="utf-8")
 
     def test_nav_markup_does_not_override_shared_anchor(self):
         nav_tags = re.findall(
@@ -127,25 +129,29 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         self.assertIsNone(task_dock_selector.search(self.base))
         self.assertIsNone(task_dock_selector.search(self.mobile_css))
 
-    def test_add_assignment_form_keeps_iphone_safe_area(self):
+    def test_add_assignment_form_uses_shared_short_page_geometry(self):
         self.assertIn(
             "assignment-manual-task-form mobile-fill-card",
             self.assignment_form_template,
         )
-        self.assertIn(
-            ":not(.account-page):not(.assignment-manual-task-form)",
+        reset_selector_start = self.mobile_css.index(
+            ".crm-mobile-page-shell\n"
+            "    > :last-child:not(.crm-toast-stack)"
+        )
+        reset_selector_end = self.mobile_css.index("{", reset_selector_start)
+        reset_selector = self.mobile_css[reset_selector_start:reset_selector_end]
+        self.assertNotIn(
+            ":not(.assignment-manual-task-form)",
+            reset_selector,
+        )
+        self.assertNotIn(
+            "body.app-body:has(.assignment-manual-task-form)\n"
+            "    .crm-mobile-page-shell > .assignment-manual-task-form",
             self.mobile_css,
         )
-        selector = (
-            "body.app-body:has(.assignment-manual-task-form)\n"
-            "    .crm-mobile-page-shell > .assignment-manual-task-form"
-        )
-        selector_start = self.mobile_css.index(selector)
-        rule_end = self.mobile_css.index("}", selector_start)
-        rule = self.mobile_css[selector_start:rule_end]
         self.assertIn(
-            "padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;",
-            rule,
+            "body.app-body:has(.mobile-form-fill-page) .app-content",
+            self.mobile_css,
         )
 
     def test_add_assignment_does_not_get_a_page_specific_dock_anchor(self):
@@ -215,6 +221,44 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         self.assertIsNone(assignment_empty_dock_selector.search(self.base))
         self.assertIsNone(assignment_empty_dock_selector.search(self.mobile_css))
 
+    def test_all_worker_roles_share_the_unified_two_item_dock(self):
+        self.assertIn("{% if worker_role %}", self.base)
+        worker_nav = re.search(
+            r'<nav class="mobile-bottom-nav mobile-bottom-nav-root mobile-worker-bottom-nav"[^>]+>',
+            self.base,
+        )
+        self.assertIsNotNone(worker_nav)
+        worker_nav_markup = worker_nav.group(0)
+        self.assertIn("--mobile-nav-count: 2", worker_nav_markup)
+        self.assertIn("width: 100vw !important", worker_nav_markup)
+        self.assertIn("height: 72px !important", worker_nav_markup)
+
+    def test_empty_worker_tasks_paint_the_light_canvas_to_shared_dock(self):
+        self.assertIn(
+            "worker-page-empty mobile-short-page-marker",
+            self.my_tasks_template,
+        )
+        self.assertIn(
+            "body.app-body:has(.mobile-short-page-marker)",
+            self.mobile_css,
+        )
+        self.assertIn(
+            "body.app-body:has(.worker-page-empty) .worker-empty-card",
+            self.mobile_css,
+        )
+
+    def test_worker_account_does_not_get_a_worker_specific_dock_size(self):
+        worker_account_dock_selector = re.compile(
+            r":has\(\.mobile-worker-bottom-nav\):has\(\.account-page\)[^\{]*"
+            r"mobile-bottom-nav-root"
+        )
+        self.assertIsNone(worker_account_dock_selector.search(self.base))
+        self.assertIsNone(worker_account_dock_selector.search(self.mobile_css))
+        self.assertIn(
+            "body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)",
+            self.mobile_css,
+        )
+
     def test_pwa_cache_uses_the_same_mobile_stylesheet_version(self):
         version_pattern = r"mobile-only\.css[^\n]*\?v=(v[\w-]+)"
         template_version = re.search(version_pattern, self.base)
@@ -222,6 +266,11 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         self.assertIsNotNone(template_version)
         self.assertIsNotNone(worker_version)
         self.assertEqual(template_version.group(1), worker_version.group(1))
+        service_worker_version = re.search(r"service-worker\.js\?v=(v[\w-]+)", self.base)
+        static_cache_version = re.search(r"peredacha-static-(v[\w-]+)", self.service_worker)
+        self.assertIsNotNone(service_worker_version)
+        self.assertIsNotNone(static_cache_version)
+        self.assertEqual(service_worker_version.group(1), static_cache_version.group(1))
 
 
 if __name__ == "__main__":

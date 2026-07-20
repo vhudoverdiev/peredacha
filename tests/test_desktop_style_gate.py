@@ -11,17 +11,30 @@ class DesktopStyleGateMarkupTests(unittest.TestCase):
     def setUpClass(cls):
         cls.template = BASE_TEMPLATE.read_text(encoding="utf-8")
 
-    def test_desktop_gate_is_enabled_before_stylesheets_are_requested(self):
+    def test_non_firefox_desktop_gate_is_enabled_before_stylesheets_are_requested(self):
         desktop_branch = self.template.index(
             "if (!isTouchAppDevice && !useAdaptiveMobileViewport)"
         )
+        firefox_guard = self.template.index("if (!isFirefoxBrowser)")
         gate_enabled = self.template.index(
             "document.documentElement.classList.add('desktop-styles-pending')"
         )
         first_stylesheet = self.template.index("vendor/bootstrap/bootstrap.min.css")
 
         self.assertLess(desktop_branch, gate_enabled)
+        self.assertLess(firefox_guard, gate_enabled)
         self.assertLess(gate_enabled, first_stylesheet)
+
+    def test_firefox_uses_native_document_swap_without_pending_canvas(self):
+        self.assertIn(
+            "const isFirefoxBrowser = /Firefox\\//i.test(userAgent)",
+            self.template,
+        )
+        self.assertIn(
+            "if (!isFirefoxBrowser) {\n"
+            "          document.documentElement.classList.add('desktop-styles-pending')",
+            self.template,
+        )
 
     def test_desktop_shell_canvas_stays_visible_while_body_is_pending(self):
         self.assertIn(
@@ -43,6 +56,10 @@ class DesktopStyleGateMarkupTests(unittest.TestCase):
         )
 
     def test_gate_is_released_after_every_application_stylesheet(self):
+        self.assertIn(
+            "if (!root.classList.contains('desktop-like-pointer')) return",
+            self.template,
+        )
         release = self.template.index(
             "root.classList.remove('desktop-styles-pending')"
         )

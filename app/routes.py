@@ -5720,6 +5720,7 @@ def material_request_detail(request_id: int):
         project=project,
         material_request=material_request,
         can_edit_materials=_can_edit_materials(),
+        can_export_material_request=can_export(current_user),
         max_rows=max_rows,
         today=date.today(),
     )

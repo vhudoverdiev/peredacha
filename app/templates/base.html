@@ -65,6 +65,7 @@
       );
       const nav = window.navigator || {};
       const userAgent = nav.userAgent || '';
+      const isFirefoxBrowser = /Firefox\//i.test(userAgent);
       const maxTouchPoints = nav.maxTouchPoints || 0;
       const coarseTouchPointer = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
       const isIpadOsLike = nav.platform === 'MacIntel' && maxTouchPoints > 1;
@@ -169,11 +170,14 @@
       document.documentElement.classList.toggle('touch-app-device', isTouchAppDevice);
       applyTouchViewportProfile();
       if (!isTouchAppDevice && !useAdaptiveMobileViewport) {
-        // Keep authenticated and public desktop documents out of the first
-        // paint until every blocking stylesheet below has settled. Without
-        // this gate Chromium can briefly expose the newly parsed, unstyled
-        // document while the service worker resolves the CSS requests.
-        document.documentElement.classList.add('desktop-styles-pending');
+        // Chromium needs the early canvas while its service worker resolves
+        // stylesheets. Firefox already retains the previous document until
+        // the blocking head styles are ready; forcing a new pending canvas in
+        // that engine creates an extra empty frame between otherwise complete
+        // pages. Let Firefox use its native atomic document swap.
+        if (!isFirefoxBrowser) {
+          document.documentElement.classList.add('desktop-styles-pending');
+        }
         const desktopStageScale = getDesktopStageScale();
         const desktopShellHasSidebar = document.documentElement.classList.contains('desktop-shell-with-sidebar');
         document.documentElement.style.setProperty('--desktop-shell-sidebar-visual-width', `${desktopShellHasSidebar ? 230 * desktopStageScale : 0}px`);
@@ -765,7 +769,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v97-firefox-opaque-page', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v99-firefox-native-swap', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -803,15 +807,15 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v628-mobile-root-height-conflicts-removed">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v78-task-add-shared-dock">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v42-firefox-opaque-page">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v79-worker-assignment-shared-dock">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v43-firefox-native-swap">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
     // Releasing the gate here guarantees that desktop body markup cannot be
     // painted before Bootstrap and both application style layers are ready.
     (() => {
       const root = document.documentElement;
-      if (!root.classList.contains('desktop-styles-pending')) return;
+      if (!root.classList.contains('desktop-like-pointer')) return;
       root.classList.remove('desktop-styles-pending');
       root.classList.add('desktop-styles-ready');
     })();

@@ -22,6 +22,16 @@
   </div>
   <div class="sync-actions material-detail-actions">
     <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='requests') }}">Назад</a>
+    {% if can_export_material_request %}
+      <a
+        class="btn btn-success download-excel-btn material-request-detail-export-btn d-none d-md-inline-flex"
+        href="{{ url_for('main.material_request_export', request_id=material_request.id) }}"
+        data-loading-text="Готовим Excel..."
+      >
+        <i class="bi bi-file-earmark-excel me-2" aria-hidden="true"></i>
+        <span>Скачать Excel</span>
+      </a>
+    {% endif %}
     {% if can_edit_materials %}
       <button class="btn btn-primary js-material-request-edit" type="button"><i class="bi bi-pencil-square me-2"></i>Редактировать</button>
       <form method="post" action="{{ url_for('main.material_request_delete', request_id=material_request.id) }}" data-confirm="Удалить эту заявку? Все позиции заявки будут удалены, баланс материалов пересчитается.">
