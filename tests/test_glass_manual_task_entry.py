@@ -1,9 +1,14 @@
 import unittest
 from datetime import date
+from pathlib import Path
 
 from config import Config
 from app import create_app, db, login_manager
 from app.models import Apartment, GlassMeasurement, Project, ROLE_ADMIN, Task, User, WorkPoint
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_PATH = ROOT / "app" / "static" / "script.js"
 
 
 class TestConfig(Config):
@@ -98,6 +103,19 @@ class GlassManualTaskEntryTests(unittest.TestCase):
         )
         self.assertEqual(page_response.status_code, 200)
         self.assertIn("Новый ручной замер", page_response.get_data(as_text=True))
+
+    def test_manual_task_ajax_uses_helpers_available_in_its_scope(self):
+        script = SCRIPT_PATH.read_text(encoding="utf-8")
+        manual_block = script.split("const glassManualModalElement", 1)[1].split(
+            "// Site-wide custom validation",
+            1,
+        )[0]
+
+        self.assertIn("const escapeGlassManualHtml", manual_block)
+        self.assertIn("bindGlassManualTaskRow(row)", manual_block)
+        self.assertNotIn("escapeHtml(data.", manual_block)
+        self.assertNotIn("getCsrfToken()", manual_block)
+        self.assertNotIn("bindTaskRowLink(row)", manual_block)
 
 
 if __name__ == "__main__":

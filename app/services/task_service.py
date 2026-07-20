@@ -1941,18 +1941,10 @@ def _row_premise_type(row) -> str:
 
 
 def _has_first_inspection(rows: list) -> bool:
-    # Единственный источник счетчика — дата и время из колонки
-    # «Запись на осмотр». Комментарии, отдельная дата первичного осмотра,
-    # непроданные помещения и будущие записи осмотром не считаются.
-    now = datetime.now()
-    for row in rows:
-        note = str(getattr(row, "inspection_note", None) or "").strip()
-        if not _is_inspection_schedule_marker(note):
-            continue
-        scheduled = _parse_inspection_schedule_value(note[len(INSPECTION_SCHEDULE_PREFIX):])
-        if isinstance(scheduled, datetime) and scheduled <= now:
-            return True
-    return False
+    # The transfer statistics import is the source of truth: red/yellow fill in
+    # "Дата осмотра" stores False, every other fill stores True. Duplicate source
+    # rows represent one premise, so one positive row is enough for the group.
+    return any(bool(getattr(row, "first_inspection_present", False)) for row in rows)
 
 
 def _finishing_bucket(value: str | None) -> str:

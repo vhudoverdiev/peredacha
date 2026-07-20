@@ -12,7 +12,33 @@ try {
   }
 } catch (error) {}
 
-if (isPreparedDesktopNavigationEntry) {
+if (window.__CRM_DESKTOP_NAVIGATION_SNAPSHOT_ACTIVE__ === true) {
+  const revealDesktopNavigationSnapshot = () => {
+    const fontsReady = document.fonts?.ready || Promise.resolve();
+    Promise.resolve(fontsReady).catch(() => {}).then(() => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          const root = document.documentElement;
+          if (!root.classList.contains('crm-desktop-navigation-snapshot')) return;
+          root.classList.add('crm-desktop-navigation-snapshot-revealing');
+          window.setTimeout(() => {
+            root.classList.remove(
+              'crm-desktop-navigation-snapshot',
+              'crm-desktop-navigation-snapshot-revealing',
+            );
+            root.style.removeProperty('--crm-desktop-navigation-snapshot-image');
+            window.__CRM_DESKTOP_NAVIGATION_SNAPSHOT_ACTIVE__ = false;
+          }, 240);
+        });
+      });
+    });
+  };
+  if (document.readyState === 'complete') {
+    revealDesktopNavigationSnapshot();
+  } else {
+    window.addEventListener('load', revealDesktopNavigationSnapshot, { once: true });
+  }
+} else if (isPreparedDesktopNavigationEntry) {
   window.requestAnimationFrame(() => {
     const root = document.documentElement;
     if (!root.classList.contains('crm-desktop-navigation-entering')) return;
@@ -92,6 +118,77 @@ const isTouchMobileViewport = () => isPhoneTouchDevice() || isTabletTouchDevice(
 const isMobileViewport = () => isTouchMobileViewport() || isAdaptiveMobileViewport();
 const isDesktopLikePointer = () => !isTouchAppDevice() && !isAdaptiveMobileViewport();
 const shouldUseDesktopViewportLock = () => isDesktopLikePointer();
+
+// Table rows are opened programmatically in several sections. On desktop that
+// makes them look clickable, but the browser cannot offer its native "open in
+// new tab" actions because there is no real link under the pointer. Add a
+// transparent link to every clickable table cell and forward an unmodified
+// left click to the original content so each table keeps its existing click,
+// double-click and bulk-selection behaviour.
+const initDesktopNativeTableRowLinks = (scope = document) => {
+  if (isTouchAppDevice()) return;
+
+  const rows = [];
+  if (scope.matches?.('tr[data-href]')) rows.push(scope);
+  scope.querySelectorAll?.('tr[data-href]').forEach(row => rows.push(row));
+  if (!rows.length) return;
+
+  document.documentElement.classList.add('desktop-native-row-links');
+  rows.forEach(row => {
+    const href = row.dataset.href || '';
+    if (!href || /^javascript:/i.test(href)) return;
+
+    row.querySelectorAll(':scope > td, :scope > th').forEach(cell => {
+      cell.classList.add('desktop-native-row-link-cell');
+      let link = cell.querySelector(':scope > .desktop-native-row-link');
+      if (!link) {
+        link = document.createElement('a');
+        link.className = 'desktop-native-row-link';
+        link.tabIndex = -1;
+        link.setAttribute('aria-hidden', 'true');
+
+        const forwardOriginalPointerEvent = event => {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          event.stopPropagation();
+
+          const previousPointerEvents = link.style.pointerEvents;
+          link.style.pointerEvents = 'none';
+          const originalTarget = document.elementFromPoint(event.clientX, event.clientY);
+          link.style.pointerEvents = previousPointerEvents;
+          if (!originalTarget || !row.contains(originalTarget)) return;
+
+          originalTarget.dispatchEvent(new MouseEvent(event.type, {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            detail: event.detail,
+            screenX: event.screenX,
+            screenY: event.screenY,
+            clientX: event.clientX,
+            clientY: event.clientY,
+            button: event.button,
+            buttons: event.buttons,
+          }));
+        };
+        link.addEventListener('click', forwardOriginalPointerEvent);
+        link.addEventListener('dblclick', forwardOriginalPointerEvent);
+        cell.appendChild(link);
+      }
+      link.href = href;
+    });
+  });
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => initDesktopNativeTableRowLinks(), { once: true });
+} else {
+  initDesktopNativeTableRowLinks();
+}
+document.addEventListener('crm:ajax-pagination-updated', event => {
+  initDesktopNativeTableRowLinks(event.detail?.content || document);
+});
+
 const rememberInstantMobileEntryForNextNavigation = href => {
   if (!document.body?.classList.contains('app-body')) return;
   if (!isMobileViewport()) return;
@@ -121,8 +218,70 @@ document.addEventListener('click', event => {
 // The old document therefore stays visible until the destination is ready,
 // while the real page navigation (and all page scripts) still runs normally.
 const desktopFirefoxNavigationCache = 'crm-desktop-navigation-v1';
+const desktopFirefoxSnapshotStoragePrefix = 'crm-desktop-navigation-snapshot:';
 const desktopFirefoxExitTransitionTimeout = 160;
 let desktopFirefoxNavigationInFlight = false;
+
+const removeStoredDesktopFirefoxSnapshot = storageKey => {
+  if (!storageKey) return;
+  try {
+    window.sessionStorage.removeItem(storageKey);
+  } catch (error) {}
+};
+
+const captureDesktopFirefoxNavigationSnapshot = async navigationToken => {
+  if (!navigationToken) return false;
+
+  const snapshotLibraryReady = window.__CRM_DESKTOP_NAVIGATION_SNAPSHOT_LIBRARY__;
+  if (snapshotLibraryReady) {
+    await Promise.race([
+      Promise.resolve(snapshotLibraryReady).catch(() => false),
+      new Promise(resolve => window.setTimeout(() => resolve(false), 2500)),
+    ]);
+  }
+  if (typeof window.html2canvas !== 'function') return false;
+
+  const storageKey = `${desktopFirefoxSnapshotStoragePrefix}${navigationToken}`;
+  try {
+    // Only one handoff can be active in a tab. Removing an abandoned snapshot
+    // also prevents sessionStorage quota failures after an interrupted load.
+    for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.sessionStorage.key(index);
+      if (key?.startsWith(desktopFirefoxSnapshotStoragePrefix)) {
+        window.sessionStorage.removeItem(key);
+      }
+    }
+
+    const viewportWidth = Math.max(1, Math.round(window.innerWidth));
+    const viewportHeight = Math.max(1, Math.round(window.innerHeight));
+    const canvas = await window.html2canvas(document.documentElement, {
+      backgroundColor: '#fefdfe',
+      width: viewportWidth,
+      height: viewportHeight,
+      windowWidth: viewportWidth,
+      windowHeight: viewportHeight,
+      x: window.scrollX,
+      y: window.scrollY,
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+      scale: 1,
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      imageTimeout: 1200,
+    });
+    let snapshot = canvas.toDataURL('image/webp', 0.84);
+    if (!snapshot.startsWith('data:image/webp')) {
+      snapshot = canvas.toDataURL('image/jpeg', 0.88);
+    }
+    if (!snapshot.startsWith('data:image/')) return false;
+    window.sessionStorage.setItem(storageKey, snapshot);
+    return true;
+  } catch (error) {
+    removeStoredDesktopFirefoxSnapshot(storageKey);
+    return false;
+  }
+};
 
 const waitForDesktopFirefoxExitTransition = () => new Promise(resolve => {
   const root = document.documentElement;
@@ -220,10 +379,16 @@ const navigateDesktopFirefoxPreparedNavigation = async targetUrl => {
   desktopFirefoxNavigationInFlight = true;
 
   let navigationUrl = targetUrl;
+  let snapshotStorageKey = '';
+  let snapshotPromise = Promise.resolve(false);
+  let hasNavigationSnapshot = false;
   try {
     if (!await desktopNavigationWorkerCapability) {
       throw new Error('prepared-navigation-worker-is-not-ready');
     }
+    const navigationToken = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    snapshotStorageKey = `${desktopFirefoxSnapshotStoragePrefix}${navigationToken}`;
+    snapshotPromise = captureDesktopFirefoxNavigationSnapshot(navigationToken);
     const response = await fetch(targetUrl.href, {
       method: 'GET',
       credentials: 'same-origin',
@@ -247,18 +412,23 @@ const navigateDesktopFirefoxPreparedNavigation = async targetUrl => {
     const cache = await window.caches.open(desktopFirefoxNavigationCache);
     navigationUrl.searchParams.set(
       '_crm_prepared_navigation',
-      `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
+      navigationToken,
     );
     const cacheKey = new Request(navigationUrl.href, {
       method: 'GET',
       credentials: 'same-origin',
     });
     await cache.put(cacheKey, response);
+    hasNavigationSnapshot = await snapshotPromise;
   } catch (error) {
     // Navigation must remain functional when the worker/cache is unavailable.
+    await snapshotPromise;
+    removeStoredDesktopFirefoxSnapshot(snapshotStorageKey);
   }
 
-  await waitForDesktopFirefoxExitTransition();
+  if (!hasNavigationSnapshot) {
+    await waitForDesktopFirefoxExitTransition();
+  }
   window.location.assign(navigationUrl.href);
 };
 
@@ -6333,6 +6503,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const glassManualModalElement = document.getElementById('glassManualTaskModal');
   const glassManualForm = document.querySelector('.js-glass-manual-form');
   const glassManualModal = glassManualModalElement && window.bootstrap ? new bootstrap.Modal(glassManualModalElement) : null;
+  const escapeGlassManualHtml = value => String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+  const bindGlassManualTaskRow = row => {
+    if (!row || row.dataset.rowLinkBound === '1') return;
+    row.dataset.rowLinkBound = '1';
+    row.addEventListener('dblclick', event => {
+      if (event.target.closest('a, button, form, input, textarea, select, label')) return;
+      if (row.dataset.href) navigateWithViewportTransition(row.dataset.href);
+    });
+  };
   document.addEventListener('click', event => {
     if (event.target.closest('.js-glass-manual-open')) glassManualModal?.show();
   });
@@ -6355,23 +6539,26 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось добавить замечание');
       const tbody = document.querySelector('.glass-page table tbody');
       if (tbody && document.querySelector('input[name="tab"][value="all"]')) {
+        const emptyRow = tbody.querySelector('tr > td[colspan="4"]')?.closest('tr');
+        if (emptyRow && tbody.children.length === 1) emptyRow.remove();
         const row = document.createElement('tr');
         row.className = 'task-row-link';
         row.dataset.href = data.task_url || '';
         row.innerHTML = `
-          <td><span class="js-highlight-text">${escapeHtml(data.apartment_label || '—')}</span></td>
-          <td class="task-text"><span class="inline-text js-highlight-text" data-task-id="${escapeHtml(data.task_id || '')}">${escapeHtml(data.description || '')}</span></td>
-          <td><span class="badge bg-${escapeHtml(data.status_class || 'secondary')}">${escapeHtml(data.status_label || '')}</span></td>
+          <td><span class="js-highlight-text">${escapeGlassManualHtml(data.apartment_label || '—')}</span></td>
+          <td class="task-text"><span class="inline-text js-highlight-text" data-task-id="${escapeGlassManualHtml(data.task_id || '')}">${escapeGlassManualHtml(data.description || '')}</span></td>
+          <td><span class="badge bg-${escapeGlassManualHtml(data.status_class || 'secondary')}">${escapeGlassManualHtml(data.status_label || '')}</span></td>
           <td class="text-end">
-            <form method="post" action="/glass/${data.task_id}/need-measure" class="js-glass-need-measure-form" data-task-id="${escapeHtml(data.task_id || '')}">
-              <input type="hidden" name="csrf_token" value="${escapeHtml(getCsrfToken())}">
+            <form method="post" action="/glass/${data.task_id}/need-measure" class="js-glass-need-measure-form" data-task-id="${escapeGlassManualHtml(data.task_id || '')}">
+              <input type="hidden" name="csrf_token" value="${escapeGlassManualHtml(glassManualForm.querySelector('input[name="csrf_token"]')?.value || '')}">
               <input type="hidden" name="return_tab" value="all">
               <button class="btn btn-sm btn-success glass-measure-icon-btn" type="submit" title="Сделать замер" aria-label="Сделать замер"><i class="bi bi-rulers"></i></button>
             </form>
           </td>
         `;
         tbody.prepend(row);
-        bindTaskRowLink(row);
+        initDesktopNativeTableRowLinks(row);
+        bindGlassManualTaskRow(row);
         bindGlassNeedMeasureForm(row.querySelector('.js-glass-need-measure-form'));
       }
       glassManualForm.reset();

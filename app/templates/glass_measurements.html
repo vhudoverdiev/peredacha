@@ -234,8 +234,8 @@
       <div class="col-12 col-lg-2">
         <label class="form-label">Сортировка</label>
         <select class="form-select mobile-native-select" name="ordered_sort">
-          <option value="date_desc" {% if ordered_sort == 'date_desc' %}selected{% endif %}>{% if is_mobile_phone_request %}По дате — сначала новые{% else %}По дате{% endif %}</option>
-          <option value="apartment_asc" {% if ordered_sort == 'apartment_asc' %}selected{% endif %}>{% if is_mobile_phone_request %}По квартире — 1, 2, 3…{% else %}По помещению{% endif %}</option>
+          <option value="date_desc" {% if ordered_sort == 'date_desc' %}selected{% endif %}>По дате</option>
+          <option value="apartment_asc" {% if ordered_sort == 'apartment_asc' %}selected{% endif %}>По помещению</option>
         </select>
       </div>
       <div class="col-12 col-lg-2 filter-actions glass-filter-actions">

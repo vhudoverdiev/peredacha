@@ -65,13 +65,14 @@
       );
       const nav = window.navigator || {};
       const userAgent = nav.userAgent || '';
-      const isPreparedDesktopNavigation = (() => {
+      const preparedDesktopNavigationToken = (() => {
         try {
-          return new URL(window.location.href).searchParams.has('_crm_prepared_navigation');
+          return new URL(window.location.href).searchParams.get('_crm_prepared_navigation') || '';
         } catch (error) {
-          return false;
+          return '';
         }
       })();
+      const isPreparedDesktopNavigation = Boolean(preparedDesktopNavigationToken);
       const maxTouchPoints = nav.maxTouchPoints || 0;
       const coarseTouchPointer = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
       const isIpadOsLike = nav.platform === 'MacIntel' && maxTouchPoints > 1;
@@ -184,6 +185,19 @@
       document.documentElement.classList.toggle('touch-app-device', isTouchAppDevice);
       applyTouchViewportProfile();
       if (!isTouchAppDevice && !useAdaptiveMobileViewport) {
+        if (
+          document.documentElement.classList.contains('app-root')
+          && /Firefox\//i.test(userAgent)
+        ) {
+          window.__CRM_DESKTOP_NAVIGATION_SNAPSHOT_LIBRARY__ = new Promise(resolve => {
+            const snapshotLibrary = document.createElement('script');
+            snapshotLibrary.src = "{{ url_for('static', filename='vendor/html2canvas/html2canvas.min.js') }}?v=1.4.1";
+            snapshotLibrary.async = true;
+            snapshotLibrary.onload = () => resolve(typeof window.html2canvas === 'function');
+            snapshotLibrary.onerror = () => resolve(false);
+            document.head.appendChild(snapshotLibrary);
+          });
+        }
         // Regular reloads still need the opaque shell canvas. Prepared Firefox
         // navigation already has its HTML and versioned CSS in CacheStorage;
         // applying the gate there would replace the old page with a shell-only
@@ -191,7 +205,22 @@
         if (!isPreparedDesktopNavigation) {
           document.documentElement.classList.add('desktop-styles-pending');
         } else {
-          document.documentElement.classList.add('crm-desktop-navigation-entering');
+          const snapshotStorageKey = `crm-desktop-navigation-snapshot:${preparedDesktopNavigationToken}`;
+          let preparedNavigationSnapshot = '';
+          try {
+            preparedNavigationSnapshot = window.sessionStorage.getItem(snapshotStorageKey) || '';
+            window.sessionStorage.removeItem(snapshotStorageKey);
+          } catch (error) {}
+          if (preparedNavigationSnapshot.startsWith('data:image/')) {
+            document.documentElement.style.setProperty(
+              '--crm-desktop-navigation-snapshot-image',
+              `url("${preparedNavigationSnapshot}")`,
+            );
+            document.documentElement.classList.add('crm-desktop-navigation-snapshot');
+            window.__CRM_DESKTOP_NAVIGATION_SNAPSHOT_ACTIVE__ = true;
+          } else {
+            document.documentElement.classList.add('crm-desktop-navigation-entering');
+          }
         }
         const desktopStageScale = getDesktopStageScale();
         const desktopShellHasSidebar = document.documentElement.classList.contains('desktop-shell-with-sidebar');
@@ -251,6 +280,39 @@
     html.app-root.desktop-like-pointer.desktop-styles-pending {
       background: #fefdfe !important;
       background-color: #fefdfe !important;
+    }
+
+    /* Firefox has no cross-document View Transition for this server-rendered
+       flow. The previous viewport is restored before the first destination
+       paint, then removed only after the page script has finished loading. */
+    html.app-root.desktop-like-pointer.crm-desktop-navigation-snapshot::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 2147483000;
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      background-color: #fefdfe;
+      background-image: var(--crm-desktop-navigation-snapshot-image);
+      background-position: 0 0;
+      background-repeat: no-repeat;
+      background-size: 100vw 100vh;
+      /* A value infinitesimally below 1 prevents Firefox from treating the
+         destination as fully occluded and deferring its first real paint. */
+      opacity: .999;
+      transition: opacity 180ms cubic-bezier(.22, .72, .18, 1);
+    }
+
+    html.app-root.desktop-like-pointer.crm-desktop-navigation-snapshot.crm-desktop-navigation-snapshot-revealing::before {
+      opacity: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html.app-root.desktop-like-pointer.crm-desktop-navigation-snapshot::before {
+        transition: none;
+      }
     }
 
     /* Preserve the desktop chrome surfaces while a new document waits for
@@ -889,7 +951,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v114-firefox-content-handoff', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v123-firefox-snapshot-underpaint', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -928,7 +990,7 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v628-mobile-root-height-conflicts-removed">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v86-remark-add-screen-height">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v46-firefox-content-handoff">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v52-dop-status-action-size">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
     // Releasing the gate here guarantees that desktop body markup cannot be
@@ -1530,6 +1592,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v644-firefox-content-handoff"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v649-firefox-snapshot-desktop-load"></script>
 </body>
 </html>

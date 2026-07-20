@@ -17,7 +17,7 @@ from app.models import (
     User,
     WorkPoint,
 )
-from app.routes import _material_key
+from app.routes import _material_key, _material_request_display_rows
 
 
 class TestConfig(Config):
@@ -106,8 +106,23 @@ class GlassMaterialRequestStaleWriteoffTests(unittest.TestCase):
         self.assertEqual(self.measurement.material_writeoff_id, self.writeoff.id)
         self.assertEqual(len(self.writeoff.items), 1)
         self.assertIn("600", self.writeoff.items[0].name)
-        self.assertNotIn("кв 101", MaterialRequestItem.query.one().name)
-        self.assertNotIn("кв 101", self.writeoff.items[0].name)
+        stored_item = MaterialRequestItem.query.one()
+        self.assertIn("кв 101", stored_item.name)
+        self.assertIn("кв 101", self.writeoff.items[0].name)
+
+        material_request = MaterialRequest.query.one()
+        display_rows = _material_request_display_rows(material_request)
+        self.assertEqual(display_rows[0]["apartment_number"], "101")
+        self.assertNotIn("кв 101", display_rows[0]["display_name"])
+
+        mobile_response = self.client.get(
+            response.headers["Location"],
+            headers={"User-Agent": "Mozilla/5.0 (Linux; Android 15; Mobile)"},
+        )
+        self.assertEqual(mobile_response.status_code, 200)
+        mobile_html = mobile_response.get_data(as_text=True)
+        self.assertNotIn("№ квартиры", mobile_html)
+        self.assertIn(stored_item.name, mobile_html)
 
     def test_balance_deletion_clears_both_measurement_links(self):
         self.client.post(

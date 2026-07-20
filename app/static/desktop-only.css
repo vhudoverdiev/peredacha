@@ -17,12 +17,54 @@ html.desktop-like-pointer body.app-body
   display: none !important;
 }
 
+/* Give programmatically clickable table rows real link hit areas on desktop.
+   Native browser actions (context menu, Ctrl-click and middle click) can then
+   open the destination in a new tab. Interactive controls stay above the
+   transparent link and retain their original behaviour. */
+html.desktop-native-row-links body.app-body .desktop-native-row-link-cell {
+  position: relative;
+}
+
+html.desktop-native-row-links body.app-body .desktop-native-row-link-cell
+  > .desktop-native-row-link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+html.desktop-native-row-links body.app-body .desktop-native-row-link-cell
+  :is(a:not(.desktop-native-row-link), button, form, input, textarea, select, label,
+      [role="button"], [contenteditable="true"], .inline-editor, .problem-comment-wrap) {
+  position: relative;
+  z-index: 2;
+}
+
 /* Materials forces generic button text to black. Keep the destructive action
    readable when its outline button becomes filled on desktop interaction. */
 html.desktop-like-pointer body.app-body:has(.materials-page-head)
   .material-request-detail-delete-btn:is(:hover, :focus, :focus-visible, :active) {
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Match the task comment hover to the floating help button while keeping the
+   label deliberately black for contrast, as requested for desktop only. */
+html.desktop-like-pointer body.app-body:has(.task-detail-page)
+  .task-detail-comments-card form[data-task-comment-async="1"]
+  .btn:is(:hover, :focus-visible) {
+  background: linear-gradient(
+    180deg,
+    var(--peredacha-action-green) 0%,
+    var(--peredacha-action-green-hover) 100%
+  ) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  box-shadow: 0 12px 26px var(--peredacha-action-green-shadow) !important;
 }
 
 /* Narrow desktop windows keep only the lower paginator and must not let a
@@ -229,6 +271,42 @@ html.desktop-like-pointer body.app-body:has(.remarks-page-head)
   padding: 0 !important;
   border-radius: .5rem !important;
   font-size: .7rem !important;
+}
+
+/* The Additional Agreement table has only one binary action. Give its
+   "Entered" / "Return" control a full-size desktop target instead of the
+   compact multi-action size used by the other Remarks categories. */
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table td.task-actions-cell .actions-cell
+  .dop-binary-status-toggle-form .btn.btn-sm {
+  flex-basis: 3rem !important;
+  width: 3rem !important;
+  min-width: 3rem !important;
+  max-width: 3rem !important;
+  height: 3rem !important;
+  min-height: 3rem !important;
+  max-height: 3rem !important;
+  border-radius: .8rem !important;
+  font-size: 1.2rem !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table td.task-actions-cell .actions-cell
+  .dop-binary-status-toggle-form .btn.btn-sm > i {
+  font-size: 1.2rem !important;
+  line-height: 1 !important;
+}
+
+/* Keep the completed-state strike inside the remark copy. Applying it to the
+   table cell also paints the line through the edit/split controls below it. */
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .done-task .task-text {
+  text-decoration: none !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .done-task .task-text .inline-text {
+  text-decoration: line-through !important;
 }
 
 /* A contractor label in the regular Remarks table gets the same intentional
@@ -1488,10 +1566,9 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     will-change: auto !important;
   }
 
-  /* Firefox does not yet provide cross-document View Transitions for this
-     multi-page flow. Use a restrained content-only handoff: the fixed shell
-     never participates, and the page stays mostly opaque so no white flash is
-     introduced between the outgoing and incoming documents. */
+  /* If the Firefox viewport snapshot cannot be created (for example because
+     sessionStorage is unavailable), retain a restrained content-only fallback.
+     The fixed shell never participates and the page stays mostly opaque. */
   html.desktop-like-pointer.crm-desktop-navigation-leaving
     body.app-body .crm-page-entry-surface {
     opacity: .72 !important;

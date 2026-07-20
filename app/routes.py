@@ -5377,6 +5377,13 @@ def glass_create_material_request():
     if len(measurements) != len(set(selected_ids)):
         flash("Часть выбранных стеклопакетов не найдена", "warning")
         return redirect(url_for("main.glass_measurements", tab="ordered"))
+    if not _is_mobile_phone_request():
+        measurements.sort(
+            key=lambda measurement: (
+                _task_apartment_sort_value_no_done(measurement.task),
+                int(measurement.id or 0),
+            )
+        )
     already_requested = [
         measurement
         for measurement in measurements
@@ -5401,6 +5408,7 @@ def glass_create_material_request():
     db.session.add(material_request)
     for measurement in measurements:
         task = measurement.task
+        apt = task.apartment.label() if task and task.apartment else ""
         first_item_for_measurement = None
         writeoff = measurement.material_writeoff
         if writeoff is None:
@@ -5415,7 +5423,8 @@ def glass_create_material_request():
         if task is not None:
             writeoff.tasks.append(task)
         for item_row in _glass_item_rows(measurement):
-            item_name = str(item_row.get("title_label") or "").strip()
+            title = str(item_row.get("title_label") or "").strip()
+            item_name = f"{title} {apt}".strip()
             quantity = item_row.get("quantity") or 1
             request_item = MaterialRequestItem(
                 name=item_name,
