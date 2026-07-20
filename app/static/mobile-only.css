@@ -2129,6 +2129,32 @@
     inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
   }
 
+  /* Opening the direct Add remark form produces the same shortened iOS
+     layout viewport. Keep the panel on the physical screen height without
+     affecting the remarks list or other scrollable pages. */
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.task-single-form) {
+    min-height: var(--mobile-physical-app-height, 100dvh) !important;
+    height: var(--mobile-physical-app-height, 100dvh) !important;
+    max-height: var(--mobile-physical-app-height, 100dvh) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    position: relative !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.task-single-form)
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    position: absolute !important;
+    top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
+    inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+  }
+
   /* The short worker Account and empty Tasks pages expose the same iOS
      innerHeight gap. Anchor only those states to the physical canvas; task
      lists with rows remain fixed and retain their normal scroll behaviour. */

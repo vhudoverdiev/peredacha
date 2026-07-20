@@ -125,12 +125,32 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             self.mobile_css,
         )
 
-    def test_add_remark_does_not_get_a_page_specific_dock_anchor(self):
-        task_dock_selector = re.compile(
-            r":has\(\.task-single-form\)[^\{]*mobile-bottom-nav-root"
+    def test_add_remark_uses_the_physical_ios_dock_anchor(self):
+        body_selector = (
+            "body.app-body.app-body.app-body:has(.task-single-form) {"
         )
-        self.assertIsNone(task_dock_selector.search(self.base))
-        self.assertIsNone(task_dock_selector.search(self.mobile_css))
+        dock_selector = re.compile(
+            r"body\.app-body\.app-body\.app-body:has\(\.task-single-form\)"
+            r"\s*>\s*nav\.mobile-bottom-nav\.mobile-bottom-nav-root"
+        )
+        for stylesheet in (self.base, self.mobile_css):
+            body_start = stylesheet.index(body_selector)
+            body_end = stylesheet.index("}", body_start)
+            body_rule = stylesheet[body_start:body_end]
+            self.assertIn(
+                "height: var(--mobile-physical-app-height, 100dvh) !important;",
+                body_rule,
+            )
+            dock_match = dock_selector.search(stylesheet)
+            self.assertIsNotNone(dock_match)
+            dock_end = stylesheet.index("}", dock_match.start())
+            dock_rule = stylesheet[dock_match.start():dock_end]
+            self.assertIn("position: absolute !important;", dock_rule)
+            self.assertIn(
+                "top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;",
+                dock_rule,
+            )
+            self.assertIn("bottom: auto !important;", dock_rule)
 
     def test_add_assignment_form_uses_shared_short_page_geometry(self):
         self.assertIn(

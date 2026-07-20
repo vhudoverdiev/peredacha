@@ -505,6 +505,32 @@
         inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
       }
 
+      /* The direct Add remark form is another short root-scrolling page in
+         iOS standalone. Anchor its dock to the measured physical screen so
+         the area below innerHeight cannot enlarge the dark panel. */
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.task-single-form) {
+        min-height: var(--mobile-physical-app-height, 100dvh) !important;
+        height: var(--mobile-physical-app-height, 100dvh) !important;
+        max-height: var(--mobile-physical-app-height, 100dvh) !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        position: relative !important;
+        background: #f6f8fb !important;
+        background-color: #f6f8fb !important;
+      }
+
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.task-single-form)
+        > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+        position: absolute !important;
+        top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+        right: 0 !important;
+        bottom: auto !important;
+        left: 0 !important;
+        inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+      }
+
       /* Worker Account and the empty Tasks state are short pages too. Limit
          the physical anchor to those two states so populated task lists keep
          the normal fixed dock while scrolling. */
