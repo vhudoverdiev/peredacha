@@ -1463,4 +1463,18 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     .glass-page [data-ajax-pagination-spare][hidden] {
     display: none !important;
   }
+
+  /* A full-page navigation already replaces the document atomically. Starting
+     its content wrapper at opacity: 0 exposes the plain page canvas in Firefox
+     as a pronounced white frame. Paint desktop content at its final opacity;
+     smaller component-level animations remain independent. */
+  html.desktop-like-pointer body.app-body .crm-page-entry-surface {
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
+    transition: none !important;
+    will-change: auto !important;
+  }
 }

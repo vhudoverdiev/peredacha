@@ -420,8 +420,8 @@
     {% else %}
     <div class="glass-empty-state glass-ordered-empty-state text-center text-muted py-5">
       <i class="bi bi-inbox"></i>
-      <div class="glass-empty-title">{% if q %}По поиску "{{ q }}" ничего не найдено{% else %}Пока нет ничего{% endif %}</div>
-      {% if not q %}<div class="glass-empty-subtitle">Заказанные позиции появятся здесь после оформления замера.</div>{% endif %}
+      <div class="glass-empty-title">{% if q %}По поиску "{{ q }}" ничего не найдено{% elif ordered_status or ordered_request %}По выбранным фильтрам ничего не найдено{% else %}Пока нет ничего{% endif %}</div>
+      {% if not q and not ordered_status and not ordered_request %}<div class="glass-empty-subtitle">Заказанные позиции появятся здесь после оформления замера.</div>{% endif %}
     </div>
     {% endif %}
   </div>

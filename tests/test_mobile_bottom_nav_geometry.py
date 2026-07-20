@@ -91,25 +91,33 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         self.assertIsNone(glass_dock_selector.search(self.base))
         self.assertIsNone(glass_dock_selector.search(self.mobile_css))
 
-    def test_direct_add_remark_form_keeps_iphone_safe_area(self):
+    def test_direct_add_remark_form_uses_shared_short_page_geometry(self):
         self.assertIn(
             "task-single-form mobile-fill-card",
             self.task_form_template,
         )
         self.assertIn(
-            ":not(.account-page):not(.task-single-form)",
+            "task-add-page mobile-short-page-marker",
+            self.task_form_template,
+        )
+        reset_selector_start = self.mobile_css.index(
+            ".crm-mobile-page-shell\n"
+            "    > :last-child:not(.crm-toast-stack)"
+        )
+        reset_selector_end = self.mobile_css.index("{", reset_selector_start)
+        reset_selector = self.mobile_css[reset_selector_start:reset_selector_end]
+        self.assertNotIn(
+            ":not(.task-single-form)",
+            reset_selector,
+        )
+        self.assertNotIn(
+            "body.app-body:has(.task-single-form)\n"
+            "    .crm-mobile-page-shell > .task-single-form",
             self.mobile_css,
         )
-        selector = (
-            "body.app-body:has(.task-single-form)\n"
-            "    .crm-mobile-page-shell > .task-single-form"
-        )
-        selector_start = self.mobile_css.index(selector)
-        rule_end = self.mobile_css.index("}", selector_start)
-        rule = self.mobile_css[selector_start:rule_end]
         self.assertIn(
-            "padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;",
-            rule,
+            "body.app-body:has(.mobile-short-page-marker)",
+            self.mobile_css,
         )
 
     def test_add_remark_does_not_get_a_page_specific_dock_anchor(self):
@@ -125,7 +133,7 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             self.assignment_form_template,
         )
         self.assertIn(
-            ":not(.task-single-form):not(.assignment-manual-task-form)",
+            ":not(.account-page):not(.assignment-manual-task-form)",
             self.mobile_css,
         )
         selector = (

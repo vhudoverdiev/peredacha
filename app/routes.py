@@ -4924,9 +4924,9 @@ def glass_measurements():
             row for row in _filter_glass_rows(tasks, q=q)
             if row["status"] in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}
         ]
+        ordered_request_options = _ordered_glass_request_options(ordered_rows)
         if ordered_status:
             ordered_rows = [row for row in ordered_rows if row["status"] == ordered_status]
-        ordered_request_options = _ordered_glass_request_options(ordered_rows)
         valid_request_filters = {
             "",
             GLASS_ORDERED_REQUEST_NONE,

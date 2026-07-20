@@ -1,5 +1,6 @@
 import unittest
 from datetime import date
+from pathlib import Path
 from types import SimpleNamespace
 
 from app.routes import (
@@ -40,6 +41,12 @@ def make_row(apartment_number, ordered_at, request_id=None, request_title=None, 
 
 
 class GlassOrderedFiltersTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.template = (
+            Path(__file__).resolve().parents[1] / "app" / "templates" / "glass_measurements.html"
+        ).read_text(encoding="utf-8")
+
     def setUp(self):
         self.rows = [
             make_row(10, date(2026, 7, 18), 8, "Заявка из замеров №8", 10),
@@ -98,6 +105,26 @@ class GlassOrderedFiltersTests(unittest.TestCase):
                 {"id": 9, "label": "Заявка из замеров №9"},
                 {"id": 8, "label": "Заявка из замеров №8"},
             ],
+        )
+
+    def test_empty_request_filter_has_a_filter_specific_message(self):
+        self.assertIn(
+            "{% elif ordered_status or ordered_request %}По выбранным фильтрам ничего не найдено",
+            self.template,
+        )
+
+    def test_new_filters_use_the_existing_mobile_native_selects(self):
+        self.assertIn(
+            '<select class="form-select mobile-native-select" name="ordered_request">',
+            self.template,
+        )
+        self.assertIn(
+            '<select class="form-select mobile-native-select" name="ordered_sort">',
+            self.template,
+        )
+        self.assertIn(
+            '<option value="none" {% if ordered_request == \'none\' %}selected{% endif %}>Не создана</option>',
+            self.template,
         )
 
 

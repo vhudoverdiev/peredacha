@@ -1524,7 +1524,7 @@
 
   html body.app-body.app-body.app-body .crm-mobile-page-shell,
   html body.app-body.app-body.app-body .crm-mobile-page-shell
-    > :last-child:not(.crm-toast-stack):not(.account-page):not(.task-single-form):not(.assignment-manual-task-form) {
+    > :last-child:not(.crm-toast-stack):not(.account-page):not(.assignment-manual-task-form) {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
   }
@@ -1538,18 +1538,6 @@
     body.app-body:has(.account-page) .crm-mobile-page-shell > .account-page,
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body.has-account-page .crm-mobile-page-shell > .account-page {
-    margin-bottom: 0 !important;
-    padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
-  }
-
-  /* The direct Add Remark form is also the final child of the short mobile
-     shell. The generic reset used to remove its iPhone home-indicator gap,
-     joining the dark root canvas to the 72px dock. Preserve only that safe
-     area below the Add/Cancel controls; desktop and the longer act form are
-     intentionally left on their existing geometry. */
-  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.task-single-form)
-    .crm-mobile-page-shell > .task-single-form {
     margin-bottom: 0 !important;
     padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
   }

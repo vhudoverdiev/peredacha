@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v95-issued-empty-shared-dock';
+const STATIC_CACHE = 'peredacha-static-v97-firefox-opaque-page';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,8 +13,8 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
-  '/static/mobile-only.css?v=v77-issued-empty-shared-dock',
-  '/static/desktop-only.css?v=v41-glass-search-spare',
+  '/static/mobile-only.css?v=v78-task-add-shared-dock',
+  '/static/desktop-only.css?v=v42-firefox-opaque-page',
   '/static/script.js?v=v637-material-assignment-fixes',
 ];
 
