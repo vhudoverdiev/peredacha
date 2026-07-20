@@ -36,6 +36,34 @@ class FirefoxPreparedNavigationTests(unittest.TestCase):
             self.worker.index("return await fetch(request)"),
         )
 
+    def test_prepared_page_dependencies_do_not_wait_for_network_revalidation(self):
+        prepared_static = self.worker.index(
+            "if (isPreparedDesktopNavigationSubresource(request))"
+        )
+        regular_static = self.worker.index("event.respondWith(staticNetworkFirst(request))")
+        helper = self.worker.index(
+            "function isPreparedDesktopNavigationSubresource(request)"
+        )
+
+        self.assertLess(prepared_static, regular_static)
+        self.assertIn("request.referrer", self.worker[helper:])
+        self.assertIn(
+            "searchParams.has('_crm_prepared_navigation')",
+            self.worker[helper:],
+        )
+        self.assertIn("event.respondWith(staticCacheFirst(request))", self.worker)
+
+    def test_service_worker_cache_buster_is_synchronized(self):
+        worker_version = re.search(
+            r"service-worker\.js\?v=([^']+)", self.template
+        ).group(1)
+        cache_version = re.search(
+            r"STATIC_CACHE = 'peredacha-static-([^']+)'", self.worker
+        ).group(1)
+
+        self.assertEqual(worker_version, "v106-firefox-prepared-static")
+        self.assertEqual(cache_version, "v106-firefox-prepared-static")
+
     def test_page_and_worker_use_the_same_navigation_cache(self):
         page_cache = re.search(
             r"desktopFirefoxNavigationCache = '([^']+)'", self.script

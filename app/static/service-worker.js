@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v105-firefox-prepared-navigation';
+const STATIC_CACHE = 'peredacha-static-v107-issued-empty-screen-height';
 const DESKTOP_NAVIGATION_CACHE = 'crm-desktop-navigation-v1';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
@@ -14,9 +14,9 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
-  '/static/mobile-only.css?v=v82-issued-empty-physical-dock',
+  '/static/mobile-only.css?v=v83-issued-empty-screen-height',
   '/static/desktop-only.css?v=v45-narrow-desktop-dock',
-  '/static/script.js?v=v640-firefox-prepared-navigation',
+  '/static/script.js?v=v641-issued-empty-screen-height',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>
@@ -228,6 +228,17 @@ self.addEventListener('fetch', event => {
 
   if (!url.pathname.startsWith('/static/')) return;
 
+  // Firefox commits a prepared document as soon as its cached HTML response
+  // arrives. Waiting for network-first CSS revalidation after that commit left
+  // the destination on the shell-only canvas for a couple of frames. The
+  // prepared URL is unique and desktop-Firefox-only, so serve its versioned
+  // static dependencies from the worker cache and let the complete page reach
+  // first paint in one browser frame.
+  if (isPreparedDesktopNavigationSubresource(request)) {
+    event.respondWith(staticCacheFirst(request));
+    return;
+  }
+
   if (url.pathname.startsWith('/static/vendor/bootstrap/fonts/')) {
     event.respondWith(staticCacheFirst(request));
     return;
@@ -235,6 +246,18 @@ self.addEventListener('fetch', event => {
 
   event.respondWith(staticNetworkFirst(request));
 });
+
+function isPreparedDesktopNavigationSubresource(request) {
+  if (!request.referrer) return false;
+
+  try {
+    const referrerUrl = new URL(request.referrer);
+    return referrerUrl.origin === self.location.origin
+      && referrerUrl.searchParams.has('_crm_prepared_navigation');
+  } catch (error) {
+    return false;
+  }
+}
 
 async function navigationNetworkFirst(request) {
   const requestUrl = new URL(request.url);

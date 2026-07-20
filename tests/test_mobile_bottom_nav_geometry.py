@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE_TEMPLATE = ROOT / "app" / "templates" / "base.html"
 MOBILE_CSS = ROOT / "app" / "static" / "mobile-only.css"
 STYLE_CSS = ROOT / "app" / "static" / "style.css"
+SCRIPT_JS = ROOT / "app" / "static" / "script.js"
 SERVICE_WORKER = ROOT / "app" / "static" / "service-worker.js"
 GLASS_TEMPLATE = ROOT / "app" / "templates" / "glass_measurements.html"
 TASK_FORM_TEMPLATE = ROOT / "app" / "templates" / "task_form.html"
@@ -21,6 +22,7 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         cls.base = BASE_TEMPLATE.read_text(encoding="utf-8")
         cls.mobile_css = MOBILE_CSS.read_text(encoding="utf-8")
         cls.style_css = STYLE_CSS.read_text(encoding="utf-8")
+        cls.script_js = SCRIPT_JS.read_text(encoding="utf-8")
         cls.service_worker = SERVICE_WORKER.read_text(encoding="utf-8")
         cls.glass_template = GLASS_TEMPLATE.read_text(encoding="utf-8")
         cls.task_form_template = TASK_FORM_TEMPLATE.read_text(encoding="utf-8")
@@ -229,20 +231,53 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
                 body_end = stylesheet.index("}", match.end())
                 body_rules.append(stylesheet[match.end():body_end])
             body_rule = next(
-                rule for rule in body_rules if "min-height: 100dvh !important;" in rule
+                rule
+                for rule in body_rules
+                if "var(--mobile-physical-app-height" in rule
             )
-            self.assertIn("min-height: 100dvh !important;", body_rule)
-            self.assertIn("height: 100dvh !important;", body_rule)
-            self.assertIn("max-height: 100dvh !important;", body_rule)
+            self.assertIn(
+                "min-height: var(--mobile-physical-app-height, 100dvh) !important;",
+                body_rule,
+            )
+            self.assertIn(
+                "height: var(--mobile-physical-app-height, 100dvh) !important;",
+                body_rule,
+            )
+            self.assertIn(
+                "max-height: var(--mobile-physical-app-height, 100dvh) !important;",
+                body_rule,
+            )
             selector_match = selector.search(stylesheet)
             self.assertIsNotNone(selector_match)
             selector_start = selector_match.start()
             rule_end = stylesheet.index("}", selector_start)
             rule = stylesheet[selector_start:rule_end]
             self.assertIn("position: absolute !important;", rule)
-            self.assertIn("top: calc(100dvh - 72px) !important;", rule)
+            self.assertIn(
+                "top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;",
+                rule,
+            )
             self.assertIn("bottom: auto !important;", rule)
-            self.assertIn("inset: calc(100dvh - 72px) 0 auto 0 !important;", rule)
+            self.assertIn(
+                "inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;",
+                rule,
+            )
+
+    def test_empty_issued_assignments_measure_the_physical_ios_canvas(self):
+        physical_height_expression = (
+            "Math.max(layoutViewportHeight, visualViewportHeight, "
+            "deviceScreenHeight, deviceAvailableHeight)"
+        )
+        self.assertIn(physical_height_expression, self.base)
+        self.assertIn(
+            "document.documentElement.style.setProperty('--mobile-physical-app-height'",
+            self.base,
+        )
+        self.assertIn(physical_height_expression, self.script_js)
+        self.assertIn(
+            "document.documentElement.style.setProperty('--mobile-physical-app-height'",
+            self.script_js,
+        )
 
     def test_empty_issued_assignments_override_the_dark_root_canvas(self):
         selector = (

@@ -153,12 +153,20 @@
       );
       if (shouldUseStableStandaloneAppHeight) {
         const layoutViewportHeight = Math.round(window.innerHeight || document.documentElement.clientHeight || DESKTOP_REFERENCE_HEIGHT);
-        // The full screen height is larger than the CSS viewport in an
-        // installed iOS PWA. Using it here created an artificial strip below
-        // the fixed dock and changed the page geometry after CSS initialised.
+        const visualViewportHeight = Math.round(window.visualViewport?.height || 0);
+        const deviceScreenHeight = Math.round(window.screen?.height || 0);
+        const deviceAvailableHeight = Math.round(window.screen?.availHeight || 0);
+        const physicalAppHeight = Math.max(layoutViewportHeight, visualViewportHeight, deviceScreenHeight, deviceAvailableHeight);
+        // Keep the legacy layout height for regular pages. Empty issued
+        // results need a second value because iOS standalone can expose a
+        // 956px physical canvas while both innerHeight and 100dvh stay at
+        // roughly 895px during the whole session.
         const stableAppHeight = layoutViewportHeight;
         if (stableAppHeight > 0) {
           document.documentElement.style.setProperty('--app-height', `${stableAppHeight}px`);
+        }
+        if (physicalAppHeight > 0) {
+          document.documentElement.style.setProperty('--mobile-physical-app-height', `${physicalAppHeight}px`);
         }
       }
       document.documentElement.classList.toggle('desktop-like-pointer', !isTouchAppDevice && !useAdaptiveMobileViewport);
@@ -441,9 +449,9 @@
          this one dock on the physical canvas from the very first paint. */
       html.standalone-app
         body.app-body.app-body.app-body:has(.assignment-issued-layout-empty) {
-        min-height: 100dvh !important;
-        height: 100dvh !important;
-        max-height: 100dvh !important;
+        min-height: var(--mobile-physical-app-height, 100dvh) !important;
+        height: var(--mobile-physical-app-height, 100dvh) !important;
+        max-height: var(--mobile-physical-app-height, 100dvh) !important;
         overflow-x: hidden !important;
         overflow-y: auto !important;
         position: relative !important;
@@ -455,11 +463,11 @@
         body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)
         > nav.mobile-bottom-nav.mobile-bottom-nav-root {
         position: absolute !important;
-        top: calc(100dvh - 72px) !important;
+        top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
         right: 0 !important;
         bottom: auto !important;
         left: 0 !important;
-        inset: calc(100dvh - 72px) 0 auto 0 !important;
+        inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
       }
 
       html body.app-body nav.mobile-worker-bottom-nav.mobile-bottom-nav-root
@@ -792,7 +800,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v105-firefox-prepared-navigation', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v107-issued-empty-screen-height', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -830,7 +838,7 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v628-mobile-root-height-conflicts-removed">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v82-issued-empty-physical-dock">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v83-issued-empty-screen-height">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v45-narrow-desktop-dock">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
@@ -1433,6 +1441,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v640-firefox-prepared-navigation"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v641-issued-empty-screen-height"></script>
 </body>
 </html>

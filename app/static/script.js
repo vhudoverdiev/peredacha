@@ -545,10 +545,24 @@ document.addEventListener('DOMContentLoaded', () => {
     return Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0);
   };
 
+  const getPhysicalAppViewportHeight = () => {
+    const layoutViewportHeight = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
+    const visualViewportHeight = Math.round(window.visualViewport?.height || 0);
+    const deviceScreenHeight = Math.round(window.screen?.height || 0);
+    const deviceAvailableHeight = Math.round(window.screen?.availHeight || 0);
+    return Math.max(layoutViewportHeight, visualViewportHeight, deviceScreenHeight, deviceAvailableHeight);
+  };
+
   const syncAppViewportHeight = () => {
     if (!isIosDevice && !isMobileViewport()) return;
     const height = getStableAppViewportHeight();
     if (height > 0) document.documentElement.style.setProperty('--app-height', `${height}px`);
+    if (shouldUseStableStandaloneAppHeight()) {
+      const physicalHeight = getPhysicalAppViewportHeight();
+      if (physicalHeight > 0) {
+        document.documentElement.style.setProperty('--mobile-physical-app-height', `${physicalHeight}px`);
+      }
+    }
   };
 
   const syncMobileViewportClass = () => {
