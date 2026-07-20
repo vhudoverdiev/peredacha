@@ -1523,9 +1523,23 @@
   }
 
   html body.app-body.app-body.app-body .crm-mobile-page-shell,
-  html body.app-body.app-body.app-body .crm-mobile-page-shell > :last-child:not(.crm-toast-stack) {
+  html body.app-body.app-body.app-body .crm-mobile-page-shell
+    > :last-child:not(.crm-toast-stack):not(.account-page) {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
+  }
+
+  /* Account is the last child of the mobile shell. The generic reset above
+     used to erase its iPhone home-indicator clearance, leaving that system
+     area painted with the dark root colour and making the 72px dock look
+     about 34px taller than it is. Keep exactly the safe-area as light space
+     below the 2FA card; the dock itself remains identical to Objects. */
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.account-page) .crm-mobile-page-shell > .account-page,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.has-account-page .crm-mobile-page-shell > .account-page {
+    margin-bottom: 0 !important;
+    padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* Keep the mobile shell visually fixed while documents are switched. The
@@ -1594,19 +1608,6 @@
     transform: none !important;
     translate: none !important;
     scale: none !important;
-  }
-
-  /* A short Account document exposes an iOS standalone quirk: bottom: 0 is
-     resolved against a fixed-position viewport that can be shorter than
-     100dvh. Use the full mobile canvas for the dock's top edge, matching the
-     exact 72px geometry used on Objects without changing any desktop rule. */
-  html.standalone-app body.app-body.has-account-page nav.mobile-bottom-nav-root,
-  html.standalone-app body.app-body:has(.account-page) nav.mobile-bottom-nav-root {
-    top: calc(var(--mobile-layout-height, 100dvh) - var(--ref-mobile-nav-height, 72px)) !important;
-    right: 0 !important;
-    bottom: auto !important;
-    left: 0 !important;
-    inset: calc(var(--mobile-layout-height, 100dvh) - var(--ref-mobile-nav-height, 72px)) 0 auto 0 !important;
   }
 
   /* Remove the two legacy mobile shell conflicts. The launch cover owns the

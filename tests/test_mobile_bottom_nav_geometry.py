@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BASE_TEMPLATE = ROOT / "app" / "templates" / "base.html"
 MOBILE_CSS = ROOT / "app" / "static" / "mobile-only.css"
+STYLE_CSS = ROOT / "app" / "static" / "style.css"
 SERVICE_WORKER = ROOT / "app" / "static" / "service-worker.js"
 
 
@@ -14,9 +15,10 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
     def setUpClass(cls):
         cls.base = BASE_TEMPLATE.read_text(encoding="utf-8")
         cls.mobile_css = MOBILE_CSS.read_text(encoding="utf-8")
+        cls.style_css = STYLE_CSS.read_text(encoding="utf-8")
         cls.service_worker = SERVICE_WORKER.read_text(encoding="utf-8")
 
-    def test_nav_markup_does_not_override_page_specific_inset(self):
+    def test_nav_markup_does_not_override_shared_anchor(self):
         nav_tags = re.findall(
             r'<nav class="mobile-bottom-nav[^>]+data-mobile-dock="unified"[^>]+>',
             self.base,
@@ -27,22 +29,27 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             self.assertIn("width: 100vw !important", nav_tag)
             self.assertIn("height: 72px !important", nav_tag)
 
-    def test_account_dock_is_top_anchored_in_critical_and_final_css(self):
-        selector = (
-            "html.standalone-app body.app-body:has(.account-page) "
-            "nav.mobile-bottom-nav-root"
+    def test_account_dock_uses_the_same_bottom_anchor_as_objects(self):
+        account_dock_selector = re.compile(
+            r"has-account-page[^\{]*mobile-bottom-nav-root|"
+            r":has\(\.account-page\)[^\{]*mobile-bottom-nav-root"
         )
-        expected_top = (
-            "top: calc(var(--mobile-layout-height, 100dvh) - "
-            "var(--ref-mobile-nav-height, 72px)) !important;"
+        self.assertIsNone(account_dock_selector.search(self.base))
+        self.assertIsNone(account_dock_selector.search(self.mobile_css))
+
+    def test_account_page_keeps_exactly_its_safe_area_clearance(self):
+        self.assertIn(
+            "padding: .2rem .2rem calc(1.35rem + var(--ios-safe-bottom)) !important;",
+            self.style_css,
         )
-        for stylesheet in (self.base, self.mobile_css):
-            self.assertIn(selector, stylesheet)
-            selector_start = stylesheet.index(selector)
-            rule_end = stylesheet.index("}", selector_start)
-            rule = stylesheet[selector_start:rule_end]
-            self.assertIn(expected_top, rule)
-            self.assertIn("bottom: auto !important;", rule)
+        self.assertIn(
+            ":last-child:not(.crm-toast-stack):not(.account-page)",
+            self.mobile_css,
+        )
+        self.assertIn(
+            "padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;",
+            self.mobile_css,
+        )
 
     def test_pwa_cache_uses_the_same_mobile_stylesheet_version(self):
         version_pattern = r"mobile-only\.css[^\n]*\?v=(v[\w-]+)"

@@ -3446,7 +3446,7 @@ def _prepare_task_list_pagination(query, params, is_mobile_request: bool):
     premise_ids = _desktop_excel_selection_premise_ids(params, is_mobile_request)
     if premise_ids is not None:
         query = query.filter(Task.apartment_id.in_(premise_ids or [-1]))
-    per_page = 10 if is_mobile_request or premise_ids is not None else 20
+    per_page = 10 if is_mobile_request else 20
     return query, per_page
 
 

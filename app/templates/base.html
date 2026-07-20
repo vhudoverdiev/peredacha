@@ -411,19 +411,6 @@
         padding-bottom: 0 !important;
       }
 
-      /* A short Account document exposes an iOS standalone quirk: fixed
-         elements anchored by bottom: 0 use a viewport that can be shorter
-         than 100dvh. Anchor this one dock by its top edge so the light canvas
-         remains visible up to the same 72px dock used on Objects. */
-      html.standalone-app body.app-body.has-account-page nav.mobile-bottom-nav-root,
-      html.standalone-app body.app-body:has(.account-page) nav.mobile-bottom-nav-root {
-        top: calc(var(--mobile-layout-height, 100dvh) - var(--ref-mobile-nav-height, 72px)) !important;
-        right: 0 !important;
-        bottom: auto !important;
-        left: 0 !important;
-        inset: calc(var(--mobile-layout-height, 100dvh) - var(--ref-mobile-nav-height, 72px)) 0 auto 0 !important;
-      }
-
       html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
         body.app-body nav.mobile-bottom-nav,
       html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
@@ -744,7 +731,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v84-account-dock-top-anchor', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v85-account-safe-gap', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -782,7 +769,7 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v628-mobile-root-height-conflicts-removed">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v69-account-dock-top-anchor">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v70-account-safe-gap">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v38-material-delete-stable">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.

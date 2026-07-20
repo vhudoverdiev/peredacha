@@ -32,7 +32,7 @@ class ExcelSelectionPaginationTest(unittest.TestCase):
         db.session.add_all([project, point, *apartments])
         db.session.flush()
 
-        task_counts = (7, 7, 9)
+        task_counts = (12, 15, 9)
         for apartment, task_count in zip(apartments, task_counts):
             for index in range(task_count):
                 db.session.add(
@@ -57,7 +57,7 @@ class ExcelSelectionPaginationTest(unittest.TestCase):
     def base_query(self):
         return build_task_query({}, project_id=self.project_id)
 
-    def test_desktop_excel_selection_filters_before_ten_row_pagination(self):
+    def test_desktop_excel_selection_filters_before_twenty_row_pagination(self):
         args = MultiDict([("excel_selection", "1")])
         for apartment_id in self.selected_apartment_ids:
             args.add("premise_ids", str(apartment_id))
@@ -68,11 +68,11 @@ class ExcelSelectionPaginationTest(unittest.TestCase):
         first_page = query.paginate(page=1, per_page=per_page, error_out=False)
         second_page = query.paginate(page=2, per_page=per_page, error_out=False)
 
-        self.assertEqual(per_page, 10)
-        self.assertEqual(first_page.total, 14)
+        self.assertEqual(per_page, 20)
+        self.assertEqual(first_page.total, 27)
         self.assertEqual(first_page.pages, 2)
-        self.assertEqual(len(first_page.items), 10)
-        self.assertEqual(len(second_page.items), 4)
+        self.assertEqual(len(first_page.items), 20)
+        self.assertEqual(len(second_page.items), 7)
         self.assertTrue(
             all(task.apartment_id in self.selected_apartment_ids for task in first_page.items + second_page.items)
         )
@@ -85,7 +85,7 @@ class ExcelSelectionPaginationTest(unittest.TestCase):
         )
         page = query.paginate(page=1, per_page=per_page, error_out=False)
 
-        self.assertEqual(per_page, 10)
+        self.assertEqual(per_page, 20)
         self.assertEqual(page.total, 0)
 
     def test_regular_desktop_list_keeps_twenty_rows(self):
@@ -95,7 +95,7 @@ class ExcelSelectionPaginationTest(unittest.TestCase):
         page = query.paginate(page=1, per_page=per_page, error_out=False)
 
         self.assertEqual(per_page, 20)
-        self.assertEqual(page.total, 23)
+        self.assertEqual(page.total, 36)
         self.assertEqual(len(page.items), 20)
 
     def test_mobile_list_ignores_desktop_excel_selection_marker(self):
@@ -109,7 +109,7 @@ class ExcelSelectionPaginationTest(unittest.TestCase):
         page = query.paginate(page=1, per_page=per_page, error_out=False)
 
         self.assertEqual(per_page, 10)
-        self.assertEqual(page.total, 23)
+        self.assertEqual(page.total, 36)
 
 
 if __name__ == "__main__":
