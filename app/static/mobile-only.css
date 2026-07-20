@@ -1596,6 +1596,15 @@
     scale: none !important;
   }
 
+  /* iOS standalone gives short documents a shorter fixed-position viewport
+     than 100dvh. Account is short enough to expose that extra system area as
+     part of the dark dock. Pin the dock's top to the full mobile canvas so its
+     visible height and its distance from the 2FA button match Objects. */
+  html.standalone-app body.app-body:has(.account-page) {
+    --mobile-dock-top: calc(var(--mobile-layout-height, 100dvh) - var(--ref-mobile-nav-height, 72px));
+    --mobile-dock-bottom: auto;
+  }
+
   /* Remove the two legacy mobile shell conflicts. The launch cover owns the
      whole viewport, and every short page paints one light canvas up to the
      fixed dock (including Measurements, Account and empty Remarks). */
