@@ -244,7 +244,7 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="scope" value="ordered">
 </form>
-<div class="card table-shell glass-table-shell js-bulk-selectable" data-bulk-label-one="позиция" data-bulk-label-few="позиции" data-bulk-label-many="позиций" data-ajax-pagination-content data-ajax-items-selector=".glass-order-row">
+<div class="card table-shell glass-table-shell js-bulk-selectable" data-bulk-label-one="позиция" data-bulk-label-few="позиции" data-bulk-label-many="позиций" data-bulk-persist-form="#glass-bulk-request-form" data-bulk-persist-name="measurement_ids" data-ajax-pagination-content data-ajax-items-selector=".glass-order-row">
   <div class="card-header glass-card-header">
     <div>
       <b>Заказано</b>

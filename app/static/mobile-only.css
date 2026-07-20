@@ -2058,7 +2058,16 @@
 
   /* Empty "Issued to employees" is another short page, but its assignment
      filter selector had greater specificity than the shared short-page rule.
-     Keep the final card/surface 12px above the same fixed dock. */
+     Keep the final card/surface 12px above the same fixed dock.  This body
+     selector deliberately matches the specificity of the dark app root: on
+     iOS the layout viewport can temporarily be about one status-bar shorter
+     than the fixed-position viewport.  Any exposed strip must stay part of
+     the light page canvas, not look like extra dock height. */
+  html body.app-body.app-body.app-body:has(.assignment-issued-layout-empty) {
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
   html.standalone-app body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)
     main.app-content.app-content {
     padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;

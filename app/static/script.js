@@ -2907,16 +2907,17 @@ document.addEventListener('DOMContentLoaded', () => {
       ? scope
       : (scope.dataset.bulkPersistForm ? document.querySelector(scope.dataset.bulkPersistForm) : null);
     if (!(form instanceof HTMLFormElement)) return;
-    form.querySelectorAll('input.js-bulk-persisted-input[name="task_ids"]').forEach(input => input.remove());
+    const inputName = scope.dataset.bulkPersistName || 'task_ids';
+    form.querySelectorAll('input.js-bulk-persisted-input').forEach(input => input.remove());
     const visibleCheckIds = new Set(
       Array.from(scope.querySelectorAll('.js-bulk-check')).map(check => String(check.value || '')).filter(Boolean)
     );
-    Array.from(scope.__bulkSelectedIds).forEach(taskId => {
-      if (visibleCheckIds.has(String(taskId))) return;
+    Array.from(scope.__bulkSelectedIds).forEach(selectedId => {
+      if (visibleCheckIds.has(String(selectedId))) return;
       const input = document.createElement('input');
       input.type = 'hidden';
-      input.name = 'task_ids';
-      input.value = taskId;
+      input.name = inputName;
+      input.value = selectedId;
       input.className = 'js-bulk-persisted-input';
       form.appendChild(input);
     });

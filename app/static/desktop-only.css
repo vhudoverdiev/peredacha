@@ -1,4 +1,14 @@
 /* Overrides in this file are intentionally limited to desktop layouts. */
+/* The critical mobile dock CSS is intentionally available before device
+   detection completes. Once the page is confirmed as desktop, keep that dock
+   hidden even when the browser window is narrower than the mobile breakpoint. */
+html.desktop-like-pointer body.app-body
+  nav.mobile-bottom-nav.mobile-bottom-nav-root[data-mobile-dock="unified"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 .work-report-export-desktop-only {
   display: none !important;
 }

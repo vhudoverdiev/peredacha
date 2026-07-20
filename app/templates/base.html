@@ -769,7 +769,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v99-firefox-native-swap', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v101-issued-empty-body-canvas', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -807,8 +807,8 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v628-mobile-root-height-conflicts-removed">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v79-worker-assignment-shared-dock">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v43-firefox-native-swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v80-issued-empty-body-canvas">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v45-narrow-desktop-dock">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
     // Releasing the gate here guarantees that desktop body markup cannot be

@@ -10,8 +10,21 @@ class DesktopFixedShellTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         css = DESKTOP_CSS.read_text(encoding="utf-8")
+        cls.css = css
         marker = "/* Cross-browser desktop shell."
         cls.shell_css = css[css.index(marker) :]
+
+    def test_mobile_dock_is_hidden_for_narrow_desktop_windows(self):
+        selector = (
+            "html.desktop-like-pointer body.app-body\n"
+            "  nav.mobile-bottom-nav.mobile-bottom-nav-root[data-mobile-dock=\"unified\"]"
+        )
+        selector_start = self.css.index(selector)
+        rule_end = self.css.index("}", selector_start)
+        rule = self.css[selector_start:rule_end]
+        self.assertIn("display: none !important", rule)
+        self.assertIn("visibility: hidden !important", rule)
+        self.assertIn("pointer-events: none !important", rule)
 
     def test_sidebar_and_topbar_use_fixed_positioning(self):
         self.assertIn(".app-layout > .app-sidebar", self.shell_css)

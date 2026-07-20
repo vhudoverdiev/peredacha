@@ -221,6 +221,16 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         self.assertIsNone(assignment_empty_dock_selector.search(self.base))
         self.assertIsNone(assignment_empty_dock_selector.search(self.mobile_css))
 
+    def test_empty_issued_assignments_override_the_dark_root_canvas(self):
+        selector = (
+            "html body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)"
+        )
+        selector_start = self.mobile_css.index(selector)
+        rule_end = self.mobile_css.index("}", selector_start)
+        rule = self.mobile_css[selector_start:rule_end]
+        self.assertIn("background: #f6f8fb !important;", rule)
+        self.assertIn("background-color: #f6f8fb !important;", rule)
+
     def test_all_worker_roles_share_the_unified_two_item_dock(self):
         self.assertIn("{% if worker_role %}", self.base)
         worker_nav = re.search(
