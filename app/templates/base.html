@@ -65,7 +65,6 @@
       );
       const nav = window.navigator || {};
       const userAgent = nav.userAgent || '';
-      const isFirefoxBrowser = /Firefox\//i.test(userAgent);
       const maxTouchPoints = nav.maxTouchPoints || 0;
       const coarseTouchPointer = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
       const isIpadOsLike = nav.platform === 'MacIntel' && maxTouchPoints > 1;
@@ -170,14 +169,11 @@
       document.documentElement.classList.toggle('touch-app-device', isTouchAppDevice);
       applyTouchViewportProfile();
       if (!isTouchAppDevice && !useAdaptiveMobileViewport) {
-        // Chromium needs the early canvas while its service worker resolves
-        // stylesheets. Firefox already retains the previous document until
-        // the blocking head styles are ready; forcing a new pending canvas in
-        // that engine creates an extra empty frame between otherwise complete
-        // pages. Let Firefox use its native atomic document swap.
-        if (!isFirefoxBrowser) {
-          document.documentElement.classList.add('desktop-styles-pending');
-        }
+        // The destination document needs an opaque first paint in every
+        // desktop browser. Firefox navigation is prepared before this point,
+        // so this canvas is only a final safety net while the ready HTML is
+        // parsed and cannot expose the browser's default white document.
+        document.documentElement.classList.add('desktop-styles-pending');
         const desktopStageScale = getDesktopStageScale();
         const desktopShellHasSidebar = document.documentElement.classList.contains('desktop-shell-with-sidebar');
         document.documentElement.style.setProperty('--desktop-shell-sidebar-visual-width', `${desktopShellHasSidebar ? 230 * desktopStageScale : 0}px`);
@@ -437,6 +433,33 @@
         animation: none !important;
         transition: none !important;
         overflow: hidden !important;
+      }
+
+      /* On a short issued-results page iOS standalone makes body the root
+         scroller. A fixed bottom edge is then resolved against innerHeight
+         (about 895px on iPhone 16 Pro Max), not the full 100dvh canvas. Keep
+         this one dock on the physical canvas from the very first paint. */
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.assignment-issued-layout-empty) {
+        min-height: 100dvh !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        position: relative !important;
+        background: #f6f8fb !important;
+        background-color: #f6f8fb !important;
+      }
+
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)
+        > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+        position: absolute !important;
+        top: calc(100dvh - 72px) !important;
+        right: 0 !important;
+        bottom: auto !important;
+        left: 0 !important;
+        inset: calc(100dvh - 72px) 0 auto 0 !important;
       }
 
       html body.app-body nav.mobile-worker-bottom-nav.mobile-bottom-nav-root
@@ -769,7 +792,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v101-issued-empty-body-canvas', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v105-firefox-prepared-navigation', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -807,7 +830,7 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v628-mobile-root-height-conflicts-removed">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v80-issued-empty-body-canvas">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v82-issued-empty-physical-dock">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v45-narrow-desktop-dock">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
@@ -995,7 +1018,7 @@
 
 {% macro mobile_bottom_nav(active='dashboard') -%}
   {% if worker_role %}
-  <nav class="mobile-bottom-nav mobile-bottom-nav-root mobile-worker-bottom-nav" aria-label="Основная навигация" data-mobile-dock="unified" style="--mobile-nav-count: 2; --ref-mobile-nav-height: 72px !important; position: fixed !important; width: 100vw !important; min-width: 100vw !important; max-width: 100vw !important; height: 72px !important; min-height: 72px !important; max-height: 72px !important; margin: 0 !important; padding: 4px 5px 3px !important; box-sizing: border-box !important">
+  <nav class="mobile-bottom-nav mobile-bottom-nav-root mobile-worker-bottom-nav" aria-label="Основная навигация" data-mobile-dock="unified" style="--mobile-nav-count: 2; --ref-mobile-nav-height: 72px !important; width: 100vw !important; min-width: 100vw !important; max-width: 100vw !important; height: 72px !important; min-height: 72px !important; max-height: 72px !important; margin: 0 !important; padding: 4px 5px 3px !important; box-sizing: border-box !important">
     <a class="mobile-nav-item {% if active == 'tasks' %}active{% endif %}" href="{{ url_for('main.my_tasks') }}">
       <i class="bi bi-card-checklist"></i><span>Задачи</span>
     </a>
@@ -1007,7 +1030,7 @@
   {% set primary_mobile_shell = current_project and layout_mode.strip() == 'app' and request.endpoint not in ['main.account', 'main.site_settings'] %}
   {% set no_mobile_project = not primary_mobile_shell %}
   {% set nav_count = 2 if report_only_role or no_mobile_project else (4 if current_user.role in ['admin', 'manager'] else 3) %}
-  <nav class="mobile-bottom-nav mobile-bottom-nav-root{% if report_only_role %} mobile-verifier-bottom-nav{% endif %}" aria-label="Основная навигация" data-mobile-dock="unified" style="--mobile-nav-count: {{ nav_count }}; --ref-mobile-nav-height: 72px !important; position: fixed !important; width: 100vw !important; min-width: 100vw !important; max-width: 100vw !important; height: 72px !important; min-height: 72px !important; max-height: 72px !important; margin: 0 !important; padding: 4px 5px 3px !important; box-sizing: border-box !important">
+  <nav class="mobile-bottom-nav mobile-bottom-nav-root{% if report_only_role %} mobile-verifier-bottom-nav{% endif %}" aria-label="Основная навигация" data-mobile-dock="unified" style="--mobile-nav-count: {{ nav_count }}; --ref-mobile-nav-height: 72px !important; width: 100vw !important; min-width: 100vw !important; max-width: 100vw !important; height: 72px !important; min-height: 72px !important; max-height: 72px !important; margin: 0 !important; padding: 4px 5px 3px !important; box-sizing: border-box !important">
     {% if report_only_role %}
       {% if primary_mobile_shell %}
     <a class="mobile-nav-item {% if active == 'report' %}active{% endif %}" href="{{ url_for('main.work_report') }}">
@@ -1410,6 +1433,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v637-material-assignment-fixes"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v640-firefox-prepared-navigation"></script>
 </body>
 </html>

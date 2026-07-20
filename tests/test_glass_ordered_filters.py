@@ -126,6 +126,15 @@ class GlassOrderedFiltersTests(unittest.TestCase):
             '<option value="none" {% if ordered_request == \'none\' %}selected{% endif %}>Не создана</option>',
             self.template,
         )
+    def test_sort_labels_are_shortened_only_on_desktop(self):
+        self.assertIn(
+            "{% if is_mobile_phone_request %}По дате — сначала новые{% else %}По дате{% endif %}",
+            self.template,
+        )
+        self.assertIn(
+            "{% if is_mobile_phone_request %}По квартире — 1, 2, 3…{% else %}По помещению{% endif %}",
+            self.template,
+        )
 
 
 if __name__ == "__main__":

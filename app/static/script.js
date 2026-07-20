@@ -1,3 +1,15 @@
+try {
+  const preparedNavigationUrl = new URL(window.location.href);
+  if (preparedNavigationUrl.searchParams.has('_crm_prepared_navigation')) {
+    preparedNavigationUrl.searchParams.delete('_crm_prepared_navigation');
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${preparedNavigationUrl.pathname}${preparedNavigationUrl.search}${preparedNavigationUrl.hash}`,
+    );
+  }
+} catch (error) {}
+
 const desktopPointerQueries = ['(hover: hover)', '(any-hover: hover)', '(pointer: fine)', '(any-pointer: fine)'];
 const getNavigatorInfo = () => window.navigator || {};
 const DESKTOP_REFERENCE_WIDTH = 1920;
@@ -85,6 +97,120 @@ document.addEventListener('click', event => {
   if (link.target && link.target !== '_self') return;
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   rememberInstantMobileEntryForNextNavigation(link.href);
+}, true);
+
+// Firefox paints its default white document for one frame while replacing
+// two server-rendered pages. On desktop, fully receive the next HTML response
+// first and hand it to the service worker as a one-use navigation response.
+// The old document therefore stays visible until the destination is ready,
+// while the real page navigation (and all page scripts) still runs normally.
+const desktopFirefoxNavigationCache = 'crm-desktop-navigation-v1';
+let desktopFirefoxNavigationInFlight = false;
+
+const requestDesktopNavigationWorkerCapability = () => new Promise(resolve => {
+  const controller = navigator.serviceWorker?.controller;
+  if (!controller || typeof MessageChannel !== 'function') {
+    resolve(false);
+    return;
+  }
+
+  const channel = new MessageChannel();
+  const timeout = window.setTimeout(() => resolve(false), 300);
+  channel.port1.onmessage = event => {
+    window.clearTimeout(timeout);
+    resolve(event.data?.type === 'crm-desktop-navigation-capability-ready');
+  };
+  controller.postMessage(
+    { type: 'crm-desktop-navigation-capability' },
+    [channel.port2],
+  );
+});
+
+let desktopNavigationWorkerCapability = requestDesktopNavigationWorkerCapability();
+navigator.serviceWorker?.addEventListener('controllerchange', () => {
+  desktopNavigationWorkerCapability = requestDesktopNavigationWorkerCapability();
+});
+
+const isDesktopFirefoxPreparedNavigation = () => (
+  document.body?.classList.contains('app-body')
+  && isDesktopLikePointer()
+  && /Firefox\//i.test(getNavigatorInfo().userAgent || '')
+  && 'caches' in window
+  && Boolean(navigator.serviceWorker?.controller)
+);
+
+const getPreparedDesktopNavigationUrl = (event, link) => {
+  if (!link || event.defaultPrevented || event.button !== 0) return null;
+  if (link.hasAttribute('download') || link.dataset.downloadMode) return null;
+  if (link.target && link.target !== '_self') return null;
+  if (link.hasAttribute('data-bs-toggle')) return null;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return null;
+
+  try {
+    const targetUrl = new URL(link.href, window.location.href);
+    const currentUrl = new URL(window.location.href);
+    if (targetUrl.origin !== currentUrl.origin || !/^https?:$/.test(targetUrl.protocol)) return null;
+    if (
+      targetUrl.pathname === currentUrl.pathname
+      && targetUrl.search === currentUrl.search
+      && targetUrl.hash
+    ) return null;
+    return targetUrl;
+  } catch (error) {
+    return null;
+  }
+};
+
+document.addEventListener('click', async event => {
+  if (!isDesktopFirefoxPreparedNavigation()) return;
+  const link = event.target.closest?.('a[href]');
+  const targetUrl = getPreparedDesktopNavigationUrl(event, link);
+  if (!targetUrl) return;
+
+  event.preventDefault();
+  if (desktopFirefoxNavigationInFlight) return;
+  desktopFirefoxNavigationInFlight = true;
+
+  let navigationUrl = targetUrl;
+  try {
+    if (!await desktopNavigationWorkerCapability) {
+      throw new Error('prepared-navigation-worker-is-not-ready');
+    }
+    const response = await fetch(targetUrl.href, {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      redirect: 'follow',
+      headers: {
+        Accept: 'text/html,application/xhtml+xml',
+        'X-CRM-Prepared-Navigation': '1',
+      },
+    });
+    const contentType = response.headers.get('Content-Type') || '';
+    if (!response.ok || !contentType.toLowerCase().includes('text/html')) {
+      throw new Error('prepared-navigation-response-is-not-html');
+    }
+
+    navigationUrl = new URL(response.url || targetUrl.href, window.location.href);
+    if (navigationUrl.origin !== window.location.origin) {
+      throw new Error('prepared-navigation-cross-origin-redirect');
+    }
+
+    const cache = await window.caches.open(desktopFirefoxNavigationCache);
+    navigationUrl.searchParams.set(
+      '_crm_prepared_navigation',
+      `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
+    );
+    const cacheKey = new Request(navigationUrl.href, {
+      method: 'GET',
+      credentials: 'same-origin',
+    });
+    await cache.put(cacheKey, response);
+  } catch (error) {
+    // Navigation must remain functional when the worker/cache is unavailable.
+  }
+
+  window.location.assign(navigationUrl.href);
 }, true);
 
 const getTouchViewportProfile = () => {

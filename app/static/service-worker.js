@@ -1,4 +1,5 @@
-const STATIC_CACHE = 'peredacha-static-v101-issued-empty-body-canvas';
+const STATIC_CACHE = 'peredacha-static-v105-firefox-prepared-navigation';
+const DESKTOP_NAVIGATION_CACHE = 'crm-desktop-navigation-v1';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,9 +14,9 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
-  '/static/mobile-only.css?v=v80-issued-empty-body-canvas',
+  '/static/mobile-only.css?v=v82-issued-empty-physical-dock',
   '/static/desktop-only.css?v=v45-narrow-desktop-dock',
-  '/static/script.js?v=v637-material-assignment-fixes',
+  '/static/script.js?v=v640-firefox-prepared-navigation',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>
@@ -206,6 +207,13 @@ self.addEventListener('activate', event => {
   })());
 });
 
+self.addEventListener('message', event => {
+  if (event.data?.type !== 'crm-desktop-navigation-capability') return;
+  event.ports?.[0]?.postMessage({
+    type: 'crm-desktop-navigation-capability-ready',
+  });
+});
+
 self.addEventListener('fetch', event => {
   const { request } = event;
   if (request.method !== 'GET') return;
@@ -214,7 +222,7 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(mobileNavigationNetworkFirst(request));
+    event.respondWith(navigationNetworkFirst(request));
     return;
   }
 
@@ -228,7 +236,19 @@ self.addEventListener('fetch', event => {
   event.respondWith(staticNetworkFirst(request));
 });
 
-async function mobileNavigationNetworkFirst(request) {
+async function navigationNetworkFirst(request) {
+  const requestUrl = new URL(request.url);
+  if (requestUrl.searchParams.has('_crm_prepared_navigation')) {
+    const preparedNavigationCache = await caches.open(DESKTOP_NAVIGATION_CACHE);
+    const preparedResponse = await preparedNavigationCache.match(request, {
+      ignoreVary: true,
+    });
+    if (preparedResponse) {
+      await preparedNavigationCache.delete(request, { ignoreVary: true });
+      return preparedResponse;
+    }
+  }
+
   try {
     return await fetch(request);
   } catch (error) {

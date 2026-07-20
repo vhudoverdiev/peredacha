@@ -1386,6 +1386,15 @@
     background-color: #111820 !important;
   }
 
+  /* Every worker role uses the same fixed 72px dock.  Installed iOS PWAs can
+     temporarily report a layout height shorter than the fixed-position
+     viewport; the uncovered body strip must remain part of the light page
+     canvas instead of visually extending the dark dock. */
+  html body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav) {
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
   html body.app-body.app-body.app-body:not(:has(.mobile-short-page-marker))
     :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
     min-height: calc(var(--mobile-layout-height, 100dvh) - 72px) !important;
@@ -2066,6 +2075,32 @@
   html body.app-body.app-body.app-body:has(.assignment-issued-layout-empty) {
     background: #f6f8fb !important;
     background-color: #f6f8fb !important;
+  }
+
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.assignment-issued-layout-empty) {
+    min-height: 100dvh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    position: relative !important;
+  }
+
+  /* Empty issued results are a root scrolling page on iOS standalone. Safari
+     resolves fixed bottom:0 against the shorter innerHeight there, leaving a
+     61px strip below an otherwise correct 72px dock. Anchor this short page
+     to the full CSS application canvas; long pages keep the shared fixed
+     navigation behaviour. */
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    position: absolute !important;
+    top: calc(100dvh - 72px) !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
+    inset: calc(100dvh - 72px) 0 auto 0 !important;
   }
 
   html.standalone-app body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)

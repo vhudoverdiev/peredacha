@@ -36,6 +36,7 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         self.assertEqual(len(nav_tags), 2)
         for nav_tag in nav_tags:
             self.assertNotIn("inset:", nav_tag)
+            self.assertNotIn("position:", nav_tag)
             self.assertIn("width: 100vw !important", nav_tag)
             self.assertIn("height: 72px !important", nav_tag)
 
@@ -214,12 +215,34 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             self.mobile_css,
         )
 
-    def test_empty_issued_assignments_do_not_get_a_page_specific_dock_anchor(self):
-        assignment_empty_dock_selector = re.compile(
-            r":has\(\.assignment-issued-empty-page\)[^\{]*mobile-bottom-nav-root"
+    def test_empty_issued_assignments_anchor_the_dock_to_the_full_canvas(self):
+        body_selector = (
+            "body.app-body.app-body.app-body:has(.assignment-issued-layout-empty) {"
         )
-        self.assertIsNone(assignment_empty_dock_selector.search(self.base))
-        self.assertIsNone(assignment_empty_dock_selector.search(self.mobile_css))
+        selector = re.compile(
+            r"body\.app-body\.app-body\.app-body:has\(\.assignment-issued-layout-empty\)"
+            r"\s*>\s*nav\.mobile-bottom-nav\.mobile-bottom-nav-root"
+        )
+        for stylesheet in (self.base, self.mobile_css):
+            body_rules = []
+            for match in re.finditer(re.escape(body_selector), stylesheet):
+                body_end = stylesheet.index("}", match.end())
+                body_rules.append(stylesheet[match.end():body_end])
+            body_rule = next(
+                rule for rule in body_rules if "min-height: 100dvh !important;" in rule
+            )
+            self.assertIn("min-height: 100dvh !important;", body_rule)
+            self.assertIn("height: 100dvh !important;", body_rule)
+            self.assertIn("max-height: 100dvh !important;", body_rule)
+            selector_match = selector.search(stylesheet)
+            self.assertIsNotNone(selector_match)
+            selector_start = selector_match.start()
+            rule_end = stylesheet.index("}", selector_start)
+            rule = stylesheet[selector_start:rule_end]
+            self.assertIn("position: absolute !important;", rule)
+            self.assertIn("top: calc(100dvh - 72px) !important;", rule)
+            self.assertIn("bottom: auto !important;", rule)
+            self.assertIn("inset: calc(100dvh - 72px) 0 auto 0 !important;", rule)
 
     def test_empty_issued_assignments_override_the_dark_root_canvas(self):
         selector = (
@@ -242,6 +265,18 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         self.assertIn("--mobile-nav-count: 2", worker_nav_markup)
         self.assertIn("width: 100vw !important", worker_nav_markup)
         self.assertIn("height: 72px !important", worker_nav_markup)
+
+    def test_all_worker_pages_override_the_dark_root_canvas(self):
+        selector = (
+            "html body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav)"
+        )
+        selector_start = self.mobile_css.index(selector)
+        rule_end = self.mobile_css.index("}", selector_start)
+        rule = self.mobile_css[selector_start:rule_end]
+        self.assertIn("background: #f6f8fb !important;", rule)
+        self.assertIn("background-color: #f6f8fb !important;", rule)
+        for role in ("handyman", "painter", "glazier"):
+            self.assertIn(f"'{role}'", self.base)
 
     def test_empty_worker_tasks_paint_the_light_canvas_to_shared_dock(self):
         self.assertIn(
