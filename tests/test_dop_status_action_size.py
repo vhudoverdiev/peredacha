@@ -29,16 +29,16 @@ class DopStatusActionSizeTests(unittest.TestCase):
         self.assertIn("data-done-url", self.task_list)
         self.assertIn("data-not-started-url", self.task_list)
 
-    def test_desktop_button_is_larger_in_both_binary_states(self):
+    def test_desktop_button_is_compact_but_distinct_in_both_binary_states(self):
         selector = ".dop-binary-status-toggle-form .btn.btn-sm"
         start = self.desktop_css.index(selector)
         end = self.desktop_css.index("}", start)
         rule = self.desktop_css[start:end]
 
         self.assertIn("html.desktop-like-pointer", self.desktop_css[start - 220:start])
-        self.assertIn("width: 3rem !important", rule)
-        self.assertIn("height: 3rem !important", rule)
-        self.assertIn("font-size: 1.2rem !important", rule)
+        self.assertIn("width: 2.25rem !important", rule)
+        self.assertIn("height: 2.25rem !important", rule)
+        self.assertIn("font-size: 1rem !important", rule)
 
     def test_mobile_styles_are_untouched(self):
         self.assertNotIn("dop-binary-status-toggle-form", self.mobile_css)

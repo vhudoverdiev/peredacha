@@ -136,33 +136,21 @@ class FirefoxPreparedNavigationTests(unittest.TestCase):
             viewport_section.rindex("window.location.href = href"),
         )
 
-    def test_content_handoff_runs_after_staging_and_before_navigation(self):
+    def test_prepared_navigation_assigns_immediately_after_staging(self):
         cache_put = self.script.index("await cache.put(cacheKey, response)")
-        exit_wait = self.script.index(
-            "await waitForDesktopFirefoxExitTransition()", cache_put
-        )
         assign = self.script.index("window.location.assign(navigationUrl.href)")
+        between_staging_and_navigation = self.script[cache_put:assign]
 
-        self.assertLess(cache_put, exit_wait)
-        self.assertLess(exit_wait, assign)
-        self.assertIn("prefers-reduced-motion: reduce", self.script)
-        self.assertIn("event.propertyName === 'opacity'", self.script)
+        self.assertLess(cache_put, assign)
+        self.assertNotIn("waitForDesktopFirefoxExitTransition", self.script)
+        self.assertNotIn("crm-desktop-navigation-leaving", between_staging_and_navigation)
 
-    def test_handoff_animates_only_the_page_surface(self):
-        handoff_marker = self.desktop_css.index(
-            "Firefox does not yet provide cross-document View Transitions"
-        )
-        handoff_css = self.desktop_css[handoff_marker:]
-
-        self.assertIn("crm-desktop-navigation-leaving", handoff_css)
-        self.assertIn("crm-desktop-navigation-entering", handoff_css)
-        self.assertIn("body.app-body .crm-page-entry-surface", handoff_css)
-        self.assertIn("opacity: .72 !important", handoff_css)
-        self.assertIn("transition: opacity 105ms", handoff_css)
-        self.assertIn("transition: opacity 170ms", handoff_css)
-        self.assertIn("prefers-reduced-motion: reduce", handoff_css)
-        self.assertNotIn(".app-sidebar", handoff_css)
-        self.assertNotIn(".app-topbar", handoff_css)
+    def test_prepared_navigation_has_no_content_fade_classes(self):
+        self.assertNotIn("crm-desktop-navigation-leaving", self.script)
+        self.assertNotIn("crm-desktop-navigation-entering", self.script)
+        self.assertNotIn("crm-desktop-navigation-enter-active", self.script)
+        self.assertNotIn("crm-desktop-navigation-leaving", self.desktop_css)
+        self.assertNotIn("crm-desktop-navigation-entering", self.desktop_css)
 
     def test_prepared_response_uses_a_one_time_url_and_cleans_it_from_history(self):
         self.assertIn("navigationUrl.searchParams.set(\n      '_crm_prepared_navigation'", self.script)

@@ -1,8 +1,6 @@
-let isPreparedDesktopNavigationEntry = false;
 try {
   const preparedNavigationUrl = new URL(window.location.href);
   if (preparedNavigationUrl.searchParams.has('_crm_prepared_navigation')) {
-    isPreparedDesktopNavigationEntry = true;
     preparedNavigationUrl.searchParams.delete('_crm_prepared_navigation');
     window.history.replaceState(
       window.history.state,
@@ -11,20 +9,6 @@ try {
     );
   }
 } catch (error) {}
-
-if (isPreparedDesktopNavigationEntry) {
-  window.requestAnimationFrame(() => {
-    const root = document.documentElement;
-    if (!root.classList.contains('crm-desktop-navigation-entering')) return;
-    root.classList.add('crm-desktop-navigation-enter-active');
-    window.setTimeout(() => {
-      root.classList.remove(
-        'crm-desktop-navigation-entering',
-        'crm-desktop-navigation-enter-active',
-      );
-    }, 220);
-  });
-}
 
 const desktopPointerQueries = ['(hover: hover)', '(any-hover: hover)', '(pointer: fine)', '(any-pointer: fine)'];
 const getNavigatorInfo = () => window.navigator || {};
@@ -93,12 +77,23 @@ const isMobileViewport = () => isTouchMobileViewport() || isAdaptiveMobileViewpo
 const isDesktopLikePointer = () => !isTouchAppDevice() && !isAdaptiveMobileViewport();
 const shouldUseDesktopViewportLock = () => isDesktopLikePointer();
 
+// Shared by independently initialized UI modules. Keep this helper outside any
+// DOMContentLoaded callback so late modules (including Measurements) can safely
+// build escaped markup after an asynchronous response.
+const escapeHtml = value => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
+
 // Table rows are opened programmatically in several sections. On desktop that
 // makes them look clickable, but the browser cannot offer its native "open in
 // new tab" actions because there is no real link under the pointer. Add a
-// transparent link to every clickable table cell and forward an unmodified
-// left click to the original content so each table keeps its existing click,
-// double-click and bulk-selection behaviour.
+// transparent, semantically named link to every clickable table cell and
+// forward an unmodified left click to the original content so each table keeps
+// its existing click, double-click and bulk-selection behaviour. Runtime links
+// are marked explicitly because AJAX pagination morphs the server-rendered DOM.
 const initDesktopNativeTableRowLinks = (scope = document) => {
   if (isTouchAppDevice()) return;
 
@@ -119,7 +114,12 @@ const initDesktopNativeTableRowLinks = (scope = document) => {
         link = document.createElement('a');
         link.className = 'desktop-native-row-link';
         link.tabIndex = -1;
-        link.setAttribute('aria-hidden', 'true');
+        link.setAttribute('aria-label', 'Открыть строку таблицы');
+
+        const linkLabel = document.createElement('span');
+        linkLabel.className = 'desktop-native-row-link-label';
+        linkLabel.textContent = 'Открыть строку таблицы';
+        link.appendChild(linkLabel);
 
         const forwardOriginalPointerEvent = event => {
           if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -149,6 +149,12 @@ const initDesktopNativeTableRowLinks = (scope = document) => {
         link.addEventListener('dblclick', forwardOriginalPointerEvent);
         cell.appendChild(link);
       }
+      // A link created by an older page script may already have been hidden as
+      // an AJAX morph spare. Revive it and keep all runtime-only nodes outside
+      // subsequent server-DOM reconciliation.
+      link.hidden = false;
+      link.removeAttribute('data-ajax-pagination-spare');
+      link.dataset.ajaxPaginationRuntime = '1';
       link.href = href;
     });
   });
@@ -192,35 +198,7 @@ document.addEventListener('click', event => {
 // The old document therefore stays visible until the destination is ready,
 // while the real page navigation (and all page scripts) still runs normally.
 const desktopFirefoxNavigationCache = 'crm-desktop-navigation-v1';
-const desktopFirefoxExitTransitionTimeout = 160;
 let desktopFirefoxNavigationInFlight = false;
-
-const waitForDesktopFirefoxExitTransition = () => new Promise(resolve => {
-  const root = document.documentElement;
-  const surface = document.querySelector('body.app-body .crm-page-entry-surface');
-  if (
-    !surface
-    || window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  ) {
-    resolve();
-    return;
-  }
-
-  let completed = false;
-  const finish = () => {
-    if (completed) return;
-    completed = true;
-    window.clearTimeout(timeout);
-    surface.removeEventListener('transitionend', handleTransitionEnd);
-    resolve();
-  };
-  const handleTransitionEnd = event => {
-    if (event.target === surface && event.propertyName === 'opacity') finish();
-  };
-  const timeout = window.setTimeout(finish, desktopFirefoxExitTransitionTimeout);
-  surface.addEventListener('transitionend', handleTransitionEnd);
-  root.classList.add('crm-desktop-navigation-leaving');
-});
 
 const requestDesktopNavigationWorkerCapability = () => new Promise(resolve => {
   const controller = navigator.serviceWorker?.controller;
@@ -329,7 +307,6 @@ const navigateDesktopFirefoxPreparedNavigation = async targetUrl => {
     // Navigation must remain functional when the worker/cache is unavailable.
   }
 
-  await waitForDesktopFirefoxExitTransition();
   window.location.assign(navigationUrl.href);
 };
 
@@ -1750,12 +1727,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const escapeHtml = value => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 
   const showSiteEntryNoticeOnce = () => {
     const storageKey = 'crm-site-entry-notice-v2';
@@ -4517,7 +4488,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     syncElementAttributes(currentNode, nextNode);
-    const currentChildren = Array.from(currentNode.childNodes);
+    const currentChildren = Array.from(currentNode.childNodes).filter(child => (
+      child.nodeType !== Node.ELEMENT_NODE
+      || !child.hasAttribute('data-ajax-pagination-runtime')
+    ));
     const nextChildren = Array.from(nextNode.childNodes);
     nextChildren.forEach((nextChild, index) => {
       const currentChild = currentChildren[index];

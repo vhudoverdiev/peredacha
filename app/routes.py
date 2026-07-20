@@ -1848,8 +1848,15 @@ def dashboard():
         return redirect(url_for("main.objects"))
     ensure_default_categories()
     db.session.commit()
-    stats = dashboard_stats(project.id)
-    categories = category_stats(project.id)
+    include_all_completed_statuses = not _is_mobile_phone_request()
+    stats = dashboard_stats(
+        project.id,
+        include_all_completed_statuses=include_all_completed_statuses,
+    )
+    categories = category_stats(
+        project.id,
+        include_all_completed_statuses=include_all_completed_statuses,
+    )
     return render_template("dashboard.html", stats=stats, categories=categories, project=project)
 
 

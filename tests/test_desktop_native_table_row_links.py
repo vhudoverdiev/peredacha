@@ -29,6 +29,16 @@ class DesktopNativeTableRowLinkTests(unittest.TestCase):
         self.assertIn("link.href = href", section)
         self.assertIn("desktop-native-row-links", section)
 
+    def test_links_are_named_for_firefox_and_not_hidden_from_the_link_ui(self):
+        start = self.script.index("const initDesktopNativeTableRowLinks")
+        end = self.script.index("const rememberInstantMobileEntryForNextNavigation", start)
+        section = self.script[start:end]
+
+        self.assertIn("link.setAttribute('aria-label', 'Открыть строку таблицы')", section)
+        self.assertIn("linkLabel.textContent = 'Открыть строку таблицы'", section)
+        self.assertNotIn("link.setAttribute('aria-hidden', 'true')", section)
+        self.assertIn(".desktop-native-row-link-label", self.desktop_css)
+
     def test_plain_clicks_are_forwarded_but_new_tab_gestures_stay_native(self):
         start = self.script.index("const forwardOriginalPointerEvent")
         end = self.script.index("cell.appendChild(link)", start)
@@ -47,6 +57,12 @@ class DesktopNativeTableRowLinkTests(unittest.TestCase):
         self.assertIn("document.addEventListener('crm:ajax-pagination-updated'", self.script)
         self.assertIn("initDesktopNativeTableRowLinks(event.detail?.content || document)", self.script)
         self.assertIn("initDesktopNativeTableRowLinks(row);", self.script)
+
+    def test_ajax_morph_preserves_and_revives_runtime_row_links(self):
+        self.assertIn("link.dataset.ajaxPaginationRuntime = '1'", self.script)
+        self.assertIn("link.hidden = false", self.script)
+        self.assertIn("link.removeAttribute('data-ajax-pagination-spare')", self.script)
+        self.assertIn("!child.hasAttribute('data-ajax-pagination-runtime')", self.script)
 
     def test_hit_area_styles_are_isolated_to_desktop_marker(self):
         self.assertIn(

@@ -44,11 +44,7 @@ class DesktopStyleGateMarkupTests(unittest.TestCase):
 
         self.assertLess(prepared_marker, desktop_branch)
         self.assertLess(prepared_guard, gate_enabled)
-        entering_class = self.template.index(
-            "document.documentElement.classList.add('crm-desktop-navigation-entering')",
-            prepared_guard,
-        )
-        self.assertLess(entering_class, self.template.index("</head>"))
+        self.assertNotIn("crm-desktop-navigation-entering", self.template)
 
     def test_desktop_shell_canvas_stays_visible_while_body_is_pending(self):
         self.assertIn(

@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v124-firefox-fast-handoff-restore';
+const STATIC_CACHE = 'peredacha-static-v127-ajax-native-row-links';
 const DESKTOP_NAVIGATION_CACHE = 'crm-desktop-navigation-v1';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
@@ -15,8 +15,8 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
   '/static/mobile-only.css?v=v86-remark-add-screen-height',
-  '/static/desktop-only.css?v=v52-dop-status-action-size',
-  '/static/script.js?v=v650-firefox-fast-handoff-restore',
+  '/static/desktop-only.css?v=v55-dop-action-compact',
+  '/static/script.js?v=v653-global-escape-html',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>

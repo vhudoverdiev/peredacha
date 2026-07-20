@@ -1844,13 +1844,18 @@ def build_task_query(params, category_id: int | None = None, project_id: int | N
     return query
 
 
-def _base_dashboard_task_query(project_id: int | None = None):
+def _base_dashboard_task_query(
+    project_id: int | None = None,
+    *,
+    include_all_completed_statuses: bool = False,
+):
     query = Task.query.join(WorkPoint).filter(
         WorkPoint.point_number.in_(MAIN_WORK_POINT_NUMBERS),
-        Task.status.notin_([STATUS_FINISHERS, STATUS_CONTRACTOR]),
         Task.is_archived.is_(False),
         Task.is_missing_in_latest_sync.is_(False),
     )
+    if not include_all_completed_statuses:
+        query = query.filter(Task.status.notin_([STATUS_FINISHERS, STATUS_CONTRACTOR]))
     if project_id:
         query = query.filter(Task.project_id == project_id)
     return query
@@ -1956,14 +1961,22 @@ def _finishing_bucket(value: str | None) -> str:
     return "clean"
 
 
-def dashboard_stats(project_id: int | None = None):
-    task_query = _base_dashboard_task_query(project_id)
+def dashboard_stats(
+    project_id: int | None = None,
+    *,
+    include_all_completed_statuses: bool = False,
+):
+    task_query = _base_dashboard_task_query(
+        project_id,
+        include_all_completed_statuses=include_all_completed_statuses,
+    )
     apartment_query = Apartment.query.filter(Apartment.apartment_number.isnot(None), Apartment.apartment_number != "")
     if project_id:
         apartment_query = apartment_query.filter(Apartment.project_id == project_id)
 
     total_tasks = task_query.count()
-    done = task_query.filter(Task.status == STATUS_DONE).count()
+    completed_statuses = DONE_STATUSES if include_all_completed_statuses else {STATUS_DONE}
+    done = task_query.filter(Task.status.in_(completed_statuses)).count()
 
     grouped_rows = _grouped_premise_rows(apartment_query)
     total_apartments = len(grouped_rows)
@@ -2030,7 +2043,11 @@ def dashboard_stats(project_id: int | None = None):
     }
 
 
-def category_stats(project_id: int | None = None):
+def category_stats(
+    project_id: int | None = None,
+    *,
+    include_all_completed_statuses: bool = False,
+):
     rows = []
     for category in WorkCategory.query.filter_by(is_active=True).order_by(WorkCategory.sort_order.asc()).all():
         category_name = (category.name or "").strip().lower()
@@ -2039,13 +2056,15 @@ def category_stats(project_id: int | None = None):
         ids = [p.id for p in category.work_points if p.point_number in MAIN_WORK_POINT_NUMBERS]
         query = Task.query.filter(
             Task.work_point_id.in_(ids or [-1]),
-            Task.status.notin_([STATUS_FINISHERS, STATUS_CONTRACTOR]),
             Task.is_archived.is_(False),
             Task.is_missing_in_latest_sync.is_(False),
         )
+        if not include_all_completed_statuses:
+            query = query.filter(Task.status.notin_([STATUS_FINISHERS, STATUS_CONTRACTOR]))
         if project_id:
             query = query.filter(Task.project_id == project_id)
         total = query.count()
-        done = query.filter(Task.status == STATUS_DONE).count()
+        completed_statuses = DONE_STATUSES if include_all_completed_statuses else {STATUS_DONE}
+        done = query.filter(Task.status.in_(completed_statuses)).count()
         rows.append({"category": category, "total": total, "done": done, "left": total - done})
     return rows
