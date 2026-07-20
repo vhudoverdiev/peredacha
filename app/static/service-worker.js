@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v107-issued-empty-screen-height';
+const STATIC_CACHE = 'peredacha-static-v112-firefox-buffered-navigation';
 const DESKTOP_NAVIGATION_CACHE = 'crm-desktop-navigation-v1';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
@@ -14,9 +14,9 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
-  '/static/mobile-only.css?v=v83-issued-empty-screen-height',
+  '/static/mobile-only.css?v=v85-worker-short-screen-height',
   '/static/desktop-only.css?v=v45-narrow-desktop-dock',
-  '/static/script.js?v=v641-issued-empty-screen-height',
+  '/static/script.js?v=v643-bulk-pagination-selection',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>
@@ -267,8 +267,18 @@ async function navigationNetworkFirst(request) {
       ignoreVary: true,
     });
     if (preparedResponse) {
+      // CacheStorage may expose the response body to Firefox as a stream. If
+      // that stream is returned directly, Gecko can commit after the headers
+      // and paint a partially parsed destination. Materialize the already
+      // downloaded HTML before resolving the navigation response so parsing
+      // starts from one complete in-memory body.
+      const preparedBody = await preparedResponse.arrayBuffer();
       await preparedNavigationCache.delete(request, { ignoreVary: true });
-      return preparedResponse;
+      return new Response(preparedBody, {
+        status: preparedResponse.status,
+        statusText: preparedResponse.statusText,
+        headers: preparedResponse.headers,
+      });
     }
   }
 

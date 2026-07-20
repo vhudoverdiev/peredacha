@@ -157,12 +157,32 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             self.mobile_css,
         )
 
-    def test_add_assignment_does_not_get_a_page_specific_dock_anchor(self):
-        assignment_dock_selector = re.compile(
-            r":has\(\.assignment-manual-task-form\)[^\{]*mobile-bottom-nav-root"
+    def test_add_assignment_uses_the_physical_ios_dock_anchor(self):
+        body_selector = (
+            "body.app-body.app-body.app-body:has(.assignment-manual-task-form) {"
         )
-        self.assertIsNone(assignment_dock_selector.search(self.base))
-        self.assertIsNone(assignment_dock_selector.search(self.mobile_css))
+        dock_selector = re.compile(
+            r"body\.app-body\.app-body\.app-body:has\(\.assignment-manual-task-form\)"
+            r"\s*>\s*nav\.mobile-bottom-nav\.mobile-bottom-nav-root"
+        )
+        for stylesheet in (self.base, self.mobile_css):
+            body_start = stylesheet.index(body_selector)
+            body_end = stylesheet.index("}", body_start)
+            body_rule = stylesheet[body_start:body_end]
+            self.assertIn(
+                "height: var(--mobile-physical-app-height, 100dvh) !important;",
+                body_rule,
+            )
+            dock_match = dock_selector.search(stylesheet)
+            self.assertIsNotNone(dock_match)
+            dock_end = stylesheet.index("}", dock_match.start())
+            dock_rule = stylesheet[dock_match.start():dock_end]
+            self.assertIn("position: absolute !important;", dock_rule)
+            self.assertIn(
+                "top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;",
+                dock_rule,
+            )
+            self.assertIn("bottom: auto !important;", dock_rule)
 
     def test_add_assignment_dropdowns_are_regular_weight_in_mobile_pwa(self):
         selector = (
@@ -326,18 +346,39 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             "body.app-body:has(.worker-page-empty) .worker-empty-card",
             self.mobile_css,
         )
-
-    def test_worker_account_does_not_get_a_worker_specific_dock_size(self):
-        worker_account_dock_selector = re.compile(
-            r":has\(\.mobile-worker-bottom-nav\):has\(\.account-page\)[^\{]*"
-            r"mobile-bottom-nav-root"
-        )
-        self.assertIsNone(worker_account_dock_selector.search(self.base))
-        self.assertIsNone(worker_account_dock_selector.search(self.mobile_css))
         self.assertIn(
-            "body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)",
+            ":has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty))",
             self.mobile_css,
         )
+
+    def test_worker_account_and_empty_tasks_use_the_physical_ios_dock_anchor(self):
+        body_selector = (
+            "body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav)"
+            ":has(:is(.account-page, .worker-page-empty)) {"
+        )
+        dock_selector = re.compile(
+            r"body\.app-body\.app-body\.app-body:has\(\.mobile-worker-bottom-nav\)"
+            r":has\(:is\(\.account-page, \.worker-page-empty\)\)"
+            r"\s*>\s*nav\.mobile-bottom-nav\.mobile-bottom-nav-root"
+        )
+        for stylesheet in (self.base, self.mobile_css):
+            body_start = stylesheet.index(body_selector)
+            body_end = stylesheet.index("}", body_start)
+            body_rule = stylesheet[body_start:body_end]
+            self.assertIn(
+                "height: var(--mobile-physical-app-height, 100dvh) !important;",
+                body_rule,
+            )
+            dock_match = dock_selector.search(stylesheet)
+            self.assertIsNotNone(dock_match)
+            dock_end = stylesheet.index("}", dock_match.start())
+            dock_rule = stylesheet[dock_match.start():dock_end]
+            self.assertIn("position: absolute !important;", dock_rule)
+            self.assertIn(
+                "top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;",
+                dock_rule,
+            )
+            self.assertIn("bottom: auto !important;", dock_rule)
 
     def test_pwa_cache_uses_the_same_mobile_stylesheet_version(self):
         version_pattern = r"mobile-only\.css[^\n]*\?v=(v[\w-]+)"

@@ -2103,6 +2103,58 @@
     inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
   }
 
+  /* Opening "Add" from task assignment produces the same shortened iOS
+     layout viewport. Keep its light canvas and dock on the physical screen
+     height as well, instead of painting 61px of root background below it. */
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.assignment-manual-task-form) {
+    min-height: var(--mobile-physical-app-height, 100dvh) !important;
+    height: var(--mobile-physical-app-height, 100dvh) !important;
+    max-height: var(--mobile-physical-app-height, 100dvh) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    position: relative !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.assignment-manual-task-form)
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    position: absolute !important;
+    top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
+    inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+  }
+
+  /* The short worker Account and empty Tasks pages expose the same iOS
+     innerHeight gap. Anchor only those states to the physical canvas; task
+     lists with rows remain fixed and retain their normal scroll behaviour. */
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty)) {
+    min-height: var(--mobile-physical-app-height, 100dvh) !important;
+    height: var(--mobile-physical-app-height, 100dvh) !important;
+    max-height: var(--mobile-physical-app-height, 100dvh) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    position: relative !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty))
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    position: absolute !important;
+    top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
+    inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+  }
+
   html.standalone-app body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)
     main.app-content.app-content {
     padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;

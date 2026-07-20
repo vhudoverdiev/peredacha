@@ -27,6 +27,24 @@ class DesktopStyleGateMarkupTests(unittest.TestCase):
         self.assertNotIn("if (!isFirefoxBrowser)", self.template)
         self.assertNotIn("const isFirefoxBrowser", self.template)
 
+    def test_prepared_firefox_navigation_does_not_enter_the_shell_only_gate(self):
+        prepared_marker = self.template.index(
+            "const isPreparedDesktopNavigation = (() =>"
+        )
+        desktop_branch = self.template.index(
+            "if (!isTouchAppDevice && !useAdaptiveMobileViewport)"
+        )
+        prepared_guard = self.template.index(
+            "if (!isPreparedDesktopNavigation)", desktop_branch
+        )
+        gate_enabled = self.template.index(
+            "document.documentElement.classList.add('desktop-styles-pending')",
+            prepared_guard,
+        )
+
+        self.assertLess(prepared_marker, desktop_branch)
+        self.assertLess(prepared_guard, gate_enabled)
+
     def test_desktop_shell_canvas_stays_visible_while_body_is_pending(self):
         self.assertIn(
             "desktop-styles-pending.desktop-shell-with-sidebar::before",

@@ -5318,7 +5318,12 @@ def glass_create_material_request():
     if len(measurements) != len(set(selected_ids)):
         flash("Часть выбранных стеклопакетов не найдена", "warning")
         return redirect(url_for("main.glass_measurements", tab="ordered"))
-    already_requested = [m for m in measurements if m.material_request_item_id or m.material_writeoff_id]
+    already_requested = [
+        measurement
+        for measurement in measurements
+        if measurement.material_request_item is not None
+        and measurement.material_request_item.request is not None
+    ]
     if already_requested:
         flash("Выбранные стеклопакеты уже внесены в заявку. Повторную заявку создать нельзя", "warning")
         return redirect(url_for("main.glass_measurements", tab="ordered"))
@@ -5339,12 +5344,16 @@ def glass_create_material_request():
         task = measurement.task
         apt = task.apartment.label() if task and task.apartment else ""
         first_item_for_measurement = None
-        writeoff = MaterialWriteOff(
-            project_id=project.id,
-            author_id=current_user.id,
-            writeoff_date=date.today(),
-            comment=f"{MEASUREMENT_WRITEOFF_COMMENT_PREFIX}: {material_request.title}",
-        )
+        writeoff = measurement.material_writeoff
+        if writeoff is None:
+            writeoff = MaterialWriteOff(project_id=project.id)
+        else:
+            writeoff.tasks.clear()
+            writeoff.items.clear()
+        writeoff.project_id = project.id
+        writeoff.author_id = current_user.id
+        writeoff.writeoff_date = date.today()
+        writeoff.comment = f"{MEASUREMENT_WRITEOFF_COMMENT_PREFIX}: {material_request.title}"
         if task is not None:
             writeoff.tasks.append(task)
         for item_row in _glass_item_rows(measurement):
@@ -5628,17 +5637,29 @@ def material_balance_delete():
     removed_items = 0
     touched_requests: set[MaterialRequest] = set()
     touched_writeoffs: set[MaterialWriteOff] = set()
+    measurement_request_groups: dict[int, list[dict[str, object]]] = {}
+    deleted_request_item_ids: set[int] = set()
+    writeoff_ids_deleted_by_measurement_sync: set[int] = set()
     deleted_request_item_snapshots: list[dict] = []
     deleted_writeoff_item_snapshots: list[dict] = []
 
     for item in request_items:
         if _normalize_material_identity(item.name, item.unit) not in selected_pairs:
             continue
+        material_request = item.request
+        if (
+            material_request is not None
+            and material_request.id not in measurement_request_groups
+            and _is_measurement_material_request(material_request)
+        ):
+            measurement_request_groups[material_request.id] = _measurement_request_groups(list(material_request.items))
         GlassMeasurement.query.filter(GlassMeasurement.material_request_item_id == item.id).update(
             {"material_request_item_id": None},
             synchronize_session=False,
         )
-        touched_requests.add(item.request)
+        touched_requests.add(material_request)
+        if item.id:
+            deleted_request_item_ids.add(item.id)
         deleted_request_item_snapshots.append(_snapshot_model(item))
         db.session.delete(item)
         removed_items += 1
@@ -5651,9 +5672,31 @@ def material_balance_delete():
         db.session.delete(item)
         removed_items += 1
 
+    for material_request in list(touched_requests):
+        groups = measurement_request_groups.get(material_request.id)
+        if not groups:
+            continue
+        surviving_items = {
+            item.id: item
+            for item in material_request.items
+            if item.id and item.id not in deleted_request_item_ids
+        }
+        for group in groups:
+            group_item_ids = {int(item_id) for item_id in group.get("item_ids") or []}
+            if group_item_ids.intersection(surviving_items):
+                continue
+            measurement = group.get("measurement")
+            writeoff = getattr(measurement, "material_writeoff", None)
+            if writeoff is not None and writeoff.id:
+                writeoff_ids_deleted_by_measurement_sync.add(writeoff.id)
+        _sync_measurement_writeoffs_from_request_groups(material_request, groups, surviving_items)
+
     db.session.flush()
     for material_request in list(touched_requests):
-        if material_request is not None and not material_request.items:
+        if material_request is None:
+            continue
+        db.session.expire(material_request, ["items"])
+        if not material_request.items:
             _record_simple_deletion(
                 "material_request_delete_empty_after_balance",
                 "material_request",
@@ -5665,6 +5708,8 @@ def material_balance_delete():
             )
             db.session.delete(material_request)
     for writeoff in list(touched_writeoffs):
+        if writeoff is not None and writeoff.id in writeoff_ids_deleted_by_measurement_sync:
+            continue
         if writeoff is not None and not writeoff.items:
             measurement_ids = _measurement_ids_for_writeoff(writeoff.id)
             _record_simple_deletion(

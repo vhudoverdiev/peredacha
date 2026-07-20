@@ -66,7 +66,7 @@
 </form>
 {% endif %}
 <div class="materials-list-page-region" data-ajax-pagination-content data-ajax-items-selector=".js-bulk-row">
-<div class="card table-shell task-table-shell materials-animated-card js-bulk-selectable" data-bulk-label-one="позиция" data-bulk-label-few="позиции" data-bulk-label-many="позиций">
+<div class="card table-shell task-table-shell materials-animated-card js-bulk-selectable" data-bulk-label-one="позиция" data-bulk-label-few="позиции" data-bulk-label-many="позиций" data-bulk-persist-form="#material-balance-delete-form" data-bulk-persist-name="material_keys">
   {% if can_edit_materials %}
   <div class="card-header material-bulk-header">
     <div>
@@ -124,7 +124,7 @@
 </form>
 {% endif %}
 <div class="materials-list-page-region" data-ajax-pagination-content data-ajax-items-selector=".js-bulk-row">
-<div class="card table-shell task-table-shell materials-animated-card js-bulk-selectable" data-bulk-label-one="заявка" data-bulk-label-few="заявки" data-bulk-label-many="заявок" data-bulk-row-click="open" data-bulk-row-dblclick="select">
+<div class="card table-shell task-table-shell materials-animated-card js-bulk-selectable" data-bulk-label-one="заявка" data-bulk-label-few="заявки" data-bulk-label-many="заявок" data-bulk-row-click="open" data-bulk-row-dblclick="select" data-bulk-persist-form="#material-requests-delete-form" data-bulk-persist-name="request_ids">
   {% if can_edit_materials %}
   <div class="card-header material-bulk-header">
     <div>
@@ -291,7 +291,7 @@
 </form>
 {% endif %}
 <div class="materials-list-page-region" data-ajax-pagination-content data-ajax-items-selector=".js-bulk-row">
-<div class="card table-shell task-table-shell materials-animated-card js-bulk-selectable" data-bulk-label-one="списание" data-bulk-label-few="списания" data-bulk-label-many="списаний">
+<div class="card table-shell task-table-shell materials-animated-card js-bulk-selectable" data-bulk-label-one="списание" data-bulk-label-few="списания" data-bulk-label-many="списаний" data-bulk-persist-form="#material-writeoffs-delete-form" data-bulk-persist-name="writeoff_ids">
   <div class="card-header material-bulk-header">
     <div>
       <b>История списаний</b>

@@ -30,10 +30,16 @@ class FirefoxPreparedNavigationTests(unittest.TestCase):
         self.assertIn("const DESKTOP_NAVIGATION_CACHE = 'crm-desktop-navigation-v1'", self.worker)
         self.assertIn("requestUrl.searchParams.has('_crm_prepared_navigation')", self.worker)
         self.assertIn("preparedNavigationCache.match(request", self.worker)
+        self.assertIn("await preparedResponse.arrayBuffer()", self.worker)
         self.assertIn("preparedNavigationCache.delete(request", self.worker)
+        self.assertIn("return new Response(preparedBody", self.worker)
         self.assertLess(
             self.worker.index("preparedNavigationCache.match(request"),
             self.worker.index("return await fetch(request)"),
+        )
+        self.assertLess(
+            self.worker.index("await preparedResponse.arrayBuffer()"),
+            self.worker.index("preparedNavigationCache.delete(request"),
         )
 
     def test_prepared_page_dependencies_do_not_wait_for_network_revalidation(self):
@@ -61,8 +67,8 @@ class FirefoxPreparedNavigationTests(unittest.TestCase):
             r"STATIC_CACHE = 'peredacha-static-([^']+)'", self.worker
         ).group(1)
 
-        self.assertEqual(worker_version, "v106-firefox-prepared-static")
-        self.assertEqual(cache_version, "v106-firefox-prepared-static")
+        self.assertEqual(worker_version, cache_version)
+        self.assertTrue(worker_version.startswith("v"))
 
     def test_page_and_worker_use_the_same_navigation_cache(self):
         page_cache = re.search(
@@ -85,17 +91,38 @@ class FirefoxPreparedNavigationTests(unittest.TestCase):
         script_version = re.search(
             r"script\.js'\) }}\?v=([^\"]+)", self.template
         ).group(1)
+        worker_script_version = re.search(
+            r"'/static/script\.js\?v=([^']+)'", self.worker
+        ).group(1)
 
-        self.assertEqual(script_version, "v640-firefox-prepared-navigation")
-        self.assertIn(
-            "'/static/script.js?v=v640-firefox-prepared-navigation'",
-            self.worker,
-        )
+        self.assertEqual(script_version, worker_script_version)
 
     def test_downloads_and_non_html_responses_are_not_staged(self):
         self.assertIn("link.hasAttribute('download')", self.script)
         self.assertIn("link.dataset.downloadMode", self.script)
         self.assertIn("contentType.toLowerCase().includes('text/html')", self.script)
+
+    def test_programmatic_card_navigation_uses_the_same_desktop_firefox_path(self):
+        helper = self.script.index(
+            "const navigateDesktopFirefoxPreparedNavigation = async targetUrl"
+        )
+        viewport_navigation = self.script.index(
+            "const navigateWithViewportTransition = href =>"
+        )
+        viewport_section = self.script[viewport_navigation : viewport_navigation + 1000]
+
+        self.assertLess(helper, viewport_navigation)
+        self.assertIn("if (isDesktopFirefoxPreparedNavigation())", viewport_section)
+        self.assertIn(
+            "void navigateDesktopFirefoxPreparedNavigation(targetUrl)",
+            viewport_section,
+        )
+        self.assertLess(
+            viewport_section.index(
+                "void navigateDesktopFirefoxPreparedNavigation(targetUrl)"
+            ),
+            viewport_section.rindex("window.location.href = href"),
+        )
 
     def test_prepared_response_uses_a_one_time_url_and_cleans_it_from_history(self):
         self.assertIn("navigationUrl.searchParams.set(\n      '_crm_prepared_navigation'", self.script)

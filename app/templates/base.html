@@ -65,6 +65,13 @@
       );
       const nav = window.navigator || {};
       const userAgent = nav.userAgent || '';
+      const isPreparedDesktopNavigation = (() => {
+        try {
+          return new URL(window.location.href).searchParams.has('_crm_prepared_navigation');
+        } catch (error) {
+          return false;
+        }
+      })();
       const maxTouchPoints = nav.maxTouchPoints || 0;
       const coarseTouchPointer = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
       const isIpadOsLike = nav.platform === 'MacIntel' && maxTouchPoints > 1;
@@ -177,11 +184,13 @@
       document.documentElement.classList.toggle('touch-app-device', isTouchAppDevice);
       applyTouchViewportProfile();
       if (!isTouchAppDevice && !useAdaptiveMobileViewport) {
-        // The destination document needs an opaque first paint in every
-        // desktop browser. Firefox navigation is prepared before this point,
-        // so this canvas is only a final safety net while the ready HTML is
-        // parsed and cannot expose the browser's default white document.
-        document.documentElement.classList.add('desktop-styles-pending');
+        // Regular reloads still need the opaque shell canvas. Prepared Firefox
+        // navigation already has its HTML and versioned CSS in CacheStorage;
+        // applying the gate there would replace the old page with a shell-only
+        // frame before the cached stylesheets release it.
+        if (!isPreparedDesktopNavigation) {
+          document.documentElement.classList.add('desktop-styles-pending');
+        }
         const desktopStageScale = getDesktopStageScale();
         const desktopShellHasSidebar = document.documentElement.classList.contains('desktop-shell-with-sidebar');
         document.documentElement.style.setProperty('--desktop-shell-sidebar-visual-width', `${desktopShellHasSidebar ? 230 * desktopStageScale : 0}px`);
@@ -461,6 +470,58 @@
 
       html.standalone-app
         body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)
+        > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+        position: absolute !important;
+        top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+        right: 0 !important;
+        bottom: auto !important;
+        left: 0 !important;
+        inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+      }
+
+      /* The manual assignment form has the same short iOS canvas as empty
+         issued results. Use the already measured physical screen height so
+         the 72px dock does not inherit the 61px area below innerHeight. */
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.assignment-manual-task-form) {
+        min-height: var(--mobile-physical-app-height, 100dvh) !important;
+        height: var(--mobile-physical-app-height, 100dvh) !important;
+        max-height: var(--mobile-physical-app-height, 100dvh) !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        position: relative !important;
+        background: #f6f8fb !important;
+        background-color: #f6f8fb !important;
+      }
+
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.assignment-manual-task-form)
+        > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+        position: absolute !important;
+        top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+        right: 0 !important;
+        bottom: auto !important;
+        left: 0 !important;
+        inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+      }
+
+      /* Worker Account and the empty Tasks state are short pages too. Limit
+         the physical anchor to those two states so populated task lists keep
+         the normal fixed dock while scrolling. */
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty)) {
+        min-height: var(--mobile-physical-app-height, 100dvh) !important;
+        height: var(--mobile-physical-app-height, 100dvh) !important;
+        max-height: var(--mobile-physical-app-height, 100dvh) !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        position: relative !important;
+        background: #f6f8fb !important;
+        background-color: #f6f8fb !important;
+      }
+
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty))
         > nav.mobile-bottom-nav.mobile-bottom-nav-root {
         position: absolute !important;
         top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
@@ -800,7 +861,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v107-issued-empty-screen-height', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v112-firefox-buffered-navigation', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -838,7 +899,7 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v628-mobile-root-height-conflicts-removed">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v83-issued-empty-screen-height">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v85-worker-short-screen-height">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v45-narrow-desktop-dock">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
@@ -1441,6 +1502,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v641-issued-empty-screen-height"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v643-bulk-pagination-selection"></script>
 </body>
 </html>

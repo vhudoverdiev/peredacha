@@ -168,6 +168,10 @@ document.addEventListener('click', async event => {
   if (!targetUrl) return;
 
   event.preventDefault();
+  await navigateDesktopFirefoxPreparedNavigation(targetUrl);
+}, true);
+
+const navigateDesktopFirefoxPreparedNavigation = async targetUrl => {
   if (desktopFirefoxNavigationInFlight) return;
   desktopFirefoxNavigationInFlight = true;
 
@@ -211,7 +215,7 @@ document.addEventListener('click', async event => {
   }
 
   window.location.assign(navigationUrl.href);
-}, true);
+};
 
 const getTouchViewportProfile = () => {
   const viewportWidth = getViewportWidth();
@@ -1672,6 +1676,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!href) return;
     rememberInstantMobileEntryForNextNavigation(href);
     showViewportTransitionLoader();
+    if (isDesktopFirefoxPreparedNavigation()) {
+      let targetUrl;
+      try {
+        targetUrl = new URL(href, window.location.href);
+      } catch (error) {
+        window.location.href = href;
+        return;
+      }
+      if (targetUrl.origin === window.location.origin) {
+        void navigateDesktopFirefoxPreparedNavigation(targetUrl);
+        return;
+      }
+    }
     window.location.href = href;
   };
 
@@ -4353,7 +4370,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const syncElementAttributes = (currentElement, nextElement) => {
     Array.from(currentElement.attributes).forEach(attribute => {
-      if (!nextElement.hasAttribute(attribute.name)) currentElement.removeAttribute(attribute.name);
+      const isRuntimeBindingMarker = attribute.name.startsWith('data-') && attribute.name.endsWith('-bound');
+      if (!nextElement.hasAttribute(attribute.name) && !isRuntimeBindingMarker) {
+        currentElement.removeAttribute(attribute.name);
+      }
     });
     Array.from(nextElement.attributes).forEach(attribute => {
       if (currentElement.getAttribute(attribute.name) !== attribute.value) {
