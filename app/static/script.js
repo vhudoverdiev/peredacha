@@ -202,6 +202,16 @@ let desktopFirefoxFrameNavigationActive = false;
 let desktopFirefoxActiveFrame = null;
 const desktopFirefoxNavigationFrames = [];
 const desktopFirefoxNavigationFallbackMs = 15000;
+const desktopFirefoxAnimatedSectionPaths = new Set([
+  '/tasks',
+  '/contractors',
+  '/apartments',
+  '/avr',
+  '/materials',
+  '/glass-measurements',
+  '/assignments',
+  '/site-errors',
+]);
 
 const isTopLevelWindow = () => {
   try {
@@ -276,6 +286,21 @@ const bindDesktopFirefoxNavigationFrame = frame => {
   frameWindow.addEventListener('click', handleDesktopFirefoxNavigationClick, true);
 };
 
+const startDesktopFirefoxBufferedPageAnimation = (frame, frameDocument, finalUrl) => {
+  const frameRoot = frameDocument.documentElement;
+  frameRoot.classList.add('crm-firefox-buffer-revealed');
+  frameRoot.classList.remove('crm-firefox-buffer-enter');
+  if (!desktopFirefoxAnimatedSectionPaths.has(finalUrl.pathname)) return;
+
+  const pageSurface = frameDocument.querySelector('body.app-body .crm-page-entry-surface');
+  if (!pageSurface) return;
+  void pageSurface.offsetWidth;
+  frameRoot.classList.add('crm-firefox-buffer-enter');
+  frame.contentWindow.setTimeout(() => {
+    frameRoot.classList.remove('crm-firefox-buffer-enter');
+  }, 240);
+};
+
 const navigateDesktopFirefoxFrame = (targetUrl, { pushHistory = true } = {}) => {
   if (desktopFirefoxFrameNavigationInFlight) return;
   desktopFirefoxFrameNavigationInFlight = true;
@@ -326,6 +351,7 @@ const navigateDesktopFirefoxFrame = (targetUrl, { pushHistory = true } = {}) => 
       frame.classList.add('is-active');
       frame.setAttribute('aria-hidden', 'false');
       frame.tabIndex = 0;
+      startDesktopFirefoxBufferedPageAnimation(frame, frameDocument, finalUrl);
 
       if (desktopFirefoxActiveFrame && desktopFirefoxActiveFrame !== frame) {
         desktopFirefoxActiveFrame.style.zIndex = '2147483000';

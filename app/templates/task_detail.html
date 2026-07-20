@@ -28,10 +28,7 @@
               {% for category in task.work_point.categories %}
                 {% set category_name_lower = category.name|lower %}
                 {% if 'доп' in category_name_lower and 'соглаш' in category_name_lower %}
-                <span class="section-outline-badge task-detail-dop-agreement-badge" style="--section-color: {{ category.color }};">
-                  <span class="task-detail-dop-agreement-label-default">{{ category.name }}</span>
-                  <span class="task-detail-dop-agreement-label-desktop" aria-hidden="true" hidden>Доп. соглашение</span>
-                </span>
+                <span class="section-outline-badge task-detail-dop-agreement-badge" style="--section-color: {{ category.color }};">{{ category.name }}</span>
                 {% else %}
                 <span class="section-outline-badge" style="--section-color: {{ category.color }};">{{ category.name }}</span>
                 {% endif %}

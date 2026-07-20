@@ -41,7 +41,7 @@ class TaskDetailDopAgreementStyleTests(unittest.TestCase):
         work_point.categories.extend(
             [
                 WorkCategory(name="Доп.Соглашение", color="#6c757d"),
-                WorkCategory(name="Прочее", color="#6c757d"),
+                WorkCategory(name="Разнорабочие", color="#65ad22"),
             ]
         )
         task = Task(
@@ -77,14 +77,14 @@ class TaskDetailDopAgreementStyleTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(page.count("task-detail-dop-agreement-badge"), 1)
-        self.assertIn('class="task-detail-dop-agreement-label-default">Доп.Соглашение</span>', page)
-        self.assertIn(
-            'class="task-detail-dop-agreement-label-desktop" aria-hidden="true" hidden>Доп. соглашение</span>',
-            page,
-        )
         self.assertRegex(
             page,
-            r'class="section-outline-badge"[^>]*>Прочее</span>',
+            r'class="section-outline-badge task-detail-dop-agreement-badge"[^>]*>Доп\.Соглашение</span>',
+        )
+        self.assertNotIn("task-detail-dop-agreement-label", page)
+        self.assertRegex(
+            page,
+            r'class="section-outline-badge"[^>]*>Разнорабочие</span>',
         )
 
     def test_new_rules_are_strictly_desktop_scoped(self):
@@ -96,9 +96,10 @@ class TaskDetailDopAgreementStyleTests(unittest.TestCase):
             desktop_css,
         )
 
-        self.assertGreaterEqual(len(selectors), 4)
+        self.assertEqual(len(selectors), 1)
         self.assertTrue(all("html.desktop-like-pointer" in selector for selector in selectors))
-        self.assertIn('content: "\\f38b"', desktop_css)
+        self.assertIn("--section-color: #f59e0b !important", desktop_css)
+        self.assertNotIn("task-detail-dop-agreement-badge::before", desktop_css)
         self.assertNotIn("task-detail-dop-agreement-badge", shared_css)
         self.assertNotIn("task-detail-dop-agreement-badge", mobile_css)
 

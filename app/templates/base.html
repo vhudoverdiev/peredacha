@@ -184,6 +184,15 @@
       document.documentElement.classList.toggle('touch-app-device', isTouchAppDevice);
       applyTouchViewportProfile();
       if (!isTouchAppDevice && !useAdaptiveMobileViewport) {
+        // A desktop Firefox page loaded inside the navigation buffer is kept
+        // off-screen until window.load. Pause its native page animations at
+        // their first frame; the persistent host releases them exactly when
+        // this complete document becomes visible.
+        try {
+          if (window.top !== window.self && /Firefox\//i.test(userAgent)) {
+            document.documentElement.classList.add('crm-firefox-buffered-page');
+          }
+        } catch (error) {}
         // Regular reloads still need the opaque shell canvas. Prepared Firefox
         // navigation already has its HTML and versioned CSS in CacheStorage;
         // applying the gate there would replace the old page with a shell-only
@@ -887,7 +896,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v128-firefox-frame-buffer', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v130-dop-orange-standard', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -926,7 +935,7 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v628-mobile-root-height-conflicts-removed">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v86-remark-add-screen-height">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v56-firefox-frame-buffer">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v58-dop-orange-standard">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
     // Releasing the gate here guarantees that desktop body markup cannot be
@@ -1528,6 +1537,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v654-firefox-frame-buffer"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v655-firefox-buffered-animations"></script>
 </body>
 </html>

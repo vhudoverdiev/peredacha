@@ -89,6 +89,56 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         self.assertIn("transition: none !important", section)
         self.assertNotIn("touch-app-device", section)
 
+    def test_buffered_pages_pause_and_resume_existing_entry_animations(self):
+        self.assertIn(
+            "document.documentElement.classList.add('crm-firefox-buffered-page')",
+            self.template,
+        )
+        self.assertIn("window.top !== window.self", self.template)
+        self.assertIn(
+            ".crm-firefox-buffered-page:not(.crm-firefox-buffer-revealed)",
+            self.desktop_css,
+        )
+        self.assertIn("animation-play-state: paused !important", self.desktop_css)
+
+        frame_visible = self.script.index("frame.classList.add('is-active')")
+        reveal = self.script.index(
+            "startDesktopFirefoxBufferedPageAnimation(frame, frameDocument, finalUrl)",
+            frame_visible,
+        )
+        old_frame_hidden = self.script.index(
+            "desktopFirefoxActiveFrame.classList.remove('is-active')"
+        )
+        self.assertLess(frame_visible, reveal)
+        self.assertLess(reveal, old_frame_hidden)
+
+    def test_named_sidebar_sections_receive_a_consistent_surface_animation(self):
+        expected_paths = (
+            "/tasks",
+            "/contractors",
+            "/apartments",
+            "/avr",
+            "/materials",
+            "/glass-measurements",
+            "/assignments",
+            "/site-errors",
+        )
+        animated_paths = self.script[
+            self.script.index("const desktopFirefoxAnimatedSectionPaths") :
+            self.script.index("const isTopLevelWindow")
+        ]
+        for path in expected_paths:
+            with self.subTest(path=path):
+                self.assertIn(f"'{path}'", animated_paths)
+        self.assertNotIn("'/report'", animated_paths)
+        self.assertNotIn("'/'", animated_paths)
+        self.assertIn("desktopFirefoxAnimatedSectionPaths.has(finalUrl.pathname)", self.script)
+        self.assertIn("@keyframes desktopFirefoxBufferedPageEnter", self.desktop_css)
+        self.assertIn(
+            "animation: desktopFirefoxBufferedPageEnter 180ms",
+            self.desktop_css,
+        )
+
     def test_obsolete_prepared_cache_path_is_removed(self):
         self.assertNotIn("desktopFirefoxNavigationCache", self.script)
         self.assertNotIn("requestDesktopNavigationWorkerCapability", self.script)
@@ -105,7 +155,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v128-firefox-frame-buffer")
+        self.assertEqual(worker_version, "v130-dop-orange-standard")
 
     def test_script_and_css_cache_busters_are_synchronized(self):
         script_version = re.search(
@@ -123,8 +173,8 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
 
         self.assertEqual(script_version, worker_script_version)
         self.assertEqual(css_version, worker_css_version)
-        self.assertEqual(script_version, "v654-firefox-frame-buffer")
-        self.assertEqual(css_version, "v56-firefox-frame-buffer")
+        self.assertEqual(script_version, "v655-firefox-buffered-animations")
+        self.assertEqual(css_version, "v58-dop-orange-standard")
 
 
 if __name__ == "__main__":
