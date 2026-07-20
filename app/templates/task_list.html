@@ -4,6 +4,7 @@
 {% set is_dop = active_category and active_category.name == 'Доп.Соглашение' %}
 {% set status_pill_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'guarantee': 'status-pill-primary', 'concession': 'status-pill-muted', 'problem': 'status-pill-danger'} %}
 {% set selected_finishing_groups = args.getlist('finishing_group') %}
+{% set desktop_excel_selection = not is_mobile_phone_request and args.get('excel_selection') == '1' %}
 <div class="{% if not tasks %}mobile-empty-results-page remarks-mobile-empty-page{% endif %}" data-ajax-pagination-page="remarks">
 <div class="page-head remarks-page-head" data-ajax-pagination-head>
   <div>
@@ -82,6 +83,12 @@
 <div class="card content-card mb-3 remarks-filter-card">
   <div class="card-body">
     <form method="get" class="row g-2 align-items-end crm-filter-form remarks-filter-form{% if contractor_page %} contractor-filter-form{% endif %}" data-ajax-pagination-form>
+      {% if desktop_excel_selection %}
+      <input type="hidden" name="excel_selection" value="1">
+      {% for premise_id in args.getlist('premise_ids') %}
+      <input type="hidden" name="premise_ids" value="{{ premise_id }}">
+      {% endfor %}
+      {% endif %}
       {% if contractor_page %}
       <div class="col-12 col-lg-3">
         <label class="form-label">Поиск</label>
@@ -222,7 +229,7 @@
 </nav>
 {% endif %}
 
-<div class="remarks-export-scope js-bulk-selectable js-remark-export-scope" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" data-export-form="#{{ export_form_id }}" {% if current_user.role != 'viewer' %}data-bulk-persist-form="#{{ bulk_delete_form_id }}"{% endif %} data-selection-storage="local" data-premise-storage-key="{{ premise_storage_key }}" data-ajax-pagination-content data-ajax-items-selector=".task-row-link">
+<div class="remarks-export-scope js-bulk-selectable{% if is_mobile_phone_request %} js-remark-export-scope{% endif %}" data-bulk-row-click="open" data-bulk-label-one="замечание" data-bulk-label-few="замечания" data-bulk-label-many="замечаний" data-selection-key="{{ 'contractors' if contractor_page else 'remarks-' ~ active_category_id }}" data-export-form="#{{ export_form_id }}" {% if current_user.role != 'viewer' %}data-bulk-persist-form="#{{ bulk_delete_form_id }}"{% endif %} data-selection-storage="local" data-premise-storage-key="{{ premise_storage_key }}" data-ajax-pagination-content data-ajax-items-selector=".task-row-link">
 
 {% if not tasks %}
 <div class="remarks-mobile-empty-panel mobile-short-page-marker" role="status" aria-live="polite">

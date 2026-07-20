@@ -1,0 +1,56 @@
+import unittest
+from pathlib import Path
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+BASE_TEMPLATE = PROJECT_ROOT / "app" / "templates" / "base.html"
+
+
+class DesktopStyleGateMarkupTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.template = BASE_TEMPLATE.read_text(encoding="utf-8")
+
+    def test_desktop_gate_is_enabled_before_stylesheets_are_requested(self):
+        desktop_branch = self.template.index(
+            "if (!isTouchAppDevice && !useAdaptiveMobileViewport)"
+        )
+        gate_enabled = self.template.index(
+            "document.documentElement.classList.add('desktop-styles-pending')"
+        )
+        first_stylesheet = self.template.index("vendor/bootstrap/bootstrap.min.css")
+
+        self.assertLess(desktop_branch, gate_enabled)
+        self.assertLess(gate_enabled, first_stylesheet)
+
+    def test_desktop_body_is_hidden_while_styles_are_pending(self):
+        self.assertIn(
+            "html.desktop-like-pointer.desktop-styles-pending body",
+            self.template,
+        )
+        self.assertIn("visibility: hidden !important", self.template)
+        self.assertNotIn(
+            "html.touch-app-device.desktop-styles-pending body",
+            self.template,
+        )
+
+    def test_gate_is_released_after_every_application_stylesheet(self):
+        release = self.template.index(
+            "root.classList.remove('desktop-styles-pending')"
+        )
+        stylesheet_markers = (
+            "vendor/bootstrap/bootstrap.min.css",
+            "vendor/bootstrap/bootstrap-icons.min.css",
+            "filename='style.css'",
+            "filename='mobile-only.css'",
+            "filename='desktop-only.css'",
+        )
+
+        for marker in stylesheet_markers:
+            with self.subTest(stylesheet=marker):
+                self.assertLess(self.template.index(marker), release)
+        self.assertLess(release, self.template.index("</head>"))
+
+
+if __name__ == "__main__":
+    unittest.main()

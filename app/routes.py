@@ -3279,7 +3279,7 @@ def _premise_options_from_tasks(tasks: list[Task]) -> list[dict]:
 def _excel_premise_storage_key(base_key: str, project_id: int, export_args: dict[str, object]) -> str:
     normalized_args = {}
     for key, value in sorted((export_args or {}).items()):
-        if key in {"page", "task_ids", "premise_ids"}:
+        if key in {"page", "task_ids", "premise_ids", "excel_selection"}:
             continue
         values = value if isinstance(value, (list, tuple, set)) else [value]
         cleaned_values = [str(item).strip() for item in values if item not in {None, ""} and str(item).strip()]
@@ -3303,6 +3303,8 @@ def contractors_excel_selection():
     query_args = request.args.copy()
     query_args.pop("page", None)
     query_args.pop("task_ids", None)
+    query_args.pop("premise_ids", None)
+    query_args.pop("excel_selection", None)
     query_args["sort"] = "apartment"
     query = build_task_query(query_args, category_id=all_cat.id if all_cat else None, project_id=project.id)
     selected_contractor = _project_contractor(project.id, request.args.get("contractor_id", type=int))
@@ -3313,7 +3315,11 @@ def contractors_excel_selection():
         query.options(selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.glass_measurement))
         .all()
     )
-    export_args = {key: values for key, values in request.args.lists() if key not in {"page", "task_ids", "premise_ids"}}
+    export_args = {
+        key: values
+        for key, values in request.args.lists()
+        if key not in {"page", "task_ids", "premise_ids", "excel_selection"}
+    }
     back_url = url_for("main.contractors_list", **export_args)
     storage_key = _excel_premise_storage_key("contractors-premises", project.id, export_args)
     return render_template(
@@ -3345,6 +3351,8 @@ def remarks_excel_selection(category_id: int):
     query_args = request.args.copy()
     query_args.pop("page", None)
     query_args.pop("task_ids", None)
+    query_args.pop("premise_ids", None)
+    query_args.pop("excel_selection", None)
     query = build_task_query(query_args, category_id=category_id, project_id=project.id)
     if current_user.role in WORKER_ROLES:
         query = query.filter(Task.responsible_id == current_user.id)
@@ -3352,7 +3360,11 @@ def remarks_excel_selection(category_id: int):
         query.options(selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.glass_measurement))
         .all()
     )
-    export_args = {key: values for key, values in request.args.lists() if key not in {"page", "task_ids", "premise_ids"}}
+    export_args = {
+        key: values
+        for key, values in request.args.lists()
+        if key not in {"page", "task_ids", "premise_ids", "excel_selection"}
+    }
     export_args["category_id"] = [str(category_id)]
     back_url = url_for("main.task_list", **export_args)
     storage_key = _excel_premise_storage_key(f"remarks-{category_id}-premises", project.id, export_args)
@@ -3422,6 +3434,22 @@ def _selected_premise_ids_from_request() -> list[int]:
     return _unique_int_list(request.args.getlist("premise_ids"))
 
 
+def _desktop_excel_selection_premise_ids(params, is_mobile_request: bool) -> list[int] | None:
+    """Return the desktop Excel premise filter, including an explicit empty selection."""
+    if is_mobile_request or str(params.get("excel_selection") or "") != "1":
+        return None
+    return _unique_int_list(params.getlist("premise_ids"))
+
+
+def _prepare_task_list_pagination(query, params, is_mobile_request: bool):
+    """Apply the Excel premise filter before slicing the task list into pages."""
+    premise_ids = _desktop_excel_selection_premise_ids(params, is_mobile_request)
+    if premise_ids is not None:
+        query = query.filter(Task.apartment_id.in_(premise_ids or [-1]))
+    per_page = 10 if is_mobile_request or premise_ids is not None else 20
+    return query, per_page
+
+
 def _export_tasks_from_request(query_args: dict, project_id: int, category_id: int | None = None):
     export_options = (
         selectinload(Task.apartment).selectinload(Apartment.contractors),
@@ -3436,6 +3464,16 @@ def _export_tasks_from_request(query_args: dict, project_id: int, category_id: i
             .join(WorkPoint)
             .filter(Task.project_id == project_id, Task.id.in_(task_ids))
             .order_by(Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc(), Task.id.asc())
+        )
+    desktop_premise_ids = _desktop_excel_selection_premise_ids(
+        request.args,
+        _is_mobile_phone_request(),
+    )
+    if desktop_premise_ids is not None:
+        return (
+            build_task_query(query_args, category_id=category_id, project_id=project_id)
+            .options(*export_options)
+            .filter(Task.apartment_id.in_(desktop_premise_ids or [-1]))
         )
     premise_ids = _selected_premise_ids_from_request()
     if premise_ids:
@@ -7084,9 +7122,10 @@ def _task_list_response(contractor_page: bool = False):
         query = _filter_tasks_for_contractor(query, selected_contractor)
     if current_user.role in WORKER_ROLES:
         query = query.filter(Task.responsible_id == current_user.id)
+    is_mobile_request = _is_mobile_phone_request()
+    query, per_page = _prepare_task_list_pagination(query, request.args, is_mobile_request)
     # Список помещений для выбора Excel строим по всему отфильтрованному набору,
     # а не только по текущей странице пагинации.
-    is_mobile_request = _is_mobile_phone_request()
     if is_mobile_request:
         premise_options = []
     else:
@@ -7108,7 +7147,6 @@ def _task_list_response(contractor_page: bool = False):
         premise_options = _premise_options_from_apartments(premise_apartments)
 
     page = request.args.get("page", 1, type=int)
-    per_page = 10 if is_mobile_request else 20
     pagination = query.options(selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items)).paginate(page=page, per_page=per_page, error_out=False)
     active_category = next((category for category in categories if category.id == category_id), None)
 
@@ -7129,7 +7167,7 @@ def _task_list_response(contractor_page: bool = False):
     excel_export_args = {
         key: value
         for key, value in request.args.to_dict(flat=False).items()
-        if key not in {"page", "task_ids", "premise_ids"}
+        if key not in {"page", "task_ids", "premise_ids", "excel_selection"}
     }
     if not contractor_page and category_id:
         excel_export_args["category_id"] = category_id
@@ -7153,8 +7191,8 @@ def _task_list_response(contractor_page: bool = False):
         list_endpoint="main.contractors_list" if contractor_page else "main.task_list",
         contractor_options=contractor_options,
         selected_contractor=selected_contractor,
-        contractor_excel_selection_url=(url_for("main.contractors_excel_selection", **request.args.to_dict(flat=False)) if contractor_page else ""),
-        remarks_excel_selection_url=(url_for("main.remarks_excel_selection", category_id=category_id, **{key: value for key, value in request.args.to_dict(flat=False).items() if key not in {"category_id", "page", "task_ids", "premise_ids"}}) if (not contractor_page and category_id) else ""),
+        contractor_excel_selection_url=(url_for("main.contractors_excel_selection", **{key: value for key, value in request.args.to_dict(flat=False).items() if key not in {"page", "task_ids", "premise_ids", "excel_selection"}}) if contractor_page else ""),
+        remarks_excel_selection_url=(url_for("main.remarks_excel_selection", category_id=category_id, **{key: value for key, value in request.args.to_dict(flat=False).items() if key not in {"category_id", "page", "task_ids", "premise_ids", "excel_selection"}}) if (not contractor_page and category_id) else ""),
         category_filter_args={key: value for key, value in request.args.to_dict(flat=False).items() if key not in {"category_id", "section_id", "page"}},
         premise_options=premise_options,
         premise_storage_key=premise_storage_key,

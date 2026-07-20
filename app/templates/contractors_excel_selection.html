@@ -11,7 +11,19 @@
     <h1 class="page-title">{{ selection_title }}</h1>
   </div>
   <div class="d-flex gap-2 flex-wrap">
+    {% if not is_mobile_phone_request %}
+    <form id="excelSelectionBackForm" class="d-none" method="get" action="{{ back_url.split('?')[0] }}">
+      <input type="hidden" name="excel_selection" value="1">
+      {% for key, values in export_args.items() %}
+      {% for value in values %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+      {% endfor %}
+      {% endfor %}
+    </form>
+    <button class="btn btn-outline-secondary crm-reset-btn" type="submit" form="excelSelectionBackForm" data-preserve-bulk-selection="1"><i class="bi bi-arrow-left me-2"></i>Назад</button>
+    {% else %}
     <a class="btn btn-outline-secondary crm-reset-btn" href="{{ back_url }}" data-preserve-bulk-selection="1"><i class="bi bi-arrow-left me-2"></i>Назад</a>
+    {% endif %}
     <form id="{{ form_id }}" class="d-none js-remark-export-form" method="get" action="{{ url_for(export_endpoint, **endpoint_args) }}">
       {% for key, values in export_args.items() if key != 'category_id' %}
       {% for value in values %}
@@ -45,7 +57,7 @@
         <div class="remarks-premise-grid">
           {% for premise in premise_options %}
           <label class="remarks-premise-option">
-            <input class="form-check-input js-premise-visibility" type="checkbox" value="{{ premise.id }}" checked>
+            <input class="form-check-input js-premise-visibility" type="checkbox" value="{{ premise.id }}"{% if not is_mobile_phone_request %} name="premise_ids" form="excelSelectionBackForm"{% endif %} checked>
             <span>
               <b>{{ premise.label }}</b>
               {% if premise.finish %}<small>{{ premise.finish }}</small>{% endif %}
