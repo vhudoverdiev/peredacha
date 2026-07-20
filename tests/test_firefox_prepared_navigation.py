@@ -8,6 +8,7 @@ BASE_TEMPLATE = PROJECT_ROOT / "app" / "templates" / "base.html"
 SCRIPT = PROJECT_ROOT / "app" / "static" / "script.js"
 SERVICE_WORKER = PROJECT_ROOT / "app" / "static" / "service-worker.js"
 DESKTOP_CSS = PROJECT_ROOT / "app" / "static" / "desktop-only.css"
+SHARED_CSS = PROJECT_ROOT / "app" / "static" / "style.css"
 
 
 class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
@@ -17,6 +18,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         cls.script = SCRIPT.read_text(encoding="utf-8")
         cls.worker = SERVICE_WORKER.read_text(encoding="utf-8")
         cls.desktop_css = DESKTOP_CSS.read_text(encoding="utf-8")
+        cls.shared_css = SHARED_CSS.read_text(encoding="utf-8")
 
     def test_frame_buffer_is_top_level_desktop_firefox_only(self):
         gate = self.script.index("const isDesktopFirefoxFrameNavigation")
@@ -112,32 +114,15 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         self.assertLess(frame_visible, reveal)
         self.assertLess(reveal, old_frame_hidden)
 
-    def test_named_sidebar_sections_receive_a_consistent_surface_animation(self):
-        expected_paths = (
-            "/tasks",
-            "/contractors",
-            "/apartments",
-            "/avr",
-            "/materials",
-            "/glass-measurements",
-            "/assignments",
-            "/site-errors",
-        )
-        animated_paths = self.script[
-            self.script.index("const desktopFirefoxAnimatedSectionPaths") :
-            self.script.index("const isTopLevelWindow")
-        ]
-        for path in expected_paths:
-            with self.subTest(path=path):
-                self.assertIn(f"'{path}'", animated_paths)
-        self.assertNotIn("'/report'", animated_paths)
-        self.assertNotIn("'/'", animated_paths)
-        self.assertIn("desktopFirefoxAnimatedSectionPaths.has(finalUrl.pathname)", self.script)
-        self.assertIn("@keyframes desktopFirefoxBufferedPageEnter", self.desktop_css)
+    def test_every_non_dashboard_tab_receives_the_dashboard_entrance(self):
+        self.assertIn("if (finalUrl.pathname === '/') return", self.script)
+        self.assertNotIn("desktopFirefoxAnimatedSectionPaths", self.script)
         self.assertIn(
-            "animation: desktopFirefoxBufferedPageEnter 180ms",
+            "animation: dashboardFadeUp .36s ease both !important",
             self.desktop_css,
         )
+        self.assertIn("opacity: 0", self.desktop_css)
+        self.assertIn("transform: translateY(12px)", self.shared_css)
 
     def test_obsolete_prepared_cache_path_is_removed(self):
         self.assertNotIn("desktopFirefoxNavigationCache", self.script)
@@ -155,7 +140,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v130-dop-orange-standard")
+        self.assertEqual(worker_version, "v131-firefox-dashboard-enter")
 
     def test_script_and_css_cache_busters_are_synchronized(self):
         script_version = re.search(
@@ -173,8 +158,8 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
 
         self.assertEqual(script_version, worker_script_version)
         self.assertEqual(css_version, worker_css_version)
-        self.assertEqual(script_version, "v655-firefox-buffered-animations")
-        self.assertEqual(css_version, "v58-dop-orange-standard")
+        self.assertEqual(script_version, "v656-firefox-dashboard-enter")
+        self.assertEqual(css_version, "v59-firefox-dashboard-enter")
 
 
 if __name__ == "__main__":

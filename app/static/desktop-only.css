@@ -1599,20 +1599,10 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     animation-play-state: paused !important;
   }
 
-  @keyframes desktopFirefoxBufferedPageEnter {
-    from {
-      opacity: .82;
-      transform: translateY(5px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
   html.desktop-like-pointer.crm-firefox-buffered-page.crm-firefox-buffer-enter
     body.app-body .crm-page-entry-surface {
-    animation: desktopFirefoxBufferedPageEnter 180ms cubic-bezier(.2, .72, .18, 1) both !important;
+    opacity: 0;
+    animation: dashboardFadeUp .36s ease both !important;
     will-change: opacity, transform !important;
   }
 

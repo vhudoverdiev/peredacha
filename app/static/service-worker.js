@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v130-dop-orange-standard';
+const STATIC_CACHE = 'peredacha-static-v131-firefox-dashboard-enter';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -14,8 +14,8 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
   '/static/mobile-only.css?v=v86-remark-add-screen-height',
-  '/static/desktop-only.css?v=v58-dop-orange-standard',
-  '/static/script.js?v=v655-firefox-buffered-animations',
+  '/static/desktop-only.css?v=v59-firefox-dashboard-enter',
+  '/static/script.js?v=v656-firefox-dashboard-enter',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>

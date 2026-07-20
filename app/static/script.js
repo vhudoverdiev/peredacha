@@ -202,16 +202,6 @@ let desktopFirefoxFrameNavigationActive = false;
 let desktopFirefoxActiveFrame = null;
 const desktopFirefoxNavigationFrames = [];
 const desktopFirefoxNavigationFallbackMs = 15000;
-const desktopFirefoxAnimatedSectionPaths = new Set([
-  '/tasks',
-  '/contractors',
-  '/apartments',
-  '/avr',
-  '/materials',
-  '/glass-measurements',
-  '/assignments',
-  '/site-errors',
-]);
 
 const isTopLevelWindow = () => {
   try {
@@ -290,7 +280,9 @@ const startDesktopFirefoxBufferedPageAnimation = (frame, frameDocument, finalUrl
   const frameRoot = frameDocument.documentElement;
   frameRoot.classList.add('crm-firefox-buffer-revealed');
   frameRoot.classList.remove('crm-firefox-buffer-enter');
-  if (!desktopFirefoxAnimatedSectionPaths.has(finalUrl.pathname)) return;
+  // The dashboard already owns the same staggered dashboardFadeUp motion.
+  // Every other application tab receives that exact page-level entrance.
+  if (finalUrl.pathname === '/') return;
 
   const pageSurface = frameDocument.querySelector('body.app-body .crm-page-entry-surface');
   if (!pageSurface) return;
@@ -298,7 +290,7 @@ const startDesktopFirefoxBufferedPageAnimation = (frame, frameDocument, finalUrl
   frameRoot.classList.add('crm-firefox-buffer-enter');
   frame.contentWindow.setTimeout(() => {
     frameRoot.classList.remove('crm-firefox-buffer-enter');
-  }, 240);
+  }, 480);
 };
 
 const navigateDesktopFirefoxFrame = (targetUrl, { pushHistory = true } = {}) => {
