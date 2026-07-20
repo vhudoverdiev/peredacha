@@ -887,7 +887,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v112-firefox-buffered-navigation', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v113-remark-add-screen-height', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -925,7 +925,7 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v628-mobile-root-height-conflicts-removed">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v85-worker-short-screen-height">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v86-remark-add-screen-height">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v45-narrow-desktop-dock">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
