@@ -8,14 +8,6 @@ BASE_TEMPLATE = PROJECT_ROOT / "app" / "templates" / "base.html"
 SCRIPT = PROJECT_ROOT / "app" / "static" / "script.js"
 SERVICE_WORKER = PROJECT_ROOT / "app" / "static" / "service-worker.js"
 DESKTOP_CSS = PROJECT_ROOT / "app" / "static" / "desktop-only.css"
-HTML2CANVAS = (
-    PROJECT_ROOT
-    / "app"
-    / "static"
-    / "vendor"
-    / "html2canvas"
-    / "html2canvas.min.js"
-)
 
 
 class FirefoxPreparedNavigationTests(unittest.TestCase):
@@ -144,97 +136,21 @@ class FirefoxPreparedNavigationTests(unittest.TestCase):
             viewport_section.rindex("window.location.href = href"),
         )
 
-    def test_snapshot_capture_runs_during_staging_and_fallback_precedes_navigation(self):
-        capture = self.script.index(
-            "snapshotPromise = captureDesktopFirefoxNavigationSnapshot(navigationToken)"
-        )
-        request = self.script.index("const response = await fetch(targetUrl.href", capture)
+    def test_content_handoff_runs_after_staging_and_before_navigation(self):
         cache_put = self.script.index("await cache.put(cacheKey, response)")
-        capture_result = self.script.index(
-            "hasNavigationSnapshot = await snapshotPromise", cache_put
-        )
-        fallback_guard = self.script.index("if (!hasNavigationSnapshot)", capture_result)
         exit_wait = self.script.index(
-            "await waitForDesktopFirefoxExitTransition()", fallback_guard
+            "await waitForDesktopFirefoxExitTransition()", cache_put
         )
         assign = self.script.index("window.location.assign(navigationUrl.href)")
 
-        self.assertLess(capture, request)
         self.assertLess(cache_put, exit_wait)
-        self.assertLess(capture_result, fallback_guard)
-        self.assertLess(fallback_guard, exit_wait)
         self.assertLess(exit_wait, assign)
+        self.assertIn("prefers-reduced-motion: reduce", self.script)
+        self.assertIn("event.propertyName === 'opacity'", self.script)
 
-    def test_snapshot_is_local_one_use_data_and_vendor_is_bundled(self):
-        self.assertTrue(HTML2CANVAS.is_file())
-        self.assertGreater(HTML2CANVAS.stat().st_size, 100_000)
-        self.assertIn("vendor/html2canvas/html2canvas.min.js", self.template)
-        self.assertNotIn("vendor/html2canvas/html2canvas.min.js", self.worker)
-        self.assertEqual(
-            self.template.count("vendor/html2canvas/html2canvas.min.js"),
-            1,
-        )
-        self.assertIn(
-            "window.__CRM_DESKTOP_NAVIGATION_SNAPSHOT_LIBRARY__ = new Promise",
-            self.template,
-        )
-        self.assertIn("await Promise.race([", self.script)
-        self.assertIn("typeof window.html2canvas !== 'function'", self.script)
-        self.assertIn("canvas.toDataURL('image/webp', 0.84)", self.script)
-        self.assertIn("window.sessionStorage.setItem(storageKey, snapshot)", self.script)
-        self.assertIn("window.sessionStorage.removeItem(snapshotStorageKey)", self.template)
-
-    def test_snapshot_overlay_is_restored_before_stylesheets_and_desktop_only(self):
-        desktop_branch = self.template.index(
-            "if (!isTouchAppDevice && !useAdaptiveMobileViewport)"
-        )
-        library_load = self.template.index(
-            "window.__CRM_DESKTOP_NAVIGATION_SNAPSHOT_LIBRARY__ = new Promise"
-        )
-        snapshot_read = self.template.index(
-            "window.sessionStorage.getItem(snapshotStorageKey)"
-        )
-        snapshot_class = self.template.index(
-            "document.documentElement.classList.add('crm-desktop-navigation-snapshot')"
-        )
-        first_stylesheet = self.template.index("vendor/bootstrap/bootstrap.min.css")
-        overlay = self.template.index(
-            "html.app-root.desktop-like-pointer.crm-desktop-navigation-snapshot::before"
-        )
-
-        self.assertLess(desktop_branch, library_load)
-        self.assertLess(library_load, snapshot_read)
-        self.assertIn(
-            "document.documentElement.classList.contains('app-root')",
-            self.template[desktop_branch:library_load],
-        )
-        self.assertIn("/Firefox\\//i.test(userAgent)", self.template[desktop_branch:library_load])
-        self.assertLess(snapshot_read, snapshot_class)
-        self.assertLess(snapshot_class, first_stylesheet)
-        self.assertLess(overlay, first_stylesheet)
-        self.assertIn("position: fixed", self.template[overlay : overlay + 900])
-        self.assertIn("background-size: 100vw 100vh", self.template[overlay : overlay + 900])
-        self.assertIn("opacity: .999", self.template[overlay : overlay + 900])
-        self.assertNotIn("touch-app-device.crm-desktop-navigation-snapshot", self.template)
-
-    def test_snapshot_reveals_after_destination_script_and_releases_memory(self):
-        self.assertIn("window.__CRM_DESKTOP_NAVIGATION_SNAPSHOT_ACTIVE__ === true", self.script)
-        self.assertIn("document.fonts?.ready || Promise.resolve()", self.script)
-        self.assertIn(
-            "window.addEventListener('load', revealDesktopNavigationSnapshot, { once: true })",
-            self.script,
-        )
-        self.assertIn("crm-desktop-navigation-snapshot-revealing", self.script)
-        self.assertIn(
-            "root.style.removeProperty('--crm-desktop-navigation-snapshot-image')",
-            self.script,
-        )
-        self.assertIn("transition: opacity 180ms", self.template)
-        self.assertIn("prefers-reduced-motion: reduce", self.template)
-
-    def test_snapshot_failure_fallback_animates_only_the_page_surface(self):
+    def test_handoff_animates_only_the_page_surface(self):
         handoff_marker = self.desktop_css.index(
-            "If the Firefox viewport snapshot cannot be created"
+            "Firefox does not yet provide cross-document View Transitions"
         )
         handoff_css = self.desktop_css[handoff_marker:]
 

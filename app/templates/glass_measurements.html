@@ -21,7 +21,7 @@
 
 <div class="remarks-tabs mb-3" data-ajax-pagination-tabs>
   <ul class="nav crm-tabs">
-    <li class="nav-item glass-tab-all"><a class="nav-link remarks-tab-link {% if tab == 'all' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='all', q=q) }}">Все</a></li>
+    <li class="nav-item glass-tab-all"><a class="nav-link remarks-tab-link {% if tab == 'all' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='all', q=q, include_ordered='1' if include_ordered else none) }}">Все</a></li>
     <li class="nav-item glass-tab-order"><a class="nav-link remarks-tab-link {% if tab == 'order' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='order', q=q) }}">Заказать</a></li>
     <li class="nav-item glass-tab-ordered"><a class="nav-link remarks-tab-link {% if tab == 'ordered' %}active{% endif %}" href="{{ url_for('main.glass_measurements', tab='ordered', q=q) }}">Заказано</a></li>
   </ul>
@@ -37,7 +37,15 @@
         <label class="form-label">Поиск</label>
         <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="Введите цифру или текст">
       </div>
-      <div class="col-12 col-lg-6 filter-actions glass-filter-actions">
+      {% if not is_mobile_phone_request %}
+      <div class="col-12 col-lg-auto d-flex align-items-center pb-2">
+        <label class="d-inline-flex align-items-center gap-2 mb-0">
+          <input class="form-check-input mt-0" type="checkbox" name="include_ordered" value="1" {% if include_ordered %}checked{% endif %} onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
+          <span>Заказаны</span>
+        </label>
+      </div>
+      {% endif %}
+      <div class="col-12 col-lg filter-actions glass-filter-actions">
         <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
         <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.glass_measurements', tab='all') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
       </div>

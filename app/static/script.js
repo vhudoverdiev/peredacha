@@ -12,33 +12,7 @@ try {
   }
 } catch (error) {}
 
-if (window.__CRM_DESKTOP_NAVIGATION_SNAPSHOT_ACTIVE__ === true) {
-  const revealDesktopNavigationSnapshot = () => {
-    const fontsReady = document.fonts?.ready || Promise.resolve();
-    Promise.resolve(fontsReady).catch(() => {}).then(() => {
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => {
-          const root = document.documentElement;
-          if (!root.classList.contains('crm-desktop-navigation-snapshot')) return;
-          root.classList.add('crm-desktop-navigation-snapshot-revealing');
-          window.setTimeout(() => {
-            root.classList.remove(
-              'crm-desktop-navigation-snapshot',
-              'crm-desktop-navigation-snapshot-revealing',
-            );
-            root.style.removeProperty('--crm-desktop-navigation-snapshot-image');
-            window.__CRM_DESKTOP_NAVIGATION_SNAPSHOT_ACTIVE__ = false;
-          }, 240);
-        });
-      });
-    });
-  };
-  if (document.readyState === 'complete') {
-    revealDesktopNavigationSnapshot();
-  } else {
-    window.addEventListener('load', revealDesktopNavigationSnapshot, { once: true });
-  }
-} else if (isPreparedDesktopNavigationEntry) {
+if (isPreparedDesktopNavigationEntry) {
   window.requestAnimationFrame(() => {
     const root = document.documentElement;
     if (!root.classList.contains('crm-desktop-navigation-entering')) return;
@@ -218,70 +192,8 @@ document.addEventListener('click', event => {
 // The old document therefore stays visible until the destination is ready,
 // while the real page navigation (and all page scripts) still runs normally.
 const desktopFirefoxNavigationCache = 'crm-desktop-navigation-v1';
-const desktopFirefoxSnapshotStoragePrefix = 'crm-desktop-navigation-snapshot:';
 const desktopFirefoxExitTransitionTimeout = 160;
 let desktopFirefoxNavigationInFlight = false;
-
-const removeStoredDesktopFirefoxSnapshot = storageKey => {
-  if (!storageKey) return;
-  try {
-    window.sessionStorage.removeItem(storageKey);
-  } catch (error) {}
-};
-
-const captureDesktopFirefoxNavigationSnapshot = async navigationToken => {
-  if (!navigationToken) return false;
-
-  const snapshotLibraryReady = window.__CRM_DESKTOP_NAVIGATION_SNAPSHOT_LIBRARY__;
-  if (snapshotLibraryReady) {
-    await Promise.race([
-      Promise.resolve(snapshotLibraryReady).catch(() => false),
-      new Promise(resolve => window.setTimeout(() => resolve(false), 2500)),
-    ]);
-  }
-  if (typeof window.html2canvas !== 'function') return false;
-
-  const storageKey = `${desktopFirefoxSnapshotStoragePrefix}${navigationToken}`;
-  try {
-    // Only one handoff can be active in a tab. Removing an abandoned snapshot
-    // also prevents sessionStorage quota failures after an interrupted load.
-    for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
-      const key = window.sessionStorage.key(index);
-      if (key?.startsWith(desktopFirefoxSnapshotStoragePrefix)) {
-        window.sessionStorage.removeItem(key);
-      }
-    }
-
-    const viewportWidth = Math.max(1, Math.round(window.innerWidth));
-    const viewportHeight = Math.max(1, Math.round(window.innerHeight));
-    const canvas = await window.html2canvas(document.documentElement, {
-      backgroundColor: '#fefdfe',
-      width: viewportWidth,
-      height: viewportHeight,
-      windowWidth: viewportWidth,
-      windowHeight: viewportHeight,
-      x: window.scrollX,
-      y: window.scrollY,
-      scrollX: window.scrollX,
-      scrollY: window.scrollY,
-      scale: 1,
-      useCORS: true,
-      allowTaint: false,
-      logging: false,
-      imageTimeout: 1200,
-    });
-    let snapshot = canvas.toDataURL('image/webp', 0.84);
-    if (!snapshot.startsWith('data:image/webp')) {
-      snapshot = canvas.toDataURL('image/jpeg', 0.88);
-    }
-    if (!snapshot.startsWith('data:image/')) return false;
-    window.sessionStorage.setItem(storageKey, snapshot);
-    return true;
-  } catch (error) {
-    removeStoredDesktopFirefoxSnapshot(storageKey);
-    return false;
-  }
-};
 
 const waitForDesktopFirefoxExitTransition = () => new Promise(resolve => {
   const root = document.documentElement;
@@ -379,16 +291,10 @@ const navigateDesktopFirefoxPreparedNavigation = async targetUrl => {
   desktopFirefoxNavigationInFlight = true;
 
   let navigationUrl = targetUrl;
-  let snapshotStorageKey = '';
-  let snapshotPromise = Promise.resolve(false);
-  let hasNavigationSnapshot = false;
   try {
     if (!await desktopNavigationWorkerCapability) {
       throw new Error('prepared-navigation-worker-is-not-ready');
     }
-    const navigationToken = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-    snapshotStorageKey = `${desktopFirefoxSnapshotStoragePrefix}${navigationToken}`;
-    snapshotPromise = captureDesktopFirefoxNavigationSnapshot(navigationToken);
     const response = await fetch(targetUrl.href, {
       method: 'GET',
       credentials: 'same-origin',
@@ -412,23 +318,18 @@ const navigateDesktopFirefoxPreparedNavigation = async targetUrl => {
     const cache = await window.caches.open(desktopFirefoxNavigationCache);
     navigationUrl.searchParams.set(
       '_crm_prepared_navigation',
-      navigationToken,
+      `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
     );
     const cacheKey = new Request(navigationUrl.href, {
       method: 'GET',
       credentials: 'same-origin',
     });
     await cache.put(cacheKey, response);
-    hasNavigationSnapshot = await snapshotPromise;
   } catch (error) {
     // Navigation must remain functional when the worker/cache is unavailable.
-    await snapshotPromise;
-    removeStoredDesktopFirefoxSnapshot(snapshotStorageKey);
   }
 
-  if (!hasNavigationSnapshot) {
-    await waitForDesktopFirefoxExitTransition();
-  }
+  await waitForDesktopFirefoxExitTransition();
   window.location.assign(navigationUrl.href);
 };
 

@@ -1566,9 +1566,10 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     will-change: auto !important;
   }
 
-  /* If the Firefox viewport snapshot cannot be created (for example because
-     sessionStorage is unavailable), retain a restrained content-only fallback.
-     The fixed shell never participates and the page stays mostly opaque. */
+  /* Firefox does not yet provide cross-document View Transitions for this
+     multi-page flow. Use a restrained content-only handoff: the fixed shell
+     never participates, and the page stays mostly opaque so no white flash is
+     introduced between the outgoing and incoming documents. */
   html.desktop-like-pointer.crm-desktop-navigation-leaving
     body.app-body .crm-page-entry-surface {
     opacity: .72 !important;

@@ -4956,8 +4956,14 @@ def glass_measurements():
     tab = (request.args.get("tab") or "all").strip()
     if tab not in {"all", "order", "ordered"}:
         tab = "all"
-    if _is_mobile_phone_request():
+    is_mobile_phone = _is_mobile_phone_request()
+    if is_mobile_phone:
         tab = "ordered"
+    include_ordered = (
+        not is_mobile_phone
+        and tab == "all"
+        and (request.args.get("include_ordered") or "").strip() == "1"
+    )
     q = (request.args.get("q") or "").strip()
     point = (request.args.get("point") or "").strip()
     ordered_status = (request.args.get("ordered_status") or "").strip()
@@ -4974,7 +4980,12 @@ def glass_measurements():
     ordered_rows = []
     ordered_request_options = []
     if tab == "all":
-        rows = _filter_glass_rows(available_tasks, q=q, point=point)
+        rows = _filter_glass_rows(
+            tasks,
+            q=q,
+            point=point,
+            status="" if include_ordered else GLASS_STATUS_NONE,
+        )
     elif tab == "order":
         order_rows = _filter_glass_rows(available_tasks, q=q, status=GLASS_STATUS_MEASURE_NEEDED)
         order_rows.sort(key=lambda row: _task_apartment_sort_value_no_done(row["task"]))
@@ -5004,7 +5015,7 @@ def glass_measurements():
     glass_pagination = None
     glass_prev_args = {}
     glass_next_args = {}
-    per_page = 10 if _is_mobile_phone_request() else 20
+    per_page = 10 if is_mobile_phone else 20
     requested_page = max(request.args.get("page", 1, type=int), 1)
     page_count = max((active_total + per_page - 1) // per_page, 1)
     page = min(requested_page, page_count)
@@ -5039,6 +5050,7 @@ def glass_measurements():
         ordered_rows=ordered_rows,
         tab=tab,
         q=q,
+        include_ordered=include_ordered,
         status_labels=GLASS_STATUS_LABELS,
         glass_item_types=GLASS_ITEM_TYPES,
         glass_point_options=_glass_point_options(project.id),

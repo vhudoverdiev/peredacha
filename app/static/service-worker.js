@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v123-firefox-snapshot-underpaint';
+const STATIC_CACHE = 'peredacha-static-v124-firefox-fast-handoff-restore';
 const DESKTOP_NAVIGATION_CACHE = 'crm-desktop-navigation-v1';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
@@ -16,7 +16,7 @@ const STATIC_ASSETS = [
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
   '/static/mobile-only.css?v=v86-remark-add-screen-height',
   '/static/desktop-only.css?v=v52-dop-status-action-size',
-  '/static/script.js?v=v649-firefox-snapshot-desktop-load',
+  '/static/script.js?v=v650-firefox-fast-handoff-restore',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>

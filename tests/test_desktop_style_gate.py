@@ -28,7 +28,9 @@ class DesktopStyleGateMarkupTests(unittest.TestCase):
         self.assertNotIn("const isFirefoxBrowser", self.template)
 
     def test_prepared_firefox_navigation_does_not_enter_the_shell_only_gate(self):
-        prepared_marker = self.template.index("const preparedDesktopNavigationToken = (() =>")
+        prepared_marker = self.template.index(
+            "const isPreparedDesktopNavigation = (() =>"
+        )
         desktop_branch = self.template.index(
             "if (!isTouchAppDevice && !useAdaptiveMobileViewport)"
         )
@@ -42,11 +44,11 @@ class DesktopStyleGateMarkupTests(unittest.TestCase):
 
         self.assertLess(prepared_marker, desktop_branch)
         self.assertLess(prepared_guard, gate_enabled)
-        snapshot_restore = self.template.index(
-            "window.sessionStorage.getItem(snapshotStorageKey)",
+        entering_class = self.template.index(
+            "document.documentElement.classList.add('crm-desktop-navigation-entering')",
             prepared_guard,
         )
-        self.assertLess(snapshot_restore, self.template.index("</head>"))
+        self.assertLess(entering_class, self.template.index("</head>"))
 
     def test_desktop_shell_canvas_stays_visible_while_body_is_pending(self):
         self.assertIn(
