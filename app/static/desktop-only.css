@@ -1404,7 +1404,7 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     min-height: calc(100vh / var(--desktop-stage-scale, 1)) !important;
     margin: 0 !important;
     overflow-y: auto !important;
-    z-index: 4090 !important;
+    z-index: 1040 !important;
     transform: none !important;
   }
 
@@ -1427,7 +1427,7 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     min-height: 4.9rem !important;
     height: 4.9rem !important;
     margin: 0 !important;
-    z-index: 4080 !important;
+    z-index: 1035 !important;
     transform: none !important;
     will-change: auto !important;
   }
@@ -1451,7 +1451,7 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     min-height: 5.75rem !important;
     height: 5.75rem !important;
     margin: 0 !important;
-    z-index: 4080 !important;
+    z-index: 1035 !important;
     transform: none !important;
     will-change: auto !important;
   }

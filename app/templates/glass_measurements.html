@@ -204,11 +204,11 @@
   <div class="card-body">
     <form method="get" class="row g-2 align-items-end crm-filter-form glass-filter-form">
       <input type="hidden" name="tab" value="ordered">
-      <div class="col-12 col-lg-4">
+      <div class="col-12 col-lg-3">
         <label class="form-label">Поиск</label>
         <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="Введите цифру или текст">
       </div>
-      <div class="col-12 col-lg-3">
+      <div class="col-12 col-lg-2">
         <label class="form-label">Статус</label>
         <select class="form-select mobile-native-select" name="ordered_status">
           <option value="">Все</option>
@@ -216,7 +216,24 @@
           <option value="replaced" {% if ordered_status == 'replaced' %}selected{% endif %}>Поменяно</option>
         </select>
       </div>
-      <div class="col-12 col-lg-5 filter-actions glass-filter-actions">
+      <div class="col-12 col-lg-3">
+        <label class="form-label">Заявка</label>
+        <select class="form-select mobile-native-select" name="ordered_request">
+          <option value="" {% if not ordered_request %}selected{% endif %}>Все заявки</option>
+          <option value="none" {% if ordered_request == 'none' %}selected{% endif %}>Не создана</option>
+          {% for request_option in ordered_request_options %}
+          <option value="{{ request_option.id }}" {% if ordered_request == request_option.id|string %}selected{% endif %}>{{ request_option.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-lg-2">
+        <label class="form-label">Сортировка</label>
+        <select class="form-select mobile-native-select" name="ordered_sort">
+          <option value="date_desc" {% if ordered_sort == 'date_desc' %}selected{% endif %}>По дате — сначала новые</option>
+          <option value="apartment_asc" {% if ordered_sort == 'apartment_asc' %}selected{% endif %}>По квартире — 1, 2, 3…</option>
+        </select>
+      </div>
+      <div class="col-12 col-lg-2 filter-actions glass-filter-actions">
         <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
         <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.glass_measurements', tab='ordered') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
       </div>

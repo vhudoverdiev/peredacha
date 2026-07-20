@@ -26,6 +26,10 @@ class DesktopFixedShellTests(unittest.TestCase):
         )
         self.assertIn("padding-top: 4.9rem !important", self.shell_css)
 
+    def test_fixed_shell_stays_below_modal_layer(self):
+        self.assertIn("z-index: 1040 !important", self.shell_css)
+        self.assertGreaterEqual(self.shell_css.count("z-index: 1035 !important"), 2)
+
     def test_standalone_desktop_pages_reserve_their_topbar(self):
         self.assertIn("padding-top: 5.75rem !important", self.shell_css)
         self.assertIn(

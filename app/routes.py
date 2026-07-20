@@ -4697,6 +4697,9 @@ def _all_project_tasks(project_id: int, point_numbers: set[str] | None = None) -
             selectinload(Task.apartment),
             selectinload(Task.work_point).selectinload(WorkPoint.categories),
             selectinload(Task.glass_measurement).selectinload(GlassMeasurement.items),
+            selectinload(Task.glass_measurement)
+            .selectinload(GlassMeasurement.material_request_item)
+            .selectinload(MaterialRequestItem.request),
         )
         .join(Apartment)
         .join(WorkPoint)
@@ -4715,6 +4718,74 @@ def _glass_tasks(project_id: int) -> list[Task]:
     # В «Замерах» работают только замечания по оконным пунктам 16–20.
     # Основной статус задачи не влияет на статус замера.
     return _all_project_tasks(project_id, point_numbers=GLASS_WORK_POINT_NUMBERS)
+
+
+GLASS_ORDERED_REQUEST_NONE = "none"
+GLASS_ORDERED_SORT_DATE_DESC = "date_desc"
+GLASS_ORDERED_SORT_APARTMENT_ASC = "apartment_asc"
+
+
+def _ordered_glass_material_request(row: dict[str, object]) -> MaterialRequest | None:
+    measurement = row.get("measurement")
+    request_item = getattr(measurement, "material_request_item", None)
+    return getattr(request_item, "request", None)
+
+
+def _ordered_glass_request_options(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    requests_by_id: dict[int, MaterialRequest] = {}
+    for row in rows:
+        material_request = _ordered_glass_material_request(row)
+        if material_request is not None and material_request.id is not None:
+            requests_by_id[int(material_request.id)] = material_request
+
+    material_requests = sorted(
+        requests_by_id.values(),
+        key=lambda item: (
+            -(item.request_date.toordinal() if item.request_date else 0),
+            -int(item.id or 0),
+        ),
+    )
+    return [
+        {
+            "id": int(item.id),
+            "label": item.title or item.comment or f"Заявка №{item.id}",
+        }
+        for item in material_requests
+    ]
+
+
+def _filter_sort_ordered_glass_rows(
+    rows: list[dict[str, object]],
+    *,
+    request_filter: str = "",
+    sort_order: str = GLASS_ORDERED_SORT_DATE_DESC,
+) -> list[dict[str, object]]:
+    filtered_rows = list(rows)
+    if request_filter == GLASS_ORDERED_REQUEST_NONE:
+        filtered_rows = [row for row in filtered_rows if _ordered_glass_material_request(row) is None]
+    elif request_filter.isdigit():
+        request_id = int(request_filter)
+        filtered_rows = [
+            row
+            for row in filtered_rows
+            if getattr(_ordered_glass_material_request(row), "id", None) == request_id
+        ]
+
+    if sort_order == GLASS_ORDERED_SORT_APARTMENT_ASC:
+        filtered_rows.sort(key=lambda row: _task_apartment_sort_value_no_done(row["task"]))
+        return filtered_rows
+
+    def date_desc_key(row: dict[str, object]):
+        measurement = row.get("measurement")
+        ordered_at = getattr(measurement, "ordered_at", None)
+        return (
+            0 if ordered_at else 1,
+            -(ordered_at.toordinal() if ordered_at else 0),
+            *_task_apartment_sort_value_no_done(row["task"]),
+        )
+
+    filtered_rows.sort(key=date_desc_key)
+    return filtered_rows
 
 
 def _glass_tasks_without_ordered_apartments(tasks: list[Task]) -> list[Task]:
@@ -4833,11 +4904,16 @@ def glass_measurements():
     ordered_status = (request.args.get("ordered_status") or "").strip()
     if ordered_status not in {"", GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}:
         ordered_status = ""
+    ordered_request = (request.args.get("ordered_request") or "").strip()
+    ordered_sort = (request.args.get("ordered_sort") or GLASS_ORDERED_SORT_DATE_DESC).strip()
+    if ordered_sort not in {GLASS_ORDERED_SORT_DATE_DESC, GLASS_ORDERED_SORT_APARTMENT_ASC}:
+        ordered_sort = GLASS_ORDERED_SORT_DATE_DESC
     tasks = _glass_tasks(project.id)
     available_tasks = _glass_tasks_without_ordered_apartments(tasks)
     rows = []
     order_rows = []
     ordered_rows = []
+    ordered_request_options = []
     if tab == "all":
         rows = _filter_glass_rows(available_tasks, q=q, point=point)
     elif tab == "order":
@@ -4850,7 +4926,19 @@ def glass_measurements():
         ]
         if ordered_status:
             ordered_rows = [row for row in ordered_rows if row["status"] == ordered_status]
-        ordered_rows.sort(key=lambda row: _task_apartment_sort_value_no_done(row["task"]))
+        ordered_request_options = _ordered_glass_request_options(ordered_rows)
+        valid_request_filters = {
+            "",
+            GLASS_ORDERED_REQUEST_NONE,
+            *(str(option["id"]) for option in ordered_request_options),
+        }
+        if ordered_request not in valid_request_filters:
+            ordered_request = ""
+        ordered_rows = _filter_sort_ordered_glass_rows(
+            ordered_rows,
+            request_filter=ordered_request,
+            sort_order=ordered_sort,
+        )
 
     active_rows = rows if tab == "all" else order_rows if tab == "order" else ordered_rows
     active_total = len(active_rows)
@@ -4897,6 +4985,9 @@ def glass_measurements():
         glass_point_options=_glass_point_options(project.id),
         selected_point=point,
         ordered_status=ordered_status,
+        ordered_request=ordered_request,
+        ordered_request_options=ordered_request_options,
+        ordered_sort=ordered_sort,
         active_total=active_total,
         glass_pagination=glass_pagination,
         glass_prev_args=glass_prev_args,
