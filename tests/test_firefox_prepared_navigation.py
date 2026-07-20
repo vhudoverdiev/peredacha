@@ -102,10 +102,14 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
             self.desktop_css,
         )
         self.assertIn("animation-play-state: paused !important", self.desktop_css)
+        self.assertIn(
+            "frameRoot.classList.add('crm-firefox-buffer-revealed')",
+            self.script,
+        )
 
         frame_visible = self.script.index("frame.classList.add('is-active')")
         reveal = self.script.index(
-            "startDesktopFirefoxBufferedPageAnimation(frame, frameDocument, finalUrl)",
+            "revealDesktopFirefoxBufferedPageAnimations(frameDocument)",
             frame_visible,
         )
         old_frame_hidden = self.script.index(
@@ -114,15 +118,21 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         self.assertLess(frame_visible, reveal)
         self.assertLess(reveal, old_frame_hidden)
 
-    def test_every_non_dashboard_tab_receives_the_dashboard_entrance(self):
-        self.assertIn("if (finalUrl.pathname === '/') return", self.script)
-        self.assertNotIn("desktopFirefoxAnimatedSectionPaths", self.script)
+    def test_all_desktop_tabs_keep_the_shared_native_entrance(self):
         self.assertIn(
-            "animation: dashboardFadeUp .36s ease both !important",
-            self.desktop_css,
+            "animation: dashboardFadeUp .36s ease both",
+            self.shared_css,
         )
-        self.assertIn("opacity: 0", self.desktop_css)
         self.assertIn("transform: translateY(12px)", self.shared_css)
+        self.assertNotIn("crm-firefox-buffer-enter", self.script)
+        self.assertNotIn("crm-firefox-buffer-enter", self.desktop_css)
+
+        blocking_rule = re.compile(
+            r"html\.desktop-like-pointer body\.app-body \.crm-page-entry-surface\s*"
+            r"\{[^}]*animation:\s*none\s*!important",
+            re.DOTALL,
+        )
+        self.assertIsNone(blocking_rule.search(self.desktop_css))
 
     def test_obsolete_prepared_cache_path_is_removed(self):
         self.assertNotIn("desktopFirefoxNavigationCache", self.script)
@@ -140,7 +150,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v131-firefox-dashboard-enter")
+        self.assertEqual(worker_version, "v132-restore-desktop-entry")
 
     def test_script_and_css_cache_busters_are_synchronized(self):
         script_version = re.search(
@@ -158,8 +168,8 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
 
         self.assertEqual(script_version, worker_script_version)
         self.assertEqual(css_version, worker_css_version)
-        self.assertEqual(script_version, "v656-firefox-dashboard-enter")
-        self.assertEqual(css_version, "v59-firefox-dashboard-enter")
+        self.assertEqual(script_version, "v657-restore-desktop-entry")
+        self.assertEqual(css_version, "v60-restore-desktop-entry")
 
 
 if __name__ == "__main__":

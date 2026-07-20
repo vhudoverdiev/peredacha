@@ -276,21 +276,9 @@ const bindDesktopFirefoxNavigationFrame = frame => {
   frameWindow.addEventListener('click', handleDesktopFirefoxNavigationClick, true);
 };
 
-const startDesktopFirefoxBufferedPageAnimation = (frame, frameDocument, finalUrl) => {
+const revealDesktopFirefoxBufferedPageAnimations = frameDocument => {
   const frameRoot = frameDocument.documentElement;
   frameRoot.classList.add('crm-firefox-buffer-revealed');
-  frameRoot.classList.remove('crm-firefox-buffer-enter');
-  // The dashboard already owns the same staggered dashboardFadeUp motion.
-  // Every other application tab receives that exact page-level entrance.
-  if (finalUrl.pathname === '/') return;
-
-  const pageSurface = frameDocument.querySelector('body.app-body .crm-page-entry-surface');
-  if (!pageSurface) return;
-  void pageSurface.offsetWidth;
-  frameRoot.classList.add('crm-firefox-buffer-enter');
-  frame.contentWindow.setTimeout(() => {
-    frameRoot.classList.remove('crm-firefox-buffer-enter');
-  }, 480);
 };
 
 const navigateDesktopFirefoxFrame = (targetUrl, { pushHistory = true } = {}) => {
@@ -343,7 +331,7 @@ const navigateDesktopFirefoxFrame = (targetUrl, { pushHistory = true } = {}) => 
       frame.classList.add('is-active');
       frame.setAttribute('aria-hidden', 'false');
       frame.tabIndex = 0;
-      startDesktopFirefoxBufferedPageAnimation(frame, frameDocument, finalUrl);
+      revealDesktopFirefoxBufferedPageAnimations(frameDocument);
 
       if (desktopFirefoxActiveFrame && desktopFirefoxActiveFrame !== frame) {
         desktopFirefoxActiveFrame.style.zIndex = '2147483000';
