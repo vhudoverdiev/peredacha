@@ -1524,7 +1524,7 @@
 
   html body.app-body.app-body.app-body .crm-mobile-page-shell,
   html body.app-body.app-body.app-body .crm-mobile-page-shell
-    > :last-child:not(.crm-toast-stack):not(.account-page) {
+    > :last-child:not(.crm-toast-stack):not(.account-page):not(.glass-ordered-empty-page) {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
   }
@@ -1538,6 +1538,17 @@
     body.app-body:has(.account-page) .crm-mobile-page-shell > .account-page,
   html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body.has-account-page .crm-mobile-page-shell > .account-page {
+    margin-bottom: 0 !important;
+    padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* The empty Ordered Measurements view is another short last child of the
+     mobile shell. Preserve only the iPhone home-indicator clearance below
+     its empty card so the dark dock stays the same 72px height as Objects.
+     Populated measurement pages continue to use the regular page reset. */
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.glass-ordered-empty-page)
+    .crm-mobile-page-shell > .glass-ordered-empty-page {
     margin-bottom: 0 !important;
     padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
   }

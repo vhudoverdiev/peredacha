@@ -8,6 +8,7 @@ BASE_TEMPLATE = ROOT / "app" / "templates" / "base.html"
 MOBILE_CSS = ROOT / "app" / "static" / "mobile-only.css"
 STYLE_CSS = ROOT / "app" / "static" / "style.css"
 SERVICE_WORKER = ROOT / "app" / "static" / "service-worker.js"
+GLASS_TEMPLATE = ROOT / "app" / "templates" / "glass_measurements.html"
 
 
 class MobileBottomNavGeometryTest(unittest.TestCase):
@@ -17,6 +18,7 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         cls.mobile_css = MOBILE_CSS.read_text(encoding="utf-8")
         cls.style_css = STYLE_CSS.read_text(encoding="utf-8")
         cls.service_worker = SERVICE_WORKER.read_text(encoding="utf-8")
+        cls.glass_template = GLASS_TEMPLATE.read_text(encoding="utf-8")
 
     def test_nav_markup_does_not_override_shared_anchor(self):
         nav_tags = re.findall(
@@ -50,6 +52,34 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             "padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;",
             self.mobile_css,
         )
+
+    def test_only_empty_ordered_measurements_get_short_page_clearance(self):
+        self.assertIn(
+            "{% if tab == 'ordered' and not ordered_rows %} glass-ordered-empty-page{% endif %}",
+            self.glass_template,
+        )
+        self.assertIn(
+            ":last-child:not(.crm-toast-stack):not(.account-page):not(.glass-ordered-empty-page)",
+            self.mobile_css,
+        )
+        selector = (
+            "body.app-body:has(.glass-ordered-empty-page)\n"
+            "    .crm-mobile-page-shell > .glass-ordered-empty-page"
+        )
+        selector_start = self.mobile_css.index(selector)
+        rule_end = self.mobile_css.index("}", selector_start)
+        rule = self.mobile_css[selector_start:rule_end]
+        self.assertIn(
+            "padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;",
+            rule,
+        )
+
+    def test_measurements_do_not_get_a_page_specific_dock_anchor(self):
+        glass_dock_selector = re.compile(
+            r":has\(\.glass(?:-ordered-empty)?-page\)[^\{]*mobile-bottom-nav-root"
+        )
+        self.assertIsNone(glass_dock_selector.search(self.base))
+        self.assertIsNone(glass_dock_selector.search(self.mobile_css))
 
     def test_pwa_cache_uses_the_same_mobile_stylesheet_version(self):
         version_pattern = r"mobile-only\.css[^\n]*\?v=(v[\w-]+)"
