@@ -9,6 +9,7 @@ MOBILE_CSS = ROOT / "app" / "static" / "mobile-only.css"
 STYLE_CSS = ROOT / "app" / "static" / "style.css"
 SERVICE_WORKER = ROOT / "app" / "static" / "service-worker.js"
 GLASS_TEMPLATE = ROOT / "app" / "templates" / "glass_measurements.html"
+TASK_FORM_TEMPLATE = ROOT / "app" / "templates" / "task_form.html"
 
 
 class MobileBottomNavGeometryTest(unittest.TestCase):
@@ -19,6 +20,7 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         cls.style_css = STYLE_CSS.read_text(encoding="utf-8")
         cls.service_worker = SERVICE_WORKER.read_text(encoding="utf-8")
         cls.glass_template = GLASS_TEMPLATE.read_text(encoding="utf-8")
+        cls.task_form_template = TASK_FORM_TEMPLATE.read_text(encoding="utf-8")
 
     def test_nav_markup_does_not_override_shared_anchor(self):
         nav_tags = re.findall(
@@ -80,6 +82,34 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         )
         self.assertIsNone(glass_dock_selector.search(self.base))
         self.assertIsNone(glass_dock_selector.search(self.mobile_css))
+
+    def test_direct_add_remark_form_keeps_iphone_safe_area(self):
+        self.assertIn(
+            "task-single-form mobile-fill-card",
+            self.task_form_template,
+        )
+        self.assertIn(
+            ":not(.glass-ordered-empty-page):not(.task-single-form)",
+            self.mobile_css,
+        )
+        selector = (
+            "body.app-body:has(.task-single-form)\n"
+            "    .crm-mobile-page-shell > .task-single-form"
+        )
+        selector_start = self.mobile_css.index(selector)
+        rule_end = self.mobile_css.index("}", selector_start)
+        rule = self.mobile_css[selector_start:rule_end]
+        self.assertIn(
+            "padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;",
+            rule,
+        )
+
+    def test_add_remark_does_not_get_a_page_specific_dock_anchor(self):
+        task_dock_selector = re.compile(
+            r":has\(\.task-single-form\)[^\{]*mobile-bottom-nav-root"
+        )
+        self.assertIsNone(task_dock_selector.search(self.base))
+        self.assertIsNone(task_dock_selector.search(self.mobile_css))
 
     def test_pwa_cache_uses_the_same_mobile_stylesheet_version(self):
         version_pattern = r"mobile-only\.css[^\n]*\?v=(v[\w-]+)"
