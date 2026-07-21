@@ -1696,6 +1696,47 @@
   }
 }
 
+/* Mobile Safari in a regular browser tab is not covered by the standalone
+   shell override. Legacy rules therefore restore a translucent gradient and
+   blur on the topbar while the bottom dock stays solid. Keep the web topbar
+   on the exact same uninterrupted dark surface; installed PWAs are excluded. */
+@media (max-width: 767.98px) {
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body
+    :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar) {
+    background: #111820 !important;
+    background-color: #111820 !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .mobile-fixed-top-scroll-mask {
+    background: #111820 !important;
+    background-color: #111820 !important;
+    background-image: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    filter: none !important;
+  }
+
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body
+    :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar)::before,
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body
+    :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar)::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    opacity: 0 !important;
+  }
+}
+
 /* Empty and regular mobile pages use the same viewport geometry. Switching
    the dock from fixed to absolute after the external stylesheet loaded caused
    the visible jump and the extra dark strip in installed iOS PWAs. */

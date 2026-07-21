@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v133-preserve-partial-navigation';
+const STATIC_CACHE = 'peredacha-static-v134-safari-web-solid-topbar';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,7 +13,7 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
-  '/static/mobile-only.css?v=v86-remark-add-screen-height',
+  '/static/mobile-only.css?v=v87-safari-web-solid-topbar',
   '/static/desktop-only.css?v=v60-restore-desktop-entry',
   '/static/script.js?v=v658-preserve-partial-navigation',
 ];

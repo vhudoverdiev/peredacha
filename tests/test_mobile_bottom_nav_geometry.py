@@ -42,6 +42,35 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             self.assertIn("width: 100vw !important", nav_tag)
             self.assertIn("height: 72px !important", nav_tag)
 
+    def test_mobile_safari_web_topbar_matches_the_solid_bottom_nav(self):
+        topbar_selector = (
+            "html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)\n"
+            "    body.app-body\n"
+            "    :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar) {"
+        )
+        topbar_start = self.mobile_css.index(topbar_selector)
+        topbar_end = self.mobile_css.index("}", topbar_start)
+        topbar_rule = self.mobile_css[topbar_start:topbar_end]
+        self.assertIn("background: #111820 !important;", topbar_rule)
+        self.assertIn("background-image: none !important;", topbar_rule)
+        self.assertIn("box-shadow: none !important;", topbar_rule)
+        self.assertIn("backdrop-filter: none !important;", topbar_rule)
+
+        dock_selector = (
+            "html body.app-body.app-body.app-body nav.mobile-bottom-nav.mobile-bottom-nav-root"
+        )
+        dock_start = self.mobile_css.index(dock_selector)
+        dock_end = self.mobile_css.index("}", dock_start)
+        dock_rule = self.mobile_css[dock_start:dock_end]
+        self.assertIn("background: #111820 !important;", dock_rule)
+
+        self.assertNotIn(
+            "html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)\n"
+            "    body.app-body\n"
+            "    :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar) {",
+            self.mobile_css,
+        )
+
     def test_account_dock_uses_the_same_bottom_anchor_as_objects(self):
         account_dock_selector = re.compile(
             r"has-account-page[^\{]*mobile-bottom-nav-root|"
