@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v134-safari-web-solid-topbar';
+const STATIC_CACHE = 'peredacha-static-v135-material-request-native-download';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -15,7 +15,7 @@ const STATIC_ASSETS = [
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
   '/static/mobile-only.css?v=v87-safari-web-solid-topbar',
   '/static/desktop-only.css?v=v60-restore-desktop-entry',
-  '/static/script.js?v=v658-preserve-partial-navigation',
+  '/static/script.js?v=v659-material-request-native-download',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>

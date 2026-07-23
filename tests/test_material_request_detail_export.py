@@ -18,6 +18,7 @@ class MaterialRequestDetailExportTests(unittest.TestCase):
     def test_detail_page_links_to_existing_request_export(self):
         self.assertIn("url_for('main.material_request_export', request_id=material_request.id)", self.template)
         self.assertIn("download-excel-btn material-request-detail-export-btn", self.template)
+        self.assertIn('data-download-mode="native"', self.template)
         self.assertIn("<span>Скачать Excel</span>", self.template)
 
     def test_export_button_is_permission_gated_and_desktop_only(self):
@@ -42,6 +43,14 @@ class MaterialRequestDetailExportTests(unittest.TestCase):
     def test_mobile_styles_are_unchanged_for_export_button(self):
         mobile_css = MOBILE_CSS_PATH.read_text(encoding="utf-8")
         self.assertNotIn("material-request-detail-export-btn", mobile_css)
+
+    def test_native_download_mode_bypasses_blob_fetch_for_request_export(self):
+        script = (ROOT / "app" / "static" / "script.js").read_text(encoding="utf-8")
+        self.assertIn(
+            "link.dataset.downloadMode !== 'native'",
+            script,
+            "The request export must use the browser's native download path.",
+        )
 
 
 if __name__ == "__main__":

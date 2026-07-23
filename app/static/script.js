@@ -5862,7 +5862,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (link.classList.contains('is-loading')) return;
       event.preventDefault();
       const isDropdownDownload = !!link.closest('.dropdown-menu');
-      const useFetchDownload = !isDropdownDownload || link.dataset.downloadMode === 'fetch';
+      const useFetchDownload = link.dataset.downloadMode !== 'native'
+        && (!isDropdownDownload || link.dataset.downloadMode === 'fetch');
       if (!useFetchDownload || typeof window.fetch !== 'function') {
         startNativeExcelDownloadFlow(link);
         return;

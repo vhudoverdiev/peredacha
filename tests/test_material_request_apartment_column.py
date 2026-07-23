@@ -119,6 +119,11 @@ class MaterialRequestApartmentColumnTests(unittest.TestCase):
         response = self.client.get(f"/materials/request/{self.material_request.id}/export")
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.mimetype,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertIn("attachment", response.headers.get("Content-Disposition", "").lower())
         workbook = load_workbook(BytesIO(response.data), read_only=True, data_only=True)
         sheet = workbook["Заявка"]
         rows = list(sheet.iter_rows(values_only=True))

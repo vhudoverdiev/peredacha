@@ -163,7 +163,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v134-safari-web-solid-topbar")
+        self.assertEqual(worker_version, "v135-material-request-native-download")
 
     def test_script_and_css_cache_busters_are_synchronized(self):
         script_version = re.search(
@@ -181,7 +181,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
 
         self.assertEqual(script_version, worker_script_version)
         self.assertEqual(css_version, worker_css_version)
-        self.assertEqual(script_version, "v658-preserve-partial-navigation")
+        self.assertEqual(script_version, "v659-material-request-native-download")
         self.assertEqual(css_version, "v60-restore-desktop-entry")
 
 

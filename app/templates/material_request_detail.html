@@ -26,6 +26,7 @@
       <a
         class="btn btn-success download-excel-btn material-request-detail-export-btn d-none d-md-inline-flex"
         href="{{ url_for('main.material_request_export', request_id=material_request.id) }}"
+        data-download-mode="native"
         data-loading-text="Готовим Excel..."
       >
         <i class="bi bi-file-earmark-excel me-2" aria-hidden="true"></i>
