@@ -6052,21 +6052,20 @@ def material_request_export(request_id: int):
     wb = Workbook()
     ws = wb.active
     ws.title = "Заявка"
-    ws.append(["Дата", "Название заявки", "№ квартиры", "Наименование", "Количество", "Ед. измерения"])
+    ws.append(["Дата", "№ квартиры", "Наименование", "Количество", "Ед. измерения"])
     request_title = material_request.title or material_request.comment or f"Заявка №{material_request.id}"
     material_request_rows = _material_request_display_rows(material_request)
     for row in material_request_rows:
         item = row["item"]
         ws.append([
             material_request.request_date.strftime("%d.%m.%Y") if material_request.request_date else "",
-            request_title,
             row["apartment_number"],
             row["display_name"],
             fmt_quantity(item.quantity),
             item.unit,
         ])
     if not material_request_rows:
-        ws.append([material_request.request_date.strftime("%d.%m.%Y") if material_request.request_date else "", request_title, "", "", "", ""])
+        ws.append([material_request.request_date.strftime("%d.%m.%Y") if material_request.request_date else "", "", "", "", ""])
     _style_excel_header(ws)
     filename = f"{project.name}_{request_title}_{date.today().strftime('%Y-%m-%d')}.xlsx".replace("/", "-")
     return _make_excel_response(wb, filename)

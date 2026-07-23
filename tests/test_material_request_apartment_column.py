@@ -129,12 +129,13 @@ class MaterialRequestApartmentColumnTests(unittest.TestCase):
         rows = list(sheet.iter_rows(values_only=True))
         self.assertEqual(
             rows[0],
-            ("Дата", "Название заявки", "№ квартиры", "Наименование", "Количество", "Ед. измерения"),
+            ("Дата", "№ квартиры", "Наименование", "Количество", "Ед. измерения"),
         )
-        self.assertEqual(rows[1][2], "8")
-        self.assertEqual(rows[1][3], "Стеклопакет 635×2085 — 40мм")
-        self.assertEqual(rows[2][2], "8")
-        self.assertEqual(rows[2][3], "Стеклопакет 412×1445 — 40мм")
+        self.assertNotIn("Название заявки", rows[0])
+        self.assertEqual(rows[1][1], "8")
+        self.assertEqual(rows[1][2], "Стеклопакет 635×2085 — 40мм")
+        self.assertEqual(rows[2][1], "8")
+        self.assertEqual(rows[2][2], "Стеклопакет 412×1445 — 40мм")
         workbook.close()
 
     def test_manual_request_name_is_not_modified_without_measurement_link(self):
@@ -152,6 +153,25 @@ class MaterialRequestApartmentColumnTests(unittest.TestCase):
 
         self.assertEqual(rows[0]["apartment_number"], "")
         self.assertEqual(rows[0]["display_name"], "Профиль кв 8")
+
+    def test_empty_request_export_keeps_the_same_five_columns(self):
+        empty_request = MaterialRequest(
+            project=self.project,
+            author=self.user,
+            request_date=date(2026, 7, 20),
+            title="Пустая заявка",
+        )
+        db.session.add(empty_request)
+        db.session.commit()
+
+        response = self.client.get(f"/materials/request/{empty_request.id}/export")
+
+        self.assertEqual(response.status_code, 200)
+        workbook = load_workbook(BytesIO(response.data), read_only=True, data_only=True)
+        rows = list(workbook["Заявка"].iter_rows(values_only=True))
+        self.assertEqual(rows[0], ("Дата", "№ квартиры", "Наименование", "Количество", "Ед. измерения"))
+        self.assertEqual(len(rows[1]), 5)
+        workbook.close()
 
 
 if __name__ == "__main__":
