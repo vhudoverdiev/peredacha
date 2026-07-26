@@ -285,7 +285,7 @@
           </td>
           <td class="task-text" data-label="Замечание">
             <div class="task-text-body">
-              <span class="inline-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
+              <span class="inline-text" data-task-id="{{ task.id }}"{% if is_dop %} data-no-sentence-split="1"{% endif %}>{{ remark_plain_text(task.description or task.source_cell_value) if is_dop else remark_text(task.description or task.source_cell_value) }}</span>
               {% if task.glass_measurement and task.glass_measurement.status == 'replaced' %}<span class="glass-ordered-badge glass-replaced-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% elif task.glass_measurement and task.glass_measurement.status == 'ordered' %}<span class="glass-ordered-badge" title="{{ glass_measurement_action_label(task.glass_measurement) }}">{{ glass_measurement_action_label(task.glass_measurement) }}</span>{% endif %}
             </div>
             {% if current_user.role != 'viewer' %}

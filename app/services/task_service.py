@@ -1815,7 +1815,11 @@ def sync_rows(
                             )
                 continue
 
-            remarks = split_cell_remarks(cell_value)
+            is_dop_agreement_cell = (
+                str(work_point.point_number or "").strip() in DOP_AGREEMENT_POINT_NUMBERS
+                or is_dop_agreement_header(header)
+            )
+            remarks = [cell_text] if is_dop_agreement_cell else split_cell_remarks(cell_value)
             if not remarks:
                 continue
             source_hash = cell_hash(cell_text)

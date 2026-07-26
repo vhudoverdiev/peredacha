@@ -134,7 +134,7 @@ from app.services.sync_rollback import apply_sync_rollback, build_project_rollba
 from app.time_utils import to_moscow_datetime
 from app.services.uid_service import build_task_uid, cell_hash, normalize_text, split_cell_remarks, stable_hash
 from app.services.remark_entities import split_task_into_entities
-from app.services.remark_format import remark_sentence_lines_html
+from app.services.remark_format import remark_plain_text_html, remark_sentence_lines_html
 from app.security import hit_rate_limit, security_event, validate_upload
 from app.two_factor import generate_totp_secret, provisioning_uri, qr_svg_data_uri, verify_totp
 
@@ -993,6 +993,7 @@ def inject_globals():
         "format_ru_date": format_ru_date,
         "format_ru_weekday": format_ru_weekday,
         "remark_text": remark_sentence_lines_html,
+        "remark_plain_text": remark_plain_text_html,
         "glass_measurement_action_label": glass_measurement_action_label,
     }
 

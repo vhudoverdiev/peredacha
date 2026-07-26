@@ -1877,15 +1877,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const remarkSentenceRanges = text => {
     if (!text) return [];
+    const minFragmentLength = 10;
     const sentenceClosers = new Set(['"', "'", '»', '”', '’', ')', ']', '}']);
     const sentenceOpeners = new Set(['"', "'", '«', '“', '„', '‹', '(', '[', '{']);
     const abbreviations = [
       'в т.ч.', 'и т.д.', 'и т.п.', 'т.е.', 'т.к.', 'т.п.', 'т.д.', 'т.ч.',
-      'г.', 'ул.', 'им.', 'пос.', 'корп.', 'стр.', 'рис.', 'кв.', 'ком.', 'п.', 'ч.',
+      'г.', 'ул.', 'им.', 'пос.', 'корп.', 'стр.', 'рис.', 'кв.', 'ком.',
+      'отст.', 'отс.', 'отсут.', 'отсутств.', 'поврежд.', 'повреж.', 'демонт.',
+      'регул.', 'отрегул.', 'замен.', 'восст.', 'неиспр.', 'помещ.', 'комн.',
+      'балк.', 'лодж.', 'створ.', 'п.', 'ч.',
     ];
     const ranges = [];
     let lineStart = 0;
     let index = 0;
+
+    const fragmentLength = (start, end) => (
+      text
+        .slice(start, end)
+        .replace(/[\s.;:!?,'"«»“”„‹›()\[\]{}-]+/gu, '')
+        .length
+    );
+
+    const nextFragmentLength = start => {
+      let pos = start;
+      while (pos < text.length && /[\s"'\u00ab\u00bb\u201c\u201d\u201e\u2039\u203a()[\]{}]+/u.test(text[pos])) pos += 1;
+      const fragmentStart = pos;
+      while (pos < text.length && !'.;'.includes(text[pos])) pos += 1;
+      return fragmentLength(fragmentStart, pos);
+    };
 
     const hasNonTerminalAbbreviation = dotIndex => {
       const prefix = text.slice(0, dotIndex + 1).toLocaleLowerCase('ru-RU');
@@ -1923,9 +1942,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const numericListPrefix = /(?:^|\s)\d+\.$/u.test(text.slice(0, index + 1));
       const nonTerminalDot = char === '.' && (hasNonTerminalAbbreviation(index) || numericListPrefix);
       const shouldSplit = (
-        char === ';' && boundary < text.length
+        char === ';'
+        && boundary < text.length
+        && fragmentLength(lineStart, index) >= minFragmentLength
+        && nextFragmentLength(index + 1) >= minFragmentLength
       ) || (
-        char === '.' && hasFollowingSentence && !nonTerminalDot
+        char === '.'
+        && hasFollowingSentence
+        && !nonTerminalDot
+        && fragmentLength(lineStart, index) >= minFragmentLength
+        && nextFragmentLength(sentenceLetterIndex) >= minFragmentLength
       );
       if (shouldSplit) {
         ranges.push([lineStart, boundary]);
@@ -1937,7 +1963,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return ranges.length ? ranges : [[0, text.length]];
   };
 
-  const formatRemarkHtml = (value, regex = null) => {
+  const formatRemarkHtml = (value, regex = null, options = {}) => {
     const text = String(value || '');
     if (!text) return '';
     const pairs = { '"': '"', '«': '»', '“': '”', '„': '“', '‹': '›' };
@@ -1980,7 +2006,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return html;
     };
 
-    const sentenceRanges = remarkSentenceRanges(text);
+    const sentenceRanges = options.noSentenceSplit ? [[0, text.length]] : remarkSentenceRanges(text);
     if (sentenceRanges.length <= 1) return formatRange(0, text.length);
     return sentenceRanges
       .map(([start, end]) => `<span class="remark-sentence-line">${formatRange(start, end)}</span>`)
@@ -2064,7 +2090,7 @@ document.addEventListener('DOMContentLoaded', () => {
     container.querySelectorAll('.js-highlight-text').forEach(el => {
       const raw = el.textContent || '';
       if (!raw.trim()) return;
-      el.innerHTML = formatRemarkHtml(raw, regex);
+      el.innerHTML = formatRemarkHtml(raw, regex, { noSentenceSplit: el.dataset.noSentenceSplit === '1' });
     });
   });
 
@@ -2079,7 +2105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     shell.querySelectorAll('.task-text .inline-text').forEach(el => {
       const raw = el.textContent || '';
-      el.innerHTML = formatRemarkHtml(raw, regex);
+      el.innerHTML = formatRemarkHtml(raw, regex, { noSentenceSplit: el.dataset.noSentenceSplit === '1' });
     });
   });
 
@@ -2161,7 +2187,7 @@ document.addEventListener('DOMContentLoaded', () => {
           window.location.reload();
           return;
         }
-        span.innerHTML = formatRemarkHtml(data.text ?? next);
+        span.innerHTML = formatRemarkHtml(data.text ?? next, null, { noSentenceSplit: span.dataset.noSentenceSplit === '1' });
         appendTimelineEntry(
           document.querySelector('[data-task-history-list]'),
           document.querySelector('[data-task-history-empty]'),

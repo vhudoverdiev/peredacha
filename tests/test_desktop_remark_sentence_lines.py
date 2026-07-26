@@ -6,7 +6,7 @@ from pathlib import Path
 from config import Config
 from app import create_app, db, login_manager
 from app.models import Apartment, Project, ROLE_ADMIN, Task, User, WorkPoint
-from app.services.remark_format import remark_sentence_lines_html
+from app.services.remark_format import remark_plain_text_html, remark_sentence_lines_html
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -61,6 +61,31 @@ class RemarkSentenceFormatterTests(unittest.TestCase):
         rendered = remark_sentence_lines_html(source)
 
         self.assertEqual(str(rendered).count('class="remark-sentence-line"'), 3)
+        self.assertEqual(markup_text(rendered), source)
+
+    def test_short_work_abbreviations_do_not_become_visual_lines(self):
+        for source in ("отст.ХГВС", "отст. ХГВС", "отсут.ХГВС", "Повреж.МДФ"):
+            with self.subTest(source=source):
+                rendered = remark_sentence_lines_html(source)
+
+                self.assertNotIn('class="remark-sentence-line"', str(rendered))
+                self.assertEqual(markup_text(rendered), source)
+
+    def test_semicolon_splits_only_when_both_sides_are_meaningful(self):
+        short_source = "МДФ;ХГВС"
+        long_source = "Длинная первая часть;Вторая часть"
+
+        self.assertNotIn('class="remark-sentence-line"', str(remark_sentence_lines_html(short_source)))
+        self.assertEqual(
+            str(remark_sentence_lines_html(long_source)).count('class="remark-sentence-line"'),
+            2,
+        )
+
+    def test_plain_filter_keeps_dop_agreement_text_in_one_visual_block(self):
+        source = "Первая длинная часть. Вторая длинная часть;Третья длинная часть"
+        rendered = remark_plain_text_html(source)
+
+        self.assertNotIn('class="remark-sentence-line"', str(rendered))
         self.assertEqual(markup_text(rendered), source)
 
     def test_escaping_and_quoted_strike_survive_sentence_formatting(self):

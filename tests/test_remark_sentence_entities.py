@@ -80,6 +80,8 @@ class RemarkSentenceSplitRuleTests(unittest.TestCase):
         self.assertEqual(split_cell_remarks(source), [source])
 
     def test_known_work_abbreviation_before_acronym_stays_in_one_remark(self):
+        self.assertEqual(split_cell_remarks("отст.ХГВС"), ["отст.ХГВС"])
+        self.assertEqual(split_cell_remarks("отст. ХГВС"), ["отст. ХГВС"])
         self.assertEqual(split_cell_remarks("отсут. ХГВС"), ["отсут. ХГВС"])
         self.assertEqual(split_cell_remarks("Повреж.МДФ"), ["Повреж.МДФ"])
         self.assertEqual(split_cell_remarks("Повреж. МДФ"), ["Повреж. МДФ"])
@@ -319,7 +321,8 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
         sheet = workbook.active
         sheet.title = "Квартал 100-5"
         headers = ["№ кв", "Строительный номер"] + [f"Служебный {idx}" for idx in range(3, 26)] + ["Отступное ТМЦ"]
-        row = ["34", "1-1-34"] + ["" for _ in range(3, 26)] + ["отступное ТМЦ к выдаче"]
+        dop_text = "Отступное ТМЦ к выдаче. Отст. ХГВС; дополнительная часть"
+        row = ["34", "1-1-34"] + ["" for _ in range(3, 26)] + [dop_text]
         sheet.append(headers)
         sheet.append(row)
         path = Path(self.tempdir.name) / "shifted-dop-column.xlsx"
@@ -335,7 +338,7 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
         self.assertEqual(tasks[0].apartment.apartment_number, "34")
         self.assertEqual(tasks[0].work_point.point_number, "26")
         self.assertEqual(tasks[0].work_point.original_column_name, "Отступное ТМЦ")
-        self.assertEqual(tasks[0].description, "отступное ТМЦ к выдаче")
+        self.assertEqual(tasks[0].description, dop_text)
 
     def test_legacy_row_is_split_while_original_relations_stay_on_first_entity(self):
         project = Project(name="Sentence entities migration QA")

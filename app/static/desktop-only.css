@@ -1581,6 +1581,89 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     display: block;
   }
 
+  /* Keep app modals inside the visible desktop viewport so action buttons
+     never slide below the screen after scroll/zoomed window states. */
+  html.desktop-like-pointer body.app-body .modal.show {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    padding: 1rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show .modal-dialog {
+    display: flex !important;
+    align-items: stretch !important;
+    width: min(var(--bs-modal-width, 500px), calc(100vw - 2rem)) !important;
+    max-width: calc(100vw - 2rem) !important;
+    max-height: calc(100dvh - 2rem) !important;
+    margin: 0 auto !important;
+    transform: none !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show .modal-dialog.modal-sm {
+    width: min(380px, calc(100vw - 2rem)) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show .modal-dialog.modal-lg {
+    width: min(800px, calc(100vw - 2rem)) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show .modal-dialog.modal-xl {
+    width: min(1140px, calc(100vw - 2rem)) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show .modal-content {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-height: calc(100dvh - 2rem) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show .modal-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show :is(.modal-header, .modal-footer, .modal-actions, .confirm-modal-actions, .registration-modal-actions, .assignment-date-modal-actions) {
+    flex-shrink: 0 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show :is(button, .btn, input, select, textarea, label, a) {
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .crm-confirm-overlay {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    padding: 1rem !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .crm-confirm-card {
+    width: min(460px, calc(100vw - 2rem)) !important;
+    max-width: calc(100vw - 2rem) !important;
+    max-height: calc(100dvh - 2rem) !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .crm-confirm-card :is(.modal-actions, button, .btn, a) {
+    pointer-events: auto !important;
+  }
+
   /* Page-specific entrance effects would otherwise finish while Firefox is
      loading the standby document off-screen. Freeze every existing animation
      at its own first frame, then let the host release it on the atomic swap. */
