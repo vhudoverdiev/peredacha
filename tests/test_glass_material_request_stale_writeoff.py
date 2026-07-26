@@ -241,6 +241,34 @@ class GlassMaterialRequestStaleWriteoffTests(unittest.TestCase):
         self.assertEqual(stored_request.title, "Unsaved draft request")
         self.assertEqual(len(stored_request.items), 2)
 
+    def test_desktop_request_edit_form_has_client_validation_hook(self):
+        create_response = self.client.post(
+            "/glass/ordered/create-material-request",
+            data={"measurement_ids": str(self.measurement.id)},
+        )
+        self.assertEqual(create_response.status_code, 302)
+
+        material_request = MaterialRequest.query.one()
+        desktop_response = self.client.get(
+            f"/materials/request/{material_request.id}",
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+        )
+        mobile_response = self.client.get(
+            f"/materials/request/{material_request.id}",
+            headers={"User-Agent": "Mozilla/5.0 (Linux; Android 15; Mobile)"},
+        )
+
+        desktop_html = desktop_response.get_data(as_text=True)
+        mobile_html = mobile_response.get_data(as_text=True)
+        self.assertRegex(
+            desktop_html,
+            r'<form[^>]+class="[^"]*js-material-request-edit-form js-material-request-form[^"]*"',
+        )
+        self.assertNotRegex(
+            mobile_html,
+            r'<form[^>]+class="[^"]*js-material-request-edit-form js-material-request-form[^"]*"',
+        )
+
     def test_new_item_stays_with_the_last_measurement_group(self):
         second_apartment = Apartment(project=self.project, apartment_number="202")
         second_task = Task(

@@ -76,7 +76,7 @@
 </div>
 
 {% if can_edit_materials %}
-<form method="post" action="{{ url_for('main.material_request_update', request_id=material_request.id) }}" class="card content-card material-form-card material-request-edit-card js-material-request-edit-form{% if not edit_mode %} d-none{% endif %}">
+<form method="post" action="{{ url_for('main.material_request_update', request_id=material_request.id) }}" class="card content-card material-form-card material-request-edit-card js-material-request-edit-form{% if not is_mobile_phone_request %} js-material-request-form{% endif %}{% if not edit_mode %} d-none{% endif %}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="card-body">
     <h2 class="section-title">Редактировать заявку</h2>
