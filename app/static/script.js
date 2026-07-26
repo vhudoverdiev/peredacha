@@ -2026,9 +2026,10 @@ document.addEventListener('DOMContentLoaded', () => {
       return html;
     };
 
-    const sentenceRanges = options.noSentenceSplit ? [[0, text.length]] : remarkSentenceRanges(text);
-    if (sentenceRanges.length <= 1) return formatRange(0, text.length);
-    return sentenceRanges
+    const sentenceRanges = remarkSentenceRanges(text);
+    const visibleSentenceRanges = options.noSentenceSplit ? [[0, text.length]] : sentenceRanges;
+    if (visibleSentenceRanges.length <= 1) return formatRange(0, text.length);
+    return visibleSentenceRanges
       .map(([start, end]) => `<span class="remark-sentence-line">${formatRange(start, end)}</span>`)
       .join('');
   };

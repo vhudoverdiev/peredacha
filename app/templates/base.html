@@ -896,7 +896,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v141-weak-network-fallback', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v142-desktop-modal-viewport', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }

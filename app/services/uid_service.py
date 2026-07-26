@@ -9,6 +9,7 @@ POINT_RE = re.compile(r"(?:пункт|п\.?|№)?\s*(\d{1,3})", re.IGNORECASE)
 DATE_ONLY_RE = re.compile(r"^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$")
 DATETIME_ONLY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}(?:[ t]\d{2}:\d{2}(?::\d{2})?)?$", re.IGNORECASE)
 SENTENCE_OPENERS = frozenset('"\'«“„‹([{')
+SENTENCE_CLOSERS = frozenset('"\'»”’)]}')
 MIN_SENTENCE_FRAGMENT_LENGTH = 10
 NON_TERMINAL_ABBREVIATIONS = (
     "в т.ч.",
@@ -123,15 +124,21 @@ def _has_non_terminal_abbreviation(text: str, dot_index: int) -> bool:
     return bool(INITIALS_SUFFIX_RE.search(text[:dot_index + 1]))
 
 
-def _next_sentence_letter(text: str, start: int) -> tuple[int, str]:
-    index = start
+def _next_sentence_start_and_letter(text: str, start: int) -> tuple[int, int, str]:
+    sentence_start = start
+    while sentence_start < len(text) and text[sentence_start] in SENTENCE_CLOSERS:
+        sentence_start += 1
+    while sentence_start < len(text) and text[sentence_start].isspace():
+        sentence_start += 1
+
+    index = sentence_start
     while index < len(text) and text[index].isspace():
         index += 1
     while index < len(text) and text[index] in SENTENCE_OPENERS:
         index += 1
         while index < len(text) and text[index].isspace():
             index += 1
-    return index, text[index] if index < len(text) else ""
+    return sentence_start, index, text[index] if index < len(text) else ""
 
 
 def _sentence_fragment_length(text: str, start: int, end: int) -> int:
@@ -145,7 +152,7 @@ def _next_fragment_length(text: str, start: int) -> int:
         if char == ";":
             break
         if char == ".":
-            next_index, next_char = _next_sentence_letter(text, index + 1)
+            _, next_index, next_char = _next_sentence_start_and_letter(text, index + 1)
             numbered_prefix = bool(re.search(r"(?:^|\s)\d+\.$", text[:index + 1]))
             if (
                 next_char
@@ -196,7 +203,7 @@ def split_cell_remarks(value) -> list[str]:
                 and _next_fragment_length(text, index + 1) >= MIN_SENTENCE_FRAGMENT_LENGTH
             )
         elif char == ".":
-            next_index, next_char = _next_sentence_letter(text, index + 1)
+            next_start, next_index, next_char = _next_sentence_start_and_letter(text, index + 1)
             numbered_prefix = bool(
                 re.search(r"(?:^|\s)\d+\.$", text[:index + 1])
             )
@@ -205,15 +212,15 @@ def split_cell_remarks(value) -> list[str]:
                 and next_char.isalpha()
                 and next_char.isupper()
                 and _sentence_fragment_length(text, fragment_start, index) >= MIN_SENTENCE_FRAGMENT_LENGTH
-                and _next_fragment_length(text, next_index) >= MIN_SENTENCE_FRAGMENT_LENGTH
+                and _next_fragment_length(text, next_start) >= MIN_SENTENCE_FRAGMENT_LENGTH
                 and not numbered_prefix
                 and not _has_non_terminal_abbreviation(text, index)
             )
             if boundary:
-                boundary_end = next_index
+                boundary_end = next_start
 
         if boundary:
-            fragment = text[fragment_start:index + 1].strip()
+            fragment = text[fragment_start:boundary_end].strip()
             if fragment:
                 fragments.append(fragment)
             fragment_start = boundary_end
