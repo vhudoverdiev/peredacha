@@ -847,6 +847,35 @@ def _source_cell_tasks_match_fragments(tasks: list[Task], remarks: list[str]) ->
     )
 
 
+def _compact_source_cell_compare_text(value: str) -> str:
+    return re.sub(r"\s+", "", normalize_text(value))
+
+
+def _source_cell_tasks_join_to_cell(tasks: list[Task], source_cell_value: str) -> bool:
+    joined = " ".join(
+        str(task.description or "").strip()
+        for task in tasks
+        if str(task.description or "").strip()
+    )
+    return bool(joined) and (
+        normalize_text(joined) == normalize_text(source_cell_value)
+        or _compact_source_cell_compare_text(joined) == _compact_source_cell_compare_text(source_cell_value)
+    )
+
+
+def _task_has_merge_protected_state(task: Task) -> bool:
+    material_writeoffs = getattr(task, "material_writeoffs", None)
+    has_material_writeoffs = bool(material_writeoffs.count()) if material_writeoffs is not None else False
+    return bool(
+        task.manually_edited
+        or task.responsible_id
+        or task.comment
+        or task.comments
+        or task.glass_measurement
+        or has_material_writeoffs
+    )
+
+
 def _clear_obsolete_source_cell_conflicts(
     project_id: int,
     sheet_name: str,
@@ -854,6 +883,8 @@ def _clear_obsolete_source_cell_conflicts(
     column_index: int,
     source_cell_value: str,
     source_hash: str,
+    *,
+    delete_all: bool = False,
 ) -> None:
     conflicts = (
         SyncConflict.query.join(Task, SyncConflict.task_id == Task.id)
@@ -874,7 +905,11 @@ def _clear_obsolete_source_cell_conflicts(
     )
     for conflict in conflicts:
         conflict_new_hash = conflict.new_hash or cell_hash(conflict.new_value or "")
-        if conflict_new_hash == source_hash or normalize_text(conflict.new_value) == normalize_text(source_cell_value):
+        if (
+            delete_all
+            or conflict_new_hash == source_hash
+            or normalize_text(conflict.new_value) == normalize_text(source_cell_value)
+        ):
             db.session.delete(conflict)
 
 
@@ -886,6 +921,37 @@ def _adopt_excel_source_cell_for_split_tasks(
     for task in tasks:
         task.source_cell_value = source_cell_value
         task.source_hash = source_hash
+
+
+def _consolidate_source_cell_tasks(
+    tasks: list[Task],
+    remarks: list[str],
+    source_cell_value: str,
+    source_hash: str,
+    sync_time: datetime,
+) -> bool:
+    """Merge rows that were only created by an older, too-aggressive split rule."""
+    if not tasks or not remarks or len(tasks) <= len(remarks):
+        return False
+    extras = tasks[len(remarks):]
+    if any(_task_has_merge_protected_state(task) for task in extras):
+        return False
+
+    for task, remark in zip(tasks, remarks):
+        task.description = remark
+        task.source_cell_value = source_cell_value
+        task.source_hash = source_hash
+        task.is_archived = False
+        task.is_missing_in_latest_sync = False
+        task.last_seen_at = sync_time
+
+    for task in extras:
+        task.is_archived = True
+        task.is_missing_in_latest_sync = False
+        task.source_cell_value = source_cell_value
+        task.source_hash = source_hash
+        task.last_seen_at = sync_time
+    return True
 
 
 def is_non_white_finishing(finishing_type: str | None) -> bool:
@@ -1486,6 +1552,7 @@ def upsert_task_from_cell(
         db.session.flush()
     task.apartment_id = apartment.id
     task.work_point_id = work_point.id
+    task.is_archived = False
     task.title = f"Пункт {work_point.point_number}: {work_point.display_name}"
     # Любое изменение уже известной ячейки Excel теперь попадает в «Несостыковки».
     # Раньше конфликт создавался только после ручной правки на сайте, из-за этого
@@ -1749,7 +1816,19 @@ def sync_rows(
                     col_zero_idx + 1,
                     cell_text,
                     source_hash,
+                    delete_all=True,
                 )
+            elif source_tasks and _source_cell_tasks_join_to_cell(source_tasks, cell_text):
+                if _consolidate_source_cell_tasks(source_tasks, remarks, cell_text, source_hash, sync_time):
+                    _clear_obsolete_source_cell_conflicts(
+                        project.id,
+                        sheet_name,
+                        row_zero_idx,
+                        col_zero_idx + 1,
+                        cell_text,
+                        source_hash,
+                        delete_all=True,
+                    )
             for remark_index, remark in enumerate(remarks):
                 cell_address = f"{column_letter(col_zero_idx + 1)}{row_zero_idx}"
                 cell_is_struck = bool(struck_cells and (row_zero_idx, col_zero_idx + 1) in struck_cells)

@@ -22,7 +22,7 @@ from app.services.excel_import import sync_excel_file
 from app.services.mapping_service import ensure_default_categories
 from app.services.remark_entities import migrate_existing_compound_tasks, split_task_into_entities
 from app.services.task_service import build_task_query, dop_agreement_work_point_clause, map_work_point_columns
-from app.services.uid_service import cell_hash, split_cell_remarks
+from app.services.uid_service import build_source_fragment_uid, cell_hash, split_cell_remarks
 
 
 class TestConfig(Config):
@@ -174,6 +174,80 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
         self.assertEqual({task.source_cell_value for task in refreshed}, {source_text})
         self.assertEqual({task.source_hash for task in refreshed}, {cell_hash(source_text)})
 
+    def test_resync_consolidates_rows_split_by_old_abbreviation_rule(self):
+        source_text = "отсут.ХГВС"
+        project_name = "Abbreviation healing QA"
+        path = self._workbook(source_text)
+
+        project = Project(name=project_name)
+        apartment = Apartment(project=project, apartment_number="1", construction_number="1-1-1")
+        point = WorkPoint(
+            point_number="10",
+            source_sheet_name="Замечания",
+            original_column_name="10. Маляры",
+            short_name="10. Маляры",
+            source_column_index=3,
+            is_active=True,
+        )
+        db.session.add_all([project, apartment, point])
+        db.session.flush()
+        old_first = Task(
+            source_uid=build_source_fragment_uid(project_name, "Замечания", 2, 3, 0),
+            project=project,
+            apartment=apartment,
+            work_point=point,
+            description="отсут.",
+            source_cell_value="отсут.",
+            source_hash=cell_hash("отсут."),
+            source_sheet_name="Замечания",
+            source_row_index=2,
+            source_column_index=3,
+            source_cell_address="C2",
+        )
+        old_extra = Task(
+            source_uid=build_source_fragment_uid(project_name, "Замечания", 2, 3, 1),
+            project=project,
+            apartment=apartment,
+            work_point=point,
+            description="ХГВС",
+            source_cell_value="ХГВС",
+            source_hash=cell_hash("ХГВС"),
+            source_sheet_name="Замечания",
+            source_row_index=2,
+            source_column_index=3,
+            source_cell_address="C2",
+        )
+        db.session.add_all([old_first, old_extra])
+        db.session.flush()
+        db.session.add(
+            SyncConflict(
+                task=old_extra,
+                target_type="task",
+                field_name="source_cell_value",
+                source_type="excel",
+                sheet_name="Замечания",
+                row_index=2,
+                column_index=3,
+                old_value="ХГВС",
+                new_value=source_text,
+                old_hash=cell_hash("ХГВС"),
+                new_hash=cell_hash(source_text),
+                status="pending",
+            )
+        )
+        db.session.commit()
+
+        result = sync_excel_file(path, project_name=project_name)
+
+        self.assertEqual(result["created_count"], 0)
+        self.assertEqual(SyncConflict.query.count(), 0)
+        active_tasks = Task.query.filter_by(is_archived=False).order_by(Task.id.asc()).all()
+        archived_tasks = Task.query.filter_by(is_archived=True).all()
+        self.assertEqual([task.description for task in active_tasks], [source_text])
+        self.assertEqual(active_tasks[0].source_cell_value, source_text)
+        self.assertEqual(active_tasks[0].source_hash, cell_hash(source_text))
+        self.assertEqual([task.id for task in archived_tasks], [old_extra.id])
+
     def test_dop_agreement_category_uses_header_name_when_column_number_shifts(self):
         project = Project(name="Dop agreement shifted column QA")
         apartment = Apartment(project=project, apartment_number="34")
@@ -232,6 +306,29 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
             map_work_point_columns(headers, {"apartment_number": 0, "construction_number": 1}),
             {2: "Отступное ТМЦ"},
         )
+
+    def test_shifted_dop_agreement_column_imports_and_appears_in_category(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Квартал 100-5"
+        headers = ["№ кв", "Строительный номер"] + [f"Служебный {idx}" for idx in range(3, 26)] + ["Отступное ТМЦ"]
+        row = ["34", "1-1-34"] + ["" for _ in range(3, 26)] + ["отступное ТМЦ к выдаче"]
+        sheet.append(headers)
+        sheet.append(row)
+        path = Path(self.tempdir.name) / "shifted-dop-column.xlsx"
+        workbook.save(path)
+
+        sync_excel_file(path, project_name="Dop agreement imported shifted column QA")
+        ensure_default_categories()
+
+        dop_category = WorkCategory.query.filter_by(name="Доп.Соглашение").one()
+        tasks = build_task_query({}, category_id=dop_category.id).all()
+
+        self.assertEqual(len(tasks), 1)
+        self.assertEqual(tasks[0].apartment.apartment_number, "34")
+        self.assertEqual(tasks[0].work_point.point_number, "26")
+        self.assertEqual(tasks[0].work_point.original_column_name, "Отступное ТМЦ")
+        self.assertEqual(tasks[0].description, "отступное ТМЦ к выдаче")
 
     def test_legacy_row_is_split_while_original_relations_stay_on_first_entity(self):
         project = Project(name="Sentence entities migration QA")
