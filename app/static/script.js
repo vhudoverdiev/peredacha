@@ -5525,6 +5525,37 @@ document.addEventListener('click', function (event) {
 
 // CRM polish: numeric-only inputs, row checkbox toggle, styled confirmations and safe download buttons.
 document.addEventListener('DOMContentLoaded', () => {
+  const isDesktopModalViewport = () => (
+    document.documentElement.classList.contains('desktop-like-pointer')
+    && !document.documentElement.classList.contains('mobile-viewport')
+    && !document.documentElement.classList.contains('adaptive-mobile-viewport')
+    && !document.documentElement.classList.contains('touch-app-device')
+  );
+
+  const ensureBootstrapModalInBody = modal => {
+    if (!isDesktopModalViewport()) return;
+    if (!(modal instanceof HTMLElement)) return;
+    if (!modal.classList.contains('modal')) return;
+    if (modal.parentElement === document.body) return;
+    document.body.appendChild(modal);
+  };
+
+  document.addEventListener('show.bs.modal', event => {
+    ensureBootstrapModalInBody(event.target);
+  }, true);
+
+  document.addEventListener('click', event => {
+    const trigger = event.target.closest?.('[data-bs-toggle="modal"][data-bs-target]');
+    if (!trigger) return;
+    const targetSelector = trigger.getAttribute('data-bs-target');
+    if (!targetSelector) return;
+    try {
+      ensureBootstrapModalInBody(document.querySelector(targetSelector));
+    } catch (error) {
+      // Invalid selector in markup should not block the original Bootstrap click.
+    }
+  }, true);
+
   document.querySelectorAll('[data-digits-only="1"]').forEach(input => {
     const clean = () => { input.value = (input.value || '').replace(/\D+/g, ''); };
     input.addEventListener('input', clean);

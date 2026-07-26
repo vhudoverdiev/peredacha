@@ -563,7 +563,11 @@ def select_primary_work_point_columns(headers: list[str], point_columns: dict[in
     groups = _point_column_groups(point_columns)
     if len(groups) <= 1:
         return point_columns
-    return max(groups, key=lambda group: _point_group_score(headers, group))
+    primary = dict(max(groups, key=lambda group: _point_group_score(headers, group)))
+    for idx, header in point_columns.items():
+        if is_dop_agreement_header(header):
+            primary[idx] = header
+    return dict(sorted(primary.items()))
 
 
 def parse_date(value) -> date | None:

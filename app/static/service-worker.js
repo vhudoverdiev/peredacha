@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v141-weak-network-fallback';
+const STATIC_CACHE = 'peredacha-static-v142-desktop-modal-viewport';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -14,8 +14,8 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
   '/static/mobile-only.css?v=v88-remark-sentence-lines',
-  '/static/desktop-only.css?v=v61-remark-sentence-lines',
-  '/static/script.js?v=v664-remark-entities',
+  '/static/desktop-only.css?v=v62-desktop-modal-viewport',
+  '/static/script.js?v=v665-desktop-modal-body',
 ];
 
 const NAVIGATION_NETWORK_TIMEOUT_MS = 8000;

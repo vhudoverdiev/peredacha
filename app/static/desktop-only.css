@@ -1584,11 +1584,20 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
   /* Keep app modals inside the visible desktop viewport so action buttons
      never slide below the screen after scroll/zoomed window states. */
   html.desktop-like-pointer body.app-body .modal.show {
+    position: fixed !important;
+    inset: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    box-sizing: border-box !important;
     overflow: hidden !important;
     padding: 1rem !important;
+    margin: 0 !important;
+    pointer-events: auto !important;
   }
 
   html.desktop-like-pointer body.app-body .modal.show .modal-dialog {
@@ -1599,6 +1608,7 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     max-height: calc(100dvh - 2rem) !important;
     margin: 0 auto !important;
     transform: none !important;
+    zoom: 1 !important;
     pointer-events: auto !important;
   }
 
@@ -1642,11 +1652,19 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
   }
 
   html.desktop-like-pointer body.app-body .crm-confirm-overlay {
+    position: fixed !important;
+    inset: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    box-sizing: border-box !important;
     overflow: hidden !important;
     padding: 1rem !important;
+    margin: 0 !important;
     pointer-events: auto !important;
   }
 
