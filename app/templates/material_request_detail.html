@@ -104,7 +104,7 @@
             <th style="width:190px">Ед.измерения</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody{% if not is_mobile_phone_request %} data-unlimited-rows="1"{% endif %}>
         {% for i in range(max_rows) %}
           {% set item = material_request.items[i] if i < material_request.items|length else none %}
           <tr>

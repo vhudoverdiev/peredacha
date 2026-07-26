@@ -1875,6 +1875,71 @@ document.addEventListener('DOMContentLoaded', () => {
     return html.replace(regex, '<mark class="search-highlight">$1</mark>');
   };
 
+  const remarkSentenceRanges = text => {
+    if (!text) return [];
+    const sentenceClosers = new Set(['"', "'", '»', '”', '’', ')', ']', '}']);
+    const abbreviations = [
+      'в т.ч.', 'и т.д.', 'и т.п.', 'т.е.', 'т.к.', 'т.п.', 'т.д.', 'т.ч.',
+      'г.', 'ул.', 'им.', 'пос.', 'корп.', 'стр.', 'рис.', 'кв.', 'ком.', 'п.', 'ч.',
+    ];
+    const ranges = [];
+    let lineStart = 0;
+    let index = 0;
+
+    const hasNonTerminalAbbreviation = dotIndex => {
+      const prefix = text.slice(0, dotIndex + 1).toLocaleLowerCase('ru-RU');
+      const abbreviationMatch = abbreviations.some(abbreviation => {
+        if (!prefix.endsWith(abbreviation)) return false;
+        const start = prefix.length - abbreviation.length;
+        return start === 0 || !/[\p{L}\p{N}]/u.test(prefix[start - 1]);
+      });
+      if (abbreviationMatch) return true;
+      return /(?:^|[^А-ЯЁA-Z])(?:[А-ЯЁA-Z]\.){1,3}$/.test(text.slice(0, dotIndex + 1));
+    };
+
+    while (index < text.length) {
+      const char = text[index];
+      if (char === '\r' || char === '\n') {
+        let boundary = index + 1;
+        if (char === '\r' && text[boundary] === '\n') boundary += 1;
+        while (boundary < text.length && /\s/u.test(text[boundary])) boundary += 1;
+        if (boundary < text.length && boundary > lineStart) {
+          ranges.push([lineStart, boundary]);
+          lineStart = boundary;
+        }
+        index = boundary;
+        continue;
+      }
+      if (!'.!?'.includes(char)) {
+        index += 1;
+        continue;
+      }
+
+      let punctuationEnd = index + 1;
+      while (punctuationEnd < text.length && '.!?'.includes(text[punctuationEnd])) punctuationEnd += 1;
+      while (punctuationEnd < text.length && sentenceClosers.has(text[punctuationEnd])) punctuationEnd += 1;
+      let boundary = punctuationEnd;
+      while (boundary < text.length && /\s/u.test(text[boundary])) boundary += 1;
+      const hasFollowingSentence = (
+        boundary < text.length
+        && (
+          boundary > punctuationEnd
+          || text[boundary].toLocaleUpperCase() === text[boundary]
+            && text[boundary].toLocaleLowerCase() !== text[boundary]
+        )
+      );
+      const numericListPrefix = /^\d+$/u.test(text.slice(lineStart, index).trim());
+      const nonTerminalDot = char === '.' && (hasNonTerminalAbbreviation(index) || numericListPrefix);
+      if (hasFollowingSentence && !nonTerminalDot) {
+        ranges.push([lineStart, boundary]);
+        lineStart = boundary;
+      }
+      index = punctuationEnd;
+    }
+    if (lineStart < text.length) ranges.push([lineStart, text.length]);
+    return ranges.length ? ranges : [[0, text.length]];
+  };
+
   const formatRemarkHtml = (value, regex = null) => {
     const text = String(value || '');
     if (!text) return '';
@@ -1898,18 +1963,31 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     ranges.sort((a, b) => a[0] - b[0]);
-    if (!ranges.length) return applyHighlightToEscaped(escapeHtml(text), regex);
 
-    let pos = 0;
-    let html = '';
-    ranges.forEach(([start, end]) => {
-      if (start < pos) return;
-      if (start > pos) html += applyHighlightToEscaped(escapeHtml(text.slice(pos, start)), regex);
-      html += `<span class="remark-quoted-strike">${applyHighlightToEscaped(escapeHtml(text.slice(start, end)), regex)}</span>`;
-      pos = end;
-    });
-    if (pos < text.length) html += applyHighlightToEscaped(escapeHtml(text.slice(pos)), regex);
-    return html;
+    const formatRange = (rangeStart, rangeEnd) => {
+      let pos = rangeStart;
+      let html = '';
+      ranges.forEach(([quoteStart, quoteEnd]) => {
+        if (quoteEnd <= rangeStart || quoteStart >= rangeEnd) return;
+        const overlapStart = Math.max(rangeStart, quoteStart);
+        const overlapEnd = Math.min(rangeEnd, quoteEnd);
+        if (overlapStart > pos) {
+          html += applyHighlightToEscaped(escapeHtml(text.slice(pos, overlapStart)), regex);
+        }
+        if (overlapEnd > overlapStart) {
+          html += `<span class="remark-quoted-strike">${applyHighlightToEscaped(escapeHtml(text.slice(overlapStart, overlapEnd)), regex)}</span>`;
+        }
+        pos = Math.max(pos, overlapEnd);
+      });
+      if (pos < rangeEnd) html += applyHighlightToEscaped(escapeHtml(text.slice(pos, rangeEnd)), regex);
+      return html;
+    };
+
+    const sentenceRanges = remarkSentenceRanges(text);
+    if (sentenceRanges.length <= 1) return formatRange(0, text.length);
+    return sentenceRanges
+      .map(([start, end]) => `<span class="remark-sentence-line">${formatRange(start, end)}</span>`)
+      .join('');
   };
 
 
@@ -2955,8 +3033,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const tbody = form?.querySelector('.material-edit-table tbody');
       const lastRow = tbody?.querySelector('tr:last-child');
       if (!tbody || !lastRow) return;
+      const unlimitedRows = tbody.dataset.unlimitedRows === '1';
       const maxRows = Number(tbody.dataset.maxRows || 10);
-      if (tbody.querySelectorAll('tr').length >= maxRows) {
+      if (!unlimitedRows && tbody.querySelectorAll('tr').length >= maxRows) {
         btn.disabled = true;
         return;
       }
@@ -2978,7 +3057,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         nameInput.focus();
       }
-      if (tbody.querySelectorAll('tr').length >= maxRows) {
+      if (!unlimitedRows && tbody.querySelectorAll('tr').length >= maxRows) {
         btn.disabled = true;
       }
     });
@@ -4518,6 +4597,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  const isDesktopAjaxTableSearch = () => (
+    document.documentElement.classList.contains('desktop-like-pointer')
+  );
+
+  const paginationFormTargetUrl = form => new URL(
+    form.getAttribute('action') || window.location.href,
+    window.location.href,
+  );
+
+  const isPaginationFilterForm = form => {
+    if (!(form instanceof HTMLFormElement) || (form.method || 'get').toLowerCase() !== 'get') return false;
+    const pageRoot = form.closest('[data-ajax-pagination-page]');
+    if (!pageRoot?.querySelector('[data-ajax-pagination-content]')) return false;
+    if (form.hasAttribute('data-ajax-pagination-form')) return true;
+    if (!isDesktopAjaxTableSearch()) return false;
+
+    const targetUrl = paginationFormTargetUrl(form);
+    return targetUrl.origin === window.location.origin
+      && targetUrl.pathname === window.location.pathname;
+  };
+
+  const paginationFilterForms = root => (
+    Array.from(root?.querySelectorAll?.('form') || []).filter(isPaginationFilterForm)
+  );
+
   const isCompatibleNode = (currentNode, nextNode) => {
     if (!currentNode || !nextNode || currentNode.nodeType !== nextNode.nodeType) return false;
     if (currentNode.nodeType !== Node.ELEMENT_NODE) return true;
@@ -4557,6 +4661,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     syncElementAttributes(currentNode, nextNode);
+    if (
+      currentNode.matches?.('.inline-text')
+      && nextNode.matches?.('.inline-text')
+    ) {
+      currentNode.replaceChildren(
+        ...Array.from(nextNode.childNodes, child => child.cloneNode(true)),
+      );
+      return;
+    }
     const currentChildren = Array.from(currentNode.childNodes).filter(child => (
       child.nodeType !== Node.ELEMENT_NODE
       || !child.hasAttribute('data-ajax-pagination-runtime')
@@ -4613,10 +4726,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  const updatePaginationPage = async (targetUrl, { push = true, scroll = true, useCache = true, root = null } = {}) => {
+  const updatePaginationPage = async (
+    targetUrl,
+    {
+      push = true,
+      scroll = true,
+      useCache = true,
+      root = null,
+      fallbackToNavigation = true,
+    } = {},
+  ) => {
     const currentRoot = root || document.querySelector('[data-ajax-pagination-page]');
     if (!currentRoot) {
-      window.location.assign(targetUrl.toString());
+      if (fallbackToNavigation) window.location.assign(targetUrl.toString());
       return;
     }
     const pageKey = currentRoot.dataset.ajaxPaginationPage || '';
@@ -4632,12 +4754,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const currentContent = currentRoot.querySelector('[data-ajax-pagination-content]');
       const nextContent = nextRoot?.querySelector('[data-ajax-pagination-content]');
       if (!nextRoot || !currentContent || !nextContent) {
-        window.location.assign(targetUrl.toString());
+        if (fallbackToNavigation) {
+          window.location.assign(targetUrl.toString());
+        } else if (typeof showCrmNotice === 'function') {
+          showCrmNotice('Не удалось обновить таблицу. Повторите попытку.', 'danger');
+        }
         return;
       }
 
       const itemsSelector = currentContent.dataset.ajaxItemsSelector || '';
-      if (itemsSelector) {
+      if (itemsSelector && !isDesktopAjaxTableSearch()) {
         const availableSlots = currentContent.querySelectorAll(itemsSelector).length;
         const requiredSlots = nextContent.querySelectorAll(itemsSelector).length;
         if (requiredSlots > availableSlots) {
@@ -4660,8 +4786,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const nextSummary = nextRoot.querySelector('[data-ajax-pagination-summary]');
       if (currentSummary && nextSummary) morphPaginationNode(currentSummary, nextSummary);
 
-      const currentFilterForms = Array.from(currentRoot.querySelectorAll('[data-ajax-pagination-form]'));
-      const nextFilterForms = Array.from(nextRoot.querySelectorAll('[data-ajax-pagination-form]'));
+      const currentFilterForms = paginationFilterForms(currentRoot);
+      const nextFilterForms = paginationFilterForms(nextRoot);
       currentFilterForms.forEach((filterForm, index) => {
         if (nextFilterForms[index]) morphPaginationNode(filterForm, nextFilterForms[index]);
       });
@@ -4686,7 +4812,11 @@ document.addEventListener('DOMContentLoaded', () => {
       prefetchPaginationLinks(currentRoot);
     } catch (error) {
       if (error?.name === 'AbortError') return;
-      window.location.assign(targetUrl.toString());
+      if (fallbackToNavigation) {
+        window.location.assign(targetUrl.toString());
+      } else if (typeof showCrmNotice === 'function') {
+        showCrmNotice('Не удалось обновить таблицу. Проверьте соединение и повторите попытку.', 'danger');
+      }
     } finally {
       currentRoot.classList.remove('ajax-pagination-loading');
       currentRoot.removeAttribute('aria-busy');
@@ -4726,20 +4856,44 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.addEventListener('submit', event => {
-    const form = event.target.closest('form[data-ajax-pagination-form]');
-    if (!form || (form.method || 'get').toLowerCase() !== 'get') return;
+    const form = event.target.closest('form');
+    if (!isPaginationFilterForm(form)) return;
     const pageRoot = form.closest('[data-ajax-pagination-page]');
-    if (!pageRoot?.querySelector('[data-ajax-pagination-content]')) return;
     event.preventDefault();
 
-    const targetUrl = new URL(form.action || window.location.href, window.location.href);
+    const targetUrl = paginationFormTargetUrl(form);
     targetUrl.search = '';
     const formData = new FormData(form);
     formData.forEach((value, key) => {
       const normalizedValue = String(value || '').trim();
       if (normalizedValue) targetUrl.searchParams.append(key, normalizedValue);
     });
-    void updatePaginationPage(targetUrl, { push: true, scroll: false, useCache: false, root: pageRoot });
+    void updatePaginationPage(targetUrl, {
+      push: true,
+      scroll: false,
+      useCache: false,
+      root: pageRoot,
+      fallbackToNavigation: !isDesktopAjaxTableSearch(),
+    });
+  });
+
+  document.addEventListener('click', event => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (!isDesktopAjaxTableSearch()) return;
+    const link = event.target.closest('.crm-reset-btn[href], [data-ajax-pagination-reset][href]');
+    if (!link || link.target || link.hasAttribute('download')) return;
+    const pageRoot = link.closest('[data-ajax-pagination-page]');
+    if (!pageRoot?.querySelector('[data-ajax-pagination-content]')) return;
+    const targetUrl = new URL(link.getAttribute('href') || '', window.location.href);
+    if (targetUrl.origin !== window.location.origin || targetUrl.pathname !== window.location.pathname) return;
+    event.preventDefault();
+    void updatePaginationPage(targetUrl, {
+      push: true,
+      scroll: false,
+      useCache: false,
+      root: pageRoot,
+      fallbackToNavigation: false,
+    });
   });
 
   window.addEventListener('popstate', event => {
@@ -5431,6 +5585,7 @@ document.addEventListener('DOMContentLoaded', () => {
         check.dataset.writeoffSelectionBound = '1';
       });
     };
+    form.crmBindWriteoffSelectionChecks = bindSelectionChecks;
 
     bindSelectionChecks();
 
@@ -5576,6 +5731,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const content = event.detail?.content || document;
     initMaterialSelectRows(content);
     initMaterialWriteoffForms(content);
+    const writeoffForms = [];
+    if (content.matches?.('.js-material-writeoff-form')) writeoffForms.push(content);
+    content.querySelectorAll?.('.js-material-writeoff-form').forEach(form => writeoffForms.push(form));
+    const parentWriteoffForm = content.closest?.('.js-material-writeoff-form');
+    if (parentWriteoffForm) writeoffForms.push(parentWriteoffForm);
+    new Set(writeoffForms).forEach(form => {
+      form.crmBindWriteoffSelectionChecks?.(content);
+    });
   });
 
 
@@ -6070,25 +6233,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const buildGlassNeedMeasureMarkup = (taskId, csrfToken) => `
-    <form method="post" action="/glass/${taskId}/need-measure" class="js-glass-need-measure-form" data-task-id="${escapeHtml(taskId)}">
+    <form method="post" action="/glass/${escapeHtml(taskId)}/need-measure" class="js-glass-need-measure-form" data-task-id="${escapeHtml(taskId)}">
       <input type="hidden" name="csrf_token" value="${escapeHtml(csrfToken || getCsrfToken())}">
       <input type="hidden" name="return_tab" value="all">
       <button class="btn btn-sm btn-success glass-measure-icon-btn" type="submit" title="Сделать замер" aria-label="Сделать замер"><i class="bi bi-rulers"></i></button>
     </form>
   `;
-
-  const buildGlassMeasureNeededMarkup = (measurementId, taskId, csrfToken) => {
-    return `
-      <div class="glass-all-row-actions">
-        <span class="glass-status-badge glass-status-ordered">В заказе</span>
-        <form method="post" action="/glass/${measurementId}/return-to-all" class="js-glass-return-form" data-task-id="${escapeHtml(taskId)}">
-          <input type="hidden" name="csrf_token" value="${escapeHtml(csrfToken || getCsrfToken())}">
-          <input type="hidden" name="return_tab" value="all">
-          <button class="btn btn-sm btn-outline-secondary glass-measure-reset-btn" type="submit" title="Вернуть" aria-label="Вернуть"><i class="bi bi-arrow-counterclockwise"></i></button>
-        </form>
-      </div>
-    `;
-  };
 
   const bindGlassAllRowActions = actions => {
     if (!actions || actions.dataset.glassAllRowActionsBound === '1') return;
@@ -6165,7 +6315,6 @@ document.addEventListener('DOMContentLoaded', () => {
       event.preventDefault();
       const button = event.submitter || form.querySelector('button[type="submit"]');
       const previousHtml = button?.innerHTML || '';
-      const csrfToken = form.querySelector('input[name="csrf_token"]')?.value || getCsrfToken();
       if (button) button.disabled = true;
       if (button) {
         button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>';
@@ -6184,15 +6333,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
         const cell = form.closest('td');
-        const nextTaskId = data.task_id || form.dataset.taskId;
+        const nextTaskId = form.dataset.refreshTaskId || data.task_id || form.dataset.taskId;
         let synced = false;
         if (cell && nextTaskId) {
           synced = await refreshGlassActionCell(nextTaskId, cell).catch(() => false);
-        }
-        if (!synced && cell && data.measurement_id && nextTaskId) {
-          cell.innerHTML = buildGlassMeasureNeededMarkup(data.measurement_id, nextTaskId, csrfToken);
-          bindGlassActionCell(cell);
-          synced = true;
         }
         if (!synced) {
           window.setTimeout(() => window.location.reload(), 120);
@@ -6224,7 +6368,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const previousHtml = button?.innerHTML || '';
       const cell = form.closest('td');
       const row = form.closest('tr');
-      const taskId = form.dataset.taskId || row?.querySelector('.inline-text')?.dataset?.taskId;
+      const actionTaskId = form.dataset.taskId
+        || row?.querySelector('.inline-text')?.dataset?.taskId;
+      const taskId = form.dataset.refreshTaskId || actionTaskId;
       const csrfToken = form.querySelector('input[name="csrf_token"]')?.value || getCsrfToken();
       if (button) button.disabled = true;
       try {
@@ -6244,7 +6390,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cell && nextTaskId) {
           synced = await refreshGlassActionCell(nextTaskId, cell).catch(() => false);
         }
-        if (!synced && cell && nextTaskId) {
+        if (!synced && cell && nextTaskId && String(nextTaskId) === String(actionTaskId)) {
           cell.innerHTML = buildGlassNeedMeasureMarkup(nextTaskId, csrfToken);
           bindGlassActionCell(cell);
           synced = true;
@@ -6447,6 +6593,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const glassManualModalElement = document.getElementById('glassManualTaskModal');
   const glassManualForm = document.querySelector('.js-glass-manual-form');
+  if (glassManualModalElement && !isMobileViewport() && glassManualModalElement.parentElement !== document.body) {
+    // The page-entry surface creates its own stacking context. Bootstrap puts
+    // the backdrop in <body>, so a modal left inside that surface is rendered
+    // underneath the backdrop and cannot receive clicks.
+    document.body.appendChild(glassManualModalElement);
+  }
   const glassManualModal = glassManualModalElement && window.bootstrap ? new bootstrap.Modal(glassManualModalElement) : null;
   const escapeGlassManualHtml = value => String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -6491,7 +6643,7 @@ document.addEventListener('DOMContentLoaded', () => {
         row.dataset.href = data.task_url || '';
         row.innerHTML = `
           <td><span class="js-highlight-text">${escapeGlassManualHtml(data.apartment_label || '—')}</span></td>
-          <td class="task-text"><span class="inline-text js-highlight-text" data-task-id="${escapeGlassManualHtml(data.task_id || '')}">${escapeGlassManualHtml(data.description || '')}</span></td>
+          <td class="task-text"><span class="inline-text js-highlight-text" data-task-id="${escapeGlassManualHtml(data.task_id || '')}">${formatRemarkHtml(data.description || '')}</span></td>
           <td><span class="badge bg-${escapeGlassManualHtml(data.status_class || 'secondary')}">${escapeGlassManualHtml(data.status_label || '')}</span></td>
           <td class="text-end">
             <form method="post" action="/glass/${data.task_id}/need-measure" class="js-glass-need-measure-form" data-task-id="${escapeGlassManualHtml(data.task_id || '')}">

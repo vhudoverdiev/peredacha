@@ -82,30 +82,43 @@
             <td><span class="badge bg-{{ task.status_class() }}">{{ task.status_label() }}</span></td>
             <td class="text-end">
               {% if current_user.role != 'viewer' %}
-                {% if row.status == 'none' %}
-                <form method="post" action="{{ url_for('main.glass_need_measure', task_id=task.id) }}" class="js-glass-need-measure-form" data-task-id="{{ task.id }}">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <input type="hidden" name="return_tab" value="all">
-                  <button class="btn btn-sm btn-success glass-measure-icon-btn" type="submit" title="Сделать замер" aria-label="Сделать замер"><i class="bi bi-rulers"></i></button>
-                </form>
-                {% elif row.status == 'measure_needed' %}
-                  <div class="glass-all-row-actions">
-                    <span class="glass-status-badge glass-status-ordered">В заказе</span>
-                    {% if row.measurement %}
-                    <form method="post" action="{{ url_for('main.glass_measurement_return_to_all', measurement_id=row.measurement.id) }}" class="js-glass-return-form" data-task-id="{{ task.id }}">
+                {% set measurement_rows = row.related_rows if row.related_rows is defined else [row] %}
+                <div class="glass-all-row-actions">
+                  {% for measurement_row in measurement_rows %}
+                    {% set measurement_task = measurement_row.task %}
+                    {% if measurement_row.status == 'none' %}
+                    <form method="post" action="{{ url_for('main.glass_need_measure', task_id=measurement_task.id) }}" class="js-glass-need-measure-form" data-task-id="{{ measurement_task.id }}" data-refresh-task-id="{{ task.id }}">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                       <input type="hidden" name="return_tab" value="all">
-                      <button class="btn btn-sm btn-outline-secondary glass-measure-reset-btn" type="submit" title="Вернуть" aria-label="Вернуть"><i class="bi bi-arrow-counterclockwise"></i></button>
+                      <button class="btn btn-sm btn-success glass-measure-icon-btn" type="submit" title="Сделать замер" aria-label="Сделать замер"><i class="bi bi-rulers"></i></button>
                     </form>
+                    {% elif measurement_row.status == 'measure_needed' %}
+                      <span class="glass-status-badge glass-status-ordered" data-measurement-id="{{ measurement_row.measurement.id if measurement_row.measurement else '' }}">В заказе</span>
+                      {% if measurement_row.measurement %}
+                      <form method="post" action="{{ url_for('main.glass_measurement_return_to_all', measurement_id=measurement_row.measurement.id) }}" class="js-glass-return-form" data-task-id="{{ measurement_task.id }}" data-refresh-task-id="{{ task.id }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="return_tab" value="all">
+                        <button class="btn btn-sm btn-outline-secondary glass-measure-reset-btn" type="submit" title="Вернуть" aria-label="Вернуть"><i class="bi bi-arrow-counterclockwise"></i></button>
+                      </form>
+                      {% endif %}
+                    {% elif measurement_row.status in ['ordered', 'replaced'] %}
+                      {% for status_label in measurement_row.status_labels %}
+                      <span class="glass-status-badge glass-status-{{ measurement_row.status }}" data-measurement-id="{{ measurement_row.measurement.id if measurement_row.measurement else '' }}">{{ status_label }}</span>
+                      {% endfor %}
+                    {% else %}
+                      <span class="glass-status-badge glass-status-measured">{{ measurement_row.status_label }}</span>
                     {% endif %}
-                  </div>
-                {% elif row.status == 'ordered' %}
-                  <span class="glass-status-badge glass-status-ordered">{{ row.status_label }}</span>
-                {% elif row.status == 'replaced' %}
-                  <span class="glass-status-badge glass-status-replaced">{{ row.status_label }}</span>
-                {% else %}
-                  <span class="glass-status-badge glass-status-measured">{{ row.status_label }}</span>
-                {% endif %}
+                  {% endfor %}
+                  {% if not is_mobile_phone_request and row.can_add_measurement %}
+                  <form method="post" action="{{ url_for('main.glass_measurement_add', task_id=task.id) }}" class="glass-add-measurement-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="q" value="{{ q }}">
+                    <input type="hidden" name="point" value="{{ selected_point }}">
+                    <input type="hidden" name="page" value="{{ glass_pagination.page }}">
+                    <button class="btn btn-sm btn-success glass-add-measurement-btn" type="submit" title="Добавить ещё замер" aria-label="Добавить ещё замер"><i class="bi bi-plus-lg"></i></button>
+                  </form>
+                  {% endif %}
+                </div>
               {% endif %}
             </td>
           </tr>

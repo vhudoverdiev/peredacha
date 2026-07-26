@@ -117,6 +117,23 @@ class GlassManualTaskEntryTests(unittest.TestCase):
         self.assertNotIn("getCsrfToken()", manual_block)
         self.assertNotIn("bindTaskRowLink(row)", manual_block)
 
+    def test_desktop_modal_is_promoted_above_its_backdrop_before_initialization(self):
+        script = SCRIPT_PATH.read_text(encoding="utf-8")
+        manual_block = script.split("const glassManualModalElement", 1)[1].split(
+            "// Site-wide custom validation",
+            1,
+        )[0]
+
+        promote_modal = manual_block.index(
+            "document.body.appendChild(glassManualModalElement)"
+        )
+        initialize_modal = manual_block.index(
+            "new bootstrap.Modal(glassManualModalElement)"
+        )
+
+        self.assertLess(promote_modal, initialize_modal)
+        self.assertIn("!isMobileViewport()", manual_block)
+
 
 if __name__ == "__main__":
     unittest.main()

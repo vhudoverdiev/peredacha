@@ -1575,6 +1575,12 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     display: none !important;
   }
 
+  /* Keep every sentence of a remark visually distinct while preserving the
+     original text as one editable value. */
+  html.desktop-like-pointer .remark-sentence-line {
+    display: block;
+  }
+
   /* Page-specific entrance effects would otherwise finish while Firefox is
      loading the standby document off-screen. Freeze every existing animation
      at its own first frame, then let the host release it on the atomic swap. */

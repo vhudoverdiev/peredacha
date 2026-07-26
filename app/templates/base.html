@@ -896,7 +896,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v135-material-request-native-download', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v139-remark-sentence-lines-all', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -934,8 +934,8 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v628-mobile-root-height-conflicts-removed">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v87-safari-web-solid-topbar">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v60-restore-desktop-entry">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v88-remark-sentence-lines">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v61-remark-sentence-lines">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
     // Releasing the gate here guarantees that desktop body markup cannot be
@@ -1537,6 +1537,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v659-material-request-native-download"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v663-remark-sentence-lines-all"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v135-material-request-native-download';
+const STATIC_CACHE = 'peredacha-static-v139-remark-sentence-lines-all';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,9 +13,9 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
-  '/static/mobile-only.css?v=v87-safari-web-solid-topbar',
-  '/static/desktop-only.css?v=v60-restore-desktop-entry',
-  '/static/script.js?v=v659-material-request-native-download',
+  '/static/mobile-only.css?v=v88-remark-sentence-lines',
+  '/static/desktop-only.css?v=v61-remark-sentence-lines',
+  '/static/script.js?v=v663-remark-sentence-lines-all',
 ];
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>

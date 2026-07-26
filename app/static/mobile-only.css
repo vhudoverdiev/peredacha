@@ -2276,4 +2276,10 @@
     ) {
     font-weight: 400 !important;
   }
+
+  /* Match desktop remark formatting: each sentence is a separate visual line
+     while the underlying editable value remains unchanged. */
+  .remark-sentence-line {
+    display: block;
+  }
 }

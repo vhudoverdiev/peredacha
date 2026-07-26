@@ -35666,6 +35666,7 @@ body:has(.assignments-page-head) .assignment-task-row-invalid .assignment-task-c
 }
 
 .glass-measure-reset-btn,
+.glass-add-measurement-btn,
 .glass-order-delete-btn {
   width: 2.4rem;
   height: 2.4rem;
@@ -35677,6 +35678,7 @@ body:has(.assignments-page-head) .assignment-task-row-invalid .assignment-task-c
 }
 
 .glass-order-delete-btn i,
+.glass-add-measurement-btn i,
 .glass-measure-reset-btn i {
   margin: 0;
 }

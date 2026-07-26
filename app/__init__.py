@@ -269,6 +269,13 @@ def create_app(config_class=Config):
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN app_deadline_status VARCHAR(30) NOT NULL DEFAULT 'normal'"))
                 db.session.commit()
 
+            if "tasks" in inspector.get_table_names():
+                task_columns = {column["name"] for column in inspector.get_columns("tasks")}
+                if "glass_parent_task_id" not in task_columns:
+                    db.session.execute(text("ALTER TABLE tasks ADD COLUMN glass_parent_task_id INTEGER"))
+                db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_tasks_glass_parent_task_id ON tasks (glass_parent_task_id)"))
+                db.session.commit()
+
             if "material_requests" in inspector.get_table_names():
                 material_request_columns = {column["name"] for column in inspector.get_columns("material_requests")}
                 if "title" not in material_request_columns:

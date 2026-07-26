@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Ежедневный отчет{% endblock %}
 {% block content %}
-<div class="assignment-report-page">
+<div class="assignment-report-page"{% if not is_mobile_phone_request %} data-ajax-pagination-page="assignment-report"{% endif %}>
 <div class="page-head remarks-page-head assignment-report-hero">
   <div>
     <h1 class="page-title">Ежедневный отчет</h1>
@@ -10,7 +10,7 @@
   <a class="btn btn-outline-secondary" href="{{ url_for('main.work_report') }}"><i class="bi bi-arrow-left me-2"></i>Назад</a>
 </div>
 
-<div class="assignment-report-summary mb-3">
+<div class="assignment-report-summary mb-3"{% if not is_mobile_phone_request %} data-ajax-pagination-summary{% endif %}>
   <div class="assignment-report-metric">
     <span><i class="bi bi-people"></i></span>
     <div>
@@ -67,13 +67,13 @@
       </div>
       <div class="assignment-report-filter-actions">
         <button class="btn btn-primary" type="submit"><i class="bi bi-search me-2"></i>Показать</button>
-        <a class="btn btn-outline-secondary" href="{{ url_for('main.assignments_report') }}">Сегодня</a>
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.assignments_report') }}"{% if not is_mobile_phone_request %} data-ajax-pagination-reset{% endif %}>Сегодня</a>
       </div>
     </form>
   </div>
 </div>
 
-<div class="assignment-report-grid">
+<div class="assignment-report-grid"{% if not is_mobile_phone_request %} data-ajax-pagination-content data-ajax-items-selector=".assignment-report-card"{% endif %}>
   {% for group in grouped %}
   <div class="card content-card assignment-report-card {% if group.tasks|length == 0 %}is-empty{% endif %}" data-assignment-report-card>
     <div class="card-body">

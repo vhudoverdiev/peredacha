@@ -11,6 +11,7 @@ from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import urlparse
+from uuid import uuid4
 from sqlalchemy import or_, and_, exists
 from werkzeug.exceptions import HTTPException
 
@@ -131,7 +132,7 @@ from app.services.status_rules import is_problem_details_required
 from app.services.sync_rollback import apply_sync_rollback, build_project_rollback_data
 from app.time_utils import to_moscow_datetime
 from app.services.uid_service import build_task_uid, cell_hash, normalize_text, stable_hash
-from app.services.remark_format import remark_text_html
+from app.services.remark_format import remark_sentence_lines_html
 from app.security import hit_rate_limit, security_event, validate_upload
 from app.two_factor import generate_totp_secret, provisioning_uri, qr_svg_data_uri, verify_totp
 
@@ -269,6 +270,7 @@ SECTION_LOCK_CHOICES = [
         "icon": "bi-window",
         "endpoints": {
             "main.glass_measurements", "main.glass_need_measure", "main.glass_measurement_save",
+            "main.glass_measurement_add",
             "main.glass_measurement_return_to_all", "main.glass_status_update", "main.glass_order_export", "main.glass_create_material_request",
             "main.glass_measurements_delete", "main.glass_order",
         },
@@ -988,7 +990,7 @@ def inject_globals():
         "task_count_label": task_count_label,
         "format_ru_date": format_ru_date,
         "format_ru_weekday": format_ru_weekday,
-        "remark_text": remark_text_html,
+        "remark_text": remark_sentence_lines_html,
         "glass_measurement_action_label": glass_measurement_action_label,
     }
 
@@ -1240,13 +1242,16 @@ def _parse_quantity(value: str | None) -> float | None:
 MATERIAL_KEY_SEP = "|||"
 
 
-def _read_material_rows_from_form(limit: int = 10) -> list[dict[str, object]]:
+def _read_material_rows_from_form(limit: int | None = 10) -> list[dict[str, object]]:
     names = request.form.getlist("name[]")
     quantities = request.form.getlist("quantity[]")
     units = request.form.getlist("unit[]")
     source_item_ids = request.form.getlist("item_id[]")
     rows = []
-    for idx in range(min(limit, max(len(names), len(quantities), len(units), len(source_item_ids)))):
+    row_count = max(len(names), len(quantities), len(units), len(source_item_ids))
+    if limit is not None:
+        row_count = min(limit, row_count)
+    for idx in range(row_count):
         name = (names[idx] if idx < len(names) else "").strip()
         unit = (units[idx] if idx < len(units) else "").strip()
         quantity = _parse_quantity(quantities[idx] if idx < len(quantities) else "")
@@ -1626,7 +1631,12 @@ def _sync_measurement_writeoffs_from_request_groups(
         if measurement is None:
             continue
         group_item_ids = [int(item_id) for item_id in group.get("item_ids") or []]
-        group_items = [new_items_by_old_id[item_id] for item_id in group_item_ids if item_id in new_items_by_old_id]
+        posted_group_items = group.get("new_items")
+        group_items = (
+            list(posted_group_items)
+            if isinstance(posted_group_items, list)
+            else [new_items_by_old_id[item_id] for item_id in group_item_ids if item_id in new_items_by_old_id]
+        )
         if group_items:
             measurement.material_request_item = group_items[0]
         else:
@@ -4604,6 +4614,7 @@ GLASS_ITEM_TYPES = ["Стеклопакет", "Стекло", "Фр.стекло
 GLASS_ITEM_WORDS = {
     "стеклопакет": {"singular": "стеклопакет", "plural": "стеклопакеты", "gender": "m"},
     "стекло": {"singular": "стекло", "plural": "стекла", "gender": "n"},
+    "фр.стекло": {"singular": "фр.стекло", "plural": "фр.стекла", "gender": "n"},
     "рама/створка": {"singular": "рама/створка", "plural": "рамы/створки", "gender": "f"},
     "подоконник": {"singular": "подоконник", "plural": "подоконники", "gender": "m"},
 }
@@ -4640,10 +4651,10 @@ def _glass_item_noun(item_type: str | None, quantity: int) -> tuple[str, str]:
     return (fallback, "f")
 
 
-def glass_measurement_action_label(measurement: GlassMeasurement | None) -> str:
+def glass_measurement_action_labels(measurement: GlassMeasurement | None) -> list[str]:
     status = _measurement_status(measurement)
     if status not in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}:
-        return GLASS_STATUS_LABELS.get(status, status)
+        return [GLASS_STATUS_LABELS.get(status, status)]
     items = _glass_item_rows(measurement)
     type_quantities: dict[str, dict[str, object]] = {}
     for item in items:
@@ -4658,19 +4669,17 @@ def glass_measurement_action_label(measurement: GlassMeasurement | None) -> str:
             "quantity": _glass_item_quantity(measurement.quantity),
         }
     if not type_quantities:
-        return GLASS_STATUS_LABELS.get(status, status)
-    if len(type_quantities) == 1:
-        entry = next(iter(type_quantities.values()))
-        quantity = _glass_item_quantity(entry.get("quantity"))
-        noun, gender = _glass_item_noun(str(entry.get("type") or ""), quantity)
-        return f"{_glass_status_verb(status, gender, quantity)} {noun}"
-    prefix = "Поменяно" if status == GLASS_STATUS_REPLACED else "Заказано"
-    nouns = []
+        return [GLASS_STATUS_LABELS.get(status, status)]
+    labels = []
     for entry in type_quantities.values():
         quantity = _glass_item_quantity(entry.get("quantity"))
-        noun, _gender = _glass_item_noun(str(entry.get("type") or ""), quantity)
-        nouns.append(noun)
-    return f"{prefix}: {', '.join(nouns)}"
+        noun, gender = _glass_item_noun(str(entry.get("type") or ""), quantity)
+        labels.append(f"{_glass_status_verb(status, gender, quantity)} {noun}")
+    return labels
+
+
+def glass_measurement_action_label(measurement: GlassMeasurement | None) -> str:
+    return ", ".join(glass_measurement_action_labels(measurement))
 
 
 def _glass_item_rows(measurement: GlassMeasurement | None) -> list[dict[str, object]]:
@@ -4767,11 +4776,14 @@ def _all_project_tasks(
     )
 
 
-def _glass_tasks(project_id: int) -> list[Task]:
-    # В «Замерах» работают только замечания по оконным пунктам 16–20.
-    # Ручные задачи раздела сохраняются в «Прочее» (пункт 22), поэтому
-    # включаем их отдельно по источнику, не захватывая остальные задачи пункта 22.
-    # Основной статус задачи не влияет на статус замера.
+def _glass_tasks(project_id: int, *, include_all_points: bool = True) -> list[Task]:
+    # Замер может относиться к замечанию любого пункта. Фильтрация по оконным
+    # пунктам 16–20 скрывала остальные замечания и вторую часть ручной задачи
+    # после разделения, потому что она сохраняется с источником manual_split.
+    if include_all_points:
+        return _all_project_tasks(project_id)
+    # Мобильный раздел сохраняет прежний набор данных: пользователь просил
+    # применять эту правку только к desktop-интерфейсу.
     return _all_project_tasks(
         project_id,
         point_numbers=GLASS_WORK_POINT_NUMBERS,
@@ -4845,6 +4857,17 @@ def _filter_sort_ordered_glass_rows(
 
     filtered_rows.sort(key=date_desc_key)
     return filtered_rows
+
+
+def _glass_tasks_available_for_order(tasks: list[Task]) -> list[Task]:
+    # Статус одного замера не должен блокировать другие замечания той же
+    # квартиры. В частности, после разделения уже заказанного замечания новая
+    # часть обязана оставаться доступной для собственного замера.
+    return [
+        task for task in tasks
+        if _measurement_status(task.glass_measurement)
+        not in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}
+    ]
 
 
 def _glass_tasks_without_ordered_apartments(tasks: list[Task]) -> list[Task]:
@@ -4939,6 +4962,7 @@ def _filter_glass_rows(tasks: list[Task], q: str = "", status: str = "", point: 
             "items": _glass_item_rows(measurement),
             "status": current_status,
             "status_label": glass_measurement_action_label(measurement),
+            "status_labels": glass_measurement_action_labels(measurement),
         })
     def _glass_row_sort_key(row: dict[str, object]):
         task = row["task"]
@@ -4951,6 +4975,51 @@ def _filter_glass_rows(tasks: list[Task], q: str = "", status: str = "", point: 
         return (requested_order, *_task_apartment_sort_value_no_done(task))
 
     return sorted(rows, key=_glass_row_sort_key)
+
+
+def _group_glass_all_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    grouped: dict[int, list[dict[str, object]]] = {}
+    group_order: list[int] = []
+    for row in rows:
+        task = row.get("task")
+        if not isinstance(task, Task):
+            continue
+        root_task_id = int(task.glass_parent_task_id or task.id)
+        if root_task_id not in grouped:
+            grouped[root_task_id] = []
+            group_order.append(root_task_id)
+        grouped[root_task_id].append(row)
+
+    result: list[dict[str, object]] = []
+    for root_task_id in group_order:
+        related_rows = grouped[root_task_id]
+        if not related_rows:
+            continue
+        primary_row = next(
+            (
+                row
+                for row in related_rows
+                if isinstance(row.get("task"), Task) and row["task"].id == root_task_id
+            ),
+            related_rows[0],
+        )
+        related_rows = sorted(
+            related_rows,
+            key=lambda row: (
+                0
+                if isinstance(row.get("task"), Task) and row["task"].id == root_task_id
+                else 1,
+                int(getattr(row.get("task"), "id", 0) or 0),
+            ),
+        )
+        grouped_row = dict(primary_row)
+        grouped_row["related_rows"] = related_rows
+        grouped_row["can_add_measurement"] = any(
+            row.get("status") in {GLASS_STATUS_MEASURE_NEEDED, GLASS_STATUS_ORDERED}
+            for row in related_rows
+        )
+        result.append(grouped_row)
+    return result
 
 
 @bp.route("/glass")
@@ -4980,8 +5049,12 @@ def glass_measurements():
     ordered_sort = (request.args.get("ordered_sort") or GLASS_ORDERED_SORT_DATE_DESC).strip()
     if ordered_sort not in {GLASS_ORDERED_SORT_DATE_DESC, GLASS_ORDERED_SORT_APARTMENT_ASC}:
         ordered_sort = GLASS_ORDERED_SORT_DATE_DESC
-    tasks = _glass_tasks(project.id)
-    available_tasks = _glass_tasks_without_ordered_apartments(tasks)
+    tasks = _glass_tasks(project.id, include_all_points=not is_mobile_phone)
+    available_tasks = (
+        _glass_tasks_without_ordered_apartments(tasks)
+        if is_mobile_phone
+        else _glass_tasks_available_for_order(tasks)
+    )
     rows = []
     order_rows = []
     ordered_rows = []
@@ -4993,6 +5066,8 @@ def glass_measurements():
             point=point,
             status="" if include_ordered else GLASS_STATUS_NONE,
         )
+        if not is_mobile_phone:
+            rows = _group_glass_all_rows(rows)
     elif tab == "order":
         order_rows = _filter_glass_rows(available_tasks, q=q, status=GLASS_STATUS_MEASURE_NEEDED)
         order_rows.sort(key=lambda row: _task_apartment_sort_value_no_done(row["task"]))
@@ -5104,6 +5179,72 @@ def glass_need_measure(task_id: int):
         })
     flash(success_message, "success")
     return redirect(url_for("main.glass_measurements", tab=return_tab))
+
+
+@bp.route("/glass/<int:task_id>/add-measurement", methods=["POST"])
+@login_required
+def glass_measurement_add(task_id: int):
+    if current_user.role == "viewer":
+        abort(403)
+    if _is_mobile_phone_request():
+        abort(404)
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    selected_task = db.session.get(Task, task_id) or abort(404)
+    if selected_task.project_id != project.id:
+        abort(404)
+    root_task_id = int(selected_task.glass_parent_task_id or selected_task.id)
+    root_task = (
+        Task.query.filter(Task.id == root_task_id, Task.project_id == project.id).first()
+        or abort(404)
+    )
+    repeat_task = Task(
+        source_uid=f"glass-repeat:{root_task.id}:{uuid4().hex}",
+        project_id=root_task.project_id,
+        apartment_id=root_task.apartment_id,
+        work_point_id=root_task.work_point_id,
+        title=root_task.title,
+        description=root_task.description,
+        source_cell_value=root_task.source_cell_value,
+        status=root_task.status,
+        priority=root_task.priority,
+        planned_date=root_task.planned_date,
+        comment=root_task.comment,
+        source_sheet_name="manual_glass_repeat",
+        manually_edited=True,
+        is_done=root_task.is_done,
+        is_archived=True,
+        is_missing_in_latest_sync=True,
+        glass_parent_task_id=root_task.id,
+    )
+    repeat_measurement = GlassMeasurement(
+        project_id=project.id,
+        task=repeat_task,
+        apartment_id=root_task.apartment_id,
+        status=GLASS_STATUS_MEASURE_NEEDED,
+        quantity=1,
+    )
+    db.session.add_all([repeat_task, repeat_measurement])
+    db.session.commit()
+
+    success_message = "Добавлен ещё один независимый замер к замечанию"
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+        return jsonify({
+            "ok": True,
+            "message": success_message,
+            "task_id": repeat_task.id,
+            "root_task_id": root_task.id,
+            "measurement_id": repeat_measurement.id,
+        })
+
+    redirect_args: dict[str, object] = {"tab": "all", "include_ordered": "1"}
+    for key in ("q", "point", "page"):
+        value = (request.form.get(key) or "").strip()
+        if value:
+            redirect_args[key] = value
+    flash(success_message, "success")
+    return redirect(url_for("main.glass_measurements", **redirect_args))
 
 
 @bp.route("/glass/<int:task_id>/save", methods=["POST"])
@@ -5289,9 +5430,15 @@ def glass_order_export():
         return redirect(url_for("main.objects"))
     scope = (request.args.get("scope") or "ordered").strip().lower()
     q = (request.args.get("q") or "").strip()
-    tasks = _glass_tasks(project.id)
+    is_mobile_phone = _is_mobile_phone_request()
+    tasks = _glass_tasks(project.id, include_all_points=not is_mobile_phone)
     if scope == "order":
-        all_rows = _filter_glass_rows(_glass_tasks_without_ordered_apartments(tasks), q=q)
+        available_tasks = (
+            _glass_tasks_without_ordered_apartments(tasks)
+            if is_mobile_phone
+            else _glass_tasks_available_for_order(tasks)
+        )
+        all_rows = _filter_glass_rows(available_tasks, q=q)
         rows = [row for row in all_rows if row["status"] == GLASS_STATUS_MEASURE_NEEDED]
     else:
         all_rows = _filter_glass_rows(tasks, q=q)
@@ -5901,7 +6048,7 @@ def material_request_update(request_id: int):
         flash("Введите корректную дату заявки", "warning")
         return redirect(url_for("main.material_request_detail", request_id=request_id))
     try:
-        rows = _read_material_rows_from_form(limit=50)
+        rows = _read_material_rows_from_form(limit=None)
     except ValueError as exc:
         flash(str(exc), "danger")
         return redirect(url_for("main.material_request_detail", request_id=request_id))
@@ -5911,6 +6058,11 @@ def material_request_update(request_id: int):
     old_items = list(material_request.items)
     old_item_ids_set = {item.id for item in old_items if item.id}
     measurement_request_groups = _measurement_request_groups(old_items) if _is_measurement_material_request(material_request) else []
+    measurement_group_by_old_item_id = {
+        int(item_id): group
+        for group in measurement_request_groups
+        for item_id in group.get("item_ids") or []
+    }
     old_item_ids = [item.id for item in old_items if item.id]
     linked_measurements = (
         GlassMeasurement.query.filter(GlassMeasurement.material_request_item_id.in_(old_item_ids)).all()
@@ -5925,15 +6077,19 @@ def material_request_update(request_id: int):
     material_request.comment = (request.form.get("comment") or material_request.comment or "").strip() or None
     material_request.items.clear()
     new_items_by_old_id: dict[int, MaterialRequestItem] = {}
+    active_measurement_group: dict[str, object] | None = None
     for row in rows:
         new_item = MaterialRequestItem(name=str(row["name"]), quantity=float(row["quantity"]), unit=str(row["unit"]))
         material_request.items.append(new_item)
         source_item_id = row.get("source_item_id")
         if isinstance(source_item_id, int) and source_item_id in old_item_ids_set:
+            active_measurement_group = measurement_group_by_old_item_id.get(source_item_id)
             new_items_by_old_id[source_item_id] = new_item
             linked_measurement = linked_by_old_item_id.get(source_item_id)
             if linked_measurement is not None:
                 linked_measurement.material_request_item = new_item
+        if active_measurement_group is not None:
+            active_measurement_group.setdefault("new_items", []).append(new_item)
     if _is_measurement_material_request(material_request):
         _sync_measurement_writeoffs_from_request_groups(material_request, measurement_request_groups, new_items_by_old_id)
     db.session.commit()
@@ -9143,6 +9299,15 @@ def archive_apartment_avr(apartment_id: int):
     return redirect(url_for("main.notifications", tab="60"))
 
 def _delete_task_with_relations(task: Task, project_id: int) -> None:
+    repeat_tasks = Task.query.filter(
+        Task.project_id == project_id,
+        Task.glass_parent_task_id == task.id,
+    ).all()
+    for repeat_task in repeat_tasks:
+        for writeoff in list(repeat_task.material_writeoffs):
+            writeoff.tasks.remove(repeat_task)
+        db.session.delete(repeat_task)
+
     _record_simple_deletion(
         "task_delete",
         "task",

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Списать материал{% endblock %}
 {% block content %}
+<div{% if not is_mobile_phone_request %} data-ajax-pagination-page="materials"{% endif %}>
 <div class="page-head remarks-page-head materials-page-head">
   <div>
     <h1 class="page-title">Списать материал</h1>
@@ -40,7 +41,7 @@
             Выбрано для списания: <b class="js-material-selected-count">0</b>
             <button class="btn btn-sm btn-outline-secondary js-material-selected-clear" type="button">Очистить выбор</button>
           </div>
-          <div class="material-tasks-box">
+          <div class="material-tasks-box"{% if not is_mobile_phone_request %} data-search-highlight="{{ args.get('q', '') }}" data-ajax-pagination-content data-ajax-items-selector=".material-select-row"{% endif %}>
             <table class="table table-hover align-middle material-tasks-table">
               <thead>
                 <tr>
@@ -114,4 +115,5 @@
     </div>
   </div>
 </form>
+</div>
 {% endblock %}

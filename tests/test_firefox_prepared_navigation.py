@@ -163,7 +163,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v135-material-request-native-download")
+        self.assertEqual(worker_version, "v139-remark-sentence-lines-all")
 
     def test_script_and_css_cache_busters_are_synchronized(self):
         script_version = re.search(
@@ -178,11 +178,19 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         worker_css_version = re.search(
             r"'/static/desktop-only\.css\?v=([^']+)'", self.worker
         ).group(1)
+        mobile_css_version = re.search(
+            r"mobile-only\.css'\) }}\?v=([^\"]+)", self.template
+        ).group(1)
+        worker_mobile_css_version = re.search(
+            r"'/static/mobile-only\.css\?v=([^']+)'", self.worker
+        ).group(1)
 
         self.assertEqual(script_version, worker_script_version)
         self.assertEqual(css_version, worker_css_version)
-        self.assertEqual(script_version, "v659-material-request-native-download")
-        self.assertEqual(css_version, "v60-restore-desktop-entry")
+        self.assertEqual(mobile_css_version, worker_mobile_css_version)
+        self.assertEqual(script_version, "v663-remark-sentence-lines-all")
+        self.assertEqual(css_version, "v61-remark-sentence-lines")
+        self.assertEqual(mobile_css_version, "v88-remark-sentence-lines")
 
 
 if __name__ == "__main__":

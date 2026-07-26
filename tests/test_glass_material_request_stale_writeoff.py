@@ -143,6 +143,169 @@ class GlassMaterialRequestStaleWriteoffTests(unittest.TestCase):
         self.assertIsNone(self.measurement.material_request_item_id)
         self.assertIsNone(self.measurement.material_writeoff_id)
 
+    def test_transferred_request_can_add_item_during_edit(self):
+        create_response = self.client.post(
+            "/glass/ordered/create-material-request",
+            data={"measurement_ids": str(self.measurement.id)},
+        )
+        self.assertEqual(create_response.status_code, 302)
+
+        material_request = MaterialRequest.query.one()
+        original_item = MaterialRequestItem.query.one()
+        original_display_name = _material_request_display_rows(material_request)[0]["display_name"]
+
+        update_response = self.client.post(
+            f"/materials/request/{material_request.id}/update",
+            data={
+                "title": material_request.title,
+                "request_date": "2026-07-21",
+                "name[]": [original_display_name, "Новый материал"],
+                "quantity[]": ["2", "3"],
+                "unit[]": ["шт", "меш"],
+                "item_id[]": [str(original_item.id), ""],
+            },
+        )
+
+        self.assertEqual(update_response.status_code, 302)
+        self.assertEqual(update_response.headers["Location"], f"/materials/request/{material_request.id}")
+        db.session.refresh(self.measurement)
+        self.assertIsNotNone(self.measurement.material_request_item_id)
+        self.assertEqual(
+            {item.name for item in material_request.items},
+            {original_display_name, "Новый материал"},
+        )
+        self.assertEqual(
+            {item.name for item in self.writeoff.items},
+            {original_display_name, "Новый материал"},
+        )
+
+    def test_new_item_stays_with_the_last_measurement_group(self):
+        second_apartment = Apartment(project=self.project, apartment_number="202")
+        second_task = Task(
+            source_uid="glass-request-second-group",
+            project=self.project,
+            apartment=second_apartment,
+            work_point=self.work_point,
+            description="Second group QA",
+        )
+        second_writeoff = MaterialWriteOff(
+            project=self.project,
+            author=self.user,
+            writeoff_date=date(2026, 7, 1),
+        )
+        second_writeoff.tasks.append(second_task)
+        second_measurement = GlassMeasurement(
+            project=self.project,
+            task=second_task,
+            apartment=second_apartment,
+            status="ordered",
+            ordered_at=date(2026, 7, 20),
+            material_writeoff=second_writeoff,
+        )
+        second_measurement.items.append(
+            GlassMeasurementItem(
+                item_type="Стеклопакет",
+                width=700,
+                height=1300,
+                quantity=1,
+                size="700×1300",
+            )
+        )
+        db.session.add_all([second_apartment, second_task, second_writeoff, second_measurement])
+        db.session.commit()
+
+        create_response = self.client.post(
+            "/glass/ordered/create-material-request",
+            data={"measurement_ids": [str(self.measurement.id), str(second_measurement.id)]},
+        )
+        self.assertEqual(create_response.status_code, 302)
+
+        material_request = MaterialRequest.query.one()
+        display_rows = _material_request_display_rows(material_request)
+        self.assertEqual([row["apartment_number"] for row in display_rows], ["101", "202"])
+
+        update_response = self.client.post(
+            f"/materials/request/{material_request.id}/update",
+            data={
+                "title": material_request.title,
+                "request_date": "2026-07-21",
+                "name[]": [
+                    display_rows[0]["display_name"],
+                    display_rows[1]["display_name"],
+                    "Добавленная к квартире 202",
+                ],
+                "quantity[]": ["1", "1", "4"],
+                "unit[]": ["шт", "шт", "меш"],
+                "item_id[]": [
+                    str(display_rows[0]["item"].id),
+                    str(display_rows[1]["item"].id),
+                    "",
+                ],
+            },
+        )
+
+        self.assertEqual(update_response.status_code, 302)
+        self.assertEqual(len(material_request.items), 3)
+        self.assertNotIn(
+            "Добавленная к квартире 202",
+            {item.name for item in self.writeoff.items},
+        )
+        self.assertIn(
+            "Добавленная к квартире 202",
+            {item.name for item in second_writeoff.items},
+        )
+
+    def test_transferred_request_edit_has_no_desktop_row_limit(self):
+        for index in range(54):
+            self.measurement.items.append(
+                GlassMeasurementItem(
+                    item_type="Стеклопакет",
+                    width=601 + index,
+                    height=1200,
+                    quantity=1,
+                    size=f"{601 + index}×1200",
+                )
+            )
+        db.session.commit()
+
+        create_response = self.client.post(
+            "/glass/ordered/create-material-request",
+            data={"measurement_ids": str(self.measurement.id)},
+        )
+        self.assertEqual(create_response.status_code, 302)
+
+        material_request = MaterialRequest.query.one()
+        display_rows = _material_request_display_rows(material_request)
+        self.assertEqual(len(display_rows), 55)
+
+        desktop_detail = self.client.get(
+            f"/materials/request/{material_request.id}",
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+        )
+        mobile_detail = self.client.get(
+            f"/materials/request/{material_request.id}",
+            headers={"User-Agent": "Mozilla/5.0 (Linux; Android 15; Mobile)"},
+        )
+        self.assertIn('data-unlimited-rows="1"', desktop_detail.get_data(as_text=True))
+        self.assertNotIn('data-unlimited-rows="1"', mobile_detail.get_data(as_text=True))
+
+        update_response = self.client.post(
+            f"/materials/request/{material_request.id}/update",
+            data={
+                "title": material_request.title,
+                "request_date": "2026-07-21",
+                "name[]": [row["display_name"] for row in display_rows] + ["Позиция без лимита"],
+                "quantity[]": ["1"] * 55 + ["2"],
+                "unit[]": ["шт"] * 56,
+                "item_id[]": [str(row["item"].id) for row in display_rows] + [""],
+            },
+        )
+
+        self.assertEqual(update_response.status_code, 302)
+        self.assertEqual(len(material_request.items), 56)
+        self.assertEqual(len(self.writeoff.items), 56)
+        self.assertIn("Позиция без лимита", {item.name for item in self.writeoff.items})
+
 
 if __name__ == "__main__":
     unittest.main()

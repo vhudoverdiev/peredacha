@@ -469,6 +469,7 @@ class Task(TimestampMixin, db.Model):
     source_column_index = db.Column(db.Integer, nullable=True)
     source_cell_address = db.Column(db.String(50), nullable=True)
     source_hash = db.Column(db.String(64), nullable=True)
+    glass_parent_task_id = db.Column(db.Integer, db.ForeignKey("tasks.id"), nullable=True, index=True)
     is_done = db.Column(db.Boolean, default=False, nullable=False, index=True)
     is_archived = db.Column(db.Boolean, default=False, nullable=False, index=True)
     is_missing_in_latest_sync = db.Column(db.Boolean, default=False, nullable=False, index=True)
