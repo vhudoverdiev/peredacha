@@ -24,7 +24,14 @@ from app.models import (
 )
 from app.services.changelog_service import log_change
 from app.services.mapping_service import ensure_default_categories, apply_default_point_mapping
-from app.services.uid_service import build_task_uid, cell_hash, extract_point_number, normalize_text, split_cell_remarks
+from app.services.uid_service import (
+    build_source_fragment_uid,
+    build_task_uid,
+    cell_hash,
+    extract_point_number,
+    normalize_text,
+    split_cell_remarks,
+)
 
 
 APARTMENT_HEADERS = {
@@ -1277,23 +1284,49 @@ def upsert_task_from_cell(
     source_cell_address: str,
     sync_time: datetime,
     source_cell_is_struck: bool = False,
+    remark_index: int = 0,
 ) -> tuple[Task, bool]:
     new_hash = cell_hash(source_cell_value)
 
-    task = None
-    if sheet_name and row_index and column_index:
-        task = Task.query.filter_by(
-            project_id=project.id,
-            source_sheet_name=sheet_name,
-            source_row_index=row_index,
-            source_column_index=column_index,
-        ).first()
+    source_uid = build_source_fragment_uid(
+        project.name,
+        sheet_name,
+        row_index,
+        column_index,
+        remark_index,
+    )
+    task = Task.query.filter_by(source_uid=source_uid).first()
+    if task is None and sheet_name and row_index and column_index:
+        source_tasks = (
+            Task.query.filter_by(
+                project_id=project.id,
+                source_sheet_name=sheet_name,
+                source_row_index=row_index,
+                source_column_index=column_index,
+            )
+            .order_by(Task.id.asc())
+            .all()
+        )
+        exact_text_task = next(
+            (
+                candidate
+                for candidate in source_tasks
+                if normalize_text(candidate.description or candidate.source_cell_value)
+                == normalize_text(remark_text)
+            ),
+            None,
+        )
+        if exact_text_task is not None:
+            task = exact_text_task
+        elif remark_index < len(source_tasks):
+            task = source_tasks[remark_index]
+
     uid_construction = apartment.construction_number or ""
     uid_apartment = apartment.apartment_number or ""
     if (apartment.premise_type or "apartment") == "commercial":
         uid_construction = apartment.source_row_id or apartment.construction_number or ""
         uid_apartment = apartment.apartment_number or ""
-    source_uid = build_task_uid(
+    legacy_source_uid = build_task_uid(
         project.name,
         uid_construction,
         uid_apartment,
@@ -1302,7 +1335,14 @@ def upsert_task_from_cell(
         remark_text,
     )
     if task is None:
-        task = Task.query.filter_by(source_uid=source_uid).first()
+        task = Task.query.filter_by(source_uid=legacy_source_uid).first()
+    if task is not None and task.source_uid != source_uid:
+        source_uid_owner = Task.query.filter(
+            Task.source_uid == source_uid,
+            Task.id != task.id,
+        ).first()
+        if source_uid_owner is None:
+            task.source_uid = source_uid
     if task is None and (legacy_construction_number or legacy_apartment_number):
         legacy_uid = build_task_uid(
             project.name,
@@ -1560,18 +1600,19 @@ def sync_rows(
             if not cell_text:
                 # If a previously existing remark disappeared from the source cell,
                 # register a conflict so user can decide what to do.
-                existing_task = Task.query.filter_by(
+                existing_tasks = Task.query.filter_by(
                     project_id=project.id,
                     source_sheet_name=sheet_name,
                     source_row_index=row_zero_idx,
                     source_column_index=col_zero_idx + 1,
-                ).first()
-                if (
-                    existing_task
-                    and existing_task.source_hash
-                    and existing_task.source_cell_value
-                    and not existing_task.manually_edited
-                ):
+                ).all()
+                for existing_task in existing_tasks:
+                    if (
+                        not existing_task.source_hash
+                        or not existing_task.source_cell_value
+                        or existing_task.manually_edited
+                    ):
+                        continue
                     new_hash = cell_hash("")
                     if existing_task.source_hash != new_hash:
                         existing_conflict = _pending_text_sync_conflict(existing_task.id)
@@ -1598,7 +1639,7 @@ def sync_rows(
             remarks = split_cell_remarks(cell_value)
             if not remarks:
                 continue
-            for remark in remarks:
+            for remark_index, remark in enumerate(remarks):
                 cell_address = f"{column_letter(col_zero_idx + 1)}{row_zero_idx}"
                 cell_is_struck = bool(struck_cells and (row_zero_idx, col_zero_idx + 1) in struck_cells)
                 task, created = upsert_task_from_cell(
@@ -1608,13 +1649,14 @@ def sync_rows(
                     legacy_apartment_number=legacy_apartment_number,
                     work_point=work_point,
                     remark_text=remark,
-                    source_cell_value=str(cell_value or ""),
+                    source_cell_value=remark,
                     sheet_name=sheet_name,
                     row_index=row_zero_idx,
                     column_index=col_zero_idx + 1,
                     source_cell_address=cell_address,
                     sync_time=sync_time,
                     source_cell_is_struck=cell_is_struck,
+                    remark_index=remark_index,
                 )
                 result.seen_uids.add(task.source_uid)
                 if created:

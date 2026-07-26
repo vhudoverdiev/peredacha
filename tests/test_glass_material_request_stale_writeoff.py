@@ -179,6 +179,68 @@ class GlassMaterialRequestStaleWriteoffTests(unittest.TestCase):
             {original_display_name, "Новый материал"},
         )
 
+    def test_invalid_request_edit_keeps_unsaved_draft_open(self):
+        create_response = self.client.post(
+            "/glass/ordered/create-material-request",
+            data={"measurement_ids": str(self.measurement.id)},
+        )
+        self.assertEqual(create_response.status_code, 302)
+
+        material_request = MaterialRequest.query.one()
+        original_item = MaterialRequestItem.query.one()
+        original_title = material_request.title
+        original_date = material_request.request_date
+        original_display_name = _material_request_display_rows(material_request)[0]["display_name"]
+
+        invalid_response = self.client.post(
+            f"/materials/request/{material_request.id}/update",
+            data={
+                "title": "Unsaved draft request",
+                "request_date": "2026-07-23",
+                "name[]": [original_display_name, "Unsaved draft item"],
+                "quantity[]": ["4", ""],
+                "unit[]": [original_item.unit, "bags"],
+                "item_id[]": [str(original_item.id), ""],
+            },
+        )
+
+        self.assertEqual(invalid_response.status_code, 422)
+        self.assertNotIn("Location", invalid_response.headers)
+        html = invalid_response.get_data(as_text=True)
+        self.assertIn("Unsaved draft request", html)
+        self.assertIn("Unsaved draft item", html)
+        self.assertIn("js-material-request-view d-none", html)
+        self.assertIn("js-material-request-edit-form", html)
+        self.assertIn("is-invalid", html)
+        self.assertIn(
+            "Заполните наименование, количество и единицу измерения у каждой позиции",
+            html,
+        )
+
+        db.session.expire_all()
+        stored_request = db.session.get(MaterialRequest, material_request.id)
+        self.assertEqual(stored_request.title, original_title)
+        self.assertEqual(stored_request.request_date, original_date)
+        self.assertEqual(len(stored_request.items), 1)
+        self.assertEqual(stored_request.items[0].quantity, 1)
+
+        corrected_response = self.client.post(
+            f"/materials/request/{material_request.id}/update",
+            data={
+                "title": "Unsaved draft request",
+                "request_date": "2026-07-23",
+                "name[]": [original_display_name, "Unsaved draft item"],
+                "quantity[]": ["4", "2"],
+                "unit[]": [original_item.unit, "bags"],
+                "item_id[]": [str(original_item.id), ""],
+            },
+        )
+        self.assertEqual(corrected_response.status_code, 302)
+        db.session.expire_all()
+        stored_request = db.session.get(MaterialRequest, material_request.id)
+        self.assertEqual(stored_request.title, "Unsaved draft request")
+        self.assertEqual(len(stored_request.items), 2)
+
     def test_new_item_stays_with_the_last_measurement_group(self):
         second_apartment = Apartment(project=self.project, apartment_number="202")
         second_task = Task(

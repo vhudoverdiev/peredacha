@@ -49,7 +49,7 @@ class RemarkSentenceFormatterTests(unittest.TestCase):
         )
         rendered = remark_sentence_lines_html(source)
 
-        self.assertEqual(str(rendered).count('class="remark-sentence-line"'), 4)
+        self.assertEqual(str(rendered).count('class="remark-sentence-line"'), 3)
         self.assertIn("В т.ч. требуется профиль.", str(rendered))
         self.assertIn("01.08.2026.", str(rendered))
         self.assertIn("1.5 мм.", str(rendered))
@@ -57,7 +57,7 @@ class RemarkSentenceFormatterTests(unittest.TestCase):
         self.assertEqual(markup_text(rendered), source)
 
     def test_sentence_starting_with_uppercase_is_split_even_without_space(self):
-        source = "Первая часть.Окалины снаружи!Требуется регулировка."
+        source = "Первая часть.Окалины снаружи;Требуется регулировка."
         rendered = remark_sentence_lines_html(source)
 
         self.assertEqual(str(rendered).count('class="remark-sentence-line"'), 3)

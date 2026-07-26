@@ -16,6 +16,7 @@ OPEN_QUOTES = set(OPEN_TO_CLOSE_QUOTES)
 CLOSE_QUOTES = set(OPEN_TO_CLOSE_QUOTES.values())
 
 _SENTENCE_CLOSERS = frozenset('"\'»”’)]}')
+_SENTENCE_OPENERS = frozenset('"\'«“„‹([{')
 _NON_TERMINAL_ABBREVIATIONS = (
     "в т.ч.",
     "и т.д.",
@@ -119,44 +120,30 @@ def _sentence_ranges(text: str) -> list[tuple[int, int]]:
 
     while index < text_length:
         char = text[index]
-        if char in "\r\n":
-            boundary = index + 1
-            if char == "\r" and boundary < text_length and text[boundary] == "\n":
-                boundary += 1
-            while boundary < text_length and text[boundary].isspace():
-                boundary += 1
-            if boundary < text_length and boundary > line_start:
-                ranges.append((line_start, boundary))
-                line_start = boundary
-            index = boundary
-            continue
-
-        if char not in ".!?":
+        if char not in ".;":
             index += 1
             continue
 
         punctuation_end = index + 1
-        while punctuation_end < text_length and text[punctuation_end] in ".!?":
-            punctuation_end += 1
         while punctuation_end < text_length and text[punctuation_end] in _SENTENCE_CLOSERS:
             punctuation_end += 1
         boundary = punctuation_end
         while boundary < text_length and text[boundary].isspace():
             boundary += 1
+        sentence_letter_index = boundary
+        while sentence_letter_index < text_length and text[sentence_letter_index] in _SENTENCE_OPENERS:
+            sentence_letter_index += 1
+            while sentence_letter_index < text_length and text[sentence_letter_index].isspace():
+                sentence_letter_index += 1
 
-        # A sentence can start after whitespace or immediately with an upper-case
-        # letter because imported remarks sometimes lose the space after a dot.
-        # Dates, decimals and file names remain intact because their next
-        # character is not upper-case. Abbreviations and initials are protected
-        # separately below.
         has_following_sentence = (
-            boundary < text_length
-            and (
-                boundary > punctuation_end
-                or text[boundary].isupper()
-            )
+            sentence_letter_index < text_length
+            and text[sentence_letter_index].isalpha()
+            and text[sentence_letter_index].isupper()
         )
-        numeric_list_prefix = text[line_start:index].strip().isdigit()
+        numeric_list_prefix = bool(
+            re.search(r"(?:^|\s)\d+\.$", text[:index + 1])
+        )
         non_terminal_dot = (
             char == "."
             and (
@@ -164,7 +151,15 @@ def _sentence_ranges(text: str) -> list[tuple[int, int]]:
                 or numeric_list_prefix
             )
         )
-        if has_following_sentence and not non_terminal_dot:
+        should_split = (
+            char == ";"
+            and boundary < text_length
+        ) or (
+            char == "."
+            and has_following_sentence
+            and not non_terminal_dot
+        )
+        if should_split:
             ranges.append((line_start, boundary))
             line_start = boundary
         index = max(punctuation_end, boundary if boundary == line_start else punctuation_end)

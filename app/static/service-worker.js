@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v139-remark-sentence-lines-all';
+const STATIC_CACHE = 'peredacha-static-v141-weak-network-fallback';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -15,8 +15,11 @@ const STATIC_ASSETS = [
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
   '/static/mobile-only.css?v=v88-remark-sentence-lines',
   '/static/desktop-only.css?v=v61-remark-sentence-lines',
-  '/static/script.js?v=v663-remark-sentence-lines-all',
+  '/static/script.js?v=v664-remark-entities',
 ];
+
+const NAVIGATION_NETWORK_TIMEOUT_MS = 8000;
+const STATIC_NETWORK_TIMEOUT_MS = 6000;
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>
 <html lang="ru" class="loading">
@@ -228,9 +231,20 @@ self.addEventListener('fetch', event => {
   event.respondWith(staticNetworkFirst(request));
 });
 
+async function fetchWithTimeout(request, timeoutMs) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(request, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function navigationNetworkFirst(request) {
   try {
-    return await fetch(request);
+    return await fetchWithTimeout(request, NAVIGATION_NETWORK_TIMEOUT_MS);
   } catch (error) {
     return new Response(MOBILE_OFFLINE_HTML, {
       status: 503,
@@ -246,7 +260,7 @@ async function navigationNetworkFirst(request) {
 async function staticNetworkFirst(request) {
   const cache = await caches.open(STATIC_CACHE);
   try {
-    const response = await fetch(request);
+    const response = await fetchWithTimeout(request, STATIC_NETWORK_TIMEOUT_MS);
     if (response && response.ok) await cache.put(request, response.clone());
     return response;
   } catch (error) {
@@ -263,7 +277,7 @@ async function staticCacheFirst(request) {
   const cached = await cache.match(request);
   if (cached) return cached;
 
-  const response = await fetch(request);
+  const response = await fetchWithTimeout(request, STATIC_NETWORK_TIMEOUT_MS);
   if (response && response.ok) await cache.put(request, response.clone());
   return response;
 }

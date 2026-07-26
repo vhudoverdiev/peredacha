@@ -1878,6 +1878,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const remarkSentenceRanges = text => {
     if (!text) return [];
     const sentenceClosers = new Set(['"', "'", '»', '”', '’', ')', ']', '}']);
+    const sentenceOpeners = new Set(['"', "'", '«', '“', '„', '‹', '(', '[', '{']);
     const abbreviations = [
       'в т.ч.', 'и т.д.', 'и т.п.', 'т.е.', 'т.к.', 'т.п.', 'т.д.', 'т.ч.',
       'г.', 'ул.', 'им.', 'пос.', 'корп.', 'стр.', 'рис.', 'кв.', 'ком.', 'п.', 'ч.',
@@ -1899,38 +1900,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     while (index < text.length) {
       const char = text[index];
-      if (char === '\r' || char === '\n') {
-        let boundary = index + 1;
-        if (char === '\r' && text[boundary] === '\n') boundary += 1;
-        while (boundary < text.length && /\s/u.test(text[boundary])) boundary += 1;
-        if (boundary < text.length && boundary > lineStart) {
-          ranges.push([lineStart, boundary]);
-          lineStart = boundary;
-        }
-        index = boundary;
-        continue;
-      }
-      if (!'.!?'.includes(char)) {
+      if (!'.;'.includes(char)) {
         index += 1;
         continue;
       }
 
       let punctuationEnd = index + 1;
-      while (punctuationEnd < text.length && '.!?'.includes(text[punctuationEnd])) punctuationEnd += 1;
       while (punctuationEnd < text.length && sentenceClosers.has(text[punctuationEnd])) punctuationEnd += 1;
       let boundary = punctuationEnd;
       while (boundary < text.length && /\s/u.test(text[boundary])) boundary += 1;
+      let sentenceLetterIndex = boundary;
+      while (sentenceLetterIndex < text.length && sentenceOpeners.has(text[sentenceLetterIndex])) {
+        sentenceLetterIndex += 1;
+        while (sentenceLetterIndex < text.length && /\s/u.test(text[sentenceLetterIndex])) sentenceLetterIndex += 1;
+      }
+      const sentenceLetter = text[sentenceLetterIndex] || '';
       const hasFollowingSentence = (
-        boundary < text.length
-        && (
-          boundary > punctuationEnd
-          || text[boundary].toLocaleUpperCase() === text[boundary]
-            && text[boundary].toLocaleLowerCase() !== text[boundary]
-        )
+        sentenceLetterIndex < text.length
+        && sentenceLetter.toLocaleUpperCase() === sentenceLetter
+        && sentenceLetter.toLocaleLowerCase() !== sentenceLetter
       );
-      const numericListPrefix = /^\d+$/u.test(text.slice(lineStart, index).trim());
+      const numericListPrefix = /(?:^|\s)\d+\.$/u.test(text.slice(0, index + 1));
       const nonTerminalDot = char === '.' && (hasNonTerminalAbbreviation(index) || numericListPrefix);
-      if (hasFollowingSentence && !nonTerminalDot) {
+      const shouldSplit = (
+        char === ';' && boundary < text.length
+      ) || (
+        char === '.' && hasFollowingSentence && !nonTerminalDot
+      );
+      if (shouldSplit) {
         ranges.push([lineStart, boundary]);
         lineStart = boundary;
       }
@@ -2160,6 +2157,10 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         const data = await resp.json();
+        if (data.reload_required) {
+          window.location.reload();
+          return;
+        }
         span.innerHTML = formatRemarkHtml(data.text ?? next);
         appendTimelineEntry(
           document.querySelector('[data-task-history-list]'),
@@ -6634,6 +6635,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось добавить замечание');
+      if (data.reload_required) {
+        window.location.reload();
+        return;
+      }
       const tbody = document.querySelector('.glass-page table tbody');
       if (tbody && document.querySelector('input[name="tab"][value="all"]')) {
         const emptyRow = tbody.querySelector('tr > td[colspan="4"]')?.closest('tr');

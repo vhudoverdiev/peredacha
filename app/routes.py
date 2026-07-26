@@ -131,7 +131,8 @@ from app.services.task_service import (
 from app.services.status_rules import is_problem_details_required
 from app.services.sync_rollback import apply_sync_rollback, build_project_rollback_data
 from app.time_utils import to_moscow_datetime
-from app.services.uid_service import build_task_uid, cell_hash, normalize_text, stable_hash
+from app.services.uid_service import build_task_uid, cell_hash, normalize_text, split_cell_remarks, stable_hash
+from app.services.remark_entities import split_task_into_entities
 from app.services.remark_format import remark_sentence_lines_html
 from app.security import hit_rate_limit, security_event, validate_upload
 from app.two_factor import generate_totp_secret, provisioning_uri, qr_svg_data_uri, verify_totp
@@ -1269,6 +1270,37 @@ def _read_material_rows_from_form(limit: int | None = 10) -> list[dict[str, obje
     return rows
 
 
+def _material_request_edit_draft_from_form() -> list[dict[str, object]]:
+    names = request.form.getlist("name[]")
+    quantities = request.form.getlist("quantity[]")
+    units = request.form.getlist("unit[]")
+    source_item_ids = request.form.getlist("item_id[]")
+    row_count = max(len(names), len(quantities), len(units), len(source_item_ids), 1)
+    rows: list[dict[str, object]] = []
+    has_active_row = False
+    for idx in range(row_count):
+        name = names[idx] if idx < len(names) else ""
+        quantity = quantities[idx] if idx < len(quantities) else ""
+        unit = units[idx] if idx < len(units) else ""
+        source_item_id = source_item_ids[idx] if idx < len(source_item_ids) else ""
+        is_active = any(str(value or "").strip() for value in (name, quantity, unit))
+        has_active_row = has_active_row or is_active
+        rows.append(
+            {
+                "item_id": source_item_id,
+                "name": name,
+                "quantity": quantity,
+                "unit": unit,
+                "name_invalid": is_active and not str(name or "").strip(),
+                "quantity_invalid": is_active and _parse_quantity(quantity) is None,
+                "unit_invalid": is_active and not str(unit or "").strip(),
+            }
+        )
+    if not has_active_row:
+        rows[0].update(name_invalid=True, quantity_invalid=True, unit_invalid=True)
+    return rows
+
+
 def _material_key(name: str, unit: str) -> str:
     return f"{name}{MATERIAL_KEY_SEP}{unit}"
 
@@ -1617,6 +1649,41 @@ def _material_request_display_rows(material_request: MaterialRequest) -> list[di
             }
         )
     return rows
+
+
+def _render_material_request_detail(
+    project: Project,
+    material_request: MaterialRequest,
+    *,
+    edit_mode: bool = False,
+    edit_rows: list[dict[str, object]] | None = None,
+    edit_title: str | None = None,
+    edit_request_date: str | None = None,
+    edit_title_invalid: bool = False,
+    edit_request_date_invalid: bool = False,
+    edit_error: str | None = None,
+    status: int = 200,
+):
+    material_request_rows = _material_request_display_rows(material_request)
+    max_rows = max(len(material_request.items) + 1, len(edit_rows or []))
+    response = render_template(
+        "material_request_detail.html",
+        project=project,
+        material_request=material_request,
+        material_request_rows=material_request_rows,
+        can_edit_materials=_can_edit_materials(),
+        can_export_material_request=can_export(current_user),
+        max_rows=max_rows,
+        today=date.today(),
+        edit_mode=edit_mode,
+        edit_rows=edit_rows,
+        edit_title=edit_title,
+        edit_request_date=edit_request_date,
+        edit_title_invalid=edit_title_invalid,
+        edit_request_date_invalid=edit_request_date_invalid,
+        edit_error=edit_error,
+    )
+    return response, status
 
 
 def _sync_measurement_writeoffs_from_request_groups(
@@ -4382,38 +4449,24 @@ def assignment_manual_task_new():
         elif responsible_id and not _user_can_work_in_project(responsible, project):
             flash("Выберите корректного исполнителя", "warning")
         else:
-            source_uid = build_task_uid(
-                project.name,
-                apartment.construction_number or "",
-                apartment.apartment_number or "",
-                work_point.point_number,
-                work_point.display_name,
-                text,
-            )
-            if Task.query.filter_by(source_uid=source_uid).first():
-                source_uid = stable_hash([source_uid, "assignment-manual", datetime.utcnow().isoformat()])
-            task = Task(
-                source_uid=source_uid,
-                project_id=project.id,
-                apartment_id=apartment.id,
-                work_point_id=work_point.id,
-                title=work_point.display_name,
-                description=text,
-                source_cell_value=text,
+            tasks = _create_manual_remark_tasks(
+                project=project,
+                apartment=apartment,
+                point_number=work_point.point_number,
+                text=text,
                 source_sheet_name="assignment_manual",
-                status=STATUS_NOT_STARTED,
-                is_done=False,
+                action="manual_assignment_created",
+                work_point=work_point,
                 responsible_id=responsible.id if responsible else None,
                 planned_date=planned_date,
-                manually_edited=True,
-                last_seen_at=datetime.utcnow(),
-                source_hash=stable_hash([text]),
             )
-            db.session.add(task)
-            db.session.flush()
-            log_change(task, "manual_assignment_created", None, None, text, user_id=current_user.id)
             db.session.commit()
-            flash("Ручная задача добавлена", "success")
+            flash(
+                "Ручная задача добавлена"
+                if len(tasks) == 1
+                else f"Добавлено отдельных задач: {len(tasks)}",
+                "success",
+            )
             return redirect(url_for("main.assignments"))
 
     return render_template(
@@ -5698,41 +5751,30 @@ def glass_manual_task_new():
     if not text:
         return jsonify({"ok": False, "message": "Введите описание работы"}), 400
 
-    source_uid = build_task_uid(
-        project.name,
-        apartment.construction_number or "",
-        apartment.apartment_number or "",
-        default_point.point_number,
-        default_point.display_name,
-        text,
-    )
-    if Task.query.filter_by(source_uid=source_uid).first():
-        source_uid = stable_hash([source_uid, "glass-manual", datetime.utcnow().isoformat()])
-    task = Task(
-        source_uid=source_uid,
-        project_id=project.id,
-        apartment_id=apartment.id,
-        work_point_id=default_point.id,
-        title=default_point.display_name,
-        description=text,
-        source_cell_value=text,
+    tasks = _create_manual_remark_tasks(
+        project=project,
+        apartment=apartment,
+        point_number=default_point.point_number,
+        text=text,
         source_sheet_name="manual_glass",
-        status=STATUS_NOT_STARTED,
-        is_done=False,
-        manually_edited=True,
-        last_seen_at=datetime.utcnow(),
-        source_hash=stable_hash([text]),
+        action="manual_glass_created",
+        work_point=default_point,
     )
-    db.session.add(task)
-    db.session.flush()
-    measurement = _get_or_create_glass_measurement(task, status=GLASS_STATUS_NONE)
-    measurement.status = GLASS_STATUS_NONE
-    if not measurement.apartment_id:
-        measurement.apartment_id = apartment.id
+    for task in tasks:
+        measurement = _get_or_create_glass_measurement(task, status=GLASS_STATUS_NONE)
+        measurement.status = GLASS_STATUS_NONE
+        if not measurement.apartment_id:
+            measurement.apartment_id = apartment.id
     db.session.commit()
+    task = tasks[0]
     return jsonify({
         "ok": True,
-        "message": "Замечание добавлено",
+        "message": (
+            "Замечание добавлено"
+            if len(tasks) == 1
+            else f"Добавлено отдельных замечаний: {len(tasks)}"
+        ),
+        "reload_required": len(tasks) > 1,
         "task_id": task.id,
         "apartment_label": apartment.label() if apartment else "—",
         "description": task.description or task.source_cell_value or "",
@@ -5991,18 +6033,7 @@ def material_request_detail(request_id: int):
         .filter(MaterialRequest.id == request_id, MaterialRequest.project_id == project.id)
         .first()
     ) or abort(404)
-    material_request_rows = _material_request_display_rows(material_request)
-    max_rows = len(material_request.items) + 1
-    return render_template(
-        "material_request_detail.html",
-        project=project,
-        material_request=material_request,
-        material_request_rows=material_request_rows,
-        can_edit_materials=_can_edit_materials(),
-        can_export_material_request=can_export(current_user),
-        max_rows=max_rows,
-        today=date.today(),
-    )
+    return _render_material_request_detail(project, material_request)
 
 
 @bp.route("/materials/request/<int:request_id>/rename", methods=["POST"])
@@ -6036,25 +6067,41 @@ def material_request_update(request_id: int):
     if not _can_edit_materials():
         abort(403)
     material_request = (
-        MaterialRequest.query.filter(MaterialRequest.id == request_id, MaterialRequest.project_id == project.id).first()
+        MaterialRequest.query.options(selectinload(MaterialRequest.items), selectinload(MaterialRequest.author))
+        .filter(MaterialRequest.id == request_id, MaterialRequest.project_id == project.id)
+        .first()
         or abort(404)
     )
     title = (request.form.get("title") or "").strip()
-    request_date = parse_date(request.form.get("request_date"))
+    request_date_value = request.form.get("request_date") or ""
+    request_date = parse_date(request_date_value)
+
+    def render_edit_error(message: str):
+        edit_rows = _material_request_edit_draft_from_form()
+        flash(message, "danger")
+        return _render_material_request_detail(
+            project,
+            material_request,
+            edit_mode=True,
+            edit_rows=edit_rows,
+            edit_title=request.form.get("title") or "",
+            edit_request_date=request_date_value,
+            edit_title_invalid=not title,
+            edit_request_date_invalid=request_date is None,
+            edit_error=message,
+            status=422,
+        )
+
     if not title:
-        flash("Название заявки не может быть пустым", "warning")
-        return redirect(url_for("main.material_request_detail", request_id=request_id))
+        return render_edit_error("Название заявки не может быть пустым")
     if request_date is None:
-        flash("Введите корректную дату заявки", "warning")
-        return redirect(url_for("main.material_request_detail", request_id=request_id))
+        return render_edit_error("Введите корректную дату заявки")
     try:
         rows = _read_material_rows_from_form(limit=None)
     except ValueError as exc:
-        flash(str(exc), "danger")
-        return redirect(url_for("main.material_request_detail", request_id=request_id))
+        return render_edit_error(str(exc))
     if not rows:
-        flash("Добавьте хотя бы одну позицию материала", "warning")
-        return redirect(url_for("main.material_request_detail", request_id=request_id))
+        return render_edit_error("Добавьте хотя бы одну позицию материала")
     old_items = list(material_request.items)
     old_item_ids_set = {item.id for item in old_items if item.id}
     measurement_request_groups = _measurement_request_groups(old_items) if _is_measurement_material_request(material_request) else []
@@ -6737,6 +6784,64 @@ def _apply_inspection_date_to_group(apartments: list[Apartment], inspection_date
         item.first_inspection_present = True
 
 
+def _create_manual_remark_tasks(
+    *,
+    project: Project,
+    apartment: Apartment,
+    point_number: str | None,
+    text: str,
+    source_sheet_name: str = "manual",
+    action: str = "manual_created",
+    work_point: WorkPoint | None = None,
+    responsible_id: int | None = None,
+    planned_date: date | None = None,
+) -> list[Task]:
+    work_point = work_point or _get_or_create_manual_work_point(point_number)
+    fragments = split_cell_remarks(text) or [str(text or "").strip()]
+    tasks: list[Task] = []
+    for fragment_index, fragment in enumerate(fragments):
+        source_uid = build_task_uid(
+            project.name,
+            apartment.construction_number or "",
+            apartment.apartment_number or "",
+            work_point.point_number,
+            work_point.display_name,
+            fragment,
+        )
+        if Task.query.filter_by(source_uid=source_uid).first():
+            source_uid = stable_hash(
+                [
+                    source_uid,
+                    source_sheet_name,
+                    str(fragment_index),
+                    datetime.utcnow().isoformat(),
+                ]
+            )
+        task = Task(
+            source_uid=source_uid,
+            project_id=project.id,
+            apartment_id=apartment.id,
+            work_point_id=work_point.id,
+            title=work_point.display_name,
+            description=fragment,
+            source_cell_value=fragment,
+            source_sheet_name=source_sheet_name,
+            status=STATUS_NOT_STARTED,
+            is_done=False,
+            completed_date=None,
+            responsible_id=responsible_id,
+            planned_date=planned_date,
+            manually_edited=True,
+            last_seen_at=datetime.utcnow(),
+            source_hash=cell_hash(fragment),
+        )
+        db.session.add(task)
+        db.session.flush()
+        log_change(task, action, None, None, fragment, user_id=current_user.id)
+        tasks.append(task)
+    return tasks
+
+
 def _create_manual_remark_task(
     *,
     project: Project,
@@ -6746,37 +6851,14 @@ def _create_manual_remark_task(
     source_sheet_name: str = "manual",
     action: str = "manual_created",
 ) -> Task:
-    work_point = _get_or_create_manual_work_point(point_number)
-    source_uid = build_task_uid(
-        project.name,
-        apartment.construction_number or "",
-        apartment.apartment_number or "",
-        work_point.point_number,
-        work_point.display_name,
-        text,
-    )
-    if Task.query.filter_by(source_uid=source_uid).first():
-        source_uid = stable_hash([source_uid, source_sheet_name, datetime.utcnow().isoformat()])
-    task = Task(
-        source_uid=source_uid,
-        project_id=project.id,
-        apartment_id=apartment.id,
-        work_point_id=work_point.id,
-        title=work_point.display_name,
-        description=text,
-        source_cell_value=text,
+    return _create_manual_remark_tasks(
+        project=project,
+        apartment=apartment,
+        point_number=point_number,
+        text=text,
         source_sheet_name=source_sheet_name,
-        status=STATUS_NOT_STARTED,
-        is_done=False,
-        completed_date=None,
-        manually_edited=True,
-        last_seen_at=datetime.utcnow(),
-        source_hash=stable_hash([text]),
-    )
-    db.session.add(task)
-    db.session.flush()
-    log_change(task, action, None, None, text, user_id=current_user.id)
-    return task
+        action=action,
+    )[0]
 
 
 def _task_effective_remark_text(task: Task) -> str:
@@ -10506,6 +10588,7 @@ def _apply_sync_conflict_new_value(conflict: SyncConflict) -> None:
     # Пользователь нажал «Принять новое» — значит новый текст из Excel должен стать видимым текстом замечания.
     if conflict.field_name in {None, "source_cell_value", "description"}:
         task.description = conflict.new_value
+        split_task_into_entities(task, action="sync_conflict_sentence_split")
 
 
 def _create_task_from_sync_conflict(conflict: SyncConflict) -> Task | None:
@@ -10642,10 +10725,23 @@ def inline_update_text(task_id: int):
     if old_text != task.description:
         log_change(task, "field_update", "description", old_text, task.description, user_id=current_user.id)
     task.manually_edited = True
+    split_tasks = split_task_into_entities(
+        task,
+        action="inline_sentence_split",
+        preserve_source_identity=False,
+    )
     db.session.commit()
     history_change = next((change for change in reversed(task.changes) if change.action == "field_update" and change.field_name == "description"), None)
     history_entry = _build_change_history_entry(history_change, task=task, users_cache={}) if history_change else None
-    return jsonify({"ok": True, "text": task.description or "", "history_entry": history_entry})
+    return jsonify(
+        {
+            "ok": True,
+            "text": task.description or "",
+            "history_entry": history_entry,
+            "reload_required": len(split_tasks) > 1,
+            "created_task_ids": [item.id for item in split_tasks[1:]],
+        }
+    )
 
 
 @bp.route("/tasks/<int:task_id>/split", methods=["POST"])

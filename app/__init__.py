@@ -350,6 +350,12 @@ def create_app(config_class=Config):
                     db.session.execute(text("UPDATE sync_logs SET project_id = :project_id WHERE project_id IS NULL"), {"project_id": first_project_id})
                     db.session.commit()
 
+        table_names = set(inspect(db.engine).get_table_names())
+        if {"tasks", "app_settings", "sync_conflicts"}.issubset(table_names):
+            from app.services.remark_entities import migrate_existing_compound_tasks
+
+            migrate_existing_compound_tasks()
+
     from app.auth import bp as auth_bp
     from app.routes import bp as main_bp
 

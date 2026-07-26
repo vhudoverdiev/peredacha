@@ -31,14 +31,14 @@ class MaterialRequestDetailExportTests(unittest.TestCase):
         self.assertIn("material-request-detail-export-btn", button_block.group(1))
         self.assertIn("d-none d-md-inline-flex", button_block.group(1))
 
-    def test_detail_route_passes_export_permission_to_template(self):
-        detail_route = re.search(
-            r"def material_request_detail\(request_id: int\):(.*?)\n\n@bp\.route",
+    def test_detail_renderer_passes_export_permission_to_template(self):
+        detail_renderer = re.search(
+            r"def _render_material_request_detail\((.*?)\n\n\ndef ",
             self.routes,
             re.DOTALL,
         )
-        self.assertIsNotNone(detail_route)
-        self.assertIn("can_export_material_request=can_export(current_user)", detail_route.group(1))
+        self.assertIsNotNone(detail_renderer)
+        self.assertIn("can_export_material_request=can_export(current_user)", detail_renderer.group(1))
 
     def test_mobile_styles_are_unchanged_for_export_button(self):
         mobile_css = MOBILE_CSS_PATH.read_text(encoding="utf-8")

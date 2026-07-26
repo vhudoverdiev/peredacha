@@ -34,7 +34,7 @@
       </a>
     {% endif %}
     {% if can_edit_materials %}
-      <button class="btn btn-primary js-material-request-edit" type="button"><i class="bi bi-pencil-square me-2"></i>Редактировать</button>
+      <button class="btn btn-primary js-material-request-edit{% if edit_mode %} d-none{% endif %}" type="button"><i class="bi bi-pencil-square me-2"></i>Редактировать</button>
       <form method="post" action="{{ url_for('main.material_request_delete', request_id=material_request.id) }}" data-confirm="Удалить эту заявку? Все позиции заявки будут удалены, баланс материалов пересчитается.">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="btn btn-outline-danger material-request-detail-delete-btn" type="submit">Удалить </button>
@@ -43,7 +43,7 @@
   </div>
 </div>
 
-<div class="card table-shell task-table-shell js-material-request-view">
+<div class="card table-shell task-table-shell js-material-request-view{% if edit_mode %} d-none{% endif %}">
   <div class="card-body p-0">
     <div class="table-responsive materials-table-responsive">
       <table class="table table-hover align-middle task-table materials-table">
@@ -76,19 +76,23 @@
 </div>
 
 {% if can_edit_materials %}
-<form method="post" action="{{ url_for('main.material_request_update', request_id=material_request.id) }}" class="card content-card material-form-card material-request-edit-card js-material-request-edit-form d-none">
+<form method="post" action="{{ url_for('main.material_request_update', request_id=material_request.id) }}" class="card content-card material-form-card material-request-edit-card js-material-request-edit-form{% if not edit_mode %} d-none{% endif %}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <div class="card-body">
+    <div class="card-body">
     <h2 class="section-title">Редактировать заявку</h2>
+
+    {% if edit_error %}
+      <div class="alert alert-danger" role="alert">{{ edit_error }}</div>
+    {% endif %}
 
     <div class="row g-3 mb-3">
       <div class="col-12 col-lg-8 material-request-title-col">
         <label class="form-label">Название заявки</label>
-        <input class="form-control" name="title" value="{{ request_title }}" required>
+        <input class="form-control{% if edit_title_invalid %} is-invalid{% endif %}" name="title" value="{{ edit_title if edit_title is not none else request_title }}" required>
       </div>
       <div class="col-12 col-lg-4 material-request-date-col">
         <label class="form-label">Дата заявки</label>
-        <input class="form-control" type="date" name="request_date" value="{{ material_request.request_date.isoformat() if material_request.request_date else today.isoformat() }}" required>
+        <input class="form-control{% if edit_request_date_invalid %} is-invalid{% endif %}" type="date" name="request_date" value="{{ edit_request_date if edit_request_date is not none else (material_request.request_date.isoformat() if material_request.request_date else today.isoformat()) }}" required>
       </div>
     </div>
 
@@ -105,6 +109,19 @@
           </tr>
         </thead>
         <tbody{% if not is_mobile_phone_request %} data-unlimited-rows="1"{% endif %}>
+        {% if edit_rows is not none %}
+        {% for row in edit_rows %}
+          <tr>
+            <td class="text-muted">{{ loop.index }}</td>
+            <td>
+              <input type="hidden" name="item_id[]" value="{{ row.item_id }}">
+              <input class="form-control material-name-input{% if row.name_invalid %} is-invalid{% endif %}" name="name[]" value="{{ row.name }}" placeholder="Например: Стекло">
+            </td>
+            <td><input class="form-control{% if row.quantity_invalid %} is-invalid{% endif %}" name="quantity[]" inputmode="decimal" value="{{ row.quantity }}" placeholder="Например: 5"></td>
+            <td><input class="form-control material-unit-input{% if row.unit_invalid %} is-invalid{% endif %}" name="unit[]" value="{{ row.unit }}" placeholder="меш / кг / шт / м²"></td>
+          </tr>
+        {% endfor %}
+        {% else %}
         {% for i in range(max_rows) %}
           {% set item = material_request.items[i] if i < material_request.items|length else none %}
           <tr>
@@ -117,6 +134,7 @@
             <td><input class="form-control material-unit-input" name="unit[]" value="{{ item.unit if item else '' }}" placeholder="меш / кг / шт / м²"></td>
           </tr>
         {% endfor %}
+        {% endif %}
         </tbody>
       </table>
     </div>

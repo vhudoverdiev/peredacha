@@ -104,6 +104,27 @@ class GlassManualTaskEntryTests(unittest.TestCase):
         self.assertEqual(page_response.status_code, 200)
         self.assertIn("Новый ручной замер", page_response.get_data(as_text=True))
 
+    def test_compound_manual_text_creates_independent_measurement_rows(self):
+        response = self.client.post(
+            "/glass/task/new",
+            data={
+                "apartment_id": self.apartment.id,
+                "description": "Замерить стеклопакет. Замерить створку; проверить раму",
+            },
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["reload_required"])
+        tasks = Task.query.filter_by(source_sheet_name="manual_glass").order_by(Task.id.asc()).all()
+        self.assertEqual(
+            [task.description for task in tasks],
+            ["Замерить стеклопакет.", "Замерить створку;", "проверить раму"],
+        )
+        self.assertTrue(all(task.glass_measurement is not None for task in tasks))
+
     def test_manual_task_ajax_uses_helpers_available_in_its_scope(self):
         script = SCRIPT_PATH.read_text(encoding="utf-8")
         manual_block = script.split("const glassManualModalElement", 1)[1].split(
