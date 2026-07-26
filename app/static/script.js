@@ -1902,7 +1902,27 @@ document.addEventListener('DOMContentLoaded', () => {
       let pos = start;
       while (pos < text.length && /[\s"'\u00ab\u00bb\u201c\u201d\u201e\u2039\u203a()[\]{}]+/u.test(text[pos])) pos += 1;
       const fragmentStart = pos;
-      while (pos < text.length && !'.;'.includes(text[pos])) pos += 1;
+      while (pos < text.length) {
+        const char = text[pos];
+        if (char === ';') break;
+        if (char === '.') {
+          let nextIndex = pos + 1;
+          while (nextIndex < text.length && /\s/u.test(text[nextIndex])) nextIndex += 1;
+          while (nextIndex < text.length && sentenceOpeners.has(text[nextIndex])) {
+            nextIndex += 1;
+            while (nextIndex < text.length && /\s/u.test(text[nextIndex])) nextIndex += 1;
+          }
+          const nextLetter = text[nextIndex] || '';
+          const hasNextSentence = (
+            nextIndex < text.length
+            && nextLetter.toLocaleUpperCase() === nextLetter
+            && nextLetter.toLocaleLowerCase() !== nextLetter
+          );
+          const numericListPrefix = /(?:^|\s)\d+\.$/u.test(text.slice(0, pos + 1));
+          if (hasNextSentence && !numericListPrefix && !hasNonTerminalAbbreviation(pos)) break;
+        }
+        pos += 1;
+      }
       return fragmentLength(fragmentStart, pos);
     };
 

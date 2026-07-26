@@ -140,7 +140,21 @@ def _sentence_fragment_length(text: str, start: int, end: int) -> int:
 
 def _next_fragment_length(text: str, start: int) -> int:
     index = start
-    while index < len(text) and text[index] not in ".;":
+    while index < len(text):
+        char = text[index]
+        if char == ";":
+            break
+        if char == ".":
+            next_index, next_char = _next_sentence_letter(text, index + 1)
+            numbered_prefix = bool(re.search(r"(?:^|\s)\d+\.$", text[:index + 1]))
+            if (
+                next_char
+                and next_char.isalpha()
+                and next_char.isupper()
+                and not numbered_prefix
+                and not _has_non_terminal_abbreviation(text, index)
+            ):
+                break
         index += 1
     return _sentence_fragment_length(text, start, index)
 

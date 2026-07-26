@@ -87,10 +87,11 @@ def _sentence_ranges(text: str) -> list[tuple[int, int]]:
         needle = fragment.strip()
         if not needle:
             continue
-        start = text.find(needle, cursor)
-        if start < 0:
+        needle_start = text.find(needle, cursor)
+        if needle_start < 0:
             return [(0, len(text))]
-        end = start + len(needle)
+        start = cursor if text[cursor:needle_start].strip() == "" else needle_start
+        end = needle_start + len(needle)
         ranges.append((start, end))
         cursor = end
     return ranges or [(0, len(text))]

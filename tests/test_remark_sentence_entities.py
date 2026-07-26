@@ -276,7 +276,15 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
             source_column_index=26,
             is_active=True,
         )
-        db.session.add_all([project, apartment, shifted_point, ordinary_point])
+        ordinary_point_24 = WorkPoint(
+            point_number="24",
+            source_sheet_name="Квартал 100-5",
+            original_column_name="Отсутствует ХГВС",
+            short_name="Отсутствует ХГВС",
+            source_column_index=24,
+            is_active=True,
+        )
+        db.session.add_all([project, apartment, shifted_point, ordinary_point, ordinary_point_24])
         db.session.flush()
         dop_task = Task(
             source_uid="dop-shifted-column",
@@ -292,7 +300,14 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
             work_point=ordinary_point,
             description="не доп. соглашение",
         )
-        db.session.add_all([dop_task, ordinary_task])
+        ordinary_task_24 = Task(
+            source_uid="ordinary-column-24",
+            project=project,
+            apartment=apartment,
+            work_point=ordinary_point_24,
+            description="отст. ХГВС",
+        )
+        db.session.add_all([dop_task, ordinary_task, ordinary_task_24])
         db.session.commit()
 
         ensure_default_categories()
@@ -300,6 +315,7 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
 
         self.assertIn(shifted_point.id, {point.id for point in dop_category.work_points})
         self.assertNotIn(ordinary_point.id, {point.id for point in dop_category.work_points})
+        self.assertNotIn(ordinary_point_24.id, {point.id for point in dop_category.work_points})
         self.assertEqual(
             [task.id for task in build_task_query({}, category_id=dop_category.id, project_id=project.id).all()],
             [dop_task.id],

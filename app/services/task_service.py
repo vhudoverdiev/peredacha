@@ -126,10 +126,9 @@ APARTMENT_IMPORT_CONFLICT_LABELS = {
 
 # Основные рабочие замечания для вкладки "Все" и рабочих разделов: пункты 10-22.
 MAIN_WORK_POINT_NUMBERS = {str(number) for number in range(10, 23)}
-# Старые таблицы держали доп. соглашение в пункте 24; новые объекты могут иметь
-# другой номер столбца, поэтому при импорте и фильтрации дополнительно смотрим
-# на название заголовка.
-DOP_AGREEMENT_POINT_NUMBERS = {"24"}
+# Колонка доп. соглашения сдвигается между объектами, поэтому определяем её по
+# названию заголовка, а не по фиксированному номеру пункта.
+DOP_AGREEMENT_POINT_NUMBERS = set()
 # Импортировать можно основные замечания + доп. соглашение, но во вкладку "Все" попадают только 10-22.
 VISIBLE_WORK_POINT_NUMBERS = MAIN_WORK_POINT_NUMBERS | DOP_AGREEMENT_POINT_NUMBERS
 
@@ -655,7 +654,6 @@ def dop_agreement_work_point_clause():
         return and_(*(field.like(f"%{part}%") for part in parts))
 
     return or_(
-        WorkPoint.point_number.in_(DOP_AGREEMENT_POINT_NUMBERS),
         field_has_all(WorkPoint.original_column_name, "Отступ", "ТМЦ"),
         field_has_all(WorkPoint.original_column_name, "отступ", "тмц"),
         field_has_all(WorkPoint.short_name, "Отступ", "ТМЦ"),
