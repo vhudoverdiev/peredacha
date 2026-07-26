@@ -15,11 +15,14 @@ from app.models import (
     STATUS_NOT_STARTED,
     SyncConflict,
     Task,
+    WorkCategory,
     WorkPoint,
 )
 from app.services.excel_import import sync_excel_file
+from app.services.mapping_service import ensure_default_categories
 from app.services.remark_entities import migrate_existing_compound_tasks, split_task_into_entities
-from app.services.uid_service import split_cell_remarks
+from app.services.task_service import build_task_query, dop_agreement_work_point_clause, map_work_point_columns
+from app.services.uid_service import cell_hash, split_cell_remarks
 
 
 class TestConfig(Config):
@@ -71,6 +74,13 @@ class RemarkSentenceSplitRuleTests(unittest.TestCase):
         source = "Проверить! Новая фраза? Ещё фраза."
         self.assertEqual(split_cell_remarks(source), [source])
 
+    def test_known_work_abbreviation_before_acronym_stays_in_one_remark(self):
+        self.assertEqual(split_cell_remarks("отсут. ХГВС"), ["отсут. ХГВС"])
+        self.assertEqual(
+            split_cell_remarks("Усадочная трещина. Требуется регулировка"),
+            ["Усадочная трещина.", "Требуется регулировка"],
+        )
+
 
 class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
     def setUp(self):
@@ -97,7 +107,8 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
         return path
 
     def test_excel_sync_creates_independent_rows_and_is_idempotent(self):
-        path = self._workbook("Первое замечание. Второе замечание; третье замечание")
+        source_text = "Первое замечание. Второе замечание; третье замечание"
+        path = self._workbook(source_text)
 
         first_result = sync_excel_file(path, project_name="Sentence entities import QA")
         tasks = Task.query.order_by(Task.id.asc()).all()
@@ -110,6 +121,10 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
         self.assertEqual(len({task.source_uid for task in tasks}), 3)
         self.assertEqual(len({task.source_row_index for task in tasks}), 1)
         self.assertEqual(len({task.source_column_index for task in tasks}), 1)
+        self.assertEqual(
+            {task.source_cell_value for task in tasks},
+            {source_text},
+        )
 
         tasks[1].status = STATUS_DONE
         tasks[1].is_done = True
@@ -120,6 +135,103 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
         self.assertEqual(retry_result["updated_count"], 3)
         self.assertEqual(Task.query.count(), 3)
         self.assertEqual(Task.query.order_by(Task.id.asc()).all()[1].status, STATUS_DONE)
+        self.assertEqual(SyncConflict.query.count(), 0)
+
+    def test_resync_adopts_full_excel_cell_for_existing_split_fragments_without_conflict(self):
+        source_text = "First issue. Second issue;third issue"
+        path = self._workbook(source_text)
+        sync_excel_file(path, project_name="Sentence entities stable source QA")
+
+        tasks = Task.query.order_by(Task.id.asc()).all()
+        self.assertEqual([task.description for task in tasks], ["First issue.", "Second issue;", "third issue"])
+        for task in tasks:
+            task.source_cell_value = task.description
+            task.source_hash = cell_hash(task.description)
+        db.session.add(
+            SyncConflict(
+                task=tasks[1],
+                target_type="task",
+                field_name="source_cell_value",
+                source_type="excel",
+                sheet_name=tasks[1].source_sheet_name,
+                row_index=tasks[1].source_row_index,
+                column_index=tasks[1].source_column_index,
+                old_value=tasks[1].description,
+                new_value=source_text,
+                old_hash=cell_hash(tasks[1].description),
+                new_hash=cell_hash(source_text),
+                status="pending",
+            )
+        )
+        db.session.commit()
+
+        retry_result = sync_excel_file(path, project_name="Sentence entities stable source QA")
+
+        self.assertEqual(retry_result["created_count"], 0)
+        self.assertEqual(retry_result["updated_count"], 3)
+        self.assertEqual(SyncConflict.query.count(), 0)
+        refreshed = Task.query.order_by(Task.id.asc()).all()
+        self.assertEqual({task.source_cell_value for task in refreshed}, {source_text})
+        self.assertEqual({task.source_hash for task in refreshed}, {cell_hash(source_text)})
+
+    def test_dop_agreement_category_uses_header_name_when_column_number_shifts(self):
+        project = Project(name="Dop agreement shifted column QA")
+        apartment = Apartment(project=project, apartment_number="34")
+        shifted_point = WorkPoint(
+            point_number="26",
+            source_sheet_name="Квартал 100-5",
+            original_column_name="Отступное ТМЦ",
+            short_name="Отступное ТМЦ",
+            source_column_index=26,
+            is_active=True,
+        )
+        ordinary_point = WorkPoint(
+            point_number="26",
+            source_sheet_name="Другой лист",
+            original_column_name="Дата устранения",
+            short_name="Дата устранения",
+            source_column_index=26,
+            is_active=True,
+        )
+        db.session.add_all([project, apartment, shifted_point, ordinary_point])
+        db.session.flush()
+        dop_task = Task(
+            source_uid="dop-shifted-column",
+            project=project,
+            apartment=apartment,
+            work_point=shifted_point,
+            description="отступное ТМЦ",
+        )
+        ordinary_task = Task(
+            source_uid="ordinary-column-26",
+            project=project,
+            apartment=apartment,
+            work_point=ordinary_point,
+            description="не доп. соглашение",
+        )
+        db.session.add_all([dop_task, ordinary_task])
+        db.session.commit()
+
+        ensure_default_categories()
+        dop_category = WorkCategory.query.filter_by(name="Доп.Соглашение").one()
+
+        self.assertIn(shifted_point.id, {point.id for point in dop_category.work_points})
+        self.assertNotIn(ordinary_point.id, {point.id for point in dop_category.work_points})
+        self.assertEqual(
+            [task.id for task in build_task_query({}, category_id=dop_category.id, project_id=project.id).all()],
+            [dop_task.id],
+        )
+        self.assertEqual(
+            [task.id for task in Task.query.join(WorkPoint).filter(dop_agreement_work_point_clause()).all()],
+            [dop_task.id],
+        )
+
+    def test_dop_agreement_header_is_imported_even_without_fixed_point_number(self):
+        headers = ["№ кв", "Строительный номер", "Отступное ТМЦ"]
+        self.assertEqual(
+            map_work_point_columns(headers, {"apartment_number": 0, "construction_number": 1}),
+            {2: "Отступное ТМЦ"},
+        )
 
     def test_legacy_row_is_split_while_original_relations_stay_on_first_entity(self):
         project = Project(name="Sentence entities migration QA")

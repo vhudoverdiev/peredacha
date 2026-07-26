@@ -23,7 +23,11 @@ from app.models import (
     STATUS_NOT_STARTED,
 )
 from app.services.changelog_service import log_change
-from app.services.mapping_service import ensure_default_categories, apply_default_point_mapping
+from app.services.mapping_service import (
+    ensure_default_categories,
+    apply_default_point_mapping,
+    is_dop_agreement_header,
+)
 from app.services.uid_service import (
     build_source_fragment_uid,
     build_task_uid,
@@ -122,7 +126,9 @@ APARTMENT_IMPORT_CONFLICT_LABELS = {
 
 # Основные рабочие замечания для вкладки "Все" и рабочих разделов: пункты 10-22.
 MAIN_WORK_POINT_NUMBERS = {str(number) for number in range(10, 23)}
-# Доп. соглашение хранится отдельно: в исходной таблице материалы лежат в пункте 24.
+# Старые таблицы держали доп. соглашение в пункте 24; новые объекты могут иметь
+# другой номер столбца, поэтому при импорте и фильтрации дополнительно смотрим
+# на название заголовка.
 DOP_AGREEMENT_POINT_NUMBERS = {"24"}
 # Импортировать можно основные замечания + доп. соглашение, но во вкладку "Все" попадают только 10-22.
 VISIBLE_WORK_POINT_NUMBERS = MAIN_WORK_POINT_NUMBERS | DOP_AGREEMENT_POINT_NUMBERS
@@ -401,7 +407,14 @@ def find_header_row(rows: list[list[Any]]) -> int:
         if idx + 1 < len(rows) and is_index_number_row(rows[idx + 1]):
             score += 10
         if idx + 1 < len(rows):
-            indexed_hits = sum(1 for raw in rows[idx + 1] if _indexed_visible_point_number(raw))
+            indexed_hits = sum(
+                1
+                for col_idx, raw in enumerate(rows[idx + 1])
+                if _indexed_visible_point_number(
+                    raw,
+                    str(row[col_idx] or "") if col_idx < len(row) else "",
+                )
+            )
             if indexed_hits:
                 score += min(indexed_hits, 15) * 2
                 if indexed_hits >= 5:
@@ -444,7 +457,7 @@ def map_base_columns(headers: list[str], anchor_before_col: int | None = None) -
     return mapping
 
 
-def _indexed_visible_point_number(raw: Any) -> str | None:
+def _indexed_visible_point_number(raw: Any, header: str | None = None) -> str | None:
     point_number = None
     if isinstance(raw, (int, float)) and not isinstance(raw, bool):
         point_number = str(int(raw)) if float(raw).is_integer() else str(raw)
@@ -455,7 +468,9 @@ def _indexed_visible_point_number(raw: Any) -> str | None:
         value_norm = value.replace(".", "").replace(",", "")
         if value_norm.isdigit():
             point_number = value.split(".", 1)[0]
-    if point_number and point_number.isdigit() and is_visible_work_point_number(point_number):
+    if point_number and point_number.isdigit() and (
+        is_visible_work_point_number(point_number) or is_dop_agreement_header(header)
+    ):
         return point_number
     return None
 
@@ -464,6 +479,8 @@ def is_work_point_header(header: str, index: int) -> bool:
     h = normalize_text(header)
     if not h:
         return False
+    if is_dop_agreement_header(h):
+        return True
     if any(part in h for part in (IGNORED_POINT_HEADER_PARTS_RU + IGNORED_POINT_HEADER_PARTS)):
         return False
     point = extract_point_number(h, None)
@@ -483,7 +500,7 @@ def map_work_point_columns(headers: list[str], base_mapping: dict[str, int]) -> 
             continue
         if is_work_point_header(header, idx):
             point_number = extract_point_number(header, idx + 1)
-            if is_visible_work_point_number(point_number):
+            if is_visible_work_point_number(point_number) or is_dop_agreement_header(header):
                 points[idx] = header
     return points
 
@@ -531,7 +548,9 @@ def _point_group_score(headers: list[str], group: dict[int, str]) -> tuple[int, 
         if is_visible_work_point_number(extract_point_number(header, idx + 1))
     }
     main_hits = len(point_numbers & MAIN_WORK_POINT_NUMBERS)
-    dop_hits = len(point_numbers & DOP_AGREEMENT_POINT_NUMBERS)
+    dop_hits = len(point_numbers & DOP_AGREEMENT_POINT_NUMBERS) + sum(
+        1 for header in group.values() if is_dop_agreement_header(header)
+    )
     # The real remarks table has the apartment identity columns immediately before
     # a long run of visible work points. A small auxiliary table on the left may
     # have similar labels, so prefer the richest run with a valid identity anchor.
@@ -628,6 +647,32 @@ def is_visible_work_point_number(point_number: str | int | None) -> bool:
     if point_number is None:
         return False
     return str(point_number).strip() in VISIBLE_WORK_POINT_NUMBERS
+
+
+def dop_agreement_work_point_clause():
+    """SQL filter for addendum-material points, including shifted named columns."""
+    def field_has_all(field, *parts):
+        return and_(*(field.like(f"%{part}%") for part in parts))
+
+    return or_(
+        WorkPoint.point_number.in_(DOP_AGREEMENT_POINT_NUMBERS),
+        field_has_all(WorkPoint.original_column_name, "Отступ", "ТМЦ"),
+        field_has_all(WorkPoint.original_column_name, "отступ", "тмц"),
+        field_has_all(WorkPoint.short_name, "Отступ", "ТМЦ"),
+        field_has_all(WorkPoint.short_name, "отступ", "тмц"),
+        field_has_all(WorkPoint.description, "Отступ", "ТМЦ"),
+        field_has_all(WorkPoint.description, "отступ", "тмц"),
+        field_has_all(WorkPoint.original_column_name, "Доп", "Соглаш"),
+        field_has_all(WorkPoint.original_column_name, "доп", "соглаш"),
+        field_has_all(WorkPoint.short_name, "Доп", "Соглаш"),
+        field_has_all(WorkPoint.short_name, "доп", "соглаш"),
+        field_has_all(WorkPoint.description, "Доп", "Соглаш"),
+        field_has_all(WorkPoint.description, "доп", "соглаш"),
+    )
+
+
+def non_dop_agreement_work_point_clause():
+    return ~dop_agreement_work_point_clause()
 
 
 def normalize_finishing_type(value: Any) -> str | None:
@@ -778,6 +823,69 @@ def _pending_text_sync_conflict(task_id: int) -> SyncConflict | None:
         .order_by(SyncConflict.id.desc())
         .first()
     )
+
+
+def _source_cell_tasks_query(project_id: int, sheet_name: str, row_index: int, column_index: int):
+    return (
+        Task.query.filter_by(
+            project_id=project_id,
+            source_sheet_name=sheet_name,
+            source_row_index=row_index,
+            source_column_index=column_index,
+        )
+        .filter(Task.is_archived.is_(False))
+        .order_by(Task.id.asc())
+    )
+
+
+def _source_cell_tasks_match_fragments(tasks: list[Task], remarks: list[str]) -> bool:
+    if len(tasks) != len(remarks):
+        return False
+    return all(
+        normalize_text(task.description or task.source_cell_value) == normalize_text(remark)
+        for task, remark in zip(tasks, remarks)
+    )
+
+
+def _clear_obsolete_source_cell_conflicts(
+    project_id: int,
+    sheet_name: str,
+    row_index: int,
+    column_index: int,
+    source_cell_value: str,
+    source_hash: str,
+) -> None:
+    conflicts = (
+        SyncConflict.query.join(Task, SyncConflict.task_id == Task.id)
+        .filter(
+            Task.project_id == project_id,
+            SyncConflict.status == "pending",
+            SyncConflict.target_type == "task",
+            SyncConflict.source_type == "excel",
+            SyncConflict.sheet_name == sheet_name,
+            SyncConflict.row_index == row_index,
+            SyncConflict.column_index == column_index,
+            or_(
+                SyncConflict.field_name.is_(None),
+                SyncConflict.field_name.in_(("source_cell_value", "description")),
+            ),
+        )
+        .all()
+    )
+    for conflict in conflicts:
+        conflict_new_hash = conflict.new_hash or cell_hash(conflict.new_value or "")
+        if conflict_new_hash == source_hash or normalize_text(conflict.new_value) == normalize_text(source_cell_value):
+            db.session.delete(conflict)
+
+
+def _adopt_excel_source_cell_for_split_tasks(
+    tasks: list[Task],
+    source_cell_value: str,
+    source_hash: str,
+) -> None:
+    for task in tasks:
+        task.source_cell_value = source_cell_value
+        task.source_hash = source_hash
 
 
 def is_non_white_finishing(finishing_type: str | None) -> bool:
@@ -1297,16 +1405,7 @@ def upsert_task_from_cell(
     )
     task = Task.query.filter_by(source_uid=source_uid).first()
     if task is None and sheet_name and row_index and column_index:
-        source_tasks = (
-            Task.query.filter_by(
-                project_id=project.id,
-                source_sheet_name=sheet_name,
-                source_row_index=row_index,
-                source_column_index=column_index,
-            )
-            .order_by(Task.id.asc())
-            .all()
-        )
+        source_tasks = _source_cell_tasks_query(project.id, sheet_name, row_index, column_index).all()
         exact_text_task = next(
             (
                 candidate
@@ -1492,9 +1591,9 @@ def sync_rows(
         for col_idx, raw in enumerate(index_row):
             if col_idx in base_indexes:
                 continue
-            point_number = _indexed_visible_point_number(raw)
+            header = headers[col_idx] if col_idx < len(headers) else ""
+            point_number = _indexed_visible_point_number(raw, header)
             if point_number:
-                header = headers[col_idx] if col_idx < len(headers) else ""
                 if header:
                     indexed_points[col_idx] = f"{point_number}. {header}"
         if indexed_points:
@@ -1639,6 +1738,18 @@ def sync_rows(
             remarks = split_cell_remarks(cell_value)
             if not remarks:
                 continue
+            source_hash = cell_hash(cell_text)
+            source_tasks = _source_cell_tasks_query(project.id, sheet_name, row_zero_idx, col_zero_idx + 1).all()
+            if source_tasks and _source_cell_tasks_match_fragments(source_tasks, remarks):
+                _adopt_excel_source_cell_for_split_tasks(source_tasks, cell_text, source_hash)
+                _clear_obsolete_source_cell_conflicts(
+                    project.id,
+                    sheet_name,
+                    row_zero_idx,
+                    col_zero_idx + 1,
+                    cell_text,
+                    source_hash,
+                )
             for remark_index, remark in enumerate(remarks):
                 cell_address = f"{column_letter(col_zero_idx + 1)}{row_zero_idx}"
                 cell_is_struck = bool(struck_cells and (row_zero_idx, col_zero_idx + 1) in struck_cells)
@@ -1649,7 +1760,7 @@ def sync_rows(
                     legacy_apartment_number=legacy_apartment_number,
                     work_point=work_point,
                     remark_text=remark,
-                    source_cell_value=remark,
+                    source_cell_value=cell_text,
                     sheet_name=sheet_name,
                     row_index=row_zero_idx,
                     column_index=col_zero_idx + 1,
@@ -1700,7 +1811,10 @@ def build_task_query(params, category_id: int | None = None, project_id: int | N
 
     if category and category_name != "все":
         point_ids = [p.id for p in category.work_points]
-        query = query.filter(Task.work_point_id.in_(point_ids or [-1]))
+        if category_name == "доп.соглашение":
+            query = query.filter(or_(Task.work_point_id.in_(point_ids or [-1]), dop_agreement_work_point_clause()))
+        else:
+            query = query.filter(Task.work_point_id.in_(point_ids or [-1]))
     else:
         # Вкладка "Все" должна показывать только рабочие пункты 10-22.
         query = query.filter(WorkPoint.point_number.in_(MAIN_WORK_POINT_NUMBERS))

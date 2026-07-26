@@ -106,7 +106,6 @@ from app.services.mapping_service import ensure_default_categories, update_categ
 from app.services.pdf_recognition import is_no_remark_text, recognize_pdf_act
 from app.services.transfer_import import _is_app_mode, _parse_app_date, inspect_transfer_workbook, sync_transfer_statistics
 from app.services.task_service import (
-    DOP_AGREEMENT_POINT_NUMBERS,
     MAIN_WORK_POINT_NUMBERS,
     VISIBLE_WORK_POINT_NUMBERS,
     build_task_query,
@@ -127,6 +126,8 @@ from app.services.task_service import (
     APP_DEADLINE_EXPIRING,
     APP_DEADLINE_EXPIRED,
     APP_DEADLINE_NO_REMARKS,
+    dop_agreement_work_point_clause,
+    non_dop_agreement_work_point_clause,
 )
 from app.services.status_rules import is_problem_details_required
 from app.services.sync_rollback import apply_sync_rollback, build_project_rollback_data
@@ -1761,7 +1762,7 @@ def _material_task_options(project_id: int, params=None) -> list[Task]:
     elif acceptance_status == "waiting":
         query = query.filter(Apartment.is_app_mode.is_(False))
     if dop_only:
-        query = query.filter(Task.work_point.has(WorkPoint.point_number.in_(DOP_AGREEMENT_POINT_NUMBERS)))
+        query = query.filter(Task.work_point.has(dop_agreement_work_point_clause()))
     query = query.filter(
         ~exists().where(material_writeoff_tasks.c.task_id == Task.id)
     )
@@ -9221,7 +9222,7 @@ def work_report():
             Task.project_id == project.id,
             Task.is_done.is_(True),
             Task.status.in_(report_statuses),
-            WorkPoint.point_number.notin_(DOP_AGREEMENT_POINT_NUMBERS),
+            non_dop_agreement_work_point_clause(),
             Task.completed_date.isnot(None),
             Task.completed_date >= start,
         )
@@ -9270,7 +9271,7 @@ def work_report_export():
             Task.project_id == project.id,
             Task.is_done.is_(True),
             Task.status.in_((STATUS_DONE, STATUS_CONCESSION)),
-            Task.work_point.has(WorkPoint.point_number.notin_(DOP_AGREEMENT_POINT_NUMBERS)),
+            Task.work_point.has(non_dop_agreement_work_point_clause()),
             Task.completed_date.isnot(None),
             Task.completed_date >= start,
             Task.completed_date <= end + timedelta(days=1),
@@ -9281,7 +9282,7 @@ def work_report_export():
         base_query = Task.query.filter(
             Task.project_id == project.id,
             Task.is_archived.is_(False),
-            Task.work_point.has(WorkPoint.point_number.notin_(DOP_AGREEMENT_POINT_NUMBERS)),
+            Task.work_point.has(non_dop_agreement_work_point_clause()),
         )
         split_by_status = True
     else:
@@ -9290,7 +9291,7 @@ def work_report_export():
             Task.project_id == project.id,
             Task.is_done.is_(True),
             Task.status.in_((STATUS_DONE, STATUS_CONCESSION)),
-            Task.work_point.has(WorkPoint.point_number.notin_(DOP_AGREEMENT_POINT_NUMBERS)),
+            Task.work_point.has(non_dop_agreement_work_point_clause()),
             Task.completed_date.isnot(None),
             Task.completed_date >= start,
             Task.completed_date <= end + timedelta(days=1),

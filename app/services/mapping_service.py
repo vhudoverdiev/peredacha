@@ -1,3 +1,5 @@
+import re
+
 from app import db
 from app.models import AppSetting, WorkCategory, WorkPoint
 
@@ -13,7 +15,9 @@ DEFAULT_POINT_MAPPING = {
     "Маляры": ["10", "11", "12"],
     "Разнорабочие": ["13", "14", "15"],
     "Витражники": ["18"],
-    # Материалы по доп. соглашению лежат в пункте 24. Даты 25+ не импортируем как задачи.
+    # Старые таблицы держали материалы по доп. соглашению в пункте 24.
+    # В разных объектах этот столбец может сдвигаться, поэтому ниже дополнительно
+    # определяем его по названию заголовка.
     "Доп.Соглашение": ["24"],
 }
 
@@ -21,6 +25,11 @@ MAIN_POINT_NUMBERS = {str(number) for number in range(10, 23)}
 DOP_AGREEMENT_POINT_NUMBERS = {"24"}
 VISIBLE_POINT_NUMBERS = MAIN_POINT_NUMBERS | DOP_AGREEMENT_POINT_NUMBERS
 HIDDEN_POINT_NUMBERS = {str(number) for number in range(1, 101)} - VISIBLE_POINT_NUMBERS
+
+DOP_AGREEMENT_NAME_PARTS = (
+    ("отступ", "тмц"),
+    ("доп", "соглаш"),
+)
 
 REMOVED_CATEGORIES = {
     "Электрики", "Сантехники", "Двери", "Окна ПВХ", "Другое",
@@ -47,6 +56,36 @@ def _mark_mapping_customized(category_id: int, customized: bool = True) -> None:
         setting.value = value
 
 
+def _searchable_point_text(value: str | None) -> str:
+    text = str(value or "").casefold().replace("ё", "е")
+    text = re.sub(r"[^0-9a-zа-я]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def is_dop_agreement_header(header: str | None) -> bool:
+    text = _searchable_point_text(header)
+    if not text:
+        return False
+    return any(all(part in text for part in parts) for parts in DOP_AGREEMENT_NAME_PARTS)
+
+
+def is_dop_agreement_point(point: WorkPoint | None) -> bool:
+    if point is None:
+        return False
+    if str(point.point_number or "").strip() in DOP_AGREEMENT_POINT_NUMBERS:
+        return True
+    return is_dop_agreement_header(
+        " ".join(
+            str(part or "")
+            for part in (
+                point.original_column_name,
+                point.short_name,
+                point.description,
+            )
+        )
+    )
+
+
 def ensure_default_categories():
     default_names = {name for name, _, _ in DEFAULT_CATEGORIES}
     for name, color, sort_order in DEFAULT_CATEGORIES:
@@ -67,7 +106,11 @@ def ensure_default_categories():
 
     db.session.flush()
     for category in WorkCategory.query.all():
-        category.work_points = [point for point in category.work_points if point.point_number not in HIDDEN_POINT_NUMBERS]
+        category.work_points = [
+            point
+            for point in category.work_points
+            if point.point_number not in HIDDEN_POINT_NUMBERS or is_dop_agreement_point(point)
+        ]
     apply_default_point_mapping(commit=False)
 
 
@@ -80,6 +123,12 @@ def apply_default_point_mapping(commit: bool = True):
             continue
         visible_numbers = [point_number for point_number in point_numbers if point_number not in HIDDEN_POINT_NUMBERS]
         points = WorkPoint.query.filter(WorkPoint.point_number.in_(visible_numbers)).all()
+        if category_name == "Доп.Соглашение":
+            points_by_id = {point.id: point for point in points}
+            for point in WorkPoint.query.filter_by(is_active=True).all():
+                if is_dop_agreement_point(point):
+                    points_by_id[point.id] = point
+            points = list(points_by_id.values())
         for point in points:
             if point not in category.work_points:
                 category.work_points.append(point)

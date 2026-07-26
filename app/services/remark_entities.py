@@ -56,6 +56,8 @@ def _copy_task_fragment(
     *,
     source_uid: str,
     text: str,
+    source_cell_value: str | None = None,
+    source_hash: str | None = None,
     preserve_source_identity: bool,
 ) -> Task:
     return Task(
@@ -65,7 +67,7 @@ def _copy_task_fragment(
         work_point_id=task.work_point_id,
         title=task.title,
         description=text,
-        source_cell_value=text,
+        source_cell_value=source_cell_value if source_cell_value is not None else text,
         responsible_id=task.responsible_id,
         status=task.status,
         priority=task.priority,
@@ -76,7 +78,7 @@ def _copy_task_fragment(
         source_row_index=task.source_row_index if preserve_source_identity else None,
         source_column_index=task.source_column_index if preserve_source_identity else None,
         source_cell_address=task.source_cell_address if preserve_source_identity else None,
-        source_hash=cell_hash(text),
+        source_hash=source_hash or cell_hash(text),
         is_done=task.is_done,
         is_archived=False,
         is_missing_in_latest_sync=task.is_missing_in_latest_sync,
@@ -100,6 +102,8 @@ def split_task_into_entities(
         return [task]
 
     original_text = _effective_text(task)
+    original_source_cell_value = str(task.source_cell_value or original_text).strip()
+    original_source_hash = task.source_hash or cell_hash(original_source_cell_value)
     fragments = split_cell_remarks(original_text)
     if len(fragments) <= 1:
         return [task]
@@ -116,8 +120,12 @@ def split_task_into_entities(
     if uid_owner is None:
         task.source_uid = first_uid
     task.description = fragments[0]
-    task.source_cell_value = fragments[0]
-    task.source_hash = cell_hash(fragments[0])
+    if preserve_source_identity:
+        task.source_cell_value = original_source_cell_value
+        task.source_hash = original_source_hash
+    else:
+        task.source_cell_value = fragments[0]
+        task.source_hash = cell_hash(fragments[0])
     task.manually_edited = bool(task.manually_edited)
 
     db.session.add(
@@ -148,6 +156,8 @@ def split_task_into_entities(
             task,
             source_uid=source_uid,
             text=fragment,
+            source_cell_value=original_source_cell_value if preserve_source_identity else None,
+            source_hash=original_source_hash if preserve_source_identity else None,
             preserve_source_identity=preserve_source_identity,
         )
         db.session.add(sibling)
