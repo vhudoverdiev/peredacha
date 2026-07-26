@@ -48,16 +48,21 @@ class RemarkSentenceSplitRuleTests(unittest.TestCase):
                 "третье замечание. продолжение с маленькой буквы",
             ],
         )
+        self.assertEqual(split_cell_remarks("МДФ;ХГВС"), ["МДФ;ХГВС"])
+        self.assertEqual(
+            split_cell_remarks("Длинная первая часть;Вторая часть"),
+            ["Длинная первая часть;", "Вторая часть"],
+        )
 
     def test_period_without_space_before_uppercase_is_a_boundary(self):
         self.assertEqual(
-            split_cell_remarks("Первая часть.Вторая часть."),
-            ["Первая часть.", "Вторая часть."],
+            split_cell_remarks("Первая длинная часть.Вторая часть."),
+            ["Первая длинная часть.", "Вторая часть."],
         )
 
     def test_dates_decimals_abbreviations_and_numbered_prefixes_stay_intact(self):
         source = (
-            "В т.ч. нужен профиль 1.5 мм. Дата 01.08.2026. "
+            "В т.ч. нужен профиль 1.5 мм. Дата осмотра 01.08.2026. "
             "Следующая работа. 1. Отдельная работа."
         )
 
@@ -65,7 +70,7 @@ class RemarkSentenceSplitRuleTests(unittest.TestCase):
             split_cell_remarks(source),
             [
                 "В т.ч. нужен профиль 1.5 мм.",
-                "Дата 01.08.2026.",
+                "Дата осмотра 01.08.2026.",
                 "Следующая работа. 1. Отдельная работа.",
             ],
         )
@@ -76,6 +81,8 @@ class RemarkSentenceSplitRuleTests(unittest.TestCase):
 
     def test_known_work_abbreviation_before_acronym_stays_in_one_remark(self):
         self.assertEqual(split_cell_remarks("отсут. ХГВС"), ["отсут. ХГВС"])
+        self.assertEqual(split_cell_remarks("Повреж.МДФ"), ["Повреж.МДФ"])
+        self.assertEqual(split_cell_remarks("Повреж. МДФ"), ["Повреж. МДФ"])
         self.assertEqual(
             split_cell_remarks("Усадочная трещина. Требуется регулировка"),
             ["Усадочная трещина.", "Требуется регулировка"],
@@ -138,12 +145,12 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
         self.assertEqual(SyncConflict.query.count(), 0)
 
     def test_resync_adopts_full_excel_cell_for_existing_split_fragments_without_conflict(self):
-        source_text = "First issue. Second issue;third issue"
+        source_text = "First longer issue text. Second issue;third issue"
         path = self._workbook(source_text)
         sync_excel_file(path, project_name="Sentence entities stable source QA")
 
         tasks = Task.query.order_by(Task.id.asc()).all()
-        self.assertEqual([task.description for task in tasks], ["First issue.", "Second issue;", "third issue"])
+        self.assertEqual([task.description for task in tasks], ["First longer issue text.", "Second issue;", "third issue"])
         for task in tasks:
             task.source_cell_value = task.description
             task.source_hash = cell_hash(task.description)
@@ -377,8 +384,8 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
             project=project,
             apartment=apartment,
             work_point=point,
-            description="Первая проблема. Вторая проблема.",
-            source_cell_value="Первая проблема. Вторая проблема.",
+            description="Первая большая проблема. Вторая большая проблема.",
+            source_cell_value="Первая большая проблема. Вторая большая проблема.",
             status=STATUS_NOT_STARTED,
         )
         conflict = SyncConflict(
@@ -387,7 +394,7 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
             field_name="description",
             source_type="excel",
             old_value=task.description,
-            new_value="Первая новая проблема. Вторая новая проблема.",
+            new_value="Первая новая большая проблема. Вторая новая большая проблема.",
             status="pending",
         )
         db.session.add_all([project, apartment, point, task, conflict])

@@ -1557,6 +1557,19 @@ def upsert_task_from_cell(
     # Любое изменение уже известной ячейки Excel теперь попадает в «Несостыковки».
     # Раньше конфликт создавался только после ручной правки на сайте, из-за этого
     # изменения дат/действий/текста из новой таблицы могли молча перетираться.
+    if task.source_hash and task.source_hash != new_hash and sheet_name and row_index and column_index:
+        source_tasks = _source_cell_tasks_query(project.id, sheet_name, row_index, column_index).all()
+        if source_tasks and _source_cell_tasks_join_to_cell(source_tasks, source_cell_value):
+            _adopt_excel_source_cell_for_split_tasks(source_tasks, source_cell_value, new_hash)
+            _clear_obsolete_source_cell_conflicts(
+                project.id,
+                sheet_name,
+                row_index,
+                column_index,
+                source_cell_value,
+                new_hash,
+                delete_all=True,
+            )
     if task.source_hash and task.source_hash != new_hash:
         existing = _pending_text_sync_conflict(task.id)
         if existing is None:

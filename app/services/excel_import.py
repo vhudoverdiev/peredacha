@@ -227,6 +227,7 @@ def mark_missing_tasks(project_id: int, seen_uids: set[str]) -> int:
     if not seen_uids:
         return 0
     query = Task.query.filter(Task.project_id == project_id)
+    query = query.filter(Task.is_archived.is_(False))
     query = query.filter(Task.work_point.has(WorkPoint.point_number.in_(VISIBLE_WORK_POINT_NUMBERS)))
     if seen_uids:
         query = query.filter(~Task.source_uid.in_(seen_uids))

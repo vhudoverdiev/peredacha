@@ -9,6 +9,7 @@ POINT_RE = re.compile(r"(?:пункт|п\.?|№)?\s*(\d{1,3})", re.IGNORECASE)
 DATE_ONLY_RE = re.compile(r"^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$")
 DATETIME_ONLY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}(?:[ t]\d{2}:\d{2}(?::\d{2})?)?$", re.IGNORECASE)
 SENTENCE_OPENERS = frozenset('"\'«“„‹([{')
+MIN_SENTENCE_FRAGMENT_LENGTH = 10
 NON_TERMINAL_ABBREVIATIONS = (
     "в т.ч.",
     "и т.д.",
@@ -132,11 +133,23 @@ def _next_sentence_letter(text: str, start: int) -> tuple[int, str]:
     return index, text[index] if index < len(text) else ""
 
 
+def _sentence_fragment_length(text: str, start: int, end: int) -> int:
+    return len(SPACE_RE.sub(" ", text[start:end]).strip())
+
+
+def _next_fragment_length(text: str, start: int) -> int:
+    index = start
+    while index < len(text) and text[index] not in ".;":
+        index += 1
+    return _sentence_fragment_length(text, start, index)
+
+
 def split_cell_remarks(value) -> list[str]:
     """Split a source value into independent CRM remarks.
 
-    A full stop is a boundary only when the next sentence starts with an
-    uppercase letter. A semicolon is always a boundary. Dates, decimals,
+    A full stop is a boundary only when both neighboring fragments have at
+    least 10 characters and the next sentence starts with an uppercase letter.
+    A semicolon follows the same minimum-fragment-length rule. Dates, decimals,
     abbreviations, initials and numbered prefixes stay intact.
     """
     if value is None:
@@ -163,7 +176,10 @@ def split_cell_remarks(value) -> list[str]:
         boundary_end = index + 1
 
         if char == ";":
-            boundary = True
+            boundary = (
+                _sentence_fragment_length(text, fragment_start, index) >= MIN_SENTENCE_FRAGMENT_LENGTH
+                and _next_fragment_length(text, index + 1) >= MIN_SENTENCE_FRAGMENT_LENGTH
+            )
         elif char == ".":
             next_index, next_char = _next_sentence_letter(text, index + 1)
             numbered_prefix = bool(
@@ -173,6 +189,8 @@ def split_cell_remarks(value) -> list[str]:
                 next_char
                 and next_char.isalpha()
                 and next_char.isupper()
+                and _sentence_fragment_length(text, fragment_start, index) >= MIN_SENTENCE_FRAGMENT_LENGTH
+                and _next_fragment_length(text, next_index) >= MIN_SENTENCE_FRAGMENT_LENGTH
                 and not numbered_prefix
                 and not _has_non_terminal_abbreviation(text, index)
             )
