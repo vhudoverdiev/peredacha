@@ -1600,13 +1600,73 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     pointer-events: auto !important;
   }
 
-  html.desktop-like-pointer body.app-body .modal.show .modal-dialog {
+  html.desktop-like-pointer body.modal-open,
+  html.desktop-like-pointer body.app-body.modal-open {
+    overflow: hidden !important;
+    padding-right: 0 !important;
+  }
+
+  html.desktop-like-pointer .modal-backdrop.show,
+  html.desktop-like-pointer body.app-body > .modal-backdrop.show {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+  }
+
+  html.desktop-like-pointer .modal.show {
+    position: fixed !important;
+    inset: 0 !important;
     display: flex !important;
-    align-items: stretch !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    padding: 1rem !important;
+    margin: 0 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show .modal-dialog {
+    display: block !important;
     width: min(var(--bs-modal-width, 500px), calc(100vw - 2rem)) !important;
     max-width: calc(100vw - 2rem) !important;
     max-height: calc(100dvh - 2rem) !important;
+    min-height: 0 !important;
+    height: auto !important;
+    flex: 0 1 auto !important;
     margin: 0 auto !important;
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    zoom: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer .modal.show .modal-dialog {
+    display: block !important;
+    width: min(var(--bs-modal-width, 500px), calc(100vw - 2rem)) !important;
+    max-width: calc(100vw - 2rem) !important;
+    max-height: calc(100dvh - 2rem) !important;
+    min-height: 0 !important;
+    height: auto !important;
+    flex: 0 1 auto !important;
+    margin: 0 auto !important;
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
     transform: none !important;
     zoom: 1 !important;
     pointer-events: auto !important;
@@ -1628,15 +1688,39 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     display: flex !important;
     flex-direction: column !important;
     width: 100% !important;
+    height: auto !important;
     max-height: calc(100dvh - 2rem) !important;
     min-height: 0 !important;
+    flex: 0 1 auto !important;
+    overflow: hidden !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer .modal.show .modal-content {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: calc(100dvh - 2rem) !important;
+    min-height: 0 !important;
+    flex: 0 1 auto !important;
     overflow: hidden !important;
     pointer-events: auto !important;
   }
 
   html.desktop-like-pointer body.app-body .modal.show .modal-body {
-    flex: 1 1 auto !important;
+    flex: 0 1 auto !important;
     min-height: 0 !important;
+    max-height: calc(100dvh - 10rem) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer .modal.show .modal-body {
+    flex: 0 1 auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 10rem) !important;
     overflow-y: auto !important;
     overscroll-behavior: contain !important;
     pointer-events: auto !important;
@@ -1647,8 +1731,39 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     pointer-events: auto !important;
   }
 
+  html.desktop-like-pointer .modal.show :is(.modal-header, .modal-footer, .modal-actions, .confirm-modal-actions, .registration-modal-actions, .assignment-date-modal-actions) {
+    flex-shrink: 0 !important;
+    pointer-events: auto !important;
+  }
+
   html.desktop-like-pointer body.app-body .modal.show :is(button, .btn, input, select, textarea, label, a) {
     pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-rollback {
+    color: #ffffff !important;
+    background: #e7a025 !important;
+    border-color: #e7a025 !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-rollback:hover,
+  html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-rollback:focus {
+    color: #ffffff !important;
+    background: #d8921a !important;
+    border-color: #d8921a !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-delete {
+    color: #ffffff !important;
+    background: #e04b4b !important;
+    border-color: #e04b4b !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-delete:hover,
+  html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-delete:focus {
+    color: #ffffff !important;
+    background: #cb3f3f !important;
+    border-color: #cb3f3f !important;
   }
 
   html.desktop-like-pointer body.app-body .crm-confirm-overlay {

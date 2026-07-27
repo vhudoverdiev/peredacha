@@ -80,7 +80,7 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v142-desktop-modal-viewport")
+        self.assertEqual(worker_version, "v144-desktop-modal-design")
 
 
 if __name__ == "__main__":

@@ -427,7 +427,7 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
         self.assertEqual(db.session.get(SyncConflict, conflict.id).status, "pending")
 
     def test_new_migration_version_rescans_after_old_marker(self):
-        AppSetting.query.filter_by(key="remark_sentence_entities_v2").delete()
+        AppSetting.query.filter_by(key="remark_sentence_entities_v3").delete()
         db.session.add(AppSetting(key="remark_sentence_entities_v1", value="already-ran"))
         project = Project(name="Sentence entities migration version QA")
         apartment = Apartment(project=project, apartment_number="11")
@@ -456,7 +456,7 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
                 "third separate remark. lowercase continuation",
             ],
         )
-        self.assertIsNotNone(AppSetting.query.filter_by(key="remark_sentence_entities_v2").first())
+        self.assertIsNotNone(AppSetting.query.filter_by(key="remark_sentence_entities_v3").first())
 
 
 if __name__ == "__main__":

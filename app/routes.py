@@ -5273,14 +5273,16 @@ def glass_measurement_add(task_id: int):
         is_missing_in_latest_sync=True,
         glass_parent_task_id=root_task.id,
     )
+    db.session.add(repeat_task)
+    db.session.flush()
     repeat_measurement = GlassMeasurement(
         project_id=project.id,
-        task=repeat_task,
+        task_id=repeat_task.id,
         apartment_id=root_task.apartment_id,
         status=GLASS_STATUS_MEASURE_NEEDED,
         quantity=1,
     )
-    db.session.add_all([repeat_task, repeat_measurement])
+    db.session.add(repeat_measurement)
     db.session.commit()
 
     success_message = "Добавлен ещё один независимый замер к замечанию"

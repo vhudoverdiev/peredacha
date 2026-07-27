@@ -258,6 +258,7 @@ def sync_excel_file(path: Path, sheet_name: str | None = None, project_name: str
     sync_log.rollback_data = build_project_rollback_data(project.id if project else None)
     db.session.add(sync_log)
     db.session.commit()
+    sync_log_id = sync_log.id
     try:
         if sheet_name:
             sheets = [worksheet_to_rows_with_strikes(path, sheet_name=sheet_name)]
@@ -294,9 +295,12 @@ def sync_excel_file(path: Path, sheet_name: str | None = None, project_name: str
         return total_result
     except Exception as exc:
         db.session.rollback()
-        sync_log.status = "error"
-        sync_log.error_message = str(exc)
-        sync_log.finished_at = datetime.utcnow()
-        db.session.add(sync_log)
+        failed_log = db.session.get(SyncLog, sync_log_id) if sync_log_id else None
+        if failed_log is None:
+            failed_log = sync_log
+            db.session.add(failed_log)
+        failed_log.status = "error"
+        failed_log.error_message = str(exc)
+        failed_log.finished_at = datetime.utcnow()
         db.session.commit()
         raise

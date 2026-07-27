@@ -47,10 +47,14 @@ class DesktopModalViewportTests(unittest.TestCase):
             self.desktop_css.index(dialog_selector) : self.desktop_css.index("}", self.desktop_css.index(dialog_selector))
         ]
         self.assertIn("zoom: 1 !important", dialog_rule)
+        self.assertIn("display: block !important", dialog_rule)
+        self.assertIn("height: auto !important", dialog_rule)
 
         body_rule = self.desktop_css[
             self.desktop_css.index(body_selector) : self.desktop_css.index("}", self.desktop_css.index(body_selector))
         ]
+        self.assertIn("flex: 0 1 auto !important", body_rule)
+        self.assertIn("max-height: calc(100dvh - 10rem) !important", body_rule)
         self.assertIn("overflow-y: auto !important", body_rule)
 
     def test_custom_confirm_overlays_are_also_viewport_bound(self):
@@ -67,6 +71,22 @@ class DesktopModalViewportTests(unittest.TestCase):
         card_rule = self.desktop_css[start : self.desktop_css.index("}", start)]
         self.assertIn("max-height: calc(100dvh - 2rem) !important", card_rule)
         self.assertIn("overflow-y: auto !important", card_rule)
+
+    def test_sync_log_modal_buttons_keep_page_design_after_body_lift(self):
+        rollback_selector = (
+            "html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-rollback"
+        )
+        delete_selector = (
+            "html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-delete"
+        )
+        for selector, color in ((rollback_selector, "#e7a025"), (delete_selector, "#e04b4b")):
+            with self.subTest(selector=selector):
+                self.assertIn(selector, self.desktop_css)
+                start = self.desktop_css.index(selector)
+                rule = self.desktop_css[start : self.desktop_css.index("}", start)]
+                self.assertIn("color: #ffffff !important", rule)
+                self.assertIn(f"background: {color} !important", rule)
+                self.assertIn(f"border-color: {color} !important", rule)
 
     def test_bootstrap_modals_are_lifted_out_of_scaled_page_shell_on_desktop_only(self):
         start = self.script.index("const isDesktopModalViewport")
@@ -91,7 +111,7 @@ class DesktopModalViewportTests(unittest.TestCase):
         css_worker = re.search(r"/static/desktop-only\.css\?v=([^']+)", self.worker).group(1)
 
         self.assertEqual(script_template, "v665-desktop-modal-body")
-        self.assertEqual(css_template, "v62-desktop-modal-viewport")
+        self.assertEqual(css_template, "v65-desktop-modal-design")
         self.assertEqual(script_template, script_worker)
         self.assertEqual(css_template, css_worker)
 

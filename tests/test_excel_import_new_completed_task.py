@@ -1,13 +1,14 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
 from config import Config
 from app import create_app, db
-from app.models import ChangeLog, STATUS_DONE, Task
+from app.models import ChangeLog, STATUS_DONE, SyncLog, Task
 from app.services.excel_import import sync_excel_file
 
 
@@ -72,6 +73,22 @@ class ExcelImportNewCompletedTaskTests(unittest.TestCase):
         self.assertEqual(retry_result["updated_count"], 1)
         self.assertEqual(Task.query.count(), 1)
         self.assertEqual(ChangeLog.query.filter_by(task_id=task.id).count(), 2)
+
+    def test_failed_import_marks_sync_log_as_error_after_transaction_rollback(self):
+        workbook_path = Path(self.tempdir.name) / "broken.xlsx"
+        workbook_path.write_text("not used by patched reader", encoding="utf-8")
+
+        with patch(
+            "app.services.excel_import.workbook_sheets_to_rows_with_strikes",
+            side_effect=RuntimeError("reader boom"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "reader boom"):
+                sync_excel_file(workbook_path, project_name="Failed import QA")
+
+        sync_log = SyncLog.query.one()
+        self.assertEqual(sync_log.status, "error")
+        self.assertIn("reader boom", sync_log.error_message)
+        self.assertIsNotNone(sync_log.finished_at)
 
 
 if __name__ == "__main__":

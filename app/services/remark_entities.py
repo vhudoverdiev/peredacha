@@ -6,6 +6,7 @@ from sqlalchemy import or_
 
 from app import db
 from app.models import AppSetting, ChangeLog, Task
+from app.services.mapping_service import is_dop_agreement_point
 from app.services.uid_service import (
     build_source_fragment_uid,
     cell_hash,
@@ -14,7 +15,7 @@ from app.services.uid_service import (
 )
 
 
-MIGRATION_SETTING_KEY = "remark_sentence_entities_v2"
+MIGRATION_SETTING_KEY = "remark_sentence_entities_v3"
 EXCLUDED_SOURCE_SHEETS = {"apartment_history", "manual_glass_repeat"}
 
 
@@ -98,7 +99,11 @@ def split_task_into_entities(
     The original row is retained for the first fragment so comments, history,
     measurements and material links remain attached to an existing task.
     """
-    if task.is_archived or (task.source_sheet_name or "") in EXCLUDED_SOURCE_SHEETS:
+    if (
+        task.is_archived
+        or (task.source_sheet_name or "") in EXCLUDED_SOURCE_SHEETS
+        or is_dop_agreement_point(task.work_point)
+    ):
         return [task]
 
     original_text = _effective_text(task)
@@ -176,7 +181,12 @@ def split_task_into_entities(
     return created
 
 
-def migrate_existing_compound_tasks(*, force: bool = False) -> dict[str, int]:
+def migrate_existing_compound_tasks(
+    *,
+    force: bool = False,
+    project_id: int | None = None,
+    commit: bool = True,
+) -> dict[str, int]:
     """Idempotently split legacy compound tasks once for an existing database."""
     setting = AppSetting.query.filter_by(key=MIGRATION_SETTING_KEY).first()
     if setting is not None and not force:
@@ -185,7 +195,7 @@ def migrate_existing_compound_tasks(*, force: bool = False) -> dict[str, int]:
     split_tasks = 0
     created_tasks = 0
     skipped_conflicts = 0
-    tasks = (
+    query = (
         Task.query.filter(Task.is_archived.is_(False))
         .filter(
             or_(
@@ -193,10 +203,13 @@ def migrate_existing_compound_tasks(*, force: bool = False) -> dict[str, int]:
                 ~Task.source_sheet_name.in_(EXCLUDED_SOURCE_SHEETS),
             )
         )
-        .order_by(Task.id.asc())
-        .all()
     )
+    if project_id is not None:
+        query = query.filter(Task.project_id == project_id)
+    tasks = query.order_by(Task.id.asc()).all()
     for task in tasks:
+        if is_dop_agreement_point(task.work_point):
+            continue
         fragments = split_cell_remarks(_effective_text(task))
         if len(fragments) <= 1:
             continue
@@ -211,7 +224,10 @@ def migrate_existing_compound_tasks(*, force: bool = False) -> dict[str, int]:
         f"{datetime.now(timezone.utc).isoformat()}|split={split_tasks}|"
         f"created={created_tasks}|skipped_conflicts={skipped_conflicts}"
     )
-    db.session.commit()
+    if commit:
+        db.session.commit()
+    else:
+        db.session.flush()
     return {
         "split_tasks": split_tasks,
         "created_tasks": created_tasks,

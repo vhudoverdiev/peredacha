@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v142-desktop-modal-viewport';
+const STATIC_CACHE = 'peredacha-static-v144-desktop-modal-design';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -14,7 +14,7 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
   '/static/mobile-only.css?v=v88-remark-sentence-lines',
-  '/static/desktop-only.css?v=v62-desktop-modal-viewport',
+  '/static/desktop-only.css?v=v65-desktop-modal-design',
   '/static/script.js?v=v665-desktop-modal-body',
 ];
 
