@@ -67,6 +67,27 @@ html.desktop-like-pointer body.app-body:has(.materials-page-head)
   -webkit-text-fill-color: #ffffff !important;
 }
 
+/* Material request edit: move Save into the desktop page header in place of Excel. */
+html.desktop-like-pointer body.app-body:has(.materials-page-head)
+  .material-request-edit-save-top {
+  display: none !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.js-material-request-edit-form:not(.d-none))
+  .material-request-edit-save-top {
+  display: inline-flex !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.js-material-request-edit-form:not(.d-none))
+  .material-request-detail-export-btn {
+  display: none !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.materials-page-head)
+  .material-request-edit-save-bottom {
+  display: none !important;
+}
+
 /* Match the task comment hover to the floating help button while keeping the
    label deliberately black for contrast, as requested for desktop only. */
 html.desktop-like-pointer body.app-body:has(.task-detail-page)

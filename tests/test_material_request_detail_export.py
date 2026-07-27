@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE_PATH = ROOT / "app" / "templates" / "material_request_detail.html"
 ROUTES_PATH = ROOT / "app" / "routes.py"
 MOBILE_CSS_PATH = ROOT / "app" / "static" / "mobile-only.css"
+DESKTOP_CSS_PATH = ROOT / "app" / "static" / "desktop-only.css"
 
 
 class MaterialRequestDetailExportTests(unittest.TestCase):
@@ -51,6 +52,26 @@ class MaterialRequestDetailExportTests(unittest.TestCase):
             script,
             "The request export must use the browser's native download path.",
         )
+
+    def test_desktop_edit_save_replaces_export_in_page_header(self):
+        desktop_css = DESKTOP_CSS_PATH.read_text(encoding="utf-8")
+
+        self.assertIn('id="material-request-edit-form"', self.template)
+        self.assertIn('form="material-request-edit-form"', self.template)
+        self.assertIn("material-request-edit-save-top", self.template)
+        self.assertIn("material-request-edit-save-bottom", self.template)
+        self.assertIn(
+            "body.app-body:has(.js-material-request-edit-form:not(.d-none))",
+            desktop_css,
+        )
+        self.assertIn(".material-request-detail-export-btn", desktop_css)
+        self.assertIn(".material-request-edit-save-bottom", desktop_css)
+
+    def test_mobile_keeps_the_bottom_edit_save(self):
+        mobile_css = MOBILE_CSS_PATH.read_text(encoding="utf-8")
+
+        self.assertNotIn("material-request-edit-save-top", mobile_css)
+        self.assertNotIn("material-request-edit-save-bottom", mobile_css)
 
 
 if __name__ == "__main__":

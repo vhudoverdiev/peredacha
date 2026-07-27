@@ -14,6 +14,14 @@ class GlassDeleteConfirmModalTest(unittest.TestCase):
         self.assertIn("await window.crmShowActionConfirm(confirmMessage)", script)
         self.assertIn("const confirmMessage = normalizeConfirmText(", script)
 
+    def test_confirm_modal_script_cache_buster_is_synchronized(self):
+        template = (ROOT / "app" / "templates" / "base.html").read_text(encoding="utf-8")
+        worker = (ROOT / "app" / "static" / "service-worker.js").read_text(encoding="utf-8")
+
+        self.assertIn("script.js') }}?v=v668-crm-confirm-modal", template)
+        self.assertIn("/static/script.js?v=v668-crm-confirm-modal", worker)
+        self.assertIn("peredacha-static-v149-material-edit-save-top", worker)
+
 
 if __name__ == "__main__":
     unittest.main()

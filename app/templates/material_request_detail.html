@@ -34,6 +34,11 @@
       </a>
     {% endif %}
     {% if can_edit_materials %}
+      <button
+        class="btn btn-primary material-request-edit-save-top"
+        type="submit"
+        form="material-request-edit-form"
+      ><i class="bi bi-check2-circle me-2"></i>Сохранить</button>
       <button class="btn btn-primary js-material-request-edit{% if edit_mode %} d-none{% endif %}" type="button"><i class="bi bi-pencil-square me-2"></i>Редактировать</button>
       <form method="post" action="{{ url_for('main.material_request_delete', request_id=material_request.id) }}" data-confirm="Удалить эту заявку? Все позиции заявки будут удалены, баланс материалов пересчитается.">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -76,7 +81,7 @@
 </div>
 
 {% if can_edit_materials %}
-<form method="post" action="{{ url_for('main.material_request_update', request_id=material_request.id) }}" class="card content-card material-form-card material-request-edit-card js-material-request-edit-form{% if not is_mobile_phone_request %} js-material-request-form{% endif %}{% if not edit_mode %} d-none{% endif %}">
+<form id="material-request-edit-form" method="post" action="{{ url_for('main.material_request_update', request_id=material_request.id) }}" class="card content-card material-form-card material-request-edit-card js-material-request-edit-form{% if not is_mobile_phone_request %} js-material-request-form{% endif %}{% if not edit_mode %} d-none{% endif %}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="card-body">
     <h2 class="section-title">Редактировать заявку</h2>
@@ -140,7 +145,7 @@
     </div>
     <button class="btn btn-outline-primary btn-sm material-add-row-btn js-material-request-add-row" type="button"><i class="bi bi-plus-lg me-1"></i>Добавить строку</button>
     <div class="material-form-footer">
-      <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Сохранить</button>
+      <button class="btn btn-primary material-request-edit-save-bottom" type="submit"><i class="bi bi-check2-circle me-2"></i>Сохранить</button>
       <button class="btn btn-outline-secondary js-material-request-cancel" type="button">Отмена</button>
     </div>
   </div>

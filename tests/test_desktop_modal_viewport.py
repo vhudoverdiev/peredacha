@@ -110,8 +110,8 @@ class DesktopModalViewportTests(unittest.TestCase):
         css_template = re.search(r"desktop-only\.css'\) }}\?v=([^\"]+)", self.base).group(1)
         css_worker = re.search(r"/static/desktop-only\.css\?v=([^']+)", self.worker).group(1)
 
-        self.assertEqual(script_template, "v667-glass-manual-format")
-        self.assertEqual(css_template, "v65-desktop-modal-design")
+        self.assertEqual(script_template, "v668-crm-confirm-modal")
+        self.assertEqual(css_template, "v66-material-edit-save-top")
         self.assertEqual(script_template, script_worker)
         self.assertEqual(css_template, css_worker)
 
