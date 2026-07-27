@@ -9,7 +9,9 @@ Group=www-data
 WorkingDirectory=/opt/peredacha
 Environment="PATH=/opt/peredacha/venv/bin"
 EnvironmentFile=/opt/peredacha/.env
-ExecStart=/opt/peredacha/venv/bin/gunicorn --workers 3 --bind unix:/run/gunicorn-crm_flask.sock wsgi:app
+# A full remarks workbook can contain several thousand rows.  Keep the worker
+# alive long enough to finish the transaction and its rollback snapshot.
+ExecStart=/opt/peredacha/venv/bin/gunicorn --workers 3 --timeout 180 --graceful-timeout 180 --bind unix:/run/gunicorn-crm_flask.sock wsgi:app
 Restart=always
 RestartSec=5
 
