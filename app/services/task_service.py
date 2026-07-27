@@ -1446,6 +1446,52 @@ def change_task_status(task: Task, new_status: str, user_id: int | None = None, 
     return task
 
 
+def _session_task_by_source_uid(source_uid: str, *, exclude: Task | None = None) -> Task | None:
+    """Return a task that already owns source_uid in the current SQLAlchemy session.
+
+    Imports update many rows in one transaction.  A regular query can trigger
+    autoflush and fail before we get a chance to notice that another in-memory
+    Task has just claimed the same source_uid.  Checking the identity map first
+    keeps the import idempotent even after old split/merged remark states.
+    """
+
+    if not source_uid:
+        return None
+    for collection in (db.session.identity_map.values(), db.session.new):
+        for candidate in list(collection):
+            if not isinstance(candidate, Task) or candidate is exclude:
+                continue
+            if candidate.source_uid == source_uid:
+                return candidate
+    return None
+
+
+def _find_task_by_source_uid(source_uid: str) -> Task | None:
+    task = _session_task_by_source_uid(source_uid)
+    if task is not None:
+        return task
+    with db.session.no_autoflush:
+        return Task.query.filter_by(source_uid=source_uid).first()
+
+
+def _try_assign_source_uid(task: Task, source_uid: str) -> bool:
+    source_uid = (source_uid or "").strip()
+    if not source_uid:
+        return False
+    if task.source_uid == source_uid:
+        return True
+    if _session_task_by_source_uid(source_uid, exclude=task) is not None:
+        return False
+    with db.session.no_autoflush:
+        query = Task.query.filter(Task.source_uid == source_uid)
+        if task.id is not None:
+            query = query.filter(Task.id != task.id)
+        if query.first() is not None:
+            return False
+    task.source_uid = source_uid
+    return True
+
+
 def upsert_task_from_cell(
     project: Project,
     apartment: Apartment,
@@ -1471,7 +1517,7 @@ def upsert_task_from_cell(
         column_index,
         remark_index,
     )
-    task = Task.query.filter_by(source_uid=source_uid).first()
+    task = _find_task_by_source_uid(source_uid)
     if task is None and sheet_name and row_index and column_index:
         source_tasks = _source_cell_tasks_query(project.id, sheet_name, row_index, column_index).all()
         exact_text_task = next(
@@ -1502,14 +1548,9 @@ def upsert_task_from_cell(
         remark_text,
     )
     if task is None:
-        task = Task.query.filter_by(source_uid=legacy_source_uid).first()
+        task = _find_task_by_source_uid(legacy_source_uid)
     if task is not None and task.source_uid != source_uid:
-        source_uid_owner = Task.query.filter(
-            Task.source_uid == source_uid,
-            Task.id != task.id,
-        ).first()
-        if source_uid_owner is None:
-            task.source_uid = source_uid
+        _try_assign_source_uid(task, source_uid)
     if task is None and (legacy_construction_number or legacy_apartment_number):
         legacy_uid = build_task_uid(
             project.name,
@@ -1519,9 +1560,9 @@ def upsert_task_from_cell(
             work_point.display_name,
             remark_text,
         )
-        task = Task.query.filter_by(source_uid=legacy_uid).first()
+        task = _find_task_by_source_uid(legacy_uid)
         if task is not None:
-            task.source_uid = source_uid
+            _try_assign_source_uid(task, source_uid)
     if task is None and legacy_construction_number:
         derived_apartment = apartment_number_from_construction(legacy_construction_number)
         if derived_apartment:
@@ -1533,9 +1574,9 @@ def upsert_task_from_cell(
                 work_point.display_name,
                 remark_text,
             )
-            task = Task.query.filter_by(source_uid=legacy_uid2).first()
+            task = _find_task_by_source_uid(legacy_uid2)
             if task is not None:
-                task.source_uid = source_uid
+                _try_assign_source_uid(task, source_uid)
     created = task is None
     if created:
         task = Task(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +28,52 @@ from app.services.task_service import (
 )
 from app.services.changelog_service import log_change
 from app.services.sync_rollback import build_project_rollback_data
+
+STALE_RUNNING_SYNC_AFTER = timedelta(minutes=5)
+
+
+def _set_sync_log_error(sync_log_id: int | None, exc: BaseException) -> None:
+    if not sync_log_id:
+        return
+    try:
+        db.session.rollback()
+        failed_log = db.session.get(SyncLog, sync_log_id)
+        if failed_log is None:
+            return
+        failed_log.status = "error"
+        failed_log.error_message = str(exc)
+        failed_log.finished_at = datetime.utcnow()
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Failed to mark sync log as error")
+
+
+def mark_stale_running_sync_logs(
+    project_id: int | None = None,
+    *,
+    stale_after: timedelta = STALE_RUNNING_SYNC_AFTER,
+    now: datetime | None = None,
+) -> int:
+    now = now or datetime.utcnow()
+    cutoff = now - stale_after
+    query = SyncLog.query.filter(
+        SyncLog.status == "running",
+        SyncLog.started_at < cutoff,
+    )
+    if project_id is not None:
+        query = query.filter(SyncLog.project_id == project_id)
+    stale_logs = query.all()
+    for log in stale_logs:
+        log.status = "error"
+        log.finished_at = log.finished_at or now
+        log.error_message = (
+            log.error_message
+            or "Синхронизация не завершилась: процесс импорта был прерван или превысил допустимое время ожидания."
+        )
+    if stale_logs:
+        db.session.commit()
+    return len(stale_logs)
 
 
 def _cell_rgb(cell: Any) -> tuple[int, int, int] | None:
@@ -293,14 +339,6 @@ def sync_excel_file(path: Path, sheet_name: str | None = None, project_name: str
         sync_log.finished_at = datetime.utcnow()
         db.session.commit()
         return total_result
-    except Exception as exc:
-        db.session.rollback()
-        failed_log = db.session.get(SyncLog, sync_log_id) if sync_log_id else None
-        if failed_log is None:
-            failed_log = sync_log
-            db.session.add(failed_log)
-        failed_log.status = "error"
-        failed_log.error_message = str(exc)
-        failed_log.finished_at = datetime.utcnow()
-        db.session.commit()
+    except BaseException as exc:
+        _set_sync_log_error(sync_log_id, exc)
         raise

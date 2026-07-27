@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -9,7 +10,7 @@ from openpyxl.styles import Font
 from config import Config
 from app import create_app, db
 from app.models import ChangeLog, STATUS_DONE, SyncLog, Task
-from app.services.excel_import import sync_excel_file
+from app.services.excel_import import mark_stale_running_sync_logs, sync_excel_file
 
 
 class TestConfig(Config):
@@ -89,6 +90,50 @@ class ExcelImportNewCompletedTaskTests(unittest.TestCase):
         self.assertEqual(sync_log.status, "error")
         self.assertIn("reader boom", sync_log.error_message)
         self.assertIsNotNone(sync_log.finished_at)
+
+    def test_interrupted_import_marks_sync_log_as_error(self):
+        class ImportInterrupted(BaseException):
+            pass
+
+        workbook_path = Path(self.tempdir.name) / "interrupted.xlsx"
+        workbook_path.write_text("not used by patched reader", encoding="utf-8")
+
+        with patch(
+            "app.services.excel_import.workbook_sheets_to_rows_with_strikes",
+            side_effect=ImportInterrupted("worker interrupted"),
+        ):
+            with self.assertRaises(ImportInterrupted):
+                sync_excel_file(workbook_path, project_name="Interrupted import QA")
+
+        sync_log = SyncLog.query.one()
+        self.assertEqual(sync_log.status, "error")
+        self.assertIn("worker interrupted", sync_log.error_message)
+        self.assertIsNotNone(sync_log.finished_at)
+
+    def test_stale_running_sync_logs_are_marked_as_errors(self):
+        now = datetime.utcnow()
+        old_log = SyncLog(
+            source_type="excel",
+            source_name="old.xlsx",
+            status="running",
+            started_at=now - timedelta(minutes=8),
+        )
+        fresh_log = SyncLog(
+            source_type="excel",
+            source_name="fresh.xlsx",
+            status="running",
+            started_at=now - timedelta(minutes=2),
+        )
+        db.session.add_all([old_log, fresh_log])
+        db.session.commit()
+
+        marked_count = mark_stale_running_sync_logs(now=now, stale_after=timedelta(minutes=5))
+
+        self.assertEqual(marked_count, 1)
+        self.assertEqual(db.session.get(SyncLog, old_log.id).status, "error")
+        self.assertIn("не завершилась", db.session.get(SyncLog, old_log.id).error_message)
+        self.assertIsNotNone(db.session.get(SyncLog, old_log.id).finished_at)
+        self.assertEqual(db.session.get(SyncLog, fresh_log.id).status, "running")
 
 
 if __name__ == "__main__":

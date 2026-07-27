@@ -100,7 +100,7 @@ from app.services.avr_document import (
 )
 from app.services.excel_export import _excel_premise_label, _safe_filename_part, build_export_path, export_glass_measurements_excel, export_remark_tasks_excel, export_report_tasks_excel, export_simple_tasks_excel, export_source_excel_reconstructed, export_source_excel_with_strikes, export_tasks_to_excel, resolve_source_excel_with_strikes_path
 from app.services.pdf_export import export_assignment_worker_pdf, export_table_pdf, export_tasks_pdf
-from app.services.excel_import import inspect_remarks_workbook, preview_excel, save_upload, sync_excel_file
+from app.services.excel_import import inspect_remarks_workbook, mark_stale_running_sync_logs, preview_excel, save_upload, sync_excel_file
 from app.services.google_sheets_sync import sync_google_sheets, update_task_strike_in_google_sheet
 from app.services.mapping_service import ensure_default_categories, update_category_points
 from app.services.pdf_recognition import is_no_remark_text, recognize_pdf_act
@@ -9759,6 +9759,7 @@ def upload_excel():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
+    mark_stale_running_sync_logs(project.id)
     form = UploadExcelForm()
     transfer_form = UploadExcelForm(prefix="transfer")
     preview = None
@@ -10221,6 +10222,7 @@ def sync_logs():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
+    mark_stale_running_sync_logs(project.id)
     logs = SyncLog.query.filter(SyncLog.project_id == project.id).order_by(SyncLog.started_at.desc()).limit(100).all()
     return render_template("sync_logs.html", logs=logs, project=project)
 
