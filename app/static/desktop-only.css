@@ -69,7 +69,7 @@ html.desktop-like-pointer body.app-body:has(.materials-page-head)
 
 /* Material request edit: move Save into the desktop page header in place of Excel. */
 html.desktop-like-pointer body.app-body:has(.materials-page-head)
-  .material-request-edit-save-top {
+  :is(.material-request-edit-save-top, .material-request-edit-cancel-top) {
   display: none !important;
 }
 
@@ -79,12 +79,17 @@ html.desktop-like-pointer body.app-body:has(.js-material-request-edit-form:not(.
 }
 
 html.desktop-like-pointer body.app-body:has(.js-material-request-edit-form:not(.d-none))
-  .material-request-detail-export-btn {
+  :is(.material-request-detail-export-btn, .material-request-back-btn) {
   display: none !important;
 }
 
+html.desktop-like-pointer body.app-body:has(.js-material-request-edit-form:not(.d-none))
+  .material-request-edit-cancel-top {
+  display: inline-flex !important;
+}
+
 html.desktop-like-pointer body.app-body:has(.materials-page-head)
-  .material-request-edit-save-bottom {
+  :is(.material-request-edit-save-bottom, .material-request-edit-cancel-bottom) {
   display: none !important;
 }
 
@@ -1802,6 +1807,11 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     padding: 1rem !important;
     margin: 0 !important;
     pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .crm-confirm-overlay.d-none {
+    display: none !important;
+    pointer-events: none !important;
   }
 
   html.desktop-like-pointer body.app-body .crm-confirm-card {

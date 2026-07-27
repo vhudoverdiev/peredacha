@@ -60,18 +60,35 @@ class MaterialRequestDetailExportTests(unittest.TestCase):
         self.assertIn('form="material-request-edit-form"', self.template)
         self.assertIn("material-request-edit-save-top", self.template)
         self.assertIn("material-request-edit-save-bottom", self.template)
+        self.assertIn("material-request-edit-cancel-top js-material-request-cancel", self.template)
+        self.assertIn("material-request-edit-cancel-bottom js-material-request-cancel", self.template)
+        self.assertIn("material-request-back-btn", self.template)
         self.assertIn(
             "body.app-body:has(.js-material-request-edit-form:not(.d-none))",
             desktop_css,
         )
         self.assertIn(".material-request-detail-export-btn", desktop_css)
         self.assertIn(".material-request-edit-save-bottom", desktop_css)
+        self.assertIn(".material-request-edit-cancel-top", desktop_css)
+        self.assertIn(".material-request-edit-cancel-bottom", desktop_css)
+        self.assertIn(".material-request-back-btn", desktop_css)
 
     def test_mobile_keeps_the_bottom_edit_save(self):
         mobile_css = MOBILE_CSS_PATH.read_text(encoding="utf-8")
 
         self.assertNotIn("material-request-edit-save-top", mobile_css)
         self.assertNotIn("material-request-edit-save-bottom", mobile_css)
+        self.assertNotIn("material-request-edit-cancel-top", mobile_css)
+        self.assertNotIn("material-request-edit-cancel-bottom", mobile_css)
+
+    def test_top_cancel_finds_the_edit_form_outside_its_own_container(self):
+        script = (ROOT / "app" / "static" / "script.js").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "btn.closest('.js-material-request-edit-form')\n"
+            "        || document.querySelector('.js-material-request-edit-form')",
+            script,
+        )
 
 
 if __name__ == "__main__":

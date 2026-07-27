@@ -3220,7 +3220,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.js-material-request-cancel').forEach(btn => {
     btn.addEventListener('click', () => {
-      const form = btn.closest('.js-material-request-edit-form');
+      const form = btn.closest('.js-material-request-edit-form')
+        || document.querySelector('.js-material-request-edit-form');
       form?.classList.add('d-none');
       document.querySelector('.js-material-request-view')?.classList.remove('d-none');
       document.querySelector('.js-material-request-edit')?.classList.remove('d-none');

@@ -72,6 +72,15 @@ class DesktopModalViewportTests(unittest.TestCase):
         self.assertIn("max-height: calc(100dvh - 2rem) !important", card_rule)
         self.assertIn("overflow-y: auto !important", card_rule)
 
+    def test_hidden_custom_confirm_overlay_cannot_be_forced_visible(self):
+        selector = "html.desktop-like-pointer body.app-body .crm-confirm-overlay.d-none"
+        self.assertIn(selector, self.desktop_css)
+        start = self.desktop_css.index(selector)
+        rule = self.desktop_css[start : self.desktop_css.index("}", start)]
+
+        self.assertIn("display: none !important", rule)
+        self.assertIn("pointer-events: none !important", rule)
+
     def test_sync_log_modal_buttons_keep_page_design_after_body_lift(self):
         rollback_selector = (
             "html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-rollback"
@@ -110,8 +119,8 @@ class DesktopModalViewportTests(unittest.TestCase):
         css_template = re.search(r"desktop-only\.css'\) }}\?v=([^\"]+)", self.base).group(1)
         css_worker = re.search(r"/static/desktop-only\.css\?v=([^']+)", self.worker).group(1)
 
-        self.assertEqual(script_template, "v668-crm-confirm-modal")
-        self.assertEqual(css_template, "v66-material-edit-save-top")
+        self.assertEqual(script_template, "v669-material-edit-actions-top")
+        self.assertEqual(css_template, "v68-confirm-modal-actions")
         self.assertEqual(script_template, script_worker)
         self.assertEqual(css_template, css_worker)
 

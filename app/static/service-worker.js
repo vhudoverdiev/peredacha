@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v149-material-edit-save-top';
+const STATIC_CACHE = 'peredacha-static-v151-confirm-modal-actions';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -14,8 +14,8 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v630-apartment-export',
   '/static/mobile-only.css?v=v88-remark-sentence-lines',
-  '/static/desktop-only.css?v=v66-material-edit-save-top',
-  '/static/script.js?v=v668-crm-confirm-modal',
+  '/static/desktop-only.css?v=v68-confirm-modal-actions',
+  '/static/script.js?v=v669-material-edit-actions-top',
 ];
 
 const NAVIGATION_NETWORK_TIMEOUT_MS = 8000;

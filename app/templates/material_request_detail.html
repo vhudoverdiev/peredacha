@@ -21,7 +21,10 @@
     </p>
   </div>
   <div class="sync-actions material-detail-actions">
-    <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='requests') }}">Назад</a>
+    <a class="btn btn-outline-secondary material-request-back-btn" href="{{ url_for('main.materials', tab='requests') }}">Назад</a>
+    {% if can_edit_materials %}
+      <button class="btn btn-outline-secondary material-request-edit-cancel-top js-material-request-cancel" type="button">Отмена</button>
+    {% endif %}
     {% if can_export_material_request %}
       <a
         class="btn btn-success download-excel-btn material-request-detail-export-btn d-none d-md-inline-flex"
@@ -146,7 +149,7 @@
     <button class="btn btn-outline-primary btn-sm material-add-row-btn js-material-request-add-row" type="button"><i class="bi bi-plus-lg me-1"></i>Добавить строку</button>
     <div class="material-form-footer">
       <button class="btn btn-primary material-request-edit-save-bottom" type="submit"><i class="bi bi-check2-circle me-2"></i>Сохранить</button>
-      <button class="btn btn-outline-secondary js-material-request-cancel" type="button">Отмена</button>
+      <button class="btn btn-outline-secondary material-request-edit-cancel-bottom js-material-request-cancel" type="button">Отмена</button>
     </div>
   </div>
 </form>
