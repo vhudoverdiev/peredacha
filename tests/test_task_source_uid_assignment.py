@@ -3,7 +3,7 @@ import unittest
 from config import Config
 from app import create_app, db
 from app.models import Apartment, Project, STATUS_NOT_STARTED, Task, WorkCategory, WorkPoint
-from app.services.task_service import _try_assign_source_uid
+from app.services.task_service import _claim_or_reuse_source_uid, _try_assign_source_uid
 
 
 class TestConfig(Config):
@@ -58,6 +58,14 @@ class TaskSourceUidAssignmentTests(unittest.TestCase):
         assigned = _try_assign_source_uid(self.second_task, "source-uid-shared")
 
         self.assertFalse(assigned)
+        self.assertEqual(self.second_task.source_uid, "source-uid-second")
+        db.session.flush()
+
+    def test_claim_source_uid_reuses_existing_owner_when_uid_is_taken(self):
+        owner = _claim_or_reuse_source_uid(self.second_task, self.first_task.source_uid)
+
+        self.assertEqual(owner.id, self.first_task.id)
+        self.assertEqual(self.first_task.source_uid, "source-uid-first")
         self.assertEqual(self.second_task.source_uid, "source-uid-second")
         db.session.flush()
 

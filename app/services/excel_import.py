@@ -340,5 +340,9 @@ def sync_excel_file(path: Path, sheet_name: str | None = None, project_name: str
         db.session.commit()
         return total_result
     except BaseException as exc:
-        _set_sync_log_error(sync_log_id, exc)
+        try:
+            _set_sync_log_error(sync_log_id, exc)
+        except Exception:
+            current_app.logger.exception("Failed to mark Excel sync log as error")
+            db.session.rollback()
         raise

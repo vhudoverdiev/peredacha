@@ -1474,6 +1474,11 @@ def _find_task_by_source_uid(source_uid: str) -> Task | None:
         return Task.query.filter_by(source_uid=source_uid).first()
 
 
+def _all_source_cell_tasks(project_id: int, sheet_name: str, row_index: int, column_index: int) -> list[Task]:
+    with db.session.no_autoflush:
+        return _source_cell_tasks_query(project_id, sheet_name, row_index, column_index).all()
+
+
 def _try_assign_source_uid(task: Task, source_uid: str) -> bool:
     source_uid = (source_uid or "").strip()
     if not source_uid:
@@ -1490,6 +1495,15 @@ def _try_assign_source_uid(task: Task, source_uid: str) -> bool:
             return False
     task.source_uid = source_uid
     return True
+
+
+def _claim_or_reuse_source_uid(task: Task, source_uid: str) -> Task:
+    if task.source_uid == source_uid:
+        return task
+    if _try_assign_source_uid(task, source_uid):
+        return task
+    existing_owner = _find_task_by_source_uid(source_uid)
+    return existing_owner or task
 
 
 def upsert_task_from_cell(
@@ -1519,7 +1533,7 @@ def upsert_task_from_cell(
     )
     task = _find_task_by_source_uid(source_uid)
     if task is None and sheet_name and row_index and column_index:
-        source_tasks = _source_cell_tasks_query(project.id, sheet_name, row_index, column_index).all()
+        source_tasks = _all_source_cell_tasks(project.id, sheet_name, row_index, column_index)
         exact_text_task = next(
             (
                 candidate
@@ -1550,7 +1564,7 @@ def upsert_task_from_cell(
     if task is None:
         task = _find_task_by_source_uid(legacy_source_uid)
     if task is not None and task.source_uid != source_uid:
-        _try_assign_source_uid(task, source_uid)
+        task = _claim_or_reuse_source_uid(task, source_uid)
     if task is None and (legacy_construction_number or legacy_apartment_number):
         legacy_uid = build_task_uid(
             project.name,
@@ -1562,7 +1576,7 @@ def upsert_task_from_cell(
         )
         task = _find_task_by_source_uid(legacy_uid)
         if task is not None:
-            _try_assign_source_uid(task, source_uid)
+            task = _claim_or_reuse_source_uid(task, source_uid)
     if task is None and legacy_construction_number:
         derived_apartment = apartment_number_from_construction(legacy_construction_number)
         if derived_apartment:
@@ -1576,8 +1590,13 @@ def upsert_task_from_cell(
             )
             task = _find_task_by_source_uid(legacy_uid2)
             if task is not None:
-                _try_assign_source_uid(task, source_uid)
+                task = _claim_or_reuse_source_uid(task, source_uid)
     created = task is None
+    if created:
+        existing_task = _find_task_by_source_uid(source_uid)
+        if existing_task is not None:
+            task = existing_task
+            created = False
     if created:
         task = Task(
             source_uid=source_uid,
@@ -1601,7 +1620,7 @@ def upsert_task_from_cell(
     # Раньше конфликт создавался только после ручной правки на сайте, из-за этого
     # изменения дат/действий/текста из новой таблицы могли молча перетираться.
     if task.source_hash and task.source_hash != new_hash and sheet_name and row_index and column_index:
-        source_tasks = _source_cell_tasks_query(project.id, sheet_name, row_index, column_index).all()
+        source_tasks = _all_source_cell_tasks(project.id, sheet_name, row_index, column_index)
         if source_tasks and _source_cell_tasks_join_to_cell(source_tasks, source_cell_value):
             _adopt_excel_source_cell_for_split_tasks(source_tasks, source_cell_value, new_hash)
             _clear_obsolete_source_cell_conflicts(
@@ -1822,12 +1841,14 @@ def sync_rows(
             if not cell_text:
                 # If a previously existing remark disappeared from the source cell,
                 # register a conflict so user can decide what to do.
-                existing_tasks = Task.query.filter_by(
+                existing_tasks_query = Task.query.filter_by(
                     project_id=project.id,
                     source_sheet_name=sheet_name,
                     source_row_index=row_zero_idx,
                     source_column_index=col_zero_idx + 1,
-                ).all()
+                )
+                with db.session.no_autoflush:
+                    existing_tasks = existing_tasks_query.all()
                 for existing_task in existing_tasks:
                     if (
                         not existing_task.source_hash
@@ -1866,7 +1887,7 @@ def sync_rows(
             if not remarks:
                 continue
             source_hash = cell_hash(cell_text)
-            source_tasks = _source_cell_tasks_query(project.id, sheet_name, row_zero_idx, col_zero_idx + 1).all()
+            source_tasks = _all_source_cell_tasks(project.id, sheet_name, row_zero_idx, col_zero_idx + 1)
             if source_tasks and _source_cell_tasks_match_fragments(source_tasks, remarks):
                 _adopt_excel_source_cell_for_split_tasks(source_tasks, cell_text, source_hash)
                 _clear_obsolete_source_cell_conflicts(

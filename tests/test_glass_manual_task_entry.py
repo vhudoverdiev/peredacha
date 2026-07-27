@@ -104,6 +104,27 @@ class GlassManualTaskEntryTests(unittest.TestCase):
         self.assertEqual(page_response.status_code, 200)
         self.assertIn("Новый ручной замер", page_response.get_data(as_text=True))
 
+    def test_duplicate_manual_task_returns_russian_message_without_copy(self):
+        payload = {"apartment_id": self.apartment.id, "description": "Повторный ручной замер"}
+        first_response = self.client.post(
+            "/glass/task/new",
+            data=payload,
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+        duplicate_response = self.client.post(
+            "/glass/task/new",
+            data=payload,
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(duplicate_response.status_code, 409)
+        duplicate_payload = duplicate_response.get_json()
+        self.assertFalse(duplicate_payload["ok"])
+        self.assertEqual(duplicate_payload["message"], "Такое замечание уже создано")
+        self.assertNotIn("UNIQUE constraint", duplicate_response.get_data(as_text=True))
+        self.assertEqual(Task.query.filter_by(source_sheet_name="manual_glass").count(), 1)
+
     def test_compound_manual_text_creates_independent_measurement_rows(self):
         response = self.client.post(
             "/glass/task/new",

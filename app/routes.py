@@ -18,6 +18,7 @@ from werkzeug.exceptions import HTTPException
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, session, url_for, jsonify
 from flask_login import current_user, login_required
 from sqlalchemy import Integer, cast, distinct, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from openpyxl import Workbook
 from openpyxl.cell.cell import MergedCell
@@ -5676,8 +5677,11 @@ def glass_create_material_request():
 def glass_measurements_delete():
     if current_user.role == "viewer":
         abort(403)
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
     project = selected_project()
     if project is None:
+        if wants_json:
+            return jsonify({"ok": False, "message": "Выберите объект"}), 400
         return redirect(url_for("main.objects"))
     scope = (request.form.get("scope") or "ordered").strip()
     if scope == "order":
@@ -5700,6 +5704,8 @@ def glass_measurements_delete():
     )
     if request.form.get("delete_all") != "1":
         if not selected_ids:
+            if wants_json:
+                return jsonify({"ok": False, "message": "Выберите хотя бы одну позицию для удаления"}), 400
             flash("Выберите хотя бы одну позицию для удаления", "warning")
             return redirect(url_for("main.glass_measurements", tab=redirect_tab))
         query = query.filter(GlassMeasurement.id.in_(selected_ids))
@@ -5721,7 +5727,15 @@ def glass_measurements_delete():
         )
         db.session.delete(measurement)
     db.session.commit()
-    flash(f"Удалено позиций: {len(measurements)}", "success")
+    message = f"Удалено позиций: {len(measurements)}"
+    if wants_json:
+        return jsonify({
+            "ok": True,
+            "message": message,
+            "deleted_count": len(measurements),
+            "scope": scope,
+        })
+    flash(message, "success")
     return redirect(url_for("main.glass_measurements", tab=redirect_tab))
 
 
@@ -5755,21 +5769,43 @@ def glass_manual_task_new():
     if not text:
         return jsonify({"ok": False, "message": "Введите описание работы"}), 400
 
-    tasks = _create_manual_remark_tasks(
-        project=project,
-        apartment=apartment,
-        point_number=default_point.point_number,
-        text=text,
-        source_sheet_name="manual_glass",
-        action="manual_glass_created",
-        work_point=default_point,
-    )
-    for task in tasks:
-        measurement = _get_or_create_glass_measurement(task, status=GLASS_STATUS_NONE)
-        measurement.status = GLASS_STATUS_NONE
-        if not measurement.apartment_id:
-            measurement.apartment_id = apartment.id
-    db.session.commit()
+    fragments = split_cell_remarks(text) or [text]
+    seen_fragments: set[str] = set()
+    for fragment in fragments:
+        normalized_fragment = normalize_text(fragment)
+        if not normalized_fragment:
+            continue
+        if normalized_fragment in seen_fragments:
+            return jsonify({"ok": False, "message": "Такое замечание уже создано"}), 409
+        seen_fragments.add(normalized_fragment)
+        _, duplicate_task, _ = _find_existing_remark_duplicate_or_conflict(
+            project=project,
+            apartment=apartment,
+            point_number=default_point.point_number,
+            text=fragment,
+        )
+        if duplicate_task is not None:
+            return jsonify({"ok": False, "message": "Такое замечание уже создано"}), 409
+
+    try:
+        tasks = _create_manual_remark_tasks(
+            project=project,
+            apartment=apartment,
+            point_number=default_point.point_number,
+            text=text,
+            source_sheet_name="manual_glass",
+            action="manual_glass_created",
+            work_point=default_point,
+        )
+        for task in tasks:
+            measurement = _get_or_create_glass_measurement(task, status=GLASS_STATUS_NONE)
+            measurement.status = GLASS_STATUS_NONE
+            if not measurement.apartment_id:
+                measurement.apartment_id = apartment.id
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"ok": False, "message": "Такое замечание уже создано"}), 409
     task = tasks[0]
     return jsonify({
         "ok": True,
@@ -9788,6 +9824,7 @@ def upload_excel():
             )
         except Exception as exc:
             current_app.logger.exception("Excel import failed")
+            db.session.rollback()
             flash(f"Ошибка загрузки Excel: {exc}", "danger")
     elif upload_kind == "transfers" and transfer_form.validate_on_submit():
         try:
@@ -9808,6 +9845,7 @@ def upload_excel():
             )
         except Exception as exc:
             current_app.logger.exception("Transfer statistics import failed")
+            db.session.rollback()
             flash(f"Не удалось загрузить статистику передач: {exc}", "danger")
     return render_template("upload_excel.html", form=form, transfer_form=transfer_form, preview=preview)
 

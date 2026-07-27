@@ -3084,6 +3084,20 @@ a {
   margin-bottom: 1.25rem;
 }
 
+.apartment-detail-head-actions {
+  display: contents;
+}
+
+@media (min-width: 768px) {
+  .apartment-detail-head-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: .65rem;
+  }
+}
+
 .page-title {
   margin: 0 0 0.35rem;
   color: var(--crm-title);
@@ -56809,4 +56823,38 @@ html body.app-body .task-detail-related-actions .task-detail-excel-link i,
 html body.app-body .task-detail-related-actions .task-detail-excel-link i::before {
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
+}
+/* v629: Firefox on desktop stutters on the first-paint/page-swap animation
+   chain, especially when the prepared navigation buffer reveals a fully
+   rendered page. Keep interactive transitions, but render page-entry, login
+   landing and loader surfaces at their final state immediately. Mobile keeps
+   its own animation rules. */
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+  html.desktop-like-pointer.desktop-firefox-stable-motion body.app-body .crm-page-entry-surface,
+  html.desktop-like-pointer.desktop-firefox-stable-motion body.app-body .crm-page-entry-surface *,
+  html.desktop-like-pointer.desktop-firefox-stable-motion body.auth-body .auth-shell,
+  html.desktop-like-pointer.desktop-firefox-stable-motion body.auth-body .auth-shell *,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .site-page-loader,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .site-page-loader *,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .maintenance-screen,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .maintenance-screen *,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .registration-step.is-active,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .settings-standalone-layout .settings-page-head,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .settings-standalone-layout .settings-page-head::after,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .settings-standalone-layout .settings-card {
+    animation: none !important;
+    animation-delay: 0s !important;
+    animation-duration: 0s !important;
+    opacity: 1 !important;
+  }
+
+  html.desktop-like-pointer.desktop-firefox-stable-motion body.app-body .crm-page-entry-surface,
+  html.desktop-like-pointer.desktop-firefox-stable-motion body.app-body .crm-page-entry-surface *,
+  html.desktop-like-pointer.desktop-firefox-stable-motion body.auth-body .auth-shell,
+  html.desktop-like-pointer.desktop-firefox-stable-motion body.auth-body .auth-shell *,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .settings-standalone-layout .settings-card {
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+  }
 }

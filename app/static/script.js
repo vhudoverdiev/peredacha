@@ -6319,6 +6319,24 @@ document.addEventListener('DOMContentLoaded', () => {
     </form>
   `;
 
+  const buildGlassMeasureNeededMarkup = ({ taskId, refreshTaskId, measurementId, csrfToken }) => {
+    const safeTaskId = escapeHtml(taskId || '');
+    const safeRefreshTaskId = escapeHtml(refreshTaskId || taskId || '');
+    const safeMeasurementId = escapeHtml(measurementId || '');
+    const encodedMeasurementId = encodeURIComponent(measurementId || '');
+    const returnForm = measurementId ? `
+      <form method="post" action="/glass/${encodedMeasurementId}/return-to-all" class="js-glass-return-form" data-task-id="${safeTaskId}" data-refresh-task-id="${safeRefreshTaskId}">
+        <input type="hidden" name="csrf_token" value="${escapeHtml(csrfToken || getCsrfToken())}">
+        <input type="hidden" name="return_tab" value="all">
+        <button class="btn btn-sm btn-outline-secondary glass-measure-reset-btn" type="submit" title="Вернуть" aria-label="Вернуть"><i class="bi bi-arrow-counterclockwise"></i></button>
+      </form>
+    ` : '';
+    return `
+      <span class="glass-status-badge glass-status-ordered" data-measurement-id="${safeMeasurementId}">В заказе</span>
+      ${returnForm}
+    `;
+  };
+
   const bindGlassAllRowActions = actions => {
     if (!actions || actions.dataset.glassAllRowActionsBound === '1') return;
     actions.dataset.glassAllRowActionsBound = '1';
@@ -6332,6 +6350,23 @@ document.addEventListener('DOMContentLoaded', () => {
     bindGlassAllRowActions(cell.querySelector('.glass-all-row-actions'));
     bindGlassNeedMeasureForm(cell.querySelector('.js-glass-need-measure-form'));
     bindGlassReturnForm(cell.querySelector('.js-glass-return-form'));
+  };
+
+  const replaceGlassNeedMeasureFormLocally = (form, data) => {
+    if (!form) return false;
+    const cell = form.closest('td');
+    const actionTaskId = data?.task_id || form.dataset.taskId;
+    const refreshTaskId = form.dataset.refreshTaskId || actionTaskId;
+    if (!actionTaskId) return false;
+    const csrfToken = form.querySelector('input[name="csrf_token"]')?.value || getCsrfToken();
+    form.outerHTML = buildGlassMeasureNeededMarkup({
+      taskId: actionTaskId,
+      refreshTaskId,
+      measurementId: data?.measurement_id,
+      csrfToken,
+    });
+    bindGlassActionCell(cell);
+    return true;
   };
 
   const refreshGlassActionCell = async (taskId, cell) => {
@@ -6384,25 +6419,39 @@ document.addEventListener('DOMContentLoaded', () => {
     tbody.appendChild(nextEmptyRow);
   };
 
-  const bindGlassNeedMeasureForm = form => {
-    if (!form || form.dataset.glassNeedMeasureBound === '1') return;
-    form.dataset.glassNeedMeasureBound = '1';
+  const getGlassExternalSubmitter = form => {
+    if (!form?.id || !window.CSS?.escape) return null;
+    return document.querySelector(`[form="${CSS.escape(form.id)}"]`);
+  };
+
+  const bindGlassDeleteForm = form => {
+    if (!form || form.dataset.glassDeleteBound === '1') return;
+    form.dataset.glassDeleteBound = '1';
     form.addEventListener('click', event => {
       event.stopPropagation();
     });
     form.addEventListener('submit', async event => {
       event.preventDefault();
-      const button = event.submitter || form.querySelector('button[type="submit"]');
-      const previousHtml = button?.innerHTML || '';
-      if (button) button.disabled = true;
-      if (button) {
-        button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>';
-        button.setAttribute('aria-busy', 'true');
+      event.stopPropagation();
+      if (form.dataset.glassDeleteSubmitting === '1') return;
+      const submitter = event.submitter || getGlassExternalSubmitter(form);
+      const confirmMessage = submitter?.dataset?.confirm
+        || form.querySelector('[data-confirm]')?.dataset?.confirm;
+      if (confirmMessage && !window.confirm(confirmMessage)) return;
+
+      const formData = new FormData(form);
+      const previousHtml = submitter?.innerHTML || '';
+      form.dataset.glassDeleteSubmitting = '1';
+      if (submitter) {
+        submitter.disabled = true;
+        submitter.setAttribute('aria-busy', 'true');
+        submitter.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>';
       }
+
       try {
         const response = await fetch(form.action, {
           method: 'POST',
-          body: new FormData(form),
+          body: formData,
           credentials: 'same-origin',
           headers: {
             'X-Requested-With': 'XMLHttpRequest',
@@ -6410,28 +6459,106 @@ document.addEventListener('DOMContentLoaded', () => {
           },
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
-        const cell = form.closest('td');
-        const nextTaskId = form.dataset.refreshTaskId || data.task_id || form.dataset.taskId;
-        let synced = false;
-        if (cell && nextTaskId) {
-          synced = await refreshGlassActionCell(nextTaskId, cell).catch(() => false);
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось удалить позицию');
+
+        const orderCard = form.closest('.glass-order-card');
+        const orderedRow = form.closest('.glass-order-row');
+        if (orderCard) {
+          const orderList = orderCard.closest('.glass-order-list');
+          orderCard.remove();
+          syncGlassOrderListState(orderList);
+        } else if (orderedRow) {
+          const tbody = orderedRow.parentElement;
+          const bulkScope = orderedRow.closest('.js-bulk-selectable');
+          const checkbox = orderedRow.querySelector('.js-bulk-check');
+          if (checkbox && checkbox.checked) {
+            checkbox.checked = false;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          orderedRow.remove();
+          if (bulkScope) syncBulkScope(bulkScope);
+          syncGlassOrderedTableState(tbody);
         }
-        if (!synced) {
-          window.setTimeout(() => window.location.reload(), 120);
-        }
-        showCrmNotice(data.message || 'Готово', 'success');
+        showCrmNotice(data.message || 'Позиция удалена', 'success');
       } catch (error) {
-        showCrmNotice(error.message || 'Не удалось обновить статус', 'danger');
-        if (button) button.disabled = false;
-      } finally {
-        if (button) {
-          button.innerHTML = previousHtml;
-          button.removeAttribute('aria-busy');
+        showCrmNotice(error.message || 'Не удалось удалить позицию', 'danger');
+        if (submitter) {
+          submitter.disabled = false;
+          submitter.innerHTML = previousHtml;
+          submitter.removeAttribute('aria-busy');
         }
+      } finally {
+        delete form.dataset.glassDeleteSubmitting;
       }
     });
   };
+
+  const submitGlassNeedMeasureForm = async (form, submitter) => {
+    if (!form || form.dataset.glassNeedMeasureSubmitting === '1') return;
+    form.dataset.glassNeedMeasureSubmitting = '1';
+    const button = submitter || form.querySelector('button[type="submit"]');
+    const previousHtml = button?.innerHTML || '';
+    if (button) button.disabled = true;
+    if (button) {
+      button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>';
+      button.setAttribute('aria-busy', 'true');
+    }
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        credentials: 'same-origin',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json',
+        },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
+      const cell = form.closest('td');
+      const nextTaskId = form.dataset.refreshTaskId || data.task_id || form.dataset.taskId;
+      let synced = false;
+      if (cell && nextTaskId) {
+        synced = await refreshGlassActionCell(nextTaskId, cell).catch(() => false);
+      }
+      if (!synced) {
+        synced = replaceGlassNeedMeasureFormLocally(form, data);
+      }
+      if (!synced && button) {
+        button.disabled = false;
+      }
+      showCrmNotice(data.message || 'Готово', 'success');
+    } catch (error) {
+      showCrmNotice(error.message || 'Не удалось обновить статус', 'danger');
+      if (button) button.disabled = false;
+    } finally {
+      delete form.dataset.glassNeedMeasureSubmitting;
+      if (button) {
+        button.innerHTML = previousHtml;
+        button.removeAttribute('aria-busy');
+      }
+    }
+  };
+
+  const bindGlassNeedMeasureForm = form => {
+    if (!form || form.dataset.glassNeedMeasureBound === '1') return;
+    form.dataset.glassNeedMeasureBound = '1';
+    form.addEventListener('click', event => {
+      event.stopPropagation();
+    });
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      void submitGlassNeedMeasureForm(form, event.submitter);
+    });
+  };
+  document.addEventListener('submit', event => {
+    const form = event.target?.closest?.('.js-glass-need-measure-form');
+    if (!form || form.dataset.glassNeedMeasureBound === '1') return;
+    event.preventDefault();
+    event.stopPropagation();
+    bindGlassNeedMeasureForm(form);
+    void submitGlassNeedMeasureForm(form, event.submitter);
+  }, true);
   document.querySelectorAll('.js-glass-need-measure-form').forEach(bindGlassNeedMeasureForm);
   document.querySelectorAll('.glass-all-row-actions').forEach(bindGlassAllRowActions);
 
@@ -6661,6 +6788,9 @@ document.addEventListener('DOMContentLoaded', () => {
     root.querySelectorAll('.js-glass-need-measure-form').forEach(bindGlassNeedMeasureForm);
     root.querySelectorAll('.glass-all-row-actions').forEach(bindGlassAllRowActions);
     root.querySelectorAll('.js-glass-return-form').forEach(bindGlassReturnForm);
+    if (!isMobileViewport()) {
+      root.querySelectorAll('.js-glass-delete-form').forEach(bindGlassDeleteForm);
+    }
     root.querySelectorAll('.js-glass-status-form').forEach(bindGlassStatusForm);
     initGlassOrderedEditScope(root);
   };

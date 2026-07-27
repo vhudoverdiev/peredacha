@@ -147,6 +147,41 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         )
         self.assertIsNone(blocking_rule.search(self.desktop_css))
 
+    def test_desktop_firefox_gets_stable_page_motion_without_mobile_changes(self):
+        self.assertIn(
+            "desktop-firefox-stable-motion",
+            self.template,
+        )
+        firefox_motion_class = self.template.index(
+            "desktop-firefox-stable-motion"
+        )
+        desktop_gate = self.template.rfind(
+            "!isTouchAppDevice && !useAdaptiveMobileViewport",
+            0,
+            firefox_motion_class,
+        )
+        self.assertGreaterEqual(desktop_gate, 0)
+        self.assertIn("/Firefox\\//i.test(userAgent)", self.template)
+
+        self.assertIn(
+            "html.desktop-like-pointer.desktop-firefox-stable-motion body.app-body .crm-page-entry-surface",
+            self.shared_css,
+        )
+        self.assertIn(
+            "html.desktop-like-pointer.desktop-firefox-stable-motion body.auth-body .auth-shell",
+            self.shared_css,
+        )
+        self.assertIn(".site-page-loader", self.shared_css)
+        firefox_css = self.shared_css[
+            self.shared_css.index("/* v629: Firefox on desktop")
+        :]
+        self.assertIn("animation: none !important", firefox_css)
+        self.assertIn("opacity: 1 !important", firefox_css)
+        self.assertIn("transform: none !important", firefox_css)
+        self.assertIn("@media (min-width: 768px) and (hover: hover) and (pointer: fine)", firefox_css)
+        self.assertNotIn("mobile-viewport", firefox_css)
+        self.assertNotIn("touch-app-device", firefox_css)
+
     def test_obsolete_prepared_cache_path_is_removed(self):
         self.assertNotIn("desktopFirefoxNavigationCache", self.script)
         self.assertNotIn("requestDesktopNavigationWorkerCapability", self.script)
@@ -163,7 +198,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v144-desktop-modal-design")
+        self.assertEqual(worker_version, "v147-apartment-export")
 
     def test_script_and_css_cache_busters_are_synchronized(self):
         script_version = re.search(
@@ -184,12 +219,20 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         worker_mobile_css_version = re.search(
             r"'/static/mobile-only\.css\?v=([^']+)'", self.worker
         ).group(1)
+        style_version = re.search(
+            r"style\.css'\) }}\?v=([^\"]+)", self.template
+        ).group(1)
+        worker_style_version = re.search(
+            r"'/static/style\.css\?v=([^']+)'", self.worker
+        ).group(1)
 
         self.assertEqual(script_version, worker_script_version)
         self.assertEqual(css_version, worker_css_version)
         self.assertEqual(mobile_css_version, worker_mobile_css_version)
-        self.assertEqual(script_version, "v665-desktop-modal-body")
+        self.assertEqual(style_version, worker_style_version)
+        self.assertEqual(script_version, "v666-glass-delete-ajax")
         self.assertEqual(css_version, "v65-desktop-modal-design")
+        self.assertEqual(style_version, "v630-apartment-export")
         self.assertEqual(mobile_css_version, "v88-remark-sentence-lines")
 
 

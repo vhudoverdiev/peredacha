@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v144-desktop-modal-design';
+const STATIC_CACHE = 'peredacha-static-v147-apartment-export';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -12,10 +12,10 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v628-mobile-root-height-conflicts-removed',
+  '/static/style.css?v=v630-apartment-export',
   '/static/mobile-only.css?v=v88-remark-sentence-lines',
   '/static/desktop-only.css?v=v65-desktop-modal-design',
-  '/static/script.js?v=v665-desktop-modal-body',
+  '/static/script.js?v=v666-glass-delete-ajax',
 ];
 
 const NAVIGATION_NETWORK_TIMEOUT_MS = 8000;

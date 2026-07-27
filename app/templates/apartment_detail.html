@@ -10,7 +10,12 @@
   <div>
     <h1 class="page-title">{{ apartment.detail_label() }}</h1>
   </div>
-  <a class="btn btn-outline-secondary" href="{{ back_url }}">Назад к помещениям</a>
+  <div class="apartment-detail-head-actions">
+    <a class="btn btn-success apartment-detail-export-btn d-none d-md-inline-flex align-items-center" href="{{ url_for('main.apartment_remarks_export', apartment_id=apartment.id) }}">
+      <i class="bi bi-file-earmark-excel me-2" aria-hidden="true"></i><span>Скачать Excel</span>
+    </a>
+    <a class="btn btn-outline-secondary" href="{{ back_url }}">Назад к помещениям</a>
+  </div>
 </div>
 
 <div class="row g-3">

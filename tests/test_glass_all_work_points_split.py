@@ -1,5 +1,6 @@
 import unittest
 from io import BytesIO
+from pathlib import Path
 
 from openpyxl import load_workbook
 from config import Config
@@ -280,6 +281,82 @@ class GlassAllWorkPointsSplitTests(unittest.TestCase):
             "Вторая часть — отдельный новый замер",
             order_response.get_data(as_text=True),
         )
+
+    def test_need_measure_ajax_does_not_force_reload_when_filtered_row_disappears(self):
+        response = self.client.post(
+            f"/glass/{self.non_glass_point_task.id}/need-measure",
+            data={"return_tab": "all"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                "X-Requested-With": "XMLHttpRequest",
+                "Accept": "application/json",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        payload = response.get_json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["task_id"], self.non_glass_point_task.id)
+
+        script = Path("app/static/script.js").read_text(encoding="utf-8")
+        start = script.index("const submitGlassNeedMeasureForm")
+        end = script.index("const bindGlassReturnForm", start)
+        need_measure_block = script[start:end]
+        self.assertIn("replaceGlassNeedMeasureFormLocally(form, data)", need_measure_block)
+        self.assertIn("document.addEventListener('submit', event =>", need_measure_block)
+        self.assertNotIn("location.reload", need_measure_block)
+
+    def test_order_delete_uses_ajax_without_redirecting_the_page(self):
+        measurement = GlassMeasurement(
+            project=self.project,
+            apartment=self.apartment,
+            task=self.window_point_task,
+            status="measure_needed",
+        )
+        db.session.add(measurement)
+        db.session.commit()
+        measurement_id = measurement.id
+
+        page_response = self._desktop_get("?tab=order")
+        page = page_response.get_data(as_text=True)
+        self.assertIn('class="js-glass-delete-form"', page)
+        self.assertIn(f'id="glass-order-delete-{measurement_id}"', page)
+
+        response = self.client.post(
+            "/glass/delete",
+            data={
+                "scope": "order",
+                "measurement_ids": str(measurement_id),
+            },
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                "X-Requested-With": "XMLHttpRequest",
+                "Accept": "application/json",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        payload = response.get_json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["scope"], "order")
+        self.assertEqual(payload["deleted_count"], 1)
+        self.assertIsNone(db.session.get(GlassMeasurement, measurement_id))
+
+        script = Path("app/static/script.js").read_text(encoding="utf-8")
+        start = script.index("const bindGlassDeleteForm")
+        end = script.index("const submitGlassNeedMeasureForm", start)
+        delete_block = script[start:end]
+        self.assertIn("event.preventDefault()", delete_block)
+        self.assertIn("fetch(form.action", delete_block)
+        self.assertIn("orderCard.remove()", delete_block)
+        self.assertNotIn("location.reload", delete_block)
+        init_start = script.index("const initGlassPageScope")
+        init_end = script.index("initGlassPageScope(document)", init_start)
+        init_block = script[init_start:init_end]
+        self.assertIn("if (!isMobileViewport())", init_block)
+        self.assertIn(".js-glass-delete-form", init_block)
 
 
 if __name__ == "__main__":
