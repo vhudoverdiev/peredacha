@@ -414,6 +414,17 @@ def _refresh_sync_dashboard_settings(project_id: int) -> None:
         set_setting("last_sync_source", "—")
 
 
+def _active_running_sync_log(project_id: int) -> SyncLog | None:
+    return (
+        SyncLog.query.filter(
+            SyncLog.project_id == project_id,
+            SyncLog.status == "running",
+        )
+        .order_by(SyncLog.started_at.desc(), SyncLog.id.desc())
+        .first()
+    )
+
+
 RU_WEEKDAYS = {
     0: "понедельник",
     1: "вторник",
@@ -9795,11 +9806,25 @@ def upload_excel():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    mark_stale_running_sync_logs(project.id)
     form = UploadExcelForm()
     transfer_form = UploadExcelForm(prefix="transfer")
     preview = None
     upload_kind = request.form.get("upload_kind")
+    try:
+        mark_stale_running_sync_logs(project.id)
+    except Exception as exc:
+        current_app.logger.exception("Failed to refresh running sync logs before upload")
+        db.session.rollback()
+        flash(f"Не удалось проверить текущую синхронизацию: {exc}", "danger")
+        return render_template("upload_excel.html", form=form, transfer_form=transfer_form, preview=preview)
+    if request.method == "POST" and upload_kind in {"remarks", "transfers"}:
+        running_log = _active_running_sync_log(project.id)
+        if running_log is not None:
+            flash(
+                "Синхронизация уже выполняется. Дождитесь завершения или откатите/удалите зависшую запись в журнале синхронизаций.",
+                "warning",
+            )
+            return redirect(url_for("main.sync_logs"), code=303)
     if upload_kind == "remarks" and form.validate_on_submit():
         try:
             validate_upload(form.file.data, ["xlsx"], max_size=current_app.config.get("MAX_UPLOAD_FILE_BYTES"))
@@ -10691,6 +10716,62 @@ def sync_conflicts():
         conflict_field_label=_sync_conflict_field_label,
         conflict_value_label=_sync_conflict_value_label,
     )
+
+
+def _latest_sync_log_for_pending_conflicts(project_id: int) -> SyncLog | None:
+    latest_conflict = (
+        _project_pending_conflicts_query(project_id)
+        .order_by(SyncConflict.created_at.desc(), SyncConflict.id.desc())
+        .first()
+    )
+    query = SyncLog.query.filter(
+        SyncLog.project_id == project_id,
+        SyncLog.rollback_data.isnot(None),
+        SyncLog.rolled_back_at.is_(None),
+        SyncLog.status.in_(("success", "error", "running")),
+    )
+    if latest_conflict is not None and latest_conflict.created_at is not None:
+        query = query.filter(SyncLog.started_at <= latest_conflict.created_at + timedelta(seconds=5))
+    return query.order_by(SyncLog.started_at.desc(), SyncLog.id.desc()).first()
+
+
+@bp.route("/conflicts/cancel-sync", methods=["POST"])
+@login_required
+def cancel_sync_from_conflicts():
+    if not can_manage_sync(current_user):
+        abort(403)
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    log = _latest_sync_log_for_pending_conflicts(project.id)
+    try:
+        rollback_message = None
+        if log is not None:
+            ok, rollback_message = apply_sync_rollback(log)
+            if not ok:
+                db.session.rollback()
+                flash(rollback_message, "warning")
+                return redirect(url_for("main.sync_conflicts"))
+            _refresh_sync_dashboard_settings(project.id)
+
+        closed_conflicts = 0
+        for conflict in _project_pending_conflicts_query(project.id).all():
+            conflict.status = "keep_old"
+            conflict.resolved_at = datetime.utcnow()
+            conflict.resolved_by_user_id = current_user.id
+            closed_conflicts += 1
+        db.session.commit()
+    except Exception as exc:
+        current_app.logger.exception("Failed to cancel sync from conflicts")
+        db.session.rollback()
+        flash(f"Не удалось отменить синхронизацию: {exc}", "danger")
+        return redirect(url_for("main.sync_conflicts"))
+
+    if rollback_message:
+        flash(rollback_message, "success")
+    else:
+        flash(f"Синхронизация отменена, несостыковок закрыто: {closed_conflicts}", "success")
+    return redirect(url_for("main.sync_conflicts"), code=303)
 
 
 @bp.route("/conflicts/<int:conflict_id>/<action>", methods=["POST"])

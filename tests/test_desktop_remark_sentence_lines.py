@@ -173,7 +173,7 @@ class RemarkSentenceSiteIntegrationTests(unittest.TestCase):
         )
         self.assertIn("const remarkSentenceRanges", script)
         self.assertIn("const sentenceRanges = remarkSentenceRanges(text);", script)
-        self.assertIn("${formatRemarkHtml(data.description || '')}", script)
+        self.assertIn("${formatGlassManualRemarkHtml(data.description || '')}", script)
         self.assertIn("currentNode.matches?.('.inline-text')", script)
         self.assertIn("currentNode.replaceChildren(", script)
 

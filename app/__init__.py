@@ -8,7 +8,7 @@ from flask_wtf import CSRFProtect
 from flask_wtf.csrf import CSRFError
 from flask_compress import Compress
 from config import Config
-from sqlalchemy import inspect, text
+from sqlalchemy import event, inspect, text
 from datetime import date, datetime, timedelta
 
 from app.time_utils import to_moscow_datetime
@@ -55,6 +55,35 @@ def _format_ru_datetime(value) -> str:
     return f"{_format_ru_date(value)} {value.strftime('%H:%M')}"
 
 
+def _is_static_asset_request() -> bool:
+    endpoint = request.endpoint or ""
+    path = request.path or ""
+    return endpoint == "static" or path.startswith("/static/") or endpoint == "main.service_worker" or path == "/service-worker.js"
+
+
+def _configure_sqlite_connection_pragmas(app) -> None:
+    uri = (app.config.get("SQLALCHEMY_DATABASE_URI") or "").lower()
+    if not uri.startswith("sqlite:"):
+        return
+
+    timeout_seconds = int(app.config.get("SQLITE_BUSY_TIMEOUT_SECONDS", 30) or 30)
+    busy_timeout_ms = max(1, timeout_seconds) * 1000
+    is_memory_database = uri in {"sqlite://", "sqlite:///:memory:"} or ":memory:" in uri
+
+    @event.listens_for(db.engine, "connect")
+    def _set_sqlite_pragmas(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute(f"PRAGMA busy_timeout={busy_timeout_ms}")
+            if not is_memory_database:
+                cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.execute("PRAGMA synchronous=NORMAL")
+        except Exception:
+            pass
+        finally:
+            cursor.close()
+
+
 def create_app(config_class=Config):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config_class)
@@ -76,6 +105,8 @@ def create_app(config_class=Config):
         g.request_started_at = time.perf_counter()
         if request.content_length and request.content_length > int(app.config.get("MAX_CONTENT_LENGTH") or 0):
             abort(413)
+        if _is_static_asset_request():
+            return
         if current_user.is_authenticated:
             from app.security import is_session_version_valid, hit_rate_limit, security_event
             if not is_session_version_valid():
@@ -96,7 +127,8 @@ def create_app(config_class=Config):
         # Firefox uses that narrow permission to double-buffer internal page
         # transitions without exposing Gecko's white top-level canvas. Public
         # and authentication pages keep the stricter cross-origin protection.
-        allow_same_origin_frame = current_user.is_authenticated
+        is_static_asset = _is_static_asset_request()
+        allow_same_origin_frame = False if is_static_asset else current_user.is_authenticated
         frame_ancestors = "'self'" if allow_same_origin_frame else "'none'"
         response.headers.setdefault(
             "X-Frame-Options",
@@ -121,7 +153,7 @@ def create_app(config_class=Config):
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         if request.endpoint == "static" or request.path.startswith("/static/"):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-        elif current_user.is_authenticated or response.mimetype == "text/html" or request.blueprint == "auth":
+        elif (not is_static_asset and current_user.is_authenticated) or response.mimetype == "text/html" or request.blueprint == "auth":
             # An installed iOS PWA can restore an old login document from its
             # page cache after the session cookie has changed.  Never cache
             # dynamic HTML or authentication responses with an embedded CSRF
@@ -174,6 +206,7 @@ def create_app(config_class=Config):
     with app.app_context():
         uri = (app.config.get("SQLALCHEMY_DATABASE_URI") or "").lower()
         if uri.startswith("sqlite:"):
+            _configure_sqlite_connection_pragmas(app)
             # create_all is idempotent for SQLite and ensures new tables appear.
             db.create_all()
             inspector = inspect(db.engine)

@@ -230,7 +230,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         self.assertEqual(css_version, worker_css_version)
         self.assertEqual(mobile_css_version, worker_mobile_css_version)
         self.assertEqual(style_version, worker_style_version)
-        self.assertEqual(script_version, "v666-glass-delete-ajax")
+        self.assertEqual(script_version, "v667-glass-manual-format")
         self.assertEqual(css_version, "v65-desktop-modal-design")
         self.assertEqual(style_version, "v630-apartment-export")
         self.assertEqual(mobile_css_version, "v88-remark-sentence-lines")

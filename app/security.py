@@ -135,6 +135,8 @@ def should_record_site_visit() -> bool:
         return False
     if path.startswith("/static/"):
         return False
+    if path == "/service-worker.js" or endpoint == "main.service_worker":
+        return False
     if endpoint == "static" or endpoint.startswith("static."):
         return False
     if endpoint == "main.analytics_tab_open":

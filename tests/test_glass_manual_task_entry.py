@@ -154,8 +154,12 @@ class GlassManualTaskEntryTests(unittest.TestCase):
         )[0]
 
         self.assertIn("const escapeGlassManualHtml", manual_block)
+        self.assertIn("const formatGlassManualRemarkHtml", manual_block)
+        self.assertIn("window.crmFormatRemarkHtml", manual_block)
+        self.assertIn("formatGlassManualRemarkHtml(data.description || '')", manual_block)
         self.assertIn("bindGlassManualTaskRow(row)", manual_block)
         self.assertNotIn("escapeHtml(data.", manual_block)
+        self.assertNotIn("${formatRemarkHtml(data.description || '')}", manual_block)
         self.assertNotIn("getCsrfToken()", manual_block)
         self.assertNotIn("bindTaskRowLink(row)", manual_block)
 

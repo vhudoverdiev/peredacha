@@ -2033,6 +2033,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(([start, end]) => `<span class="remark-sentence-line">${formatRange(start, end)}</span>`)
       .join('');
   };
+  window.crmFormatRemarkHtml = formatRemarkHtml;
 
 
   const showCrmConfirm = (options = {}) => new Promise(resolve => {
@@ -6185,6 +6186,40 @@ document.addEventListener('DOMContentLoaded', () => {
     return modal;
   };
 
+  const showCrmActionConfirm = confirmText => new Promise(resolve => {
+    const modal = ensureConfirmModal();
+    const text = normalizeConfirmText(confirmText);
+    modal.querySelector('.js-crm-confirm-text').textContent = text || 'Подтвердите действие';
+    modal.classList.remove('d-none');
+
+    const cancel = modal.querySelector('.js-crm-confirm-cancel');
+    const ok = modal.querySelector('.js-crm-confirm-ok');
+    let settled = false;
+
+    const close = result => {
+      if (settled) return;
+      settled = true;
+      modal.classList.add('d-none');
+      modal.removeEventListener('click', onBackdropClick);
+      document.removeEventListener('keydown', onKeydown);
+      resolve(result);
+    };
+    const onBackdropClick = event => {
+      if (event.target === modal) close(false);
+    };
+    const onKeydown = event => {
+      if (event.key === 'Escape') close(false);
+    };
+
+    cancel.onclick = () => close(false);
+    ok.onclick = () => close(true);
+    modal.onclick = null;
+    modal.addEventListener('click', onBackdropClick);
+    document.addEventListener('keydown', onKeydown);
+    window.setTimeout(() => cancel?.focus(), 0);
+  });
+  window.crmShowActionConfirm = showCrmActionConfirm;
+
   document.addEventListener('submit', event => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
@@ -6435,9 +6470,13 @@ document.addEventListener('DOMContentLoaded', () => {
       event.stopPropagation();
       if (form.dataset.glassDeleteSubmitting === '1') return;
       const submitter = event.submitter || getGlassExternalSubmitter(form);
-      const confirmMessage = submitter?.dataset?.confirm
-        || form.querySelector('[data-confirm]')?.dataset?.confirm;
-      if (confirmMessage && !window.confirm(confirmMessage)) return;
+      const confirmMessage = normalizeConfirmText(
+        submitter?.dataset?.confirmResolved
+        || submitter?.dataset?.confirm
+        || form.querySelector('[data-confirm]')?.dataset?.confirm
+        || form.dataset.confirm,
+      );
+      if (confirmMessage && !(await window.crmShowActionConfirm(confirmMessage))) return;
 
       const formData = new FormData(form);
       const previousHtml = submitter?.innerHTML || '';
@@ -6815,6 +6854,12 @@ document.addEventListener('DOMContentLoaded', () => {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+  const formatGlassManualRemarkHtml = value => {
+    if (typeof window.crmFormatRemarkHtml === 'function') {
+      return window.crmFormatRemarkHtml(value);
+    }
+    return escapeGlassManualHtml(value).replace(/\r?\n/g, '<br>');
+  };
   const bindGlassManualTaskRow = row => {
     if (!row || row.dataset.rowLinkBound === '1') return;
     row.dataset.rowLinkBound = '1';
@@ -6856,7 +6901,7 @@ document.addEventListener('DOMContentLoaded', () => {
         row.dataset.href = data.task_url || '';
         row.innerHTML = `
           <td><span class="js-highlight-text">${escapeGlassManualHtml(data.apartment_label || '—')}</span></td>
-          <td class="task-text"><span class="inline-text js-highlight-text" data-task-id="${escapeGlassManualHtml(data.task_id || '')}">${formatRemarkHtml(data.description || '')}</span></td>
+          <td class="task-text"><span class="inline-text js-highlight-text" data-task-id="${escapeGlassManualHtml(data.task_id || '')}">${formatGlassManualRemarkHtml(data.description || '')}</span></td>
           <td><span class="badge bg-${escapeGlassManualHtml(data.status_class || 'secondary')}">${escapeGlassManualHtml(data.status_label || '')}</span></td>
           <td class="text-end">
             <form method="post" action="/glass/${data.task_id}/need-measure" class="js-glass-need-measure-form" data-task-id="${escapeGlassManualHtml(data.task_id || '')}">

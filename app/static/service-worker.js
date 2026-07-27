@@ -15,7 +15,7 @@ const STATIC_ASSETS = [
   '/static/style.css?v=v630-apartment-export',
   '/static/mobile-only.css?v=v88-remark-sentence-lines',
   '/static/desktop-only.css?v=v65-desktop-modal-design',
-  '/static/script.js?v=v666-glass-delete-ajax',
+  '/static/script.js?v=v667-glass-manual-format',
 ];
 
 const NAVIGATION_NETWORK_TIMEOUT_MS = 8000;

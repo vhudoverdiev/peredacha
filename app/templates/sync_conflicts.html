@@ -8,6 +8,12 @@
   </div>
   {% if conflicts %}
   <div class="d-flex gap-2 flex-wrap">
+    {% if not is_mobile_phone_request %}
+    <form method="post" action="{{ url_for('main.cancel_sync_from_conflicts') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Отменить синхронизацию</button>
+    </form>
+    {% endif %}
     <form method="post" action="{{ url_for('main.resolve_conflicts_bulk', action='keep_old') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn btn-outline-secondary sync-conflict-neutral-btn">Оставить всё старое</button>

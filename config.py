@@ -61,9 +61,18 @@ def _normalize_fs_path(raw_path: str | None, default_relative: str) -> str:
     return str((BASE_DIR / path).resolve())
 
 
+def _sqlite_engine_options(database_uri: str) -> dict:
+    if not (database_uri or "").lower().startswith("sqlite:"):
+        return {}
+    timeout_seconds = int(os.getenv("SQLITE_BUSY_TIMEOUT_SECONDS", "30"))
+    return {"connect_args": {"timeout": timeout_seconds}}
+
+
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "change-me")
     SQLALCHEMY_DATABASE_URI = _normalize_database_url(os.getenv("DATABASE_URL"))
+    SQLITE_BUSY_TIMEOUT_SECONDS = int(os.getenv("SQLITE_BUSY_TIMEOUT_SECONDS", "30"))
+    SQLALCHEMY_ENGINE_OPTIONS = _sqlite_engine_options(SQLALCHEMY_DATABASE_URI)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     COMPRESS_MIMETYPES = [
         "text/html",
