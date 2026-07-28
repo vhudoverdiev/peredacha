@@ -29,6 +29,14 @@
             <span>Помещение</span>
             <b>{{ apartment.detail_label() }}</b>
           </div>
+          <div class="apartment-data-row">
+            <span>ФИО собственника</span>
+            <b>{{ row.owner_names|join(', ') if row.owner_names else '—' }}</b>
+          </div>
+          <div class="apartment-data-row">
+            <span>Номер телефона</span>
+            <b>{{ row.phones|join(', ') if row.phones else '—' }}</b>
+          </div>
           {% if apartment.premise_type != 'commercial' %}
           <div class="apartment-data-row">
             <span>Отделка</span>
