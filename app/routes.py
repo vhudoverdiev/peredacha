@@ -1076,6 +1076,10 @@ def _reject_protected_developer_user(user: User, action_label: str):
     return redirect(url_for("main.users"))
 
 
+def _protected_user_ids(users: list[User]) -> set[int]:
+    return {user.id for user in users if is_protected_developer_user(user)}
+
+
 def _task_for_current_project(task_id: int, project: Project | None = None) -> Task:
     project = project or selected_project()
     if project is None:
@@ -10122,7 +10126,7 @@ def users():
             if not project_ids:
                 flash("Выберите хотя бы один объект.", "danger")
                 users = User.query.order_by(User.created_at.desc()).all()
-                return render_template("users.html", users=users, form=form, project=project, all_projects=all_projects)
+                return render_template("users.html", users=users, form=form, project=project, all_projects=all_projects, protected_user_ids=_protected_user_ids(users))
             user = User(
                 username=form.username.data.strip(),
                 full_name=form.full_name.data.strip() if form.full_name.data else None,

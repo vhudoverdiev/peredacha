@@ -1,5 +1,10 @@
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+
 import click
-from flask import current_app
+
 from app import db
 from app.models import ROLE_ADMIN, User
 from app.services.google_sheets_sync import sync_google_sheets
@@ -7,6 +12,16 @@ from app.services.mapping_service import ensure_default_categories
 
 
 def register_cli(app):
+    repo_root = Path(__file__).resolve().parent.parent
+
+    def _run_git(*args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", "-C", str(repo_root), *args],
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+
     @app.cli.command("sync-sheets")
     def sync_sheets_command():
         """Synchronize tasks from Google Sheets into SQLite."""
@@ -25,6 +40,36 @@ def register_cli(app):
             db.session.commit()
             click.echo("Default categories created/updated")
 
+    @app.cli.command("push")
+    @click.option("--message", default="Версия v1", show_default=True, help="Commit message.")
+    def push_command(message):
+        """Stage, commit and push the current repository state."""
+        try:
+            status = _run_git("status", "--porcelain").stdout.strip()
+            branch = _run_git("branch", "--show-current").stdout.strip() or "main"
+        except subprocess.CalledProcessError as exc:
+            raise click.ClickException((exc.stderr or exc.stdout or "git status failed").strip()) from exc
+
+        if not status:
+            click.echo("No changes to commit.")
+            return
+
+        try:
+            _run_git("add", ".")
+            commit_result = _run_git("commit", "-m", message)
+            try:
+                push_result = _run_git("push")
+            except subprocess.CalledProcessError:
+                push_result = _run_git("push", "-u", "origin", branch)
+        except subprocess.CalledProcessError as exc:
+            output = (exc.stderr or exc.stdout or str(exc)).strip()
+            raise click.ClickException(output) from exc
+
+        if commit_result.stdout.strip():
+            click.echo(commit_result.stdout.strip())
+        if push_result.stdout.strip():
+            click.echo(push_result.stdout.strip())
+        click.echo(f"Pushed from {repo_root}")
 
     @app.cli.command("create-developer")
     @click.argument("username")

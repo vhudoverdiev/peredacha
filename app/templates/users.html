@@ -83,7 +83,7 @@
                   <form class="users-name-autosave" method="post" action="{{ url_for('main.user_update_name', user_id=user.id) }}" data-saved-value="{{ user.full_name or '' }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <span class="users-name-input-wrap">
-                      <input class="users-name-input" type="text" name="full_name" value="{{ user.full_name or '' }}" maxlength="160" placeholder="—" aria-label="Имя пользователя {{ user.username }}">
+                      <input class="users-name-input" type="text" name="full_name" value="{{ user.full_name or '' }}" maxlength="160" placeholder="—" aria-label="Имя пользователя {{ user.username }}" {% if user.id in protected_user_ids %}readonly{% endif %}>
                       <i class="bi bi-pencil" aria-hidden="true"></i>
                     </span>
                   </form>
@@ -93,14 +93,14 @@
                   {% set access_ids = user.project_access_ids %}
                   {% set access_count = all_projects|length if user.can_access_all_projects else access_ids|length %}
                   <div class="dropdown users-access-dropdown" data-project-access-control>
-                    <button class="users-access-summary" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" {% if user.role == 'admin' %}disabled{% endif %}>
+                    <button class="users-access-summary" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" {% if user.role == 'admin' or user.id in protected_user_ids %}disabled{% endif %}>
                       <i class="bi bi-buildings"></i>
                       <span data-project-access-label>
                         {% if access_count == 1 %}1 объект{% elif access_count in [2, 3, 4] %}{{ access_count }} объекта{% else %}{{ access_count }} объектов{% endif %}
                       </span>
-                      {% if user.role != 'admin' %}<i class="bi bi-chevron-down"></i>{% endif %}
+                      {% if user.role != 'admin' and user.id not in protected_user_ids %}<i class="bi bi-chevron-down"></i>{% endif %}
                     </button>
-                    {% if user.role != 'admin' %}
+                    {% if user.role != 'admin' and user.id not in protected_user_ids %}
                     <div class="dropdown-menu users-access-menu p-3">
                       <form class="users-project-autosave" method="post" action="{{ url_for('main.user_update_projects', user_id=user.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -120,31 +120,39 @@
                 <td class="users-password-cell">
                   <div class="password-preview" data-hidden="••••••••" data-visible="{{ user.password_plain or 'Пароль не сохранён' }}" data-state="hidden">
                     <span>••••••••</span>
-                    <button class="password-preview-toggle" type="button" aria-label="Показать пароль"><i class="bi bi-eye"></i></button>
+                    {% if user.id not in protected_user_ids %}<button class="password-preview-toggle" type="button" aria-label="Показать пароль"><i class="bi bi-eye"></i></button>{% endif %}
                   </div>
                 </td>
                 <td class="users-captcha-cell">
                   <form method="post" action="{{ url_for('main.user_toggle_captcha', user_id=user.id) }}" class="users-captcha-form">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="captcha_disabled" value="{{ '1' if user.captcha_disabled else '0' }}" data-captcha-disabled-value>
+                    {% if user.id not in protected_user_ids %}
                     <label class="users-captcha-toggle" title="Включить или отключить капчу для этого пользователя">
                       <input class="users-captcha-input" type="checkbox" {% if not user.captcha_disabled %}checked{% endif %}>
                       <span></span>
                       <small>{{ 'Откл.' if user.captcha_disabled else 'Вкл.' }}</small>
                     </label>
+                    {% else %}
+                    <span class="text-muted">Защищён</span>
+                    {% endif %}
                     <noscript><button class="btn btn-sm btn-primary mt-2" type="submit">Сохранить</button></noscript>
                   </form>
                 </td>
                 <td class="users-created-cell">{{ user.created_at|ru_date }}</td>
                 <td class="users-actions-cell">
-                  {% if user.id != current_user.id %}
+                  {% if user.id != current_user.id and user.id not in protected_user_ids %}
                   <div class="d-inline-flex gap-2 users-actions">
+                    {% if user.id not in protected_user_ids %}
                     <a class="btn btn-sm users-action-btn users-action-btn-password" href="{{ url_for('main.user_set_password_page', user_id=user.id) }}" title="Сменить пароль" aria-label="Сменить пароль">
                       <i class="bi bi-key"></i>
                     </a>
+                    {% endif %}
+                    {% if user.id not in protected_user_ids %}
                     <a class="btn btn-sm users-action-btn users-action-btn-delete" href="{{ url_for('main.user_delete_confirm', user_id=user.id) }}" title="Удалить аккаунт" aria-label="Удалить аккаунт">
                       <i class="bi bi-trash"></i>
                     </a>
+                    {% endif %}
                   </div>
                   {% else %}
                   <span class="text-muted">Текущий</span>
