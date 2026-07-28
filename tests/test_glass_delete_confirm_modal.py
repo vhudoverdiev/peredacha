@@ -27,7 +27,7 @@ class GlassDeleteConfirmModalTest(unittest.TestCase):
 
         self.assertIn("script.js') }}?v=v669-material-edit-actions-top", template)
         self.assertIn("/static/script.js?v=v669-material-edit-actions-top", worker)
-        self.assertIn("peredacha-static-v151-confirm-modal-actions", worker)
+        self.assertIn("peredacha-static-v152-firefox-layout-controls", worker)
 
 
 if __name__ == "__main__":

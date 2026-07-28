@@ -55276,9 +55276,9 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
   }
 
   body.app-body:has(.users-page) .users-role-option:has(.users-role-input:checked) {
-    border-color: #78bb24 !important;
-    background: linear-gradient(180deg, #8dd62c 0%, #78bb24 100%) !important;
-    box-shadow: 0 10px 22px rgba(120, 187, 36, .2) !important;
+    border-color: var(--peredacha-action-green-hover) !important;
+    background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+    box-shadow: 0 12px 26px var(--peredacha-action-green-shadow) !important;
   }
 
   body.app-body:has(.users-page) .users-role-option:has(.users-role-input:checked) .users-role-copy strong {
@@ -56845,13 +56845,24 @@ html body.app-body .task-detail-related-actions .task-detail-excel-link i::befor
     animation: none !important;
     animation-delay: 0s !important;
     animation-duration: 0s !important;
+  }
+
+  /* Only the animated containers need their final visibility. Applying
+     opacity/geometry to every descendant reveals hidden Firefox controls and
+     cancels alignment transforms on icons and table content. */
+  html.desktop-like-pointer.desktop-firefox-stable-motion body.app-body .crm-page-entry-surface,
+  html.desktop-like-pointer.desktop-firefox-stable-motion body.auth-body .auth-shell,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .site-page-loader,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .maintenance-screen,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .registration-step.is-active,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .settings-standalone-layout .settings-page-head,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .settings-standalone-layout .settings-page-head::after,
+  html.desktop-like-pointer.desktop-firefox-stable-motion .settings-standalone-layout .settings-card {
     opacity: 1 !important;
   }
 
   html.desktop-like-pointer.desktop-firefox-stable-motion body.app-body .crm-page-entry-surface,
-  html.desktop-like-pointer.desktop-firefox-stable-motion body.app-body .crm-page-entry-surface *,
   html.desktop-like-pointer.desktop-firefox-stable-motion body.auth-body .auth-shell,
-  html.desktop-like-pointer.desktop-firefox-stable-motion body.auth-body .auth-shell *,
   html.desktop-like-pointer.desktop-firefox-stable-motion .settings-standalone-layout .settings-card {
     transform: none !important;
     translate: none !important;

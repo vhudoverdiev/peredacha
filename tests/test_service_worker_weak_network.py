@@ -80,7 +80,7 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v151-confirm-modal-actions")
+        self.assertEqual(worker_version, "v152-firefox-layout-controls")
 
 
 if __name__ == "__main__":
