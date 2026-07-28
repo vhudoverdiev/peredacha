@@ -1,5 +1,6 @@
 import re
 import unittest
+from datetime import date
 
 from config import Config
 from app import create_app, db, login_manager
@@ -69,6 +70,7 @@ class DashboardCompletedStatusesTests(unittest.TestCase):
                 project=self.project,
                 apartment=self.apartment,
                 work_point=self.work_point,
+                description=f"Terminal report task {status}",
                 status=status,
                 is_done=status in {
                     STATUS_DONE,
@@ -77,6 +79,13 @@ class DashboardCompletedStatusesTests(unittest.TestCase):
                     STATUS_GUARANTEE,
                     STATUS_CONCESSION,
                 },
+                completed_date=date.today() if status in {
+                    STATUS_DONE,
+                    STATUS_FINISHERS,
+                    STATUS_CONTRACTOR,
+                    STATUS_GUARANTEE,
+                    STATUS_CONCESSION,
+                } else None,
             ))
         db.session.commit()
 
@@ -138,6 +147,16 @@ class DashboardCompletedStatusesTests(unittest.TestCase):
         self.assertIsNotNone(main_card)
         self.assertIn("<b>5</b>", main_card.group(0))
         self.assertIn("<b>2</b>", main_card.group(0))
+
+    def test_work_report_includes_all_terminal_workflow_statuses(self):
+        response = self.client.get("/report")
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn('<span class="stat-badge stat-badge-white">5</span>', html)
+        self.assertIn("Terminal report task finishers", html)
+        self.assertIn("Terminal report task contractor", html)
+        self.assertIn("Terminal report task guarantee", html)
 
 
 if __name__ == "__main__":

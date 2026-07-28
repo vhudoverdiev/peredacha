@@ -13,6 +13,11 @@ def _bool_env(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _csv_env(name: str) -> set[str]:
+    value = os.getenv(name, "")
+    return {item.strip().lower() for item in value.split(",") if item.strip()}
+
+
 def _normalize_database_url(raw_url: str | None) -> str:
     """
     Make sqlite URLs stable regardless of the current working directory.
@@ -113,6 +118,7 @@ class Config:
     PERMANENT_SESSION_LIFETIME = int(os.getenv("PERMANENT_SESSION_LIFETIME", str(60 * 60 * 8)))
     PREFERRED_URL_SCHEME = "https" if SESSION_COOKIE_SECURE else "http"
     FORCE_HSTS = _bool_env("FORCE_HSTS", False)
+    PROTECTED_DEVELOPER_USERNAMES = _csv_env("PROTECTED_DEVELOPER_USERNAMES")
 
     @staticmethod
     def init_app(app):

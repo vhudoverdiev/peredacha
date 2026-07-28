@@ -80,7 +80,7 @@ from app.models import (
     task_guarantee_contractor_setting_key,
 )
 from app.permissions import can_change_task, can_export, can_manage_mapping, can_manage_sync, role_required
-from app.security import client_ip, hit_rate_limit, resolve_site_visit_project_id
+from app.security import client_ip, hit_rate_limit, is_protected_developer_user, resolve_site_visit_project_id
 from app.services.changelog_service import log_change
 from app.services.document_flow import (
     addendum_field_keys,
@@ -1067,6 +1067,13 @@ def _abort_if_user_outside_current_project(user: User | None, project: Project |
     if project and not user.can_access_project(project):
         abort(404)
     return user
+
+
+def _reject_protected_developer_user(user: User, action_label: str):
+    if not is_protected_developer_user(user):
+        return None
+    flash(f"Этот аккаунт разработчика нельзя {action_label}.", "danger")
+    return redirect(url_for("main.users"))
 
 
 def _task_for_current_project(task_id: int, project: Project | None = None) -> Task:
@@ -9263,8 +9270,10 @@ def work_report():
         return redirect(url_for("main.objects"))
     today = date.today()
     start = today - timedelta(days=55)
-    # Include ordinary completed work and remarks closed with a concession.
-    report_statuses = (STATUS_DONE, STATUS_CONCESSION)
+    # Every terminal workflow status represents completed work.  Restricting
+    # this list to ``done``/``concession`` made reports empty for tasks moved
+    # to finishers, contractor, or guarantee after completion.
+    report_statuses = tuple(DONE_STATUSES)
     tasks = (
         Task.query.join(Apartment)
         .join(WorkPoint)
@@ -9320,7 +9329,7 @@ def work_report_export():
         base_query = Task.query.filter(
             Task.project_id == project.id,
             Task.is_done.is_(True),
-            Task.status.in_((STATUS_DONE, STATUS_CONCESSION)),
+            Task.status.in_(DONE_STATUSES),
             Task.work_point.has(non_dop_agreement_work_point_clause()),
             Task.completed_date.isnot(None),
             Task.completed_date >= start,
@@ -9340,7 +9349,7 @@ def work_report_export():
         base_query = Task.query.filter(
             Task.project_id == project.id,
             Task.is_done.is_(True),
-            Task.status.in_((STATUS_DONE, STATUS_CONCESSION)),
+            Task.status.in_(DONE_STATUSES),
             Task.work_point.has(non_dop_agreement_work_point_clause()),
             Task.completed_date.isnot(None),
             Task.completed_date >= start,
@@ -10129,12 +10138,20 @@ def users():
             return redirect(url_for("main.users"))
     project = selected_project()
     users = User.query.order_by(User.created_at.desc()).all()
+    protected_user_ids = _protected_user_ids(users)
     if project:
         users = [
             user for user in users
             if user.role in {ROLE_ADMIN, ROLE_MANAGER, ROLE_VERIFIER} or user.can_access_project(project)
         ]
-    return render_template("users.html", users=users, form=form, project=project, all_projects=all_projects)
+    return render_template(
+        "users.html",
+        users=users,
+        form=form,
+        project=project,
+        all_projects=all_projects,
+        protected_user_ids=protected_user_ids,
+    )
 
 
 @bp.route("/users/<int:user_id>/projects", methods=["POST"])
@@ -10143,6 +10160,9 @@ def users():
 def user_update_projects(user_id: int):
     wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
     user = db.session.get(User, user_id) or abort(404)
+    rejection = _reject_protected_developer_user(user, "изменять")
+    if rejection:
+        return rejection
     if user.role == ROLE_ADMIN:
         if wants_json:
             return jsonify(ok=False, message="Разработчику всегда доступны все объекты."), 400
@@ -10175,6 +10195,9 @@ def user_update_projects(user_id: int):
 def user_update_name(user_id: int):
     wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
     user = db.session.get(User, user_id) or abort(404)
+    rejection = _reject_protected_developer_user(user, "переименовывать")
+    if rejection:
+        return rejection
     _abort_if_user_outside_current_project(user)
     full_name = str(request.form.get("full_name") or "").strip()
     if len(full_name) > 160:
@@ -10195,6 +10218,9 @@ def user_update_name(user_id: int):
 @role_required(ROLE_ADMIN)
 def user_toggle_captcha(user_id: int):
     user = db.session.get(User, user_id) or abort(404)
+    rejection = _reject_protected_developer_user(user, "изменять")
+    if rejection:
+        return rejection
     _abort_if_user_outside_current_project(user)
     user.captcha_disabled = request.form.get("captcha_disabled") == "1"
     db.session.commit()
@@ -10213,6 +10239,9 @@ def user_toggle_captcha(user_id: int):
 @role_required(ROLE_ADMIN)
 def user_set_password(user_id: int):
     user = db.session.get(User, user_id) or abort(404)
+    rejection = _reject_protected_developer_user(user, "менять пароль")
+    if rejection:
+        return rejection
     _abort_if_user_outside_current_project(user)
     if user.id == current_user.id:
         flash("Нельзя изменить пароль текущего пользователя здесь", "danger")
@@ -10232,6 +10261,9 @@ def user_set_password(user_id: int):
 @role_required(ROLE_ADMIN)
 def user_set_password_page(user_id: int):
     user = db.session.get(User, user_id) or abort(404)
+    rejection = _reject_protected_developer_user(user, "менять пароль")
+    if rejection:
+        return rejection
     _abort_if_user_outside_current_project(user)
     if user.id == current_user.id:
         flash("Нельзя изменить пароль текущего пользователя здесь", "danger")
@@ -10245,6 +10277,9 @@ def user_set_password_page(user_id: int):
 @role_required(ROLE_ADMIN)
 def user_delete_confirm(user_id: int):
     user = db.session.get(User, user_id) or abort(404)
+    rejection = _reject_protected_developer_user(user, "удалять")
+    if rejection:
+        return rejection
     _abort_if_user_outside_current_project(user)
     if user.id == current_user.id:
         flash("Нельзя удалить текущего пользователя", "danger")
@@ -10257,6 +10292,9 @@ def user_delete_confirm(user_id: int):
 @role_required(ROLE_ADMIN)
 def user_delete(user_id: int):
     user = db.session.get(User, user_id) or abort(404)
+    rejection = _reject_protected_developer_user(user, "удалять")
+    if rejection:
+        return rejection
     _abort_if_user_outside_current_project(user)
     if user.id == current_user.id:
         flash("Нельзя удалить текущего пользователя", "danger")

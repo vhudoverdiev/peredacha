@@ -230,6 +230,17 @@ def is_session_version_valid() -> bool:
     return int(session.get("session_version", -1)) == int(getattr(current_user, "session_version", 0) or 0)
 
 
+def protected_developer_usernames() -> set[str]:
+    return set(current_app.config.get("PROTECTED_DEVELOPER_USERNAMES") or set())
+
+
+def is_protected_developer_user(user) -> bool:
+    if not user:
+        return False
+    username = str(getattr(user, "username", "") or "").strip().lower()
+    return bool(username and username in protected_developer_usernames())
+
+
 def allowed_upload_suffix(filename: str, allowed: Iterable[str]) -> bool:
     suffix = Path(filename or "").suffix.lower().lstrip(".")
     return suffix in {item.lower().lstrip(".") for item in allowed}

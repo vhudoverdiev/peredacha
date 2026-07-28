@@ -655,7 +655,11 @@ def is_visible_work_point_number(point_number: str | int | None) -> bool:
 def dop_agreement_work_point_clause():
     """SQL filter for addendum-material points, including shifted named columns."""
     def field_has_all(field, *parts):
-        return and_(*(field.like(f"%{part}%") for part in parts))
+        # Nullable metadata is normal for imported work points. SQL ``LIKE``
+        # against NULL produces UNKNOWN, which also made the negated
+        # non-addendum filter UNKNOWN and silently removed ordinary tasks.
+        text_field = func.coalesce(field, "")
+        return and_(*(text_field.like(f"%{part}%") for part in parts))
 
     return or_(
         field_has_all(WorkPoint.original_column_name, "Отступ", "ТМЦ"),
