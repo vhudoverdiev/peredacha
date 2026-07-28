@@ -2,6 +2,7 @@
 
 from copy import copy
 from datetime import datetime
+from math import ceil
 from pathlib import Path
 import re
 from typing import Iterable
@@ -64,21 +65,34 @@ def set_column_widths(ws, widths) -> None:
         ws.column_dimensions[get_column_letter(idx)].width = width
 
 
-def auto_adjust_row_heights(ws) -> None:
-    for row_idx in range(2, ws.max_row + 1):
-        max_len = 0
-        for cell in ws[row_idx]:
-            value = str(cell.value or "")
-            if value:
-                max_len = max(max_len, len(value))
-        if max_len > 240:
-            ws.row_dimensions[row_idx].height = 90
-        elif max_len > 120:
-            ws.row_dimensions[row_idx].height = 62
-        elif max_len > 60:
-            ws.row_dimensions[row_idx].height = 45
-        else:
-            ws.row_dimensions[row_idx].height = 30
+def estimate_excel_row_height(values, widths, *, minimum: float = 30) -> float:
+    """Estimate enough Excel row height for every wrapped line in the row."""
+    max_lines = 1
+    for index, value in enumerate(values):
+        text = str(value or "")
+        width = float(widths[index] if index < len(widths) else 13)
+        usable_chars = max(1, int(width * 0.92))
+        visual_lines = sum(
+            max(1, ceil(len(line) / usable_chars))
+            for line in (text.splitlines() or [""])
+        )
+        max_lines = max(max_lines, visual_lines)
+    # Excel's row-height limit is 409.5 points.
+    return min(409.5, max(float(minimum), 6 + max_lines * 15))
+
+
+def auto_adjust_row_heights(ws, *, min_row: int = 2) -> None:
+    widths = [
+        ws.column_dimensions[get_column_letter(column_idx)].width or 13
+        for column_idx in range(1, ws.max_column + 1)
+    ]
+    for row_idx in range(min_row, ws.max_row + 1):
+        height = estimate_excel_row_height(
+            [cell.value for cell in ws[row_idx]],
+            widths,
+        )
+        current_height = ws.row_dimensions[row_idx].height or 0
+        ws.row_dimensions[row_idx].height = max(current_height, height)
 
 
 def apply_worksheet_style(ws, widths=None, report_header: bool = False) -> None:
@@ -111,6 +125,17 @@ def _write_only_header_row(ws, headers: list[str], fill: PatternFill) -> None:
         cell.font = Font(bold=True, color="111827")
         cell.fill = fill
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = THIN_BORDER
+        row.append(cell)
+    ws.append(row)
+
+
+def _write_only_data_row(ws, values: list[str], widths: list[float], row_index: int) -> None:
+    ws.row_dimensions[row_index].height = estimate_excel_row_height(values, widths)
+    row = []
+    for value in values:
+        cell = WriteOnlyCell(ws, value=value)
+        cell.alignment = Alignment(vertical="top", wrap_text=True)
         cell.border = THIN_BORDER
         row.append(cell)
     ws.append(row)
@@ -586,8 +611,13 @@ def export_report_tasks_excel(
             ws = wb.create_sheet(title=sheet_name)
             set_column_widths(ws, widths)
             _write_only_header_row(ws, headers, REPORT_HEADER_FILL)
-            for task in grouped_tasks[sheet_name]:
-                ws.append(_report_task_row(task, include_executor=sheet_has_executor))
+            for row_index, task in enumerate(grouped_tasks[sheet_name], start=2):
+                _write_only_data_row(
+                    ws,
+                    _report_task_row(task, include_executor=sheet_has_executor),
+                    widths,
+                    row_index,
+                )
     else:
         ws = wb.create_sheet(title="Отчет")
         simple_headers = ["Помещение", "Замечание"]
@@ -599,7 +629,7 @@ def export_report_tasks_excel(
         simple_widths.append(20)
         set_column_widths(ws, simple_widths)
         _write_only_header_row(ws, simple_headers, REPORT_HEADER_FILL)
-        for task in tasks:
+        for row_index, task in enumerate(tasks, start=2):
             row = [
                 (_excel_premise_label(task.apartment) if task.apartment else ""),
                 _report_task_remark(task),
@@ -607,7 +637,7 @@ def export_report_tasks_excel(
             if include_executor:
                 row.append(_report_task_executor(task))
             row.append(task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "")
-            ws.append(row)
+            _write_only_data_row(ws, row, simple_widths, row_index)
     wb.save(path)
     return path
 

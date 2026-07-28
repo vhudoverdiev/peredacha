@@ -110,6 +110,8 @@
       {% if apartment.premise_type != 'commercial' %}
       <span><i class="bi bi-brush"></i>{{ apartment.finishing_type or 'отделка не указана' }}</span>
       {% endif %}
+      <span class="apartment-owner-line"><i class="bi bi-person"></i>Собственник: {{ row.owner_names|join(', ') if row.owner_names else '—' }}</span>
+      <span class="apartment-phone-line"><i class="bi bi-telephone"></i>Телефон: {{ row.phones|join(', ') if row.phones else '—' }}</span>
       {% if row.mode == 'АПП' %}
       <span class="apartment-deadline-line">
         <i class="bi bi-calendar2-check"></i>

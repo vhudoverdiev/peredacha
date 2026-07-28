@@ -43,6 +43,14 @@ class FirefoxUsersAuthLayoutTests(unittest.TestCase):
         self.assertNotIn(".auth-shell *", geometry_rule.group("selectors"))
         self.assertIn("transform: translateY(-50%);", self.style)
 
+    def test_firefox_releases_apartment_cards_when_entry_animation_is_disabled(self):
+        self.assertRegex(
+            self.firefox_css,
+            r"desktop-firefox-stable-motion[^{]*"
+            r":is\(\.objects-grid,\s*\.apartments-grid,[^)]*\)\s*>\s*\*\s*\{"
+            r"\s*opacity:\s*1\s*!important;",
+        )
+
     def test_selected_user_role_uses_question_button_green_tokens(self):
         role_rules = re.findall(
             r"body\.app-body:has\(\.users-page\) "

@@ -56861,6 +56861,14 @@ html body.app-body .task-detail-related-actions .task-detail-excel-link i::befor
     opacity: 1 !important;
   }
 
+  /* Grid items have their own fade-up animation and a static opacity: 0.
+     Firefox disables that animation above, so release only those explicit
+     entry-animation targets instead of every descendant. */
+  html.desktop-like-pointer.desktop-firefox-stable-motion body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) > :not(.crm-toast-stack),
+  html.desktop-like-pointer.desktop-firefox-stable-motion body.app-body:not(:has(.dashboard-page.dashboard-redesign)) :is(.objects-grid, .apartments-grid, .assignment-overdue-day-cards, .assignment-issued-layout, .document-type-grid, .report-grid) > * {
+    opacity: 1 !important;
+  }
+
   html.desktop-like-pointer.desktop-firefox-stable-motion body.app-body .crm-page-entry-surface,
   html.desktop-like-pointer.desktop-firefox-stable-motion body.auth-body .auth-shell,
   html.desktop-like-pointer.desktop-firefox-stable-motion .settings-standalone-layout .settings-card {

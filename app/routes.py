@@ -99,7 +99,7 @@ from app.services.avr_document import (
     format_input_date,
     safe_avr_filename,
 )
-from app.services.excel_export import _excel_premise_label, _safe_filename_part, build_export_path, export_glass_measurements_excel, export_remark_tasks_excel, export_report_tasks_excel, export_simple_tasks_excel, export_source_excel_reconstructed, export_source_excel_with_strikes, export_tasks_to_excel, resolve_source_excel_with_strikes_path
+from app.services.excel_export import _excel_premise_label, _safe_filename_part, auto_adjust_row_heights, build_export_path, export_glass_measurements_excel, export_remark_tasks_excel, export_report_tasks_excel, export_simple_tasks_excel, export_source_excel_reconstructed, export_source_excel_with_strikes, export_tasks_to_excel, resolve_source_excel_with_strikes_path
 from app.services.pdf_export import export_assignment_worker_pdf, export_table_pdf, export_tasks_pdf
 from app.services.excel_import import inspect_remarks_workbook, mark_stale_running_sync_logs, preview_excel, save_upload, sync_excel_file
 from app.services.google_sheets_sync import sync_google_sheets, update_task_strike_in_google_sheet
@@ -4687,7 +4687,7 @@ GLASS_STATUS_LABELS = {
     GLASS_STATUS_REPLACED: "Поменяно",
 }
 
-GLASS_ITEM_TYPES = ["Стеклопакет", "Стекло", "Фр.стекло", "Рама/Створка", "Подоконник"]
+GLASS_ITEM_TYPES = ["Стеклопакет", "Стекло", "Фр.стекло", "Рама/Створка", "Подоконник", "Дверь"]
 
 GLASS_ITEM_WORDS = {
     "стеклопакет": {"singular": "стеклопакет", "plural": "стеклопакеты", "gender": "m"},
@@ -4695,6 +4695,7 @@ GLASS_ITEM_WORDS = {
     "фр.стекло": {"singular": "фр.стекло", "plural": "фр.стекла", "gender": "n"},
     "рама/створка": {"singular": "рама/створка", "plural": "рамы/створки", "gender": "f"},
     "подоконник": {"singular": "подоконник", "plural": "подоконники", "gender": "m"},
+    "дверь": {"singular": "дверь", "plural": "двери", "gender": "f"},
 }
 
 
@@ -6478,6 +6479,7 @@ def _style_excel_workbook_for_download(workbook: Workbook) -> None:
                 cell.border = EXCEL_DOWNLOAD_BORDER
         if ws.max_row >= 1 and ws.max_column >= 1:
             ws.auto_filter.ref = ws.dimensions
+            auto_adjust_row_heights(ws, min_row=2)
 
 
 def _style_excel_header(ws):
@@ -8325,6 +8327,20 @@ def _group_project_apartments(project_id: int, include_activity: bool = True) ->
     return list(groups.values())
 
 
+def _apartment_group_contact_values(apartments: list[Apartment], field_name: str) -> list[str]:
+    values: list[str] = []
+    seen: set[str] = set()
+    for apartment in apartments:
+        raw_value = str(getattr(apartment, field_name, "") or "")
+        for part in raw_value.splitlines():
+            value = part.strip()
+            normalized = value.casefold()
+            if value and normalized not in seen:
+                seen.add(normalized)
+                values.append(value)
+    return values
+
+
 def _build_apartment_overview(apartment_or_group, include_activity: bool = True) -> dict:
     apartments = apartment_or_group if isinstance(apartment_or_group, list) else [apartment_or_group]
     apartment = _pick_apartment_representative(apartments)
@@ -8367,6 +8383,8 @@ def _build_apartment_overview(apartment_or_group, include_activity: bool = True)
         "premise_label": _premise_label(apartment),
         "apartments": apartments,
         "group_count": len(apartments),
+        "owner_names": _apartment_group_contact_values(apartments, "owner_name"),
+        "phones": _apartment_group_contact_values(apartments, "phone"),
         "mode": mode,
         "inspection_comment": _apartment_inspection_comment(apartments),
         "manual_comment": _apartment_manual_comment(apartments),
