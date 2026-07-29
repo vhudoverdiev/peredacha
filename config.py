@@ -106,6 +106,7 @@ class Config:
 
     WTF_CSRF_TIME_LIMIT = int(os.getenv("WTF_CSRF_TIME_LIMIT", str(60 * 60 * 8)))
     WTF_CSRF_SSL_STRICT = _bool_env("WTF_CSRF_SSL_STRICT", False)
+    TRUSTED_PROXY_COUNT = int(os.getenv("TRUSTED_PROXY_COUNT", "1"))
 
     # Базовые настройки безопасности cookie. SESSION_COOKIE_SECURE нужно включить
     # на продакшене через .env, когда сайт работает только по HTTPS.

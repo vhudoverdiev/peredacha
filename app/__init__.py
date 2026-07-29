@@ -7,6 +7,7 @@ from flask_login import LoginManager, current_user, logout_user
 from flask_wtf import CSRFProtect
 from flask_wtf.csrf import CSRFError
 from flask_compress import Compress
+from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
 from sqlalchemy import event, inspect, text
 from datetime import date, datetime, timedelta
@@ -88,6 +89,14 @@ def create_app(config_class=Config):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config_class)
     config_class.init_app(app)
+    trusted_proxy_count = int(app.config.get("TRUSTED_PROXY_COUNT") or 0)
+    if trusted_proxy_count > 0:
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app,
+            x_for=trusted_proxy_count,
+            x_proto=trusted_proxy_count,
+            x_host=trusted_proxy_count,
+        )
 
     secret_key = str(app.config.get("SECRET_KEY") or "").strip()
     insecure_secret_keys = {"", "change-me", "change-this", "dev", "development"}

@@ -2,6 +2,8 @@ from datetime import datetime
 from pathlib import Path
 import unittest
 
+from flask import jsonify, request
+
 from app import create_app, db, login_manager
 from app.models import (
     Apartment,
@@ -213,6 +215,26 @@ class ProductionConfigurationSecurityTests(unittest.TestCase):
         self.assertNotIn("--reload", service)
         self.assertIn("ListenStream=/run/gunicorn-crm_flask.sock", socket)
         self.assertIn("SocketMode=0660", socket)
+        self.assertIn("NoNewPrivileges=true", service)
+        self.assertIn("PrivateTmp=true", service)
+        self.assertIn("ProtectSystem=full", service)
+        self.assertIn("UMask=0077", service)
+        self.assertIn("MemoryMax=", service)
+        self.assertIn("CPUQuota=", service)
+
+    def test_nginx_deploy_config_has_tls_headers_upload_limits_and_rate_limits(self):
+        nginx_config = (ROOT / "deploy" / "nginx-akvilon-peredacha.conf").read_text(encoding="utf-8")
+        rate_limit_config = (ROOT / "deploy" / "nginx-rate-limit.conf").read_text(encoding="utf-8")
+        self.assertIn("listen 443 ssl http2", nginx_config)
+        self.assertIn("return 301 https://$host$request_uri", nginx_config)
+        self.assertIn("server_tokens off", nginx_config)
+        self.assertIn("Strict-Transport-Security", nginx_config)
+        self.assertIn("client_max_body_size 50M", nginx_config)
+        self.assertIn("proxy_request_buffering on", nginx_config)
+        self.assertIn("location = /login", nginx_config)
+        self.assertIn("limit_req zone=peredacha_login", nginx_config)
+        self.assertIn("zone=peredacha_general:10m rate=10r/s", rate_limit_config)
+        self.assertIn("zone=peredacha_login:10m rate=5r/m", rate_limit_config)
 
     def test_cookie_and_request_size_defaults_are_hardened(self):
         self.assertTrue(Config.SESSION_COOKIE_HTTPONLY)
@@ -222,6 +244,42 @@ class ProductionConfigurationSecurityTests(unittest.TestCase):
         self.assertGreater(Config.MAX_CONTENT_LENGTH, 0)
         self.assertGreater(Config.MAX_UPLOAD_FILE_BYTES, 0)
         self.assertLessEqual(Config.MAX_UPLOAD_FILE_BYTES, Config.MAX_CONTENT_LENGTH)
+
+    def test_env_example_documents_production_security_defaults(self):
+        env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
+        self.assertIn("FLASK_DEBUG=0", env_example)
+        self.assertIn("SECRET_KEY=replace-with-a-strong-random-secret", env_example)
+        self.assertIn("DATABASE_URL=postgresql://", env_example)
+        self.assertIn("SESSION_COOKIE_SECURE=true", env_example)
+        self.assertIn("FORCE_HSTS=true", env_example)
+        self.assertIn("TRUSTED_PROXY_COUNT=1", env_example)
+
+    def test_trusted_proxy_headers_are_applied_for_nginx_https_requests(self):
+        class ProxiedConfig(Config):
+            TESTING = True
+            SECRET_KEY = "proxied-request-security-test"
+            SQLALCHEMY_DATABASE_URI = "sqlite://"
+            WTF_CSRF_ENABLED = False
+            TRUSTED_PROXY_COUNT = 1
+
+        app = create_app(ProxiedConfig)
+
+        @app.get("/proxy-test")
+        def proxy_test():
+            return jsonify({"remote_addr": request.remote_addr, "is_secure": request.is_secure})
+
+        response = app.test_client().get(
+            "/proxy-test",
+            headers={
+                "X-Forwarded-For": "203.0.113.77",
+                "X-Forwarded-Proto": "https",
+                "X-Forwarded-Host": "lk.akvilon-peredacha.ru",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["remote_addr"], "203.0.113.77")
+        self.assertTrue(response.json["is_secure"])
+        self.assertIn("Strict-Transport-Security", response.headers)
 
     def test_csrf_rejects_state_changing_request_without_token(self):
         class CsrfConfig(Config):

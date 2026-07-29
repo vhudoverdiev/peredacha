@@ -14,6 +14,15 @@ EnvironmentFile=/opt/peredacha/.env
 ExecStart=/opt/peredacha/venv/bin/gunicorn --workers 3 --timeout 180 --graceful-timeout 180 --bind unix:/run/gunicorn-crm_flask.sock wsgi:app
 Restart=always
 RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/peredacha/instance /opt/peredacha/uploads /opt/peredacha/exports
+UMask=0077
+LimitNOFILE=65535
+MemoryMax=768M
+CPUQuota=200%
 
 [Install]
 WantedBy=multi-user.target
