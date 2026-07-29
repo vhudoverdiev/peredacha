@@ -342,6 +342,7 @@ class GlassAllWorkPointsSplitTests(unittest.TestCase):
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["scope"], "order")
         self.assertEqual(payload["deleted_count"], 1)
+        db.session.expire_all()
         self.assertIsNone(db.session.get(GlassMeasurement, measurement_id))
 
         script = Path("app/static/script.js").read_text(encoding="utf-8")

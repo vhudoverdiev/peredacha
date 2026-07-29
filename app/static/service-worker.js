@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v153-firefox-apartment-cards';
+const STATIC_CACHE = 'peredacha-static-v154-apartments-filtered-export';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -15,7 +15,7 @@ const STATIC_ASSETS = [
   '/static/style.css?v=v632-firefox-apartment-cards',
   '/static/mobile-only.css?v=v88-remark-sentence-lines',
   '/static/desktop-only.css?v=v68-confirm-modal-actions',
-  '/static/script.js?v=v669-material-edit-actions-top',
+  '/static/script.js?v=v670-apartments-filtered-export',
 ];
 
 const NAVIGATION_NETWORK_TIMEOUT_MS = 8000;

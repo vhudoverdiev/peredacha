@@ -74,7 +74,7 @@ def _sqlite_engine_options(database_uri: str) -> dict:
 
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "change-me")
+    SECRET_KEY = os.getenv("SECRET_KEY")
     SQLALCHEMY_DATABASE_URI = _normalize_database_url(os.getenv("DATABASE_URL"))
     SQLITE_BUSY_TIMEOUT_SECONDS = int(os.getenv("SQLITE_BUSY_TIMEOUT_SECONDS", "30"))
     SQLALCHEMY_ENGINE_OPTIONS = _sqlite_engine_options(SQLALCHEMY_DATABASE_URI)

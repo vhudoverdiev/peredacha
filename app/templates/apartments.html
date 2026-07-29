@@ -7,7 +7,7 @@
     <h1 class="page-title">Квартиры</h1>
     <p class="page-subtitle">Данные, замечания, комментарии и история изменений.</p>
   </div>
-  <a class="btn btn-success" href="{{ url_for('main.apartments_export', **export_args) }}"><i class="bi bi-file-earmark-excel me-2"></i>Скачать Excel</a>
+  <a class="btn btn-success" href="{{ url_for('main.apartments_export', **export_args) }}" data-ajax-pagination-sync="apartments-export"><i class="bi bi-file-earmark-excel me-2"></i>Скачать Excel</a>
 </div>
 
 <div class="card content-card mb-3">

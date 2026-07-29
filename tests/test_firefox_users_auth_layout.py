@@ -41,7 +41,24 @@ class FirefoxUsersAuthLayoutTests(unittest.TestCase):
         self.assertIsNotNone(geometry_rule)
         self.assertNotIn(".crm-page-entry-surface *", geometry_rule.group("selectors"))
         self.assertNotIn(".auth-shell *", geometry_rule.group("selectors"))
+        self.assertNotIn(".auth-footer", geometry_rule.group("selectors"))
         self.assertIn("transform: translateY(-50%);", self.style)
+
+    def test_firefox_keeps_auth_credit_and_users_table_geometry(self):
+        template = (ROOT / "app" / "templates" / "base.html").read_text(encoding="utf-8")
+        self.assertIn(
+            '<span class="auth-footer-line-main">CRM от Худовердиева В.С.</span>',
+            template,
+        )
+        self.assertIn(
+            "body.app-body:has(.users-page) .users-table {\n"
+            "    width: 100% !important;\n"
+            "    min-width: 0 !important;\n"
+            "    max-width: 100% !important;\n"
+            "    table-layout: fixed !important;",
+            self.style,
+        )
+        self.assertNotIn(".users-table *", self.firefox_css)
 
     def test_firefox_releases_apartment_cards_when_entry_animation_is_disabled(self):
         self.assertRegex(

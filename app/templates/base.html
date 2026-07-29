@@ -897,7 +897,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v153-firefox-apartment-cards', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v154-apartments-filtered-export', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1542,6 +1542,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v669-material-edit-actions-top"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v670-apartments-filtered-export"></script>
 </body>
 </html>

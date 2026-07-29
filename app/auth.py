@@ -67,10 +67,13 @@ def _needs_two_factor_for_ip(user: User) -> bool:
 def _complete_pending_login(user: User):
     remember = bool(session.get("pending_login_remember"))
     next_url = session.get("pending_login_next") or None
+    current_project_id = session.get("current_project_id")
     session.clear()
     login_user(user, remember=remember)
     session.permanent = True
     session["session_version"] = int(user.session_version or 0)
+    if current_project_id:
+        session["current_project_id"] = current_project_id
     mark_login_success(user)
     clear_captcha()
     security_event("login_success", f"Успешный вход {user.username}", user_id=user.id)

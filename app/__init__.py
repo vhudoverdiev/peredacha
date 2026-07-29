@@ -89,6 +89,13 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
     config_class.init_app(app)
 
+    secret_key = str(app.config.get("SECRET_KEY") or "").strip()
+    insecure_secret_keys = {"", "change-me", "change-this", "dev", "development"}
+    if not app.config.get("TESTING") and secret_key.lower() in insecure_secret_keys:
+        raise RuntimeError(
+            "SECRET_KEY must be set to a strong, unique value in the environment."
+        )
+
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)

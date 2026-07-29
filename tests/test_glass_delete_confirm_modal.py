@@ -21,13 +21,31 @@ class GlassDeleteConfirmModalTest(unittest.TestCase):
         self.assertIn(".crm-confirm-overlay.d-none", desktop_css)
         self.assertIn("display: none !important", desktop_css)
 
+    def test_cancel_resolves_false_and_delete_resolves_true_before_request(self):
+        script = (ROOT / "app" / "static" / "script.js").read_text(encoding="utf-8")
+        confirm_start = script.index("const showCrmActionConfirm")
+        confirm_end = script.index("window.crmShowActionConfirm = showCrmActionConfirm", confirm_start)
+        confirm_block = script[confirm_start:confirm_end]
+        self.assertIn("cancel.onclick = () => close(false)", confirm_block)
+        self.assertIn("ok.onclick = () => close(true)", confirm_block)
+        self.assertIn("if (settled) return", confirm_block)
+
+        delete_start = script.index("const bindGlassDeleteForm")
+        delete_end = script.index("const submitGlassNeedMeasureForm", delete_start)
+        delete_block = script[delete_start:delete_end]
+        confirmation = delete_block.index(
+            "if (confirmMessage && !(await window.crmShowActionConfirm(confirmMessage))) return;"
+        )
+        request = delete_block.index("fetch(form.action")
+        self.assertLess(confirmation, request)
+
     def test_confirm_modal_script_cache_buster_is_synchronized(self):
         template = (ROOT / "app" / "templates" / "base.html").read_text(encoding="utf-8")
         worker = (ROOT / "app" / "static" / "service-worker.js").read_text(encoding="utf-8")
 
-        self.assertIn("script.js') }}?v=v669-material-edit-actions-top", template)
-        self.assertIn("/static/script.js?v=v669-material-edit-actions-top", worker)
-        self.assertIn("peredacha-static-v153-firefox-apartment-cards", worker)
+        self.assertIn("script.js') }}?v=v670-apartments-filtered-export", template)
+        self.assertIn("/static/script.js?v=v670-apartments-filtered-export", worker)
+        self.assertIn("peredacha-static-v154-apartments-filtered-export", worker)
 
 
 if __name__ == "__main__":

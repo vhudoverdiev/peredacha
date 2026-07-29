@@ -4836,6 +4836,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const nextSummary = nextRoot.querySelector('[data-ajax-pagination-summary]');
       if (currentSummary && nextSummary) morphPaginationNode(currentSummary, nextSummary);
 
+      if (document.documentElement.classList.contains('desktop-like-pointer')) {
+        currentRoot.querySelectorAll('[data-ajax-pagination-sync]').forEach(currentNode => {
+          const syncKey = currentNode.dataset.ajaxPaginationSync || '';
+          if (!syncKey) return;
+          const nextNode = nextRoot.querySelector(
+            `[data-ajax-pagination-sync="${CSS.escape(syncKey)}"]`,
+          );
+          if (nextNode) morphPaginationNode(currentNode, nextNode);
+        });
+      }
+
       const currentFilterForms = paginationFilterForms(currentRoot);
       const nextFilterForms = paginationFilterForms(nextRoot);
       currentFilterForms.forEach((filterForm, index) => {

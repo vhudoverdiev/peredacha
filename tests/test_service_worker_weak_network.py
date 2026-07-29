@@ -80,7 +80,7 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v153-firefox-apartment-cards")
+        self.assertEqual(worker_version, "v154-apartments-filtered-export")
 
 
 if __name__ == "__main__":

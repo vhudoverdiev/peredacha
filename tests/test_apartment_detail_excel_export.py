@@ -43,6 +43,8 @@ class ApartmentDetailExcelExportTests(unittest.TestCase):
             project=self.project,
             apartment_number="42",
             finishing_type="Белая",
+            owner_name="Иванов Иван Иванович",
+            phone="+7 900 123-45-67",
         )
         open_point = WorkPoint(point_number="1", short_name="Пункт 1", source_sheet_name="qa")
         done_point = WorkPoint(point_number="2", short_name="Пункт 2", source_sheet_name="qa")
@@ -129,6 +131,24 @@ class ApartmentDetailExcelExportTests(unittest.TestCase):
                 workbook.close()
         finally:
             response.close()
+
+    def test_apartment_detail_renders_owner_and_phone_on_desktop_and_mobile(self):
+        for user_agent in (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "Mozilla/5.0 (Linux; Android 15; Mobile)",
+        ):
+            with self.subTest(user_agent=user_agent):
+                response = self.client.get(
+                    f"/apartments/{self.apartment.id}",
+                    headers={"User-Agent": user_agent},
+                )
+
+                self.assertEqual(response.status_code, 200)
+                html = response.get_data(as_text=True)
+                self.assertIn("ФИО собственника", html)
+                self.assertIn("Иванов Иван Иванович", html)
+                self.assertIn("Номер телефона", html)
+                self.assertIn("+7 900 123-45-67", html)
 
 
 if __name__ == "__main__":

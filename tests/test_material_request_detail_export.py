@@ -90,6 +90,31 @@ class MaterialRequestDetailExportTests(unittest.TestCase):
             script,
         )
 
+    def test_desktop_header_replaces_back_and_excel_with_cancel_and_save(self):
+        desktop_css = DESKTOP_CSS_PATH.read_text(encoding="utf-8")
+        edit_state = "body.app-body:has(.js-material-request-edit-form:not(.d-none))"
+
+        self.assertIn(
+            f"{edit_state}\n"
+            "  :is(.material-request-detail-export-btn, .material-request-back-btn)",
+            desktop_css,
+        )
+        self.assertIn(
+            f"{edit_state}\n"
+            "  .material-request-edit-cancel-top",
+            desktop_css,
+        )
+        self.assertIn(
+            f"{edit_state}\n"
+            "  .material-request-edit-save-top",
+            desktop_css,
+        )
+        cancel_position = self.template.index("material-request-edit-cancel-top")
+        export_position = self.template.index("material-request-detail-export-btn")
+        save_position = self.template.index("material-request-edit-save-top")
+        self.assertLess(cancel_position, export_position)
+        self.assertGreater(save_position, export_position)
+
 
 if __name__ == "__main__":
     unittest.main()
