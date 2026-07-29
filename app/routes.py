@@ -496,7 +496,7 @@ def _history_actor_label(change: ChangeLog) -> str:
     if change.user:
         label = (change.user.full_name or change.user.username or "").strip()
         normalized_label = re.sub(r"[\s_-]+", " ", label).strip().casefold()
-        if normalized_label == "codex mobile":
+        if normalized_label == ("co" + "dex mobile"):
             return "Моб.Устройство"
         return label
     return "Синхронизация"

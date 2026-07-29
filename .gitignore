@@ -29,37 +29,23 @@ Thumbs.db
 # Node
 node_modules/
 
-# ------------------------
-# Codex
-# ------------------------
-.codex-branch-switch-backup/
+# Local agent tooling
+.[Cc]odex/
+.agents/
+.[Cc]odex-branch-switch-backup/
 
-# Если .agents хранит только локальные настройки, раскомментируй:
-# .agents/
-
-# ------------------------
 # Temporary preview files
-# ------------------------
 tmp_preview/
 tmp_video_frames/
 tmp_video_frames_bug/
 tmp_video_frames_ipad/
-
+temp_preview/
+temp_video_frames/
 tmp_dashboard_*.png
 tmp_*.html
 
-# ------------------------
 # Logs
-# ------------------------
 *.log
 
-# ------------------------
 # Temporary archives
-# ------------------------
 *.zip
-
-# ------------------------
-# Python cache
-# ------------------------
-*.py[cod]
-*.pyo
