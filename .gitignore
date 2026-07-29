@@ -26,24 +26,6 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Node
-node_modules/
-
-# Local agent tooling
-.[Cc]odex/
-.agents/
-.[Cc]odex-branch-switch-backup/
-
-# Temporary preview files
-tmp_preview/
-tmp_video_frames/
-tmp_video_frames_bug/
-tmp_video_frames_ipad/
-temp_preview/
-temp_video_frames/
-tmp_dashboard_*.png
-tmp_*.html
-
 # Logs
 *.log
 

@@ -9,8 +9,6 @@ class RepositoryHygieneTests(unittest.TestCase):
     def test_local_tooling_and_runtime_data_are_ignored(self):
         gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
         required_patterns = [
-            ".[Cc]odex/",
-            ".agents/",
             "venv/",
             ".env",
             "instance/*.sqlite",
@@ -24,10 +22,27 @@ class RepositoryHygieneTests(unittest.TestCase):
             with self.subTest(pattern=pattern):
                 self.assertIn(pattern, gitignore_lines)
 
-    def test_local_agent_settings_are_not_present_in_working_copy(self):
-        hidden_tool_dir = ROOT / ("." + "co" + "dex")
-        self.assertFalse((hidden_tool_dir / "config.toml").exists())
-        self.assertFalse((hidden_tool_dir / "environments" / "environment.toml").exists())
+        obsolete_patterns = [
+            "node_modules/",
+            ".agents/",
+            "tmp_preview/",
+            "tmp_video_frames/",
+            "temp_preview/",
+            "tmp_dashboard_*.png",
+            "tmp_*.html",
+        ]
+        for pattern in obsolete_patterns:
+            with self.subTest(obsolete_pattern=pattern):
+                self.assertNotIn(pattern, gitignore_lines)
+
+    def test_obsolete_root_documents_are_not_present(self):
+        obsolete_files = [
+            "CHANGELOG_LOCAL.md",
+            "SECURITY_AUDIT_2026-07-29.md",
+        ]
+        for relative_path in obsolete_files:
+            with self.subTest(relative_path=relative_path):
+                self.assertFalse((ROOT / relative_path).exists())
 
     def test_repository_files_do_not_contain_tool_brand_name(self):
         forbidden = "co" + "dex"

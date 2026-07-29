@@ -33,9 +33,10 @@ Security changes prepared in the project:
 - hardened Gunicorn systemd unit;
 - regression tests for the security-related configuration.
 
-Full audit file in the project root:
+Detailed audit materials are kept in this documentation package and deployment configs:
 
 ```text
-SECURITY_AUDIT_2026-07-29.md
+project_documentation/
+deploy/
+tests/
 ```
-
