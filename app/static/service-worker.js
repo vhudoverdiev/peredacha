@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v154-apartments-filtered-export';
+const STATIC_CACHE = 'peredacha-static-v155-hide-ajax-spares';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -12,7 +12,7 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v632-firefox-apartment-cards',
+  '/static/style.css?v=v633-hide-ajax-spares',
   '/static/mobile-only.css?v=v88-remark-sentence-lines',
   '/static/desktop-only.css?v=v68-confirm-modal-actions',
   '/static/script.js?v=v670-apartments-filtered-export',

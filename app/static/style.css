@@ -1591,6 +1591,10 @@ a {
   text-decoration: none;
 }
 
+[data-ajax-pagination-spare][hidden] {
+  display: none !important;
+}
+
 .app-body {
   overflow-x: hidden;
   background: var(--crm-bg);

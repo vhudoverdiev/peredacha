@@ -1,16 +1,23 @@
 import unittest
 from pathlib import Path
+import re
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = PROJECT_ROOT / "app" / "static" / "script.js"
 TEMPLATES = PROJECT_ROOT / "app" / "templates"
+STYLE_CSS = PROJECT_ROOT / "app" / "static" / "style.css"
+BASE_TEMPLATE = PROJECT_ROOT / "app" / "templates" / "base.html"
+SERVICE_WORKER = PROJECT_ROOT / "app" / "static" / "service-worker.js"
 
 
 class DesktopAjaxTableSearchTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.script = SCRIPT.read_text(encoding="utf-8")
+        cls.style_css = STYLE_CSS.read_text(encoding="utf-8")
+        cls.base_template = BASE_TEMPLATE.read_text(encoding="utf-8")
+        cls.service_worker = SERVICE_WORKER.read_text(encoding="utf-8")
 
     def test_unmarked_table_filters_use_ajax_only_on_desktop(self):
         helper_start = self.script.index("const isPaginationFilterForm = form =>")
@@ -37,6 +44,33 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
         self.assertIn("fallbackToNavigation: !isDesktopAjaxTableSearch()", self.script)
         self.assertIn("fallbackToNavigation: false", self.script)
         self.assertIn("if (itemsSelector && !isDesktopAjaxTableSearch())", self.script)
+
+    def test_hidden_ajax_spares_cannot_override_hidden_attribute(self):
+        selector = "[data-ajax-pagination-spare][hidden]"
+        selector_start = self.style_css.index(selector)
+        rule_end = self.style_css.index("}", selector_start)
+        rule = self.style_css[selector_start:rule_end]
+
+        self.assertIn("display: none !important", rule)
+
+    def test_delete_logs_page_does_not_render_site_error_kind_tabs(self):
+        delete_logs_template = (TEMPLATES / "developer_delete_logs.html").read_text(encoding="utf-8")
+        site_errors_template = (TEMPLATES / "site_errors.html").read_text(encoding="utf-8")
+
+        self.assertIn("site-errors-kind-tabs", site_errors_template)
+        self.assertNotIn("site-errors-kind-tabs", delete_logs_template)
+        self.assertNotIn("Обращения", delete_logs_template)
+        self.assertNotIn("Регистрации", delete_logs_template)
+        self.assertNotIn("Системные", delete_logs_template)
+
+    def test_style_cache_version_matches_service_worker(self):
+        version_pattern = r"style\.css[^\n]*\?v=(v[\w-]+)"
+        template_version = re.search(version_pattern, self.base_template)
+        worker_version = re.search(version_pattern, self.service_worker)
+
+        self.assertIsNotNone(template_version)
+        self.assertIsNotNone(worker_version)
+        self.assertEqual(template_version.group(1), worker_version.group(1))
 
     def test_every_search_table_has_a_partial_update_contract(self):
         expected_contracts = {
