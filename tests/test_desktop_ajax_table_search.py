@@ -63,6 +63,33 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
         self.assertNotIn("Регистрации", delete_logs_template)
         self.assertNotIn("Системные", delete_logs_template)
 
+    def test_site_error_filters_have_visible_native_select_fallback(self):
+        site_errors_template = (TEMPLATES / "site_errors.html").read_text(encoding="utf-8")
+        script_start = site_errors_template.index("document.querySelectorAll('.js-developer-custom-select')")
+        script_end = site_errors_template.index("document.addEventListener('click'", script_start)
+        select_script = site_errors_template[script_start:script_end]
+
+        self.assertIn("selectShell.classList.add('is-enhanced')", select_script)
+
+        fallback_selector = (
+            "body:has(.developer-section-tabs) .site-errors-filter-form "
+            ".developer-custom-select:not(.is-enhanced) > .developer-native-select"
+        )
+        enhanced_selector = (
+            "body:has(.developer-section-tabs) .site-errors-filter-form "
+            ".developer-custom-select.is-enhanced > .developer-native-select"
+        )
+        fallback_start = self.style_css.index(fallback_selector)
+        fallback_rule = self.style_css[fallback_start:self.style_css.index("}", fallback_start)]
+        enhanced_start = self.style_css.index(enhanced_selector)
+        enhanced_rule = self.style_css[enhanced_start:self.style_css.index("}", enhanced_start)]
+
+        self.assertIn("display: block !important", fallback_rule)
+        self.assertIn("opacity: 1 !important", fallback_rule)
+        self.assertIn("pointer-events: auto !important", fallback_rule)
+        self.assertIn("opacity: 0 !important", enhanced_rule)
+        self.assertIn("pointer-events: none !important", enhanced_rule)
+
     def test_style_cache_version_matches_service_worker(self):
         version_pattern = r"style\.css[^\n]*\?v=(v[\w-]+)"
         template_version = re.search(version_pattern, self.base_template)
