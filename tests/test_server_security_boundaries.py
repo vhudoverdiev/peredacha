@@ -1,6 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from flask import jsonify, request
 
@@ -195,6 +196,17 @@ class ProductionConfigurationSecurityTests(unittest.TestCase):
 
                 with self.assertRaisesRegex(RuntimeError, "SECRET_KEY"):
                     create_app(InsecureConfig)
+
+    def test_flask_push_can_register_without_production_secret_key(self):
+        class PushOnlyConfig(Config):
+            TESTING = False
+            SECRET_KEY = None
+            SQLALCHEMY_DATABASE_URI = "sqlite://"
+
+        with patch("sys.argv", ["flask", "push"]):
+            app = create_app(PushOnlyConfig)
+
+        self.assertIn("push", app.cli.commands)
 
     def test_repository_does_not_contain_common_secret_or_debug_defaults(self):
         config_source = (ROOT / "config.py").read_text(encoding="utf-8")
