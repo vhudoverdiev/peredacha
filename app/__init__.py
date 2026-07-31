@@ -1,3 +1,4 @@
+import sys
 import time
 
 from flask import Flask, abort, g, redirect, request, session, url_for
@@ -62,6 +63,12 @@ def _is_static_asset_request() -> bool:
     return endpoint == "static" or path.startswith("/static/") or endpoint == "main.service_worker" or path == "/service-worker.js"
 
 
+def _is_flask_push_cli_invocation() -> bool:
+    argv = [str(arg).lower() for arg in sys.argv]
+    executable = Path(argv[0]).name if argv else ""
+    return executable.startswith("flask") and "push" in argv[1:]
+
+
 def _configure_sqlite_connection_pragmas(app) -> None:
     uri = (app.config.get("SQLALCHEMY_DATABASE_URI") or "").lower()
     if not uri.startswith("sqlite:"):
@@ -100,7 +107,11 @@ def create_app(config_class=Config):
 
     secret_key = str(app.config.get("SECRET_KEY") or "").strip()
     insecure_secret_keys = {"", "change-me", "change-this", "dev", "development"}
-    if not app.config.get("TESTING") and secret_key.lower() in insecure_secret_keys:
+    if (
+        not app.config.get("TESTING")
+        and secret_key.lower() in insecure_secret_keys
+        and not _is_flask_push_cli_invocation()
+    ):
         raise RuntimeError(
             "SECRET_KEY must be set to a strong, unique value in the environment."
         )
