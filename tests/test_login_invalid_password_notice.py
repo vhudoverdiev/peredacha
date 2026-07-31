@@ -53,6 +53,25 @@ class LoginInvalidPasswordNoticeTests(unittest.TestCase):
         self.assertIsNotNone(mobile_rule)
         self.assertIn("bottom: calc(max(.85rem, env(safe-area-inset-bottom)) + 3.9rem) !important", mobile_rule.group("body"))
 
+    def test_auth_danger_toast_uses_white_surface_with_red_accents(self):
+        danger_selector = (
+            "body.auth-body .auth-shell .crm-toast-stack.auth-flashes .crm-toast.crm-toast-danger,\n"
+            "body.auth-body .auth-shell .crm-toast-stack.auth-flashes .alert.alert-danger"
+        )
+        danger_start = self.style.index(danger_selector)
+        danger_rule = self.style[danger_start:self.style.index("}", danger_start)]
+
+        self.assertIn("background: rgba(255, 255, 255, .97) !important", danger_rule)
+        self.assertIn("border-color: rgba(220, 38, 38, .18) !important", danger_rule)
+
+        accent_selector = (
+            "body.auth-body .auth-shell .crm-toast-stack.auth-flashes .crm-toast.crm-toast-danger::before,\n"
+            "body.auth-body .auth-shell .crm-toast-stack.auth-flashes .alert.alert-danger::before"
+        )
+        accent_start = self.style.index(accent_selector)
+        accent_rule = self.style[accent_start:self.style.index("}", accent_start)]
+        self.assertIn("background: #dc2626 !important", accent_rule)
+
 
 if __name__ == "__main__":
     unittest.main()

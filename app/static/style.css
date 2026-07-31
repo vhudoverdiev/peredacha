@@ -55844,7 +55844,46 @@ html.touch-app-device body.auth-body .auth-shell .crm-toast-stack.auth-flashes {
 }
 
 body.auth-body .auth-shell .crm-toast-stack.auth-flashes .crm-toast {
+  border-color: rgba(220, 38, 38, .16) !important;
+  color: #344054 !important;
+  background: rgba(255, 255, 255, .96) !important;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, .14) !important;
   pointer-events: auto !important;
+}
+
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .crm-toast.crm-toast-danger,
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .alert.alert-danger {
+  border-color: rgba(220, 38, 38, .18) !important;
+  color: #344054 !important;
+  background: rgba(255, 255, 255, .97) !important;
+}
+
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .crm-toast.crm-toast-danger::before,
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .alert.alert-danger::before {
+  background: #dc2626 !important;
+}
+
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .crm-toast.crm-toast-danger .crm-toast-icon,
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .alert.alert-danger .crm-toast-icon {
+  color: #dc2626 !important;
+  background: #fee2e2 !important;
+}
+
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .crm-toast.crm-toast-danger .crm-toast-title,
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .alert.alert-danger .crm-toast-title {
+  color: #7f1d1d !important;
+}
+
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .crm-toast.crm-toast-danger .crm-toast-text,
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .alert.alert-danger .crm-toast-text {
+  color: #7b4444 !important;
+}
+
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .crm-toast.crm-toast-danger .crm-toast-close,
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .alert.alert-danger .crm-toast-close,
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .crm-toast.crm-toast-danger .crm-toast-close i,
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .alert.alert-danger .crm-toast-close i {
+  color: #7b4444 !important;
 }
 
 @media (max-width: 767.98px) {
