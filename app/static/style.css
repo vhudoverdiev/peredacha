@@ -8622,6 +8622,34 @@ canvas {
   margin: 0 !important;
 }
 
+.login-auth-alert {
+  display: grid !important;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  align-items: center;
+  gap: .6rem;
+  margin: 0 0 1rem !important;
+  padding: .78rem .9rem !important;
+  border: 1px solid rgba(220, 38, 38, .18) !important;
+  border-radius: 1rem !important;
+  color: #991b1b !important;
+  background: #fef2f2 !important;
+  font-size: .92rem;
+  line-height: 1.25;
+  font-weight: 800;
+  box-shadow: 0 14px 34px rgba(220, 38, 38, .12);
+}
+
+.login-auth-alert i {
+  color: #dc2626;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.login-auth-alert span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .auth-shell .auth-footer {
   grid-column: 1 / -1;
   grid-row: 5;

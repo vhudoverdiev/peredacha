@@ -22,6 +22,7 @@ from app.security import (
 from app.two_factor import verify_totp
 
 bp = Blueprint("auth", __name__)
+INVALID_LOGIN_MESSAGE = "Неверный логин или пароль"
 
 
 def _is_safe_next(target: str | None) -> bool:
@@ -39,11 +40,16 @@ def _clear_pending_login() -> None:
     session.pop("pending_login_2fa_verified", None)
 
 
-def _render_login(form: LoginForm):
+def _render_login(form: LoginForm, login_error_message: str = ""):
     clear_captcha()
     _clear_pending_login()
     registration_captcha_question = generate_captcha(prefix="registration")
-    return render_template("login.html", form=form, registration_captcha_question=registration_captcha_question)
+    return render_template(
+        "login.html",
+        form=form,
+        registration_captcha_question=registration_captcha_question,
+        login_error_message=login_error_message,
+    )
 
 
 def _render_login_captcha(form: LoginCaptchaForm):
@@ -139,8 +145,8 @@ def login():
         if user is None or not user.check_password(form.password.data) or not user.is_active:
             mark_login_failure(user)
             security_event("login_failed", f"Неверный логин/пароль для {username}", user_id=user.id if user else None, severity="warning")
-            flash("Неверный логин или пароль", "danger")
-            return _render_login(form)
+            flash(INVALID_LOGIN_MESSAGE, "danger")
+            return _render_login(form, login_error_message=INVALID_LOGIN_MESSAGE)
 
         remember = bool(form.remember.data)
         next_url = request.args.get("next") or request.form.get("next")
