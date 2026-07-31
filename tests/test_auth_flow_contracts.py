@@ -103,10 +103,9 @@ class AuthFlowContractsTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         response_text = response.get_data(as_text=True)
-        self.assertIn("login-auth-alert", response_text)
-        self.assertIn('aria-live="assertive"', response_text)
         self.assertIn("crm-toast-danger", response_text)
         self.assertIn("Неверный логин или пароль", response_text)
+        self.assertNotIn("login-auth-alert", response_text)
         db.session.refresh(user)
         self.assertEqual(user.failed_login_count, 1)
         with self.client.session_transaction() as session:
