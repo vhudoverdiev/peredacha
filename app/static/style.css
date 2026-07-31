@@ -55820,6 +55820,45 @@ body.auth-body .auth-shell .auth-footer {
   box-shadow: none !important;
 }
 
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes,
+html.desktop-like-pointer body.auth-body .auth-shell .crm-toast-stack.auth-flashes,
+html.mobile-viewport body.auth-body .auth-shell .crm-toast-stack.auth-flashes,
+html.adaptive-mobile-viewport body.auth-body .auth-shell .crm-toast-stack.auth-flashes,
+html.touch-app-device body.auth-body .auth-shell .crm-toast-stack.auth-flashes {
+  position: fixed !important;
+  top: auto !important;
+  right: calc(max(1rem, env(safe-area-inset-right)) + 4.15rem) !important;
+  bottom: max(1.05rem, env(safe-area-inset-bottom)) !important;
+  left: auto !important;
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: min(26rem, calc(100vw - 7rem)) !important;
+  max-width: calc(100vw - 7rem) !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  pointer-events: none !important;
+  z-index: 3060 !important;
+}
+
+body.auth-body .auth-shell .crm-toast-stack.auth-flashes .crm-toast {
+  pointer-events: auto !important;
+}
+
+@media (max-width: 767.98px) {
+  html.mobile-viewport body.auth-body .auth-shell .crm-toast-stack.auth-flashes,
+  html.adaptive-mobile-viewport body.auth-body .auth-shell .crm-toast-stack.auth-flashes,
+  html.touch-app-device body.auth-body .auth-shell .crm-toast-stack.auth-flashes {
+    right: max(.85rem, env(safe-area-inset-right)) !important;
+    bottom: calc(max(.85rem, env(safe-area-inset-bottom)) + 3.9rem) !important;
+    left: max(.85rem, env(safe-area-inset-left)) !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
 @media (max-width: 767.98px) {
   html.auth-root:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device),
   html.auth-root:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.auth-body,
