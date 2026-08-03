@@ -4805,6 +4805,7 @@ document.addEventListener('DOMContentLoaded', () => {
       useCache = true,
       root = null,
       fallbackToNavigation = true,
+      replaceContent = false,
     } = {},
   ) => {
     const currentRoot = root || document.querySelector('[data-ajax-pagination-page]');
@@ -4843,7 +4844,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      morphPaginationNode(currentContent, nextContent);
+      if (replaceContent) {
+        currentContent.replaceChildren(
+          ...Array.from(nextContent.childNodes, node => document.importNode(node, true)),
+        );
+      } else {
+        morphPaginationNode(currentContent, nextContent);
+      }
 
       const currentHead = currentRoot.querySelector('[data-ajax-pagination-head]');
       const nextHead = nextRoot.querySelector('[data-ajax-pagination-head]');
@@ -4934,7 +4941,13 @@ document.addEventListener('DOMContentLoaded', () => {
         && !document.documentElement.classList.contains('desktop-like-pointer')) return;
     event.preventDefault();
     tabs?.querySelectorAll('.remarks-tab-link').forEach(tab => tab.classList.toggle('active', tab === link));
-    void updatePaginationPage(targetUrl, { push: true, scroll: false, useCache: false, root: pageRoot });
+    void updatePaginationPage(targetUrl, {
+      push: true,
+      scroll: false,
+      useCache: false,
+      root: pageRoot,
+      replaceContent: pageKey === 'materials',
+    });
   });
 
   document.addEventListener('submit', event => {

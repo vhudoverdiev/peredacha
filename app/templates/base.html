@@ -897,7 +897,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v162-material-tab-replay-animation', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v163-material-tabs-replace-content', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1542,6 +1542,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v672-material-tab-replay-animation"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v673-material-tabs-replace-content"></script>
 </body>
 </html>
