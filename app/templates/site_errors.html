@@ -161,13 +161,20 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.js-developer-custom-select').forEach(function (selectShell) {
     const select = selectShell.querySelector('select');
     if (!select) return;
+    function hideEnhancedNativeSelect() {
+      select.hidden = true;
+      select.tabIndex = -1;
+      select.setAttribute('aria-hidden', 'true');
+      select.classList.add('developer-native-select');
+      select.classList.remove('mobile-native-select');
+    }
     if (selectShell.querySelector('.developer-select-button')) {
+      hideEnhancedNativeSelect();
       selectShell.classList.add('is-enhanced');
       return;
     }
 
-    select.tabIndex = -1;
-    select.setAttribute('aria-hidden', 'true');
+    hideEnhancedNativeSelect();
 
     const button = document.createElement('button');
     button.type = 'button';

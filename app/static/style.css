@@ -27312,6 +27312,16 @@ body:has(.materials-page-head) .bulk-actions-panel {
   box-shadow: none !important;
   background-image: none !important;
 }
+body:has(.materials-page-head) .materials-list-page-region > .materials-animated-card {
+  border: 1px solid #dfe8d4 !important;
+  background: #fff !important;
+  background-clip: padding-box !important;
+  overflow: hidden !important;
+}
+body:has(.materials-page-head) .materials-list-page-region > .materials-animated-card > .material-bulk-header {
+  border-top-left-radius: inherit !important;
+  border-top-right-radius: inherit !important;
+}
 body:has(.materials-page-head) .materials-table thead th,
 body:has(.materials-page-head) .material-tasks-table thead th,
 body:has(.materials-page-head) .material-edit-table thead th,
@@ -56875,6 +56885,7 @@ body:has(.developer-section-tabs) .site-errors-filter-form .developer-custom-sel
 body:has(.developer-section-tabs) .site-errors-filter-form .developer-custom-select.is-enhanced > .developer-native-select {
   position: absolute !important;
   inset: 0 !important;
+  display: none !important;
   width: 100% !important;
   height: 100% !important;
   min-height: 0 !important;
@@ -56887,6 +56898,7 @@ body:has(.developer-section-tabs) .site-errors-filter-form .developer-custom-sel
 body:has(.developer-section-tabs) .site-errors-filter-form .developer-custom-select:has(> .developer-select-button) > select {
   position: absolute !important;
   inset: 0 !important;
+  display: none !important;
   width: 100% !important;
   height: 100% !important;
   min-height: 0 !important;

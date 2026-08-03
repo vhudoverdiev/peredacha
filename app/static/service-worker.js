@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v158-site-error-filter-selects';
+const STATIC_CACHE = 'peredacha-static-v159-site-error-native-select-hidden';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -12,10 +12,10 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v636-site-error-filter-selects',
+  '/static/style.css?v=v637-site-error-native-select-hidden',
   '/static/mobile-only.css?v=v88-remark-sentence-lines',
   '/static/desktop-only.css?v=v68-confirm-modal-actions',
-  '/static/script.js?v=v670-apartments-filtered-export',
+  '/static/script.js?v=v671-site-error-native-select-hidden',
 ];
 
 const NAVIGATION_NETWORK_TIMEOUT_MS = 8000;

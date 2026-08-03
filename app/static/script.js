@@ -1071,6 +1071,13 @@ document.addEventListener('DOMContentLoaded', () => {
     scope.querySelectorAll('.js-developer-custom-select').forEach(selectShell => {
       const select = selectShell.querySelector('select');
       if (!select) return;
+      const hideEnhancedNativeSelect = () => {
+        select.hidden = true;
+        select.tabIndex = -1;
+        select.setAttribute('aria-hidden', 'true');
+        select.classList.add('developer-native-select');
+        select.classList.remove('mobile-native-select');
+      };
       const forceCustomSelectOnMobile = select.hasAttribute('data-force-custom-select')
         || Boolean(select.closest('.apartments-filter-form'))
         || Boolean(select.closest('.contractor-filter-form'));
@@ -1079,6 +1086,7 @@ document.addEventListener('DOMContentLoaded', () => {
         select.classList.remove('mobile-native-select');
       }
       if (isMobileSelectUi && !forceCustomSelectOnMobile) {
+        select.hidden = false;
         select.classList.add('mobile-native-select');
         select.tabIndex = 0;
         select.removeAttribute('aria-hidden');
@@ -1088,13 +1096,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (selectShell.querySelector('.developer-select-button')) {
+        hideEnhancedNativeSelect();
         selectShell.classList.add('is-enhanced');
         return;
       }
 
-      select.tabIndex = -1;
-      select.setAttribute('aria-hidden', 'true');
-      select.classList.add('developer-native-select');
+      hideEnhancedNativeSelect();
 
       const button = document.createElement('button');
       button.type = 'button';
@@ -1281,6 +1288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         || Boolean(select.closest('.contractor-filter-form'));
 
       if (currentMode === 'mobile' && !forceCustomSelectOnMobile) {
+        select.hidden = false;
         select.classList.add('mobile-native-select');
         select.classList.remove('developer-native-select');
         select.tabIndex = 0;

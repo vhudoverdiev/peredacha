@@ -897,7 +897,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v158-site-error-filter-selects', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v159-site-error-native-select-hidden', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -938,7 +938,7 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v636-site-error-filter-selects">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v637-site-error-native-select-hidden">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v88-remark-sentence-lines">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v68-confirm-modal-actions">
   <script>
@@ -1542,6 +1542,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v670-apartments-filtered-export"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v671-site-error-native-select-hidden"></script>
 </body>
 </html>

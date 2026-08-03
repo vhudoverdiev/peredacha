@@ -97,10 +97,12 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
         self.assertIn("pointer-events: auto !important", fallback_rule)
         self.assertIn("position: absolute !important", enhanced_rule)
         self.assertIn("inset: 0 !important", enhanced_rule)
+        self.assertIn("display: none !important", enhanced_rule)
         self.assertIn("visibility: hidden !important", enhanced_rule)
         self.assertIn("opacity: 0 !important", enhanced_rule)
         self.assertIn("pointer-events: none !important", enhanced_rule)
         self.assertIn("position: absolute !important", custom_button_rule)
+        self.assertIn("display: none !important", custom_button_rule)
         self.assertIn("visibility: hidden !important", custom_button_rule)
         self.assertIn("opacity: 0 !important", custom_button_rule)
         self.assertIn("pointer-events: none !important", custom_button_rule)
@@ -115,21 +117,34 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
         self.assertIn('name="kind" disabled', filter_markup)
         self.assertIn('name="status"', filter_markup)
 
-    def test_ajax_custom_selects_mark_enhanced_shells_before_hiding_native_fallback(self):
+    def test_ajax_custom_selects_hide_native_select_after_enhancement(self):
         init_start = self.script.index("const initDeveloperCustomSelects = (scope = document) =>")
         init_end = self.script.index("const refreshCustomSelectViewportMode", init_start)
         init_script = self.script[init_start:init_end]
 
+        helper_start = init_script.index("const hideEnhancedNativeSelect = () =>")
+        helper_end = init_script.index("const forceCustomSelectOnMobile", helper_start)
+        helper_script = init_script[helper_start:helper_end]
+        self.assertIn("select.hidden = true;", helper_script)
+        self.assertIn("select.tabIndex = -1;", helper_script)
+        self.assertIn("select.setAttribute('aria-hidden', 'true');", helper_script)
+        self.assertIn("select.classList.add('developer-native-select');", helper_script)
+        self.assertIn("select.classList.remove('mobile-native-select');", helper_script)
+        self.assertIn("select.hidden = false;", init_script)
+
         existing_button_start = init_script.index("if (selectShell.querySelector('.developer-select-button'))")
-        existing_button_end = init_script.index("select.tabIndex = -1;", existing_button_start)
+        existing_button_end = init_script.index("return;", existing_button_start)
         existing_button_branch = init_script[existing_button_start:existing_button_end]
 
+        self.assertIn("hideEnhancedNativeSelect();", existing_button_branch)
         self.assertIn("selectShell.classList.add('is-enhanced');", existing_button_branch)
         self.assertIn(
-            "selectShell.appendChild(button);\n"
-            "      selectShell.classList.add('is-enhanced');",
+            "hideEnhancedNativeSelect();\n\n"
+            "      const button = document.createElement('button');",
             init_script,
         )
+        self.assertIn("selectShell.appendChild(button);", init_script)
+        self.assertIn("selectShell.classList.add('is-enhanced');", init_script)
         self.assertIn("selectShell.classList.remove('is-open', 'is-enhanced');", init_script)
         self.assertIn("button.setAttribute('data-ajax-pagination-runtime', 'custom-select');", init_script)
         self.assertIn("menu.setAttribute('data-ajax-pagination-runtime', 'custom-select');", init_script)
@@ -141,21 +156,39 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
         self.assertIn("currentNode.dispatchEvent(new Event('change', { bubbles: true }));", self.script)
 
         site_errors_template = (TEMPLATES / "site_errors.html").read_text(encoding="utf-8")
+        inline_helper_start = site_errors_template.index("function hideEnhancedNativeSelect()")
+        inline_helper_end = site_errors_template.index("if (selectShell.querySelector('.developer-select-button'))", inline_helper_start)
+        inline_helper = site_errors_template[inline_helper_start:inline_helper_end]
+        self.assertIn("select.hidden = true;", inline_helper)
+        self.assertIn("select.tabIndex = -1;", inline_helper)
+        self.assertIn("select.setAttribute('aria-hidden', 'true');", inline_helper)
+        self.assertIn("select.classList.add('developer-native-select');", inline_helper)
+        self.assertIn("select.classList.remove('mobile-native-select');", inline_helper)
         guard_start = site_errors_template.index("if (selectShell.querySelector('.developer-select-button'))")
-        guard_end = site_errors_template.index("select.tabIndex = -1;", guard_start)
+        guard_end = site_errors_template.index("return;", guard_start)
         guard_script = site_errors_template[guard_start:guard_end]
+        self.assertIn("hideEnhancedNativeSelect();", guard_script)
         self.assertIn("selectShell.classList.add('is-enhanced');", guard_script)
+        self.assertIn("hideEnhancedNativeSelect();\n\n    const button = document.createElement('button');", site_errors_template)
         self.assertIn("button.setAttribute('data-ajax-pagination-runtime', 'custom-select');", site_errors_template)
         self.assertIn("menu.setAttribute('data-ajax-pagination-runtime', 'custom-select');", site_errors_template)
 
-    def test_style_cache_version_matches_service_worker(self):
-        version_pattern = r"style\.css[^\n]*\?v=(v[\w-]+)"
-        template_version = re.search(version_pattern, self.base_template)
-        worker_version = re.search(version_pattern, self.service_worker)
+    def test_static_asset_cache_versions_match_service_worker(self):
+        for asset_name in ("style.css", "script.js"):
+            with self.subTest(asset=asset_name):
+                version_pattern = rf"{re.escape(asset_name)}[^\n]*\?v=(v[\w-]+)"
+                template_version = re.search(version_pattern, self.base_template)
+                worker_version = re.search(version_pattern, self.service_worker)
 
-        self.assertIsNotNone(template_version)
-        self.assertIsNotNone(worker_version)
-        self.assertEqual(template_version.group(1), worker_version.group(1))
+                self.assertIsNotNone(template_version)
+                self.assertIsNotNone(worker_version)
+                self.assertEqual(template_version.group(1), worker_version.group(1))
+
+        registration_version = re.search(r"service-worker\.js\?v=(v[\w-]+)", self.base_template)
+        cache_version = re.search(r"const STATIC_CACHE = 'peredacha-static-(v[\w-]+)'", self.service_worker)
+        self.assertIsNotNone(registration_version)
+        self.assertIsNotNone(cache_version)
+        self.assertEqual(registration_version.group(1), cache_version.group(1))
 
     def test_every_search_table_has_a_partial_update_contract(self):
         expected_contracts = {
@@ -215,6 +248,37 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
         ):
             self.assertIn(expected, writeoff_rule)
             self.assertIn(expected, replay_rule)
+
+    def test_material_list_tables_keep_visible_top_card_edges(self):
+        card_selector = (
+            "body:has(.materials-page-head) .materials-list-page-region > "
+            ".materials-animated-card"
+        )
+        card_start = self.style_css.index(card_selector)
+        card_rule = self.style_css[card_start:self.style_css.index("}", card_start)]
+
+        self.assertIn("border: 1px solid #dfe8d4 !important", card_rule)
+        self.assertIn("background: #fff !important", card_rule)
+        self.assertIn("background-clip: padding-box !important", card_rule)
+        self.assertIn("overflow: hidden !important", card_rule)
+
+        header_selector = (
+            "body:has(.materials-page-head) .materials-list-page-region > "
+            ".materials-animated-card > .material-bulk-header"
+        )
+        header_start = self.style_css.index(header_selector)
+        header_rule = self.style_css[header_start:self.style_css.index("}", header_start)]
+        self.assertIn("border-top-left-radius: inherit !important", header_rule)
+        self.assertIn("border-top-right-radius: inherit !important", header_rule)
+
+        materials_template = (TEMPLATES / "materials.html").read_text(encoding="utf-8")
+        for tab_name in ("balance", "requests"):
+            with self.subTest(tab=tab_name):
+                self.assertRegex(
+                    materials_template,
+                    rf"active_tab == '{tab_name}'[\s\S]*?materials-list-page-region"
+                    rf"[\s\S]*?table-shell task-table-shell materials-animated-card",
+                )
 
     def test_assignment_report_filter_updates_totals_and_rows_together(self):
         template = (TEMPLATES / "assignment_report.html").read_text(encoding="utf-8")
