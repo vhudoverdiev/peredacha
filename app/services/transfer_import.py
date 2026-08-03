@@ -13,6 +13,7 @@ from openpyxl.styles.colors import COLOR_INDEX
 
 from app import db
 from app.models import Apartment, Project, SyncLog
+from app.time_utils import utc_now
 from app.services.task_service import (
     apply_app_deadline_logic,
     get_or_create_project,
@@ -314,7 +315,7 @@ def inspect_transfer_workbook(path: Path) -> dict[str, Any]:
 
 def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
     project = get_or_create_project(project_name)
-    sync_log = SyncLog(source_type="transfer_excel", source_name=str(path), started_at=datetime.utcnow(), status="running", project_id=project.id)
+    sync_log = SyncLog(source_type="transfer_excel", source_name=str(path), started_at=utc_now(), status="running", project_id=project.id)
     sync_log.rollback_data = build_project_rollback_data(project.id)
     db.session.add(sync_log)
     db.session.commit()
@@ -457,14 +458,14 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
         sync_log.updated_count = result["updated_count"]
         sync_log.missing_count = result["waiting_count"]
         sync_log.status = "success"
-        sync_log.finished_at = datetime.utcnow()
+        sync_log.finished_at = utc_now()
         db.session.commit()
         return result
     except Exception as exc:
         db.session.rollback()
         sync_log.status = "error"
         sync_log.error_message = str(exc)
-        sync_log.finished_at = datetime.utcnow()
+        sync_log.finished_at = utc_now()
         db.session.add(sync_log)
         db.session.commit()
         raise

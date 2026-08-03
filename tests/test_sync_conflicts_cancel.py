@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 import unittest
 
 from config import Config
 from app import create_app, db, login_manager
 from app.models import Apartment, Project, ROLE_ADMIN, SyncConflict, SyncLog, Task, User, WorkPoint
 from app.services.sync_rollback import build_project_rollback_data
+from app.time_utils import utc_now
 
 
 class TestConfig(Config):
@@ -59,7 +60,7 @@ class SyncConflictsCancelTests(unittest.TestCase):
         login_manager.session_protection = self.previous_session_protection
 
     def test_conflicts_page_has_cancel_sync_button(self):
-        started_at = datetime.utcnow()
+        started_at = utc_now()
         conflict = SyncConflict(
             task=self.task,
             target_type="task",
@@ -82,7 +83,7 @@ class SyncConflictsCancelTests(unittest.TestCase):
 
     def test_cancel_sync_from_conflicts_rolls_back_snapshot_and_closes_pending_conflicts(self):
         rollback_data = build_project_rollback_data(self.project.id)
-        started_at = datetime.utcnow()
+        started_at = utc_now()
         sync_log = SyncLog(
             project=self.project,
             source_type="excel",
@@ -135,7 +136,7 @@ class SyncConflictsCancelTests(unittest.TestCase):
             source_type="excel",
             source_name="already-running.xlsx",
             status="running",
-            started_at=datetime.utcnow(),
+            started_at=utc_now(),
             rollback_data=build_project_rollback_data(self.project.id),
         )
         db.session.add(running_log)

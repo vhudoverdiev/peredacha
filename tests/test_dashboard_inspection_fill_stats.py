@@ -10,7 +10,7 @@ from openpyxl.styles import Color, PatternFill
 
 from config import Config
 from app import create_app, db, login_manager
-from app.models import Apartment, Project, ROLE_ADMIN, User
+from app.models import Apartment, Project, ROLE_ADMIN, SyncLog, User
 from app.services.task_service import dashboard_stats
 from app.services.transfer_import import inspect_transfer_workbook, sync_transfer_statistics
 
@@ -143,6 +143,10 @@ class DashboardInspectionFillStatsTests(unittest.TestCase):
         result = sync_transfer_statistics(path, project_name=self.project.name)
 
         self.assertEqual(result["created_count"], 5)
+        sync_log = SyncLog.query.one()
+        self.assertEqual(sync_log.status, "success")
+        self.assertIsNotNone(sync_log.started_at)
+        self.assertIsNotNone(sync_log.finished_at)
         flags = {
             apartment.apartment_number: apartment.first_inspection_present
             for apartment in Apartment.query.order_by(Apartment.id.asc()).all()

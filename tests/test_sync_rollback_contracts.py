@@ -6,12 +6,14 @@ from config import Config
 from app import create_app, db
 from app.models import Apartment, ChangeLog, Project, SyncConflict, SyncLog, Task, WorkPoint
 from app.services.sync_rollback import (
+    build_project_rollback_data,
     _deserialize_value,
     _reserve_database_source_uid,
     _snapshot_payload,
     _source_uid_variant,
     apply_sync_rollback,
 )
+from app.time_utils import utc_now
 
 
 class TestConfig(Config):
@@ -46,6 +48,12 @@ class SyncRollbackContractsTests(unittest.TestCase):
         self.assertEqual(_snapshot_payload(SyncLog(rollback_data="[]")), {})
         self.assertEqual(_snapshot_payload(SyncLog(rollback_data='{"version":1}')), {"version": 1})
 
+    def test_build_project_rollback_data_records_naive_utc_timestamp(self):
+        payload = json.loads(build_project_rollback_data(self.project.id))
+
+        self.assertIn("created_at_utc", payload)
+        self.assertIsNone(datetime.fromisoformat(payload["created_at_utc"]).tzinfo)
+
     def test_deserialize_value_restores_dates_datetimes_and_handles_bad_values_safely(self):
         self.assertEqual(_deserialize_value("deadline_date", "2026-07-29"), datetime(2026, 7, 29).date())
         self.assertEqual(_deserialize_value("completed_date", "2026-07-29T12:30:00"), datetime(2026, 7, 29, 12, 30))
@@ -69,15 +77,15 @@ class SyncRollbackContractsTests(unittest.TestCase):
             project=self.project,
             source_type="excel",
             status="success",
-            started_at=datetime.utcnow(),
-            rolled_back_at=datetime.utcnow(),
+            started_at=utc_now(),
+            rolled_back_at=utc_now(),
             rollback_data=json.dumps({"version": 1, "project_id": self.project.id}),
         )
         corrupt = SyncLog(
             project=self.project,
             source_type="excel",
             status="success",
-            started_at=datetime.utcnow(),
+            started_at=utc_now(),
             rollback_data="not-json",
         )
         db.session.add_all([already, corrupt])
@@ -92,7 +100,7 @@ class SyncRollbackContractsTests(unittest.TestCase):
         self.assertIn("повреждены", corrupt_message)
 
     def test_legacy_rollback_without_snapshot_reverts_missing_flags_and_deletes_created_tasks(self):
-        started_at = datetime.utcnow()
+        started_at = utc_now()
         log = SyncLog(
             project=self.project,
             source_type="excel",
@@ -138,7 +146,7 @@ class SyncRollbackContractsTests(unittest.TestCase):
             "apartments": [],
             "tasks": [],
         })
-        started_at = datetime.utcnow()
+        started_at = utc_now()
         log = SyncLog(project=self.project, source_type="excel", status="success", started_at=started_at, rollback_data=rollback_data)
         in_window = SyncConflict(
             task=self.task,

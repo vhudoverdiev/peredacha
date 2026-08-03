@@ -11,6 +11,7 @@ from config import Config
 from app import create_app, db
 from app.models import ChangeLog, STATUS_DONE, SyncLog, Task
 from app.services.excel_import import mark_stale_running_sync_logs, sync_excel_file
+from app.time_utils import utc_now
 
 
 class TestConfig(Config):
@@ -111,7 +112,7 @@ class ExcelImportNewCompletedTaskTests(unittest.TestCase):
         self.assertIsNotNone(sync_log.finished_at)
 
     def test_stale_running_sync_logs_are_marked_as_errors(self):
-        now = datetime.utcnow()
+        now = utc_now()
         old_log = SyncLog(
             source_type="excel",
             source_name="old.xlsx",

@@ -4,7 +4,7 @@ import argparse
 import os
 import signal
 import sys
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 
 from werkzeug.serving import make_server
@@ -26,6 +26,7 @@ from app.models import (
     WorkCategory,
     WorkPoint,
 )
+from app.time_utils import utc_now
 from config import Config
 
 
@@ -118,7 +119,7 @@ def seed_database() -> None:
                 source_cell_value=f"E2E visual remark {index}",
                 status=status,
                 is_done=status == STATUS_DONE,
-                completed_date=datetime.utcnow() if status == STATUS_DONE else None,
+                completed_date=utc_now() if status == STATUS_DONE else None,
                 source_sheet_name="e2e_visual",
                 source_row_index=index + 1,
                 source_column_index=10,

@@ -1,4 +1,3 @@
-from datetime import datetime
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -17,6 +16,7 @@ from app.models import (
     User,
     WorkPoint,
 )
+from app.time_utils import utc_now
 from config import Config
 
 
@@ -77,7 +77,7 @@ class ServerSecurityBoundaryTests(unittest.TestCase):
             project_id=None,
             source_type="excel",
             source_name="foreign.xlsx",
-            started_at=datetime.utcnow(),
+            started_at=utc_now(),
             status="success",
         )
         db.session.add_all(

@@ -36,6 +36,7 @@ from app.services.uid_service import (
     normalize_text,
     split_cell_remarks,
 )
+from app.time_utils import utc_now
 
 
 APARTMENT_HEADERS = {
@@ -1427,7 +1428,7 @@ def mark_task_done(task: Task, user_id: int | None = None):
     old = task.status
     task.status = STATUS_DONE
     task.is_done = True
-    task.completed_date = task.completed_date or datetime.utcnow()
+    task.completed_date = task.completed_date or utc_now()
     log_change(task, "status_change", "status", old, STATUS_DONE, user_id=user_id)
     db.session.commit()
     return task
@@ -1440,7 +1441,7 @@ def change_task_status(task: Task, new_status: str, user_id: int | None = None, 
     task.status = new_status
     task.is_done = new_status in DONE_STATUSES
     if task.is_done:
-        task.completed_date = task.completed_date or datetime.utcnow()
+        task.completed_date = task.completed_date or utc_now()
     elif old_status in DONE_STATUSES:
         task.completed_date = None
     task.manually_edited = True
@@ -1718,7 +1719,7 @@ def sync_rows(
     base_mapping = map_base_columns(headers)
     point_columns = map_work_point_columns(headers, base_mapping)
 
-    sync_time = datetime.utcnow()
+    sync_time = utc_now()
 
     default_premise_type = "commercial" if "коммер" in (sheet_name or "").strip().lower() else "apartment"
     premise_type = default_premise_type

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
 
 from flask import current_app
@@ -8,6 +7,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from app import db
 from app.models import Project, SyncLog, Task
+from app.time_utils import utc_now
 from app.services.task_service import sync_rows
 from app.services.sync_rollback import build_project_rollback_data
 
@@ -54,7 +54,7 @@ def sync_google_sheets(project_name: str = "100 Квартал 7 очередь"
     service = get_sheets_service()
     range_name = current_app.config.get("GOOGLE_SHEETS_MAIN_RANGE", "Таблица!A1:ZZ10000")
     project = Project.query.filter_by(name=project_name).first()
-    sync_log = SyncLog(source_type="google_sheets", source_name=range_name, started_at=datetime.utcnow(), status="running", project_id=project.id if project else None)
+    sync_log = SyncLog(source_type="google_sheets", source_name=range_name, started_at=utc_now(), status="running", project_id=project.id if project else None)
     sync_log.rollback_data = build_project_rollback_data(project.id if project else None)
     db.session.add(sync_log)
     db.session.commit()
@@ -68,14 +68,14 @@ def sync_google_sheets(project_name: str = "100 Квартал 7 очередь"
         sync_log.updated_count = int(result.get("updated_count", 0))
         sync_log.missing_count = int(result.get("missing_count", 0))
         sync_log.status = "success"
-        sync_log.finished_at = datetime.utcnow()
+        sync_log.finished_at = utc_now()
         db.session.commit()
         return result
     except Exception as exc:
         db.session.rollback()
         sync_log.status = "error"
         sync_log.error_message = str(exc)
-        sync_log.finished_at = datetime.utcnow()
+        sync_log.finished_at = utc_now()
         db.session.add(sync_log)
         db.session.commit()
         raise

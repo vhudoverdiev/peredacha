@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta
 import unittest
+from unittest.mock import patch
 
 from config import Config
 from app import create_app, db
@@ -21,6 +22,7 @@ from app.services.task_service import (
     apply_app_deadline_logic,
     apartment_number_from_construction,
     build_task_query,
+    change_task_status,
     detect_search_mode,
     detect_status_marker,
     get_multi_param_values,
@@ -34,6 +36,7 @@ from app.services.task_service import (
     premise_matches_search,
     select_primary_work_point_columns,
 )
+from app.time_utils import utc_now
 
 
 class TestConfig(Config):
@@ -185,7 +188,7 @@ class TaskServiceDatabaseContractsTests(unittest.TestCase):
                 description="Done apartment defect",
                 status=STATUS_DONE,
                 is_done=True,
-                completed_date=datetime.utcnow(),
+                completed_date=utc_now(),
             ),
             Task(
                 source_uid="query-commercial-open",
@@ -210,6 +213,31 @@ class TaskServiceDatabaseContractsTests(unittest.TestCase):
         self.assertFalse(premise_matches_search(self.apartment, "commercial_pair", "12|2"))
         self.assertTrue(premise_matches_search(self.commercial, "commercial_pair", "15|2"))
         self.assertTrue(premise_matches_search(self.commercial, "premise_number_or_building", "2"))
+
+    def test_change_task_status_sets_and_clears_completed_date_contract(self):
+        task = Task(
+            source_uid="status-date-contract",
+            project=self.project,
+            apartment=self.apartment,
+            work_point=self.work_point,
+            description="Status date contract",
+            status=STATUS_NOT_STARTED,
+            is_done=False,
+        )
+        db.session.add(task)
+        db.session.commit()
+        finished_at = datetime(2026, 8, 3, 12, 0, 0)
+
+        with patch("app.services.task_service.utc_now", return_value=finished_at):
+            change_task_status(task, STATUS_DONE)
+
+        self.assertTrue(task.is_done)
+        self.assertEqual(task.completed_date, finished_at)
+
+        change_task_status(task, STATUS_NOT_STARTED)
+
+        self.assertFalse(task.is_done)
+        self.assertIsNone(task.completed_date)
 
     def test_build_task_query_filters_multiple_premises_and_keeps_user_order(self):
         tasks = build_task_query({"q": "к15/к2, кв 12"}, project_id=self.project.id).all()

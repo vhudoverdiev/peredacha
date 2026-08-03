@@ -10,6 +10,7 @@ from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 from app import db
 from app.models import Project, SyncLog, Task, WorkPoint
+from app.time_utils import utc_now
 from app.services.task_service import (
     VISIBLE_WORK_POINT_NUMBERS,
     find_header_row,
@@ -42,7 +43,7 @@ def _set_sync_log_error(sync_log_id: int | None, exc: BaseException) -> None:
             return
         failed_log.status = "error"
         failed_log.error_message = str(exc)
-        failed_log.finished_at = datetime.utcnow()
+        failed_log.finished_at = utc_now()
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -55,7 +56,7 @@ def mark_stale_running_sync_logs(
     stale_after: timedelta = STALE_RUNNING_SYNC_AFTER,
     now: datetime | None = None,
 ) -> int:
-    now = now or datetime.utcnow()
+    now = now or utc_now()
     cutoff = now - stale_after
     query = SyncLog.query.filter(
         SyncLog.status == "running",
@@ -113,7 +114,7 @@ def save_upload(file: FileStorage) -> Path:
     folder = Path(current_app.config["UPLOAD_FOLDER"])
     folder.mkdir(parents=True, exist_ok=True)
     filename = secure_filename(file.filename or "table.xlsx")
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    timestamp = utc_now().strftime("%Y%m%d_%H%M%S")
     target = folder / f"{timestamp}_{filename}"
     file.save(target)
     return target
@@ -300,7 +301,7 @@ def preview_excel(path: Path, limit: int = 20) -> dict:
 
 def sync_excel_file(path: Path, sheet_name: str | None = None, project_name: str = "100 Квартал 7 очередь") -> dict:
     project = Project.query.filter_by(name=project_name).first()
-    sync_log = SyncLog(source_type="excel", source_name=str(path), started_at=datetime.utcnow(), status="running", project_id=project.id if project else None)
+    sync_log = SyncLog(source_type="excel", source_name=str(path), started_at=utc_now(), status="running", project_id=project.id if project else None)
     sync_log.rollback_data = build_project_rollback_data(project.id if project else None)
     db.session.add(sync_log)
     db.session.commit()
@@ -336,7 +337,7 @@ def sync_excel_file(path: Path, sheet_name: str | None = None, project_name: str
         sync_log.updated_count = int(total_result.get("updated_count", 0))
         sync_log.missing_count = int(total_result.get("missing_count", 0))
         sync_log.status = "success"
-        sync_log.finished_at = datetime.utcnow()
+        sync_log.finished_at = utc_now()
         db.session.commit()
         return total_result
     except BaseException as exc:

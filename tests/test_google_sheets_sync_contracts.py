@@ -1,15 +1,17 @@
 import unittest
+from datetime import datetime
 from unittest.mock import patch
 
 from config import Config
 from app import create_app, db
-from app.models import Apartment, Project, STATUS_DONE, STATUS_NOT_STARTED, Task, WorkPoint
+from app.models import Apartment, Project, STATUS_DONE, STATUS_NOT_STARTED, SyncLog, Task, WorkPoint
 from app.services.google_sheets_sync import (
     build_repeat_cell_request,
     get_sheet_metadata,
     parse_sheet_name_from_range,
     read_range,
     spreadsheet_id,
+    sync_google_sheets,
     update_all_done_strikes_in_google_sheet,
     update_task_strike_in_google_sheet,
 )
@@ -178,6 +180,26 @@ class GoogleSheetsDatabaseContractsTests(unittest.TestCase):
         self.assertEqual(request["range"]["startRowIndex"], 1)
         self.assertEqual(request["range"]["startColumnIndex"], 3)
         self.assertFalse(request["cell"]["userEnteredFormat"]["textFormat"]["strikethrough"])
+
+    def test_sync_google_sheets_records_successful_sync_log_times(self):
+        service = _FakeSheetsService(_FakeSpreadsheets())
+        started = datetime(2026, 8, 3, 10, 0, 0)
+        finished = datetime(2026, 8, 3, 10, 0, 5)
+
+        with patch("app.services.google_sheets_sync.get_sheets_service", return_value=service):
+            with patch("app.services.google_sheets_sync.read_range", return_value=[["row"]]):
+                with patch("app.services.google_sheets_sync.sync_rows", return_value={"created_count": 1, "updated_count": 2, "missing_count": 3}):
+                    with patch("app.services.google_sheets_sync.utc_now", side_effect=[started, finished]):
+                        result = sync_google_sheets(project_name=self.project.name)
+
+        self.assertEqual(result, {"created_count": 1, "updated_count": 2, "missing_count": 3})
+        sync_log = SyncLog.query.one()
+        self.assertEqual(sync_log.status, "success")
+        self.assertEqual(sync_log.started_at, started)
+        self.assertEqual(sync_log.finished_at, finished)
+        self.assertEqual(sync_log.created_count, 1)
+        self.assertEqual(sync_log.updated_count, 2)
+        self.assertEqual(sync_log.missing_count, 3)
 
     def test_update_task_strike_rejects_missing_coordinates_and_unknown_sheet(self):
         no_coordinates = self._task(sheet=None, row=None, col=None)

@@ -96,8 +96,7 @@ class ExcelImportContractsTests(unittest.TestCase):
         file = FileStorage(stream=BytesIO(b"content"), filename="../../bad name.xlsx")
         fixed_now = datetime(2026, 7, 29, 12, 34, 56)
 
-        with patch("app.services.excel_import.datetime") as datetime_mock:
-            datetime_mock.utcnow.return_value = fixed_now
+        with patch("app.services.excel_import.utc_now", return_value=fixed_now):
             path = save_upload(file)
 
         self.assertTrue(path.exists())

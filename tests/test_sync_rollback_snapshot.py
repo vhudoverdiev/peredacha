@@ -5,6 +5,7 @@ from config import Config
 from app import create_app, db
 from app.models import Apartment, Project, STATUS_DONE, STATUS_NOT_STARTED, SyncLog, Task, WorkPoint
 from app.services.sync_rollback import apply_sync_rollback, build_project_rollback_data
+from app.time_utils import utc_now
 
 
 class TestConfig(Config):
@@ -43,7 +44,7 @@ class SyncRollbackSnapshotTests(unittest.TestCase):
 
     def test_snapshot_rollback_removes_records_added_after_sync_started(self):
         rollback_data = build_project_rollback_data(self.project.id)
-        started_at = datetime.utcnow()
+        started_at = utc_now()
 
         self.existing_task.description = "Changed by sync"
         same_apartment_new_task = Task(
@@ -96,7 +97,7 @@ class SyncRollbackSnapshotTests(unittest.TestCase):
 
     def test_snapshot_rollback_to_older_sync_uses_next_presync_snapshot(self):
         first_snapshot = build_project_rollback_data(self.project.id)
-        first_started_at = datetime.utcnow()
+        first_started_at = utc_now()
         first_log = SyncLog(
             project=self.project,
             source_type="excel",
@@ -183,7 +184,7 @@ class SyncRollbackSnapshotTests(unittest.TestCase):
         original_existing_uid = self.existing_task.source_uid
         original_sibling_uid = sibling.source_uid
         rollback_data = build_project_rollback_data(self.project.id)
-        started_at = datetime.utcnow()
+        started_at = utc_now()
 
         self.existing_task.source_uid = "rollback-existing-moved-away"
         db.session.flush()
@@ -211,7 +212,7 @@ class SyncRollbackSnapshotTests(unittest.TestCase):
     def test_snapshot_rollback_does_not_crash_when_source_uid_is_used_by_other_project(self):
         original_existing_uid = self.existing_task.source_uid
         rollback_data = build_project_rollback_data(self.project.id)
-        started_at = datetime.utcnow()
+        started_at = utc_now()
 
         other_project = Project(name="Other rollback QA")
         other_apartment = Apartment(project=other_project, apartment_number="999")
@@ -273,7 +274,7 @@ class SyncRollbackSnapshotTests(unittest.TestCase):
         db.session.commit()
 
         rollback_data = build_project_rollback_data(self.project.id)
-        started_at = datetime.utcnow()
+        started_at = utc_now()
         normal_task.description = "Changed by failed sync"
         normal_task.source_cell_value = "Changed by failed sync"
         dop_task.description = "Changed by failed sync"

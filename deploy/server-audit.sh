@@ -674,8 +674,10 @@ print_app_user_activity() {
 from __future__ import annotations
 
 import os
+import re
 import sys
 from datetime import datetime, timedelta, timezone
+from urllib.parse import parse_qs, urlparse
 
 try:
     from zoneinfo import ZoneInfo
@@ -719,6 +721,150 @@ def short(value, max_len=160):
     if len(text) > max_len:
         return text[: max_len - 3] + "..."
     return text
+
+
+def parsed_path(raw_path):
+    parsed = urlparse(raw_path or "")
+    path = parsed.path or "/"
+    query = parse_qs(parsed.query or "")
+    return path, query
+
+
+def query_value(query, key):
+    values = query.get(key) or []
+    return values[0] if values else ""
+
+
+def page_title(raw_path):
+    path, query = parsed_path(raw_path)
+    page = query_value(query, "page")
+
+    exact_titles = {
+        "/": "Главная страница",
+        "/object": "Текущий объект",
+        "/objects": "Список объектов",
+        "/objects/new": "Создание объекта",
+        "/tasks": "Задачи и замечания",
+        "/tasks/new": "Создание задачи",
+        "/tasks/recognition": "Распознавание задач",
+        "/apartments": "Квартиры и помещения",
+        "/apartments/export": "Экспорт квартир и помещений",
+        "/contractors": "Подрядчики",
+        "/contractors/directory": "Справочник подрядчиков",
+        "/contractors/statuses": "Статусы подрядчиков",
+        "/contractors/new": "Создание подрядчика",
+        "/contractors/excel-selection": "Выбор подрядчиков для Excel",
+        "/assignments": "Поручения",
+        "/assignments/report": "Отчет по поручениям",
+        "/assignments/manual/new": "Создание ручного поручения",
+        "/my-tasks": "Мои задачи",
+        "/glass": "Витражи и замеры",
+        "/glass-measurements": "Замеры витражей",
+        "/glass/order": "Заказ стеклопакетов",
+        "/materials": "Материалы",
+        "/materials/request/new": "Создание заявки на материалы",
+        "/materials/write-off": "Списание материалов",
+        "/avr": "АВР",
+        "/documents": "Документы",
+        "/documents/addendum": "Дополнительные соглашения",
+        "/report": "Сводный отчет",
+        "/notifications": "Уведомления",
+        "/upload-excel": "Загрузка Excel",
+        "/mappings": "Настройки сопоставления колонок",
+        "/settings": "Настройки приложения",
+        "/account": "Личный кабинет",
+        "/users": "Пользователи и доступы",
+        "/sync-logs": "Журнал синхронизаций",
+        "/conflicts": "Конфликты синхронизации",
+        "/site-errors": "Ошибки сайта",
+        "/developer/statistics": "Админская статистика",
+        "/developer/statistics/visits": "Статистика посещений",
+        "/developer/statistics/sources": "Источники посещений",
+        "/developer/delete-logs": "Журнал удалений",
+        "/login": "Вход в приложение",
+        "/login/captcha": "Проверка CAPTCHA при входе",
+        "/login/2fa": "Двухфакторная проверка входа",
+        "/logout": "Выход из приложения",
+    }
+    if path in exact_titles:
+        title = exact_titles[path]
+        if page:
+            title += f", страница {page}"
+        return title
+
+    patterns = [
+        (r"^/objects/(\d+)/open$", "Открытие объекта #{}"),
+        (r"^/objects/(\d+)/edit$", "Редактирование объекта #{}"),
+        (r"^/objects/(\d+)/delete", "Удаление объекта #{}"),
+        (r"^/tasks/(\d+)$", "Карточка задачи #{}"),
+        (r"^/tasks/(\d+)/update$", "Редактирование задачи #{}"),
+        (r"^/tasks/(\d+)/comment$", "Комментарий к задаче #{}"),
+        (r"^/tasks/(\d+)/delete$", "Удаление задачи #{}"),
+        (r"^/tasks/(\d+)/inline-text$", "Быстрое редактирование текста задачи #{}"),
+        (r"^/tasks/(\d+)/split$", "Разделение задачи #{}"),
+        (r"^/tasks/(\d+)/status/([^/]+)$", "Изменение статуса задачи #{} на {}"),
+        (r"^/apartments/(\d+)$", "Карточка помещения #{}"),
+        (r"^/apartments/(\d+)/po-status$", "Изменение ПО-статуса помещения #{}"),
+        (r"^/apartments/(\d+)/inspection-status$", "Изменение статуса осмотра помещения #{}"),
+        (r"^/apartments/(\d+)/inspection-date$", "Изменение даты осмотра помещения #{}"),
+        (r"^/apartments/(\d+)/inspection-note$", "Изменение примечания по осмотру помещения #{}"),
+        (r"^/apartments/(\d+)/comment$", "Комментарий к помещению #{}"),
+        (r"^/apartments/(\d+)/avr-status$", "Изменение АВР-статуса помещения #{}"),
+        (r"^/apartments/(\d+)/remarks/export$", "Экспорт замечаний помещения #{}"),
+        (r"^/contractors/(\d+)/edit$", "Редактирование подрядчика #{}"),
+        (r"^/contractors/(\d+)/delete$", "Удаление подрядчика #{}"),
+        (r"^/assignments/(\d+)/unassign$", "Снятие исполнителя с поручения #{}"),
+        (r"^/assignments/(\d+)/delete-from-employee$", "Удаление поручения у сотрудника #{}"),
+        (r"^/assignments/report/(\d+)/(pdf|excel)$", "Экспорт отчета по поручениям пользователя #{} в {}"),
+        (r"^/my-tasks/(\d+)/done$", "Отметка моей задачи #{} выполненной"),
+        (r"^/my-tasks/(\d+)/return$", "Возврат моей задачи #{}"),
+        (r"^/materials/request/(\d+)$", "Заявка на материалы #{}"),
+        (r"^/materials/request/(\d+)/(rename|update|delete|export)$", "Действие с заявкой на материалы #{}: {}"),
+        (r"^/materials/write-off/(\d+)/(edit|delete)$", "Действие со списанием материалов #{}: {}"),
+        (r"^/glass/(\d+)/(need-measure|add-measurement|save)$", "Действие по витражу/замеру задачи #{}: {}"),
+        (r"^/glass/(\d+)/status$", "Изменение статуса витража/замера #{}"),
+        (r"^/users/(\d+)/(projects|name|captcha|password|delete)$", "Изменение пользователя #{}: {}"),
+        (r"^/users/(\d+)/delete/confirm$", "Открытие подтверждения удаления пользователя #{}"),
+        (r"^/sync-logs/(\d+)/(details|delete|rollback)$", "Действие с журналом синхронизации #{}: {}"),
+        (r"^/conflicts/(\d+)/([^/]+)$", "Решение конфликта синхронизации #{}: {}"),
+        (r"^/site-errors/(\d+)/(close|delete)$", "Действие с ошибкой сайта #{}: {}"),
+    ]
+    for pattern, template in patterns:
+        match = re.match(pattern, path)
+        if match:
+            values = [status_labels.get(value, value) for value in match.groups()]
+            return template.format(*values)
+
+    if path.startswith("/export/"):
+        return "Экспорт данных"
+    if path.startswith("/sync/"):
+        return "Синхронизация данных"
+    return f"Неизвестная страница {path}"
+
+
+def risk_notes_for_path(method, raw_path, status_code):
+    path, _query = parsed_path(raw_path)
+    notes = []
+    if status_code >= 500:
+        notes.append(f"ошибка сервера HTTP {status_code}")
+    elif status_code >= 400:
+        notes.append(f"ошибка запроса HTTP {status_code}")
+
+    if "delete" in path or method == "DELETE":
+        notes.append("удаление данных")
+    if path.startswith("/developer/delete-logs"):
+        notes.append("просмотр или откат журнала удалений")
+    if path.startswith("/users") and method in {"POST", "PUT", "PATCH", "DELETE"}:
+        notes.append("изменение пользователей или доступов")
+    if path.startswith("/settings") and method in {"POST", "PUT", "PATCH"}:
+        notes.append("изменение настроек приложения")
+    if "rollback" in path:
+        notes.append("откат данных")
+    if path.startswith("/conflicts") and method in {"POST", "PUT", "PATCH"}:
+        notes.append("решение конфликтов синхронизации")
+    if path.startswith("/site-errors"):
+        notes.append("просмотр или изменение журнала ошибок сайта")
+    return notes
 
 
 def print_rows(title, rows, formatter):
@@ -838,19 +984,58 @@ def explain_visit(visit):
     status_code = int(visit.status_code or 0)
     ip = visit.ip_address or "-"
     forwarded = f", X-Forwarded-For: {visit.forwarded_for}" if getattr(visit, "forwarded_for", None) else ""
+    title = page_title(path)
     if method in {"POST", "PUT", "PATCH", "DELETE"}:
         action = "отправил форму или изменил данные"
     else:
-        action = "открыл страницу"
-    if status_code >= 400:
-        action += f", получил HTTP {status_code}"
-    return f"  {fmt_dt(visit.created_at)} | IP {ip}{forwarded} | {action}: {path}"
+        action = "зашел на сайт и открыл страницу"
+    notes = risk_notes_for_path(method, path, status_code)
+    status_text = "успешно" if status_code < 400 else "с ошибкой"
+    note_text = f" | Внимание: {', '.join(notes)}" if notes else ""
+    return f"  {fmt_dt(visit.created_at)} | IP {ip}{forwarded} | {action}: {title} ({path}) | результат: {status_text}, HTTP {status_code}{note_text}"
+
+
+def explain_security_event(row):
+    kind = row.kind or ""
+    ip = row.ip_address or "-"
+    method = row.method or "-"
+    path = row.path or "-"
+    title = page_title(path)
+    label = security_labels.get(kind, kind)
+    suspicious_kinds = {
+        "login_failed",
+        "login_locked",
+        "login_rate_limited",
+        "captcha_failed",
+        "two_factor_failed",
+        "session_revoked",
+        "rate_limit",
+    }
+    prefix = "ПОДОЗРИТЕЛЬНО: " if kind in suspicious_kinds or row.severity in {"warning", "error", "critical"} else ""
+    return f"  {fmt_dt(row.created_at)} | IP {ip} | {prefix}{label}. Страница: {title} ({method} {path}). Сообщение: {short(row.message, 180)}"
+
+
+def explain_suspicious_event(row):
+    return explain_security_event(row)
+
+
+def explain_suspicious_visit(visit):
+    return explain_visit(visit)
+
+
+def explain_site_error(report):
+    title = page_title(report.page_url or "")
+    traceback_hint = "есть traceback" if getattr(report, "traceback_text", None) else "traceback не записан"
+    return (
+        f"  {fmt_dt(report.created_at)} | ошибка сайта: {title} ({report.page_url or '-'}) | "
+        f"тип: {report.kind}, статус: {report.status} | сообщение: {short(report.message, 220)} | {traceback_hint}"
+    )
 
 
 def main():
     try:
         from app import create_app
-        from app.models import ChangeLog, DeletionActionLog, SecurityEvent, SiteVisit, TaskComment, User
+        from app.models import ChangeLog, DeletionActionLog, SecurityEvent, SiteErrorReport, SiteVisit, TaskComment, User
     except Exception as exc:
         print(f"Не смог загрузить приложение для чтения базы: {exc}")
         return 0
@@ -889,11 +1074,24 @@ def main():
             print_rows(
                 "Входы и события безопасности",
                 security_rows,
-                lambda row: (
-                    f"  {fmt_dt(row.created_at)} | IP {row.ip_address or '-'} | "
-                    f"{security_labels.get(row.kind, row.kind)}. {short(row.message, 140)} "
-                    f"({row.method or '-'} {row.path or '-'})"
-                ),
+                explain_security_event,
+            )
+
+            suspicious_security_rows = [
+                row for row in security_rows
+                if (row.kind or "") in {"login_failed", "login_locked", "login_rate_limited", "captcha_failed", "two_factor_failed", "session_revoked", "rate_limit"}
+                or row.severity in {"warning", "error", "critical"}
+            ]
+            suspicious_visit_rows = [
+                row for row in visit_rows
+                if risk_notes_for_path((row.method or "GET").upper(), row.path or "-", int(row.status_code or 0))
+            ]
+            suspicious_rows = [("security", row) for row in suspicious_security_rows] + [("visit", row) for row in suspicious_visit_rows]
+            suspicious_rows.sort(key=lambda item: item[1].created_at or datetime.min, reverse=True)
+            print_rows(
+                "Подозрительные или важные действия",
+                suspicious_rows,
+                lambda item: explain_suspicious_event(item[1]) if item[0] == "security" else explain_suspicious_visit(item[1]),
             )
 
             change_rows = (
@@ -941,6 +1139,25 @@ def main():
                     f"  {fmt_dt(row.created_at)} | {row.action_key}: {row.entity_type} "
                     f"#{row.entity_id or '-'} {short(row.entity_title, 80)} | {short(row.description, 160)}"
                 ),
+            )
+
+            site_error_rows = (
+                SiteErrorReport.query
+                .filter(SiteErrorReport.user_id == user.id, SiteErrorReport.created_at >= since_utc)
+                .order_by(SiteErrorReport.created_at.desc())
+                .limit(limit)
+                .all()
+            )
+            http_error_rows = [
+                row for row in visit_rows
+                if int(row.status_code or 0) >= 400
+            ]
+            error_rows = [("site", row) for row in site_error_rows] + [("visit", row) for row in http_error_rows]
+            error_rows.sort(key=lambda item: item[1].created_at or datetime.min, reverse=True)
+            print_rows(
+                "Ошибки сайта и HTTP-ошибки",
+                error_rows,
+                lambda item: explain_site_error(item[1]) if item[0] == "site" else explain_visit(item[1]),
             )
 
             print_rows("Страницы и запросы приложения", visit_rows, explain_visit)

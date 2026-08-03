@@ -9,6 +9,7 @@ from sqlalchemy import or_
 
 from app import db
 from app.models import Apartment, ChangeLog, SyncConflict, SyncLog, Task, WorkPoint
+from app.time_utils import utc_now
 
 
 APARTMENT_FIELDS = [
@@ -127,7 +128,7 @@ def build_project_rollback_data(project_id: int | None) -> str:
         tasks = [_snapshot_row(row, TASK_FIELDS) for row in Task.query.filter_by(project_id=project_id).all()]
     payload = {
         "version": 1,
-        "created_at_utc": datetime.utcnow().isoformat(),
+        "created_at_utc": utc_now().isoformat(),
         "project_id": project_id,
         "apartments": apartments,
         "tasks": tasks,
@@ -367,7 +368,7 @@ def _rollback_from_snapshot(log: SyncLog) -> tuple[bool, str]:
     # Убираем несостыковки, которые появились во время откатываемой загрузки.
     deleted_conflicts = 0
     conflict_end = next_log.started_at if next_payload and next_log is not None else None
-    for conflict in _project_conflicts_query(project_id, log.started_at or datetime.utcnow(), end_at=conflict_end).all():
+    for conflict in _project_conflicts_query(project_id, log.started_at or utc_now(), end_at=conflict_end).all():
         db.session.delete(conflict)
         deleted_conflicts += 1
     db.session.flush()
@@ -437,7 +438,7 @@ def _rollback_from_snapshot(log: SyncLog) -> tuple[bool, str]:
 
     split_result = migrate_existing_compound_tasks(force=True, project_id=project_id, commit=False)
 
-    log.rolled_back_at = datetime.utcnow()
+    log.rolled_back_at = utc_now()
     log.rollback_note = None
     db.session.commit()
     return (
@@ -452,8 +453,8 @@ def _rollback_from_legacy_change_log(log: SyncLog) -> tuple[bool, str]:
     if not project_id:
         return False, "Откат невозможен: синхронизация не привязана к объекту"
 
-    start = (log.started_at or datetime.utcnow()) - timedelta(seconds=5)
-    finish = (log.finished_at or datetime.utcnow()) + timedelta(seconds=5)
+    start = (log.started_at or utc_now()) - timedelta(seconds=5)
+    finish = (log.finished_at or utc_now()) + timedelta(seconds=5)
     changes = (
         ChangeLog.query.join(Task, ChangeLog.task_id == Task.id)
         .filter(Task.project_id == project_id, ChangeLog.created_at >= start, ChangeLog.created_at <= finish)
@@ -476,7 +477,7 @@ def _rollback_from_legacy_change_log(log: SyncLog) -> tuple[bool, str]:
             task.is_missing_in_latest_sync = False
             restored_missing += 1
 
-    log.rolled_back_at = datetime.utcnow()
+    log.rolled_back_at = utc_now()
     log.rollback_note = None
     db.session.commit()
     return True, f"Старая синхронизация частично откатана: удалено новых замечаний {deleted_tasks}, возвращено пропавших {restored_missing}. Для полного отката следующих загрузок теперь сохраняется снимок восстановления."
