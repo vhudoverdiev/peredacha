@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v161-material-list-rise-animation';
+const STATIC_CACHE = 'peredacha-static-v162-material-tab-replay-animation';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -15,7 +15,7 @@ const STATIC_ASSETS = [
   '/static/style.css?v=v638-site-error-remove-native-fallback',
   '/static/mobile-only.css?v=v88-remark-sentence-lines',
   '/static/desktop-only.css?v=v69-material-list-rise-animation',
-  '/static/script.js?v=v671-site-error-native-select-hidden',
+  '/static/script.js?v=v672-material-tab-replay-animation',
 ];
 
 const NAVIGATION_NETWORK_TIMEOUT_MS = 8000;

@@ -198,7 +198,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v160-site-error-remove-native-fallback")
+        self.assertEqual(worker_version, "v162-material-tab-replay-animation")
 
     def test_script_and_css_cache_busters_are_synchronized(self):
         script_version = re.search(
@@ -230,8 +230,8 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         self.assertEqual(css_version, worker_css_version)
         self.assertEqual(mobile_css_version, worker_mobile_css_version)
         self.assertEqual(style_version, worker_style_version)
-        self.assertEqual(script_version, "v671-site-error-native-select-hidden")
-        self.assertEqual(css_version, "v68-confirm-modal-actions")
+        self.assertEqual(script_version, "v672-material-tab-replay-animation")
+        self.assertEqual(css_version, "v69-material-list-rise-animation")
         self.assertEqual(style_version, "v638-site-error-remove-native-fallback")
         self.assertEqual(mobile_css_version, "v88-remark-sentence-lines")
 

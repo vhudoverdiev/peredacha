@@ -5140,8 +5140,12 @@ document.addEventListener('crm:ajax-pagination-updated', event => {
   }
   shells.forEach(shell => {
     shell.classList.remove('crm-tab-enter');
+    shell.style.animation = 'none';
     void shell.offsetWidth;
-    shell.classList.add('crm-tab-enter');
+    window.requestAnimationFrame(() => {
+      shell.style.removeProperty('animation');
+      shell.classList.add('crm-tab-enter');
+    });
   });
 });
 

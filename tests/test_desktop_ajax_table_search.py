@@ -227,7 +227,10 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
         self.assertIn("document.documentElement.classList.contains('desktop-like-pointer')", materials_listener)
         self.assertIn("'.materials-animated-card'", materials_listener)
         self.assertIn("shell.classList.remove('crm-tab-enter')", materials_listener)
+        self.assertIn("shell.style.animation = 'none'", materials_listener)
         self.assertIn("void shell.offsetWidth", materials_listener)
+        self.assertIn("window.requestAnimationFrame", materials_listener)
+        self.assertIn("shell.style.removeProperty('animation')", materials_listener)
         self.assertIn("shell.classList.add('crm-tab-enter')", materials_listener)
 
         writeoff_selector = ".material-writeoff-form .materials-animated-card"
