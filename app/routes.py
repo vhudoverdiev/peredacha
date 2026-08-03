@@ -139,7 +139,7 @@ from app.services.task_service import (
 )
 from app.services.status_rules import is_problem_details_required
 from app.services.sync_rollback import apply_sync_rollback, build_project_rollback_data
-from app.time_utils import to_moscow_datetime
+from app.time_utils import to_moscow_datetime, utc_now
 from app.services.user_agent import (
     is_mobile_phone_user_agent,
     visit_browser_label,
@@ -462,29 +462,30 @@ RU_MONTHS_GENITIVE = {
 }
 
 
-def format_ru_date(value: date | datetime | None = None) -> str:
+def _display_date(value: date | datetime | None = None) -> date:
     value = value or date.today()
     if isinstance(value, datetime):
-        value = value.date()
+        return value.date()
+    return value
+
+
+def format_ru_date(value: date | datetime | None = None) -> str:
+    value = _display_date(value)
     return f"{value.day} {RU_MONTHS_GENITIVE.get(value.month, '')} {value.year}".strip()
 
 
 def format_ru_day_month(value: date | datetime | None = None) -> str:
-    value = value or date.today()
-    if isinstance(value, datetime):
-        value = value.date()
+    value = _display_date(value)
     return f"{value.day} {RU_MONTHS_GENITIVE.get(value.month, '')}".strip()
 
 
 def format_ru_datetime(value: datetime | None = None) -> str:
-    value = to_moscow_datetime(value or datetime.utcnow())
+    value = to_moscow_datetime(value or utc_now())
     return f"{format_ru_date(value)} {value.strftime('%H:%M')}"
 
 
 def format_ru_weekday(value: date | datetime | None = None) -> str:
-    value = value or date.today()
-    if isinstance(value, datetime):
-        value = value.date()
+    value = _display_date(value)
     return RU_WEEKDAYS.get(value.weekday(), "")
 
 
@@ -934,7 +935,7 @@ def _restore_children_from_snapshots(model_cls, rows: list[dict], *, force: dict
 
 def _mark_deletion_log_undone(log: DeletionActionLog) -> None:
     log.is_undone = True
-    log.undone_at = datetime.utcnow()
+    log.undone_at = utc_now()
     log.undone_by_user_id = current_user.id
 
 
@@ -2853,7 +2854,7 @@ def _restore_task_from_snapshot(snapshot: dict) -> tuple[bool, str]:
     task_snapshot = dict(snapshot)
     source_uid = str(task_snapshot.get("source_uid") or "").strip()
     if source_uid and Task.query.filter(Task.source_uid == source_uid).first():
-        task_snapshot["source_uid"] = stable_hash([source_uid, "restored", datetime.utcnow().isoformat()])
+        task_snapshot["source_uid"] = stable_hash([source_uid, "restored", utc_now().isoformat()])
     task = _restore_model_from_snapshot(
         Task,
         task_snapshot,
@@ -3707,7 +3708,7 @@ def _assignment_issue_date_map(tasks: list[Task]) -> dict[int, datetime]:
         if current_responsible.get(row.task_id) and str(row.new_value or "") == current_responsible[row.task_id]:
             result[row.task_id] = row.created_at
     for task in tasks:
-        result.setdefault(task.id, task.updated_at or task.created_at or datetime.utcnow())
+        result.setdefault(task.id, task.updated_at or task.created_at or utc_now())
     return result
 
 
@@ -6846,7 +6847,7 @@ def _create_manual_remark_tasks(
                     source_uid,
                     source_sheet_name,
                     str(fragment_index),
-                    datetime.utcnow().isoformat(),
+                    utc_now().isoformat(),
                 ]
             )
         task = Task(
@@ -6864,7 +6865,7 @@ def _create_manual_remark_tasks(
             responsible_id=responsible_id,
             planned_date=planned_date,
             manually_edited=True,
-            last_seen_at=datetime.utcnow(),
+            last_seen_at=utc_now(),
             source_hash=cell_hash(fragment),
         )
         db.session.add(task)
@@ -7070,7 +7071,7 @@ def _start_snapshot_sync_log(*, project: Project | None, source_type: str, sourc
     sync_log = SyncLog(
         source_type=(source_type or "").strip() or "manual",
         source_name=((source_name or "").strip()[:255] or None),
-        started_at=datetime.utcnow(),
+        started_at=utc_now(),
         status="running",
         project_id=project.id if project else None,
     )
@@ -7094,7 +7095,7 @@ def _finish_snapshot_sync_log(
     sync_log.missing_count = int(missing_count or 0)
     sync_log.status = (status or "success").strip() or "success"
     sync_log.error_message = ((error_message or "").strip() or None)
-    sync_log.finished_at = datetime.utcnow()
+    sync_log.finished_at = utc_now()
     db.session.add(sync_log)
     db.session.commit()
     return sync_log
@@ -8007,7 +8008,7 @@ def _apartment_history_anchor_task(apartments: list[Apartment]) -> Task | None:
             is_done=False,
             is_archived=True,
             manually_edited=True,
-            last_seen_at=datetime.utcnow(),
+            last_seen_at=utc_now(),
             source_hash=stable_hash(["apartment-history-anchor"]),
         )
         db.session.add(task)
@@ -9414,7 +9415,7 @@ def archive_apartment_avr(apartment_id: int):
     apartment = db.session.get(Apartment, apartment_id) or abort(404)
     if apartment.project_id != project.id:
         abort(404)
-    apartment.avr_archived_at = datetime.utcnow()
+    apartment.avr_archived_at = utc_now()
     for task in apartment.tasks:
         task.is_archived = True
     db.session.commit()
@@ -9621,7 +9622,7 @@ def update_task(task_id: int):
             return redirect(url_for("main.task_detail", task_id=task.id))
         task.is_done = task.status in DONE_STATUSES
         if task.is_done and not task.completed_date:
-            task.completed_date = datetime.utcnow()
+            task.completed_date = utc_now()
         if not task.is_done and task.completed_date:
             task.completed_date = None
         task.manually_edited = True
@@ -10050,7 +10051,7 @@ def account():
             if verify_totp(secret, code):
                 user.two_factor_secret = secret
                 user.two_factor_enabled = True
-                user.two_factor_confirmed_at = datetime.utcnow()
+                user.two_factor_confirmed_at = utc_now()
                 db.session.commit()
                 session.pop("account_2fa_pending_secret", None)
                 pending_secret = None
@@ -10664,7 +10665,7 @@ def _apply_sync_conflict_new_value(conflict: SyncConflict) -> None:
         task.status = new_status
         task.is_done = new_status in DONE_STATUSES
         if task.is_done:
-            task.completed_date = task.completed_date or datetime.utcnow()
+            task.completed_date = task.completed_date or utc_now()
         elif old_status in DONE_STATUSES:
             task.completed_date = None
         task.manually_edited = True
@@ -10776,7 +10777,7 @@ def cancel_sync_from_conflicts():
         closed_conflicts = 0
         for conflict in _project_pending_conflicts_query(project.id).all():
             conflict.status = "keep_old"
-            conflict.resolved_at = datetime.utcnow()
+            conflict.resolved_at = utc_now()
             conflict.resolved_by_user_id = current_user.id
             closed_conflicts += 1
         db.session.commit()
@@ -10820,7 +10821,7 @@ def resolve_conflict(conflict_id: int, action: str):
             abort(400)
         _create_task_from_sync_conflict(conflict)
     conflict.status = action
-    conflict.resolved_at = datetime.utcnow()
+    conflict.resolved_at = utc_now()
     conflict.resolved_by_user_id = current_user.id
     db.session.commit()
     flash("Конфликт синхронизации решён", "success")
@@ -10843,7 +10844,7 @@ def resolve_conflicts_bulk(action: str):
         if action == "apply_new":
             _apply_sync_conflict_new_value(conflict)
         conflict.status = action
-        conflict.resolved_at = datetime.utcnow()
+        conflict.resolved_at = utc_now()
         conflict.resolved_by_user_id = current_user.id
         changed += 1
     db.session.commit()

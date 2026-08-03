@@ -22,6 +22,7 @@ from app.security import (
     validate_upload,
     verify_captcha,
 )
+from app.time_utils import utc_now
 
 
 class TestConfig(Config):
@@ -123,7 +124,7 @@ class SecurityAuthContractsTests(unittest.TestCase):
                 mark_login_failure(user)
                 self.assertFalse(is_account_locked(user))
 
-            before_lock = datetime.utcnow()
+            before_lock = utc_now()
             mark_login_failure(user)
             self.assertTrue(is_account_locked(user))
             self.assertGreaterEqual(user.locked_until, before_lock + timedelta(minutes=14))

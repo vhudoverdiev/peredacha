@@ -11,7 +11,7 @@ APP_USER="${APP_USER:-${AUDIT_USER:-vladimir}}"
 SSH_USER="${SSH_USER:-root}"
 AUDIT_USER="$SSH_USER"
 DAYS="${DAYS:-5}"
-LOGIN_LIMIT="${LOGIN_LIMIT:-200}"
+LOGIN_LIMIT="${LOGIN_LIMIT:-60}"
 HISTORY_LIMIT="${HISTORY_LIMIT:-120}"
 TIMEZONE="${TIMEZONE:-Europe/Moscow}"
 SINCE_DATE=""
@@ -29,7 +29,7 @@ usage() {
   --user ИМЯ            То же самое, что --app-user
   --days ЧИСЛО          Сколько последних дней смотреть. По умолчанию: 5
   --since YYYY-MM-DD    Смотреть начиная с конкретной даты
-  --login-limit ЧИСЛО   Сколько строк входов показывать. По умолчанию: 200
+  --login-limit ЧИСЛО   Сколько строк входов показывать. По умолчанию: 60
   --history-limit ЧИСЛО Сколько команд из истории показывать. По умолчанию: 120
   --help                Показать эту справку
 
@@ -732,6 +732,35 @@ def print_rows(title, rows, formatter):
         print("  Записей не найдено.")
 
 
+def print_ip_summary(security_rows, visit_rows):
+    ip_map = {}
+
+    def add_ip(ip, created_at, source):
+        ip = (ip or "").strip()
+        if not ip:
+            return
+        item = ip_map.setdefault(ip, {"count": 0, "last": None, "sources": set()})
+        item["count"] += 1
+        item["sources"].add(source)
+        if created_at and (item["last"] is None or created_at > item["last"]):
+            item["last"] = created_at
+
+    for row in security_rows:
+        add_ip(row.ip_address, row.created_at, "вход/безопасность")
+    for row in visit_rows:
+        add_ip(row.ip_address, row.created_at, "страницы/запросы")
+
+    print()
+    print("IP-адреса пользователя приложения за период:")
+    if not ip_map:
+        print("  IP-записей за выбранный период не найдено.")
+        return
+
+    for ip, info in sorted(ip_map.items(), key=lambda pair: pair[1]["last"] or datetime.min, reverse=True):
+        sources = ", ".join(sorted(info["sources"]))
+        print(f"  {ip} | записей: {info['count']} | последний раз: {fmt_dt(info['last'])} | источник: {sources}")
+
+
 security_labels = {
     "login_success": "успешно вошел в приложение",
     "login_failed": "пытался войти с неверным логином или паролем",
@@ -846,6 +875,17 @@ def main():
                 .limit(limit)
                 .all()
             )
+
+            visit_rows = (
+                SiteVisit.query
+                .filter(SiteVisit.user_id == user.id, SiteVisit.created_at >= since_utc)
+                .order_by(SiteVisit.created_at.desc())
+                .limit(limit)
+                .all()
+            )
+
+            print_ip_summary(security_rows, visit_rows)
+
             print_rows(
                 "Входы и события безопасности",
                 security_rows,
@@ -903,13 +943,6 @@ def main():
                 ),
             )
 
-            visit_rows = (
-                SiteVisit.query
-                .filter(SiteVisit.user_id == user.id, SiteVisit.created_at >= since_utc)
-                .order_by(SiteVisit.created_at.desc())
-                .limit(limit)
-                .all()
-            )
             print_rows("Страницы и запросы приложения", visit_rows, explain_visit)
 
             print()
@@ -954,7 +987,10 @@ main() {
     echo "Для полного отчета запустите: sudo audit-peredacha"
   fi
 
-  print_section "0. Быстрый список SSH-входов из last"
+  print_section "0. Кто заходил под пользователем приложения ${APP_USER}"
+  print_app_user_activity
+
+  print_section "1. Быстрый список SSH-входов из last"
   print_last_logins
 
   echo
@@ -964,13 +1000,13 @@ main() {
   dedupe_auth_events "$AUTH_EVENTS"
   dedupe_sudo_events "$SUDO_EVENTS"
 
-  print_section "1. Кто подключался под аккаунтами"
+  print_section "2. Кто подключался под аккаунтами"
   print_auth_events "success" "Успешные SSH-подключения"
 
-  print_section "2. Неуспешные попытки входа"
+  print_section "3. Неуспешные попытки входа"
   print_auth_events "failed" "Неуспешные SSH-попытки"
 
-  print_section "3. Подробно по SSH-пользователю ${AUDIT_USER}"
+  print_section "4. Подробно по SSH-пользователю ${AUDIT_USER}"
   print_user_login_summary
   echo
   echo "Примечание: IP хранится в SSH/wtmp-сессиях, а команды обычно в sudo-логах и shell history без IP."
@@ -979,9 +1015,6 @@ main() {
   print_shell_history
   print_process_accounting
   print_auditd_hint
-
-  print_section "4. Подробно по пользователю приложения ${APP_USER}"
-  print_app_user_activity
 
   print_section "Итог"
   echo "Отчет готов."

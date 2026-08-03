@@ -6,7 +6,7 @@ import secrets
 import time
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 from threading import BoundedSemaphore
 from typing import Iterable
@@ -16,6 +16,7 @@ from flask_login import current_user
 from werkzeug.datastructures import FileStorage
 
 from app import db
+from app.time_utils import utc_now
 
 
 # In-process limiter. It is deliberately dependency-free so the CRM keeps working
@@ -186,8 +187,8 @@ def record_site_visit(response) -> None:
             "is_authenticated": bool(getattr(current_user, "is_authenticated", False)),
             "visit_kind": "request",
             "tab_id": None,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
+            "created_at": utc_now(),
+            "updated_at": utc_now(),
         }
         if _VISIT_WRITE_SLOTS.acquire(blocking=False):
             future = _VISIT_WRITER.submit(_write_site_visit, db.engine, SiteVisit.__table__, payload)
@@ -199,7 +200,7 @@ def record_site_visit(response) -> None:
 def mark_login_success(user) -> None:
     user.failed_login_count = 0
     user.locked_until = None
-    user.last_login_at = datetime.utcnow()
+    user.last_login_at = utc_now()
     user.last_login_ip = client_ip()[:80]
     db.session.commit()
 
@@ -218,12 +219,12 @@ def mark_login_failure(user) -> None:
     if user.failed_login_count >= 5:
         extra = max(user.failed_login_count - 5, 0)
         minutes = min(15 * (2 ** min(extra, 6)), 24 * 60)
-        user.locked_until = datetime.utcnow() + timedelta(minutes=minutes)
+        user.locked_until = utc_now() + timedelta(minutes=minutes)
     db.session.commit()
 
 
 def is_account_locked(user) -> bool:
-    return bool(user and user.locked_until and user.locked_until > datetime.utcnow())
+    return bool(user and user.locked_until and user.locked_until > utc_now())
 
 
 def bump_session_version(user) -> None:

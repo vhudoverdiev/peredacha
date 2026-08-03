@@ -11,3 +11,8 @@ def to_moscow_datetime(value: datetime) -> datetime:
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return value.astimezone(MOSCOW_TIMEZONE)
+
+
+def utc_now() -> datetime:
+    """Return naive UTC datetime for legacy SQLAlchemy DateTime columns."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)

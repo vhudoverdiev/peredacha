@@ -4,8 +4,9 @@ from unittest.mock import patch
 
 import config
 from app.models import STATUS_DONE, STATUS_NOT_STARTED, STATUS_PROBLEM
+from app.routes import format_ru_date, format_ru_day_month, format_ru_weekday
 from app.services.status_rules import is_problem_details_required
-from app.time_utils import MOSCOW_TIMEZONE, to_moscow_datetime
+from app.time_utils import MOSCOW_TIMEZONE, to_moscow_datetime, utc_now
 
 
 class ConfigTimeStatusContractsTests(unittest.TestCase):
@@ -40,6 +41,18 @@ class ConfigTimeStatusContractsTests(unittest.TestCase):
         self.assertEqual(to_moscow_datetime(naive).tzinfo, MOSCOW_TIMEZONE)
         self.assertEqual(to_moscow_datetime(naive).hour, 13)
         self.assertEqual(to_moscow_datetime(aware).hour, 13)
+
+    def test_utc_now_keeps_legacy_naive_utc_contract(self):
+        value = utc_now()
+
+        self.assertIsNone(value.tzinfo)
+
+    def test_route_date_formatters_treat_datetime_as_its_calendar_date(self):
+        value = datetime(2026, 1, 5, 23, 59, tzinfo=timezone.utc)
+
+        self.assertEqual(format_ru_date(value), format_ru_date(value.date()))
+        self.assertEqual(format_ru_day_month(value), format_ru_day_month(value.date()))
+        self.assertEqual(format_ru_weekday(value), format_ru_weekday(value.date()))
 
     def test_problem_details_required_only_for_problem_without_meaningful_comment(self):
         self.assertTrue(is_problem_details_required(STATUS_PROBLEM, None))
