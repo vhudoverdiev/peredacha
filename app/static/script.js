@@ -1099,6 +1099,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'developer-select-button';
+      button.setAttribute('data-ajax-pagination-runtime', 'custom-select');
       button.setAttribute('aria-haspopup', 'listbox');
       button.setAttribute('aria-expanded', 'false');
 
@@ -1112,6 +1113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const menu = document.createElement('div');
       menu.className = 'developer-select-menu developer-select-menu-portal';
+      menu.setAttribute('data-ajax-pagination-runtime', 'custom-select');
       menu.setAttribute('role', 'listbox');
       menu.setAttribute('data-select-portal', '1');
       menu.hidden = true;
@@ -1296,6 +1298,9 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshCustomSelectViewportMode();
   finishCustomSelectBoot();
   window.addEventListener('resize', () => refreshCustomSelectViewportMode(), { passive: true });
+  document.addEventListener('crm:ajax-pagination-updated', event => {
+    refreshCustomSelectViewportMode(event.detail?.content || document);
+  });
 
   document.addEventListener('click', event => {
     if (event.target.closest('.js-developer-custom-select') || event.target.closest('.developer-select-menu-portal')) return;
@@ -4747,7 +4752,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (currentNode instanceof HTMLSelectElement && nextNode instanceof HTMLSelectElement) {
+      const previousValue = currentNode.value;
       currentNode.value = nextNode.value;
+      if (currentNode.value !== previousValue) {
+        currentNode.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     }
   };
 

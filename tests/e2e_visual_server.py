@@ -17,6 +17,7 @@ import app.security as security
 from app.models import (
     Apartment,
     Project,
+    ROLE_ADMIN,
     ROLE_MANAGER,
     STATUS_DONE,
     STATUS_NOT_STARTED,
@@ -61,6 +62,15 @@ def seed_database() -> None:
         captcha_disabled=True,
     )
     user.set_password("E2E-visual-password-2026!")
+    developer = User(
+        username="e2e-developer",
+        full_name="E2E Developer",
+        role=ROLE_ADMIN,
+        project=None,
+        all_projects_access=True,
+        captcha_disabled=True,
+    )
+    developer.set_password("E2E-developer-password-2026!")
 
     work_point = WorkPoint(
         point_number="10",
@@ -85,7 +95,7 @@ def seed_database() -> None:
     all_category.work_points.append(work_point)
     qa_category.work_points.append(work_point)
 
-    db.session.add_all([project, user, work_point, all_category, qa_category])
+    db.session.add_all([project, user, developer, work_point, all_category, qa_category])
     db.session.flush()
 
     apartments = []

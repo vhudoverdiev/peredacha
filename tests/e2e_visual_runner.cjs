@@ -89,6 +89,107 @@ const scenarios = [
     path: "/tasks",
     selectors: [".remarks-filter-form", ".remarks-tabs", ".remarks-page-head"],
   },
+  {
+    name: "site-errors-custom-selects",
+    path: "/site-errors",
+    selectors: [".developer-section-tabs", ".site-errors-kind-tabs", ".site-errors-filter-form"],
+    viewports: ["desktop"],
+    skipScreenshot: true,
+    credentials: {
+      username: "e2e-developer",
+      password: "E2E-developer-password-2026!",
+    },
+    scenario: async (page) => {
+      const assertCustomFilters = async (label) => {
+        await page.waitForFunction(
+          () => {
+            const shells = Array.from(document.querySelectorAll(".site-errors-filter-form .js-developer-custom-select"));
+            if (shells.length !== 2) return false;
+            return shells.every((shell) => {
+              const button = shell.querySelector(".developer-select-button");
+              const select = shell.querySelector("select.developer-native-select");
+              if (!button || !select || !shell.classList.contains("is-enhanced")) return false;
+              const buttonStyle = getComputedStyle(button);
+              const buttonRect = button.getBoundingClientRect();
+              const selectStyle = getComputedStyle(select);
+              const nativeVisible = selectStyle.visibility !== "hidden"
+                && Number(selectStyle.opacity || "1") > 0.01
+                && select.getBoundingClientRect().height > 1;
+              return buttonStyle.display !== "none"
+                && buttonStyle.visibility !== "hidden"
+                && buttonRect.width > 1
+                && buttonRect.height > 1
+                && !nativeVisible;
+            });
+          },
+          null,
+          { timeout: 8000 },
+        ).catch(async (error) => {
+          const state = await page.locator(".site-errors-filter-form .js-developer-custom-select").evaluateAll((shells) => shells.map((shell) => {
+            const button = shell.querySelector(".developer-select-button");
+            const select = shell.querySelector("select");
+            const buttonRect = button?.getBoundingClientRect();
+            const selectRect = select?.getBoundingClientRect();
+            const selectStyle = select ? getComputedStyle(select) : null;
+            return {
+              className: shell.className,
+              hasButton: Boolean(button),
+              buttonHidden: Boolean(button?.hidden),
+              buttonRect: buttonRect ? { width: buttonRect.width, height: buttonRect.height } : null,
+              selectClassName: select?.className || "",
+              selectVisibility: selectStyle?.visibility || "",
+              selectOpacity: selectStyle?.opacity || "",
+              selectRect: selectRect ? { width: selectRect.width, height: selectRect.height } : null,
+            };
+          }));
+          throw new Error(`${label}: site error filters are not custom selects after AJAX navigation: ${JSON.stringify(state)}\n${error.message}`);
+        });
+      };
+
+      await assertCustomFilters("initial");
+      await Promise.all([
+        page.waitForURL((url) => url.pathname === "/developer/statistics", { timeout: 8000 }),
+        page.locator('.developer-section-tabs .remarks-tab-link[href*="/developer/statistics"]').click(),
+      ]);
+      await waitForStablePage(page);
+      await Promise.all([
+        page.waitForURL((url) => url.pathname === "/site-errors", { timeout: 8000 }),
+        page.locator('.developer-section-tabs .remarks-tab-link[href="/site-errors"]').click(),
+      ]);
+      await waitForStablePage(page);
+      await assertCustomFilters("messages-all");
+
+      const clickKindTab = async (name, selector) => {
+        await page.locator(selector).click();
+        await page.waitForFunction(
+          (targetSelector) => document.querySelector(targetSelector)?.classList.contains("active"),
+          selector,
+          { timeout: 8000 },
+        ).catch(async (error) => {
+          const state = await page.evaluate((targetSelector) => ({
+            href: document.querySelector(targetSelector)?.getAttribute("href") || "",
+            url: window.location.href,
+            tabs: Array.from(document.querySelectorAll(".site-errors-kind-tabs .remarks-tab-link")).map((link) => ({
+              text: link.textContent.trim(),
+              href: link.getAttribute("href"),
+              className: link.className,
+            })),
+          }), selector);
+          throw new Error(`site-errors kind tab did not become active for ${name}: ${JSON.stringify(state)}\n${error.message}`);
+        });
+      };
+
+      for (const [name, selector] of [
+        ["user", '.site-errors-kind-tabs .remarks-tab-link[href*="kind=user"]'],
+        ["registration", '.site-errors-kind-tabs .remarks-tab-link[href*="kind=registration"]'],
+        ["system", '.site-errors-kind-tabs .remarks-tab-link[href*="kind=system"]'],
+      ]) {
+        await clickKindTab(name, selector);
+        await waitForStablePage(page);
+        await assertCustomFilters(`kind-${name}`);
+      }
+    },
+  },
 ];
 
 function ensureDir(dir) {
@@ -143,11 +244,11 @@ async function waitForStablePage(page) {
   });
 }
 
-async function login(page) {
+async function login(page, loginCredentials = credentials) {
   await page.goto(`${baseUrl}/login`, { waitUntil: "commit", timeout: 15000 });
   await waitForStablePage(page);
-  await page.fill("input[name=\"username\"]", credentials.username);
-  await page.fill("input[name=\"password\"]", credentials.password);
+  await page.fill("input[name=\"username\"]", loginCredentials.username);
+  await page.fill("input[name=\"password\"]", loginCredentials.password);
   await page.locator(".login-form").evaluate((form) => {
     form.dataset.csrfReady = "1";
   });
@@ -270,7 +371,7 @@ async function exerciseScenario(page, scenario, viewport, errors) {
     await expectVisible(page, selector, label);
   }
   if (scenario.scenario) {
-    await scenario.scenario(page);
+    await scenario.scenario(page, viewport);
     await waitForStablePage(page);
   }
   await assertNoHorizontalScroll(page, label);
@@ -278,6 +379,10 @@ async function exerciseScenario(page, scenario, viewport, errors) {
   await assertInteractiveStates(page, label);
   if (errors.length) {
     throw new Error(`${label}: browser console/page errors:\n${errors.join("\n")}`);
+  }
+
+  if (scenario.skipScreenshot) {
+    return { diffPixels: 0, skippedScreenshot: true };
   }
 
   const screenshotName = scenarioFileName(scenario.name, viewport.name);
@@ -323,10 +428,16 @@ async function runAuthenticatedScenarios(browser, viewport, authenticatedScenari
 
   try {
     await login(page);
+    let activeUsername = credentials.username;
     const results = [];
     for (const scenario of authenticatedScenarios) {
       console.log(`E2E_VISUAL_START ${scenario.name}/${viewport.name}`);
       errors.length = 0;
+      if (scenario.credentials && scenario.credentials.username !== activeUsername) {
+        await page.request.post(`${baseUrl}/logout`).catch(() => {});
+        await login(page, scenario.credentials);
+        activeUsername = scenario.credentials.username;
+      }
       results.push({
         scenario: scenario.name,
         viewport: viewport.name,
@@ -353,8 +464,11 @@ async function main() {
   const results = [];
   try {
     for (const viewport of viewports.filter((item) => !viewportFilter.size || viewportFilter.has(item.name))) {
-      const publicScenarios = viewport.name === "desktop" ? scenarios.filter((scenario) => scenario.public) : [];
-      const authenticatedScenarios = scenarios.filter((scenario) => !scenario.public);
+      const allowedInViewport = (scenario) => !scenario.viewports || scenario.viewports.includes(viewport.name);
+      const publicScenarios = viewport.name === "desktop"
+        ? scenarios.filter((scenario) => scenario.public && allowedInViewport(scenario))
+        : [];
+      const authenticatedScenarios = scenarios.filter((scenario) => !scenario.public && allowedInViewport(scenario));
       for (const scenario of publicScenarios) {
         const result = await runPublicScenario(browser, scenario, viewport);
         results.push({ scenario: scenario.name, viewport: viewport.name, ...result });

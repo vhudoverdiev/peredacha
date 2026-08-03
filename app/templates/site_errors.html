@@ -172,6 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'developer-select-button';
+    button.setAttribute('data-ajax-pagination-runtime', 'custom-select');
     button.setAttribute('aria-haspopup', 'listbox');
     button.setAttribute('aria-expanded', 'false');
 
@@ -185,6 +186,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const menu = document.createElement('div');
     menu.className = 'developer-select-menu';
+    menu.setAttribute('data-ajax-pagination-runtime', 'custom-select');
     menu.setAttribute('role', 'listbox');
 
     const options = Array.from(select.options).map(function (option) {

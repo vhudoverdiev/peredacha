@@ -109,14 +109,22 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
             init_script,
         )
         self.assertIn("selectShell.classList.remove('is-open', 'is-enhanced');", init_script)
+        self.assertIn("button.setAttribute('data-ajax-pagination-runtime', 'custom-select');", init_script)
+        self.assertIn("menu.setAttribute('data-ajax-pagination-runtime', 'custom-select');", init_script)
         self.assertIn("const customSelectObserver = new MutationObserver", self.script)
         self.assertIn("refreshCustomSelectViewportMode(node.matches?.('select')", self.script)
+        self.assertIn("document.addEventListener('crm:ajax-pagination-updated', event =>", self.script)
+        self.assertIn("refreshCustomSelectViewportMode(event.detail?.content || document);", self.script)
+        self.assertIn("!child.hasAttribute('data-ajax-pagination-runtime')", self.script)
+        self.assertIn("currentNode.dispatchEvent(new Event('change', { bubbles: true }));", self.script)
 
         site_errors_template = (TEMPLATES / "site_errors.html").read_text(encoding="utf-8")
         guard_start = site_errors_template.index("if (selectShell.querySelector('.developer-select-button'))")
         guard_end = site_errors_template.index("select.tabIndex = -1;", guard_start)
         guard_script = site_errors_template[guard_start:guard_end]
         self.assertIn("selectShell.classList.add('is-enhanced');", guard_script)
+        self.assertIn("button.setAttribute('data-ajax-pagination-runtime', 'custom-select');", site_errors_template)
+        self.assertIn("menu.setAttribute('data-ajax-pagination-runtime', 'custom-select');", site_errors_template)
 
     def test_style_cache_version_matches_service_worker(self):
         version_pattern = r"style\.css[^\n]*\?v=(v[\w-]+)"
