@@ -65,7 +65,7 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
         self.assertNotIn("Регистрации", delete_logs_template)
         self.assertNotIn("Системные", delete_logs_template)
 
-    def test_site_error_filters_have_visible_native_select_fallback(self):
+    def test_site_error_filters_hide_native_select_when_custom_button_exists(self):
         site_errors_template = (TEMPLATES / "site_errors.html").read_text(encoding="utf-8")
         script_start = site_errors_template.index("document.querySelectorAll('.js-developer-custom-select')")
         script_end = site_errors_template.index("document.addEventListener('click'", script_start)
@@ -73,7 +73,7 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
 
         self.assertIn("selectShell.classList.add('is-enhanced')", select_script)
 
-        fallback_selector = (
+        removed_fallback_selector = (
             "body:has(.developer-section-tabs) .site-errors-filter-form "
             ".developer-custom-select:not(.is-enhanced) > .developer-native-select"
         )
@@ -85,16 +85,13 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
             "body:has(.developer-section-tabs) .site-errors-filter-form "
             ".developer-custom-select:has(> .developer-select-button) > select"
         )
-        fallback_start = self.style_css.index(fallback_selector)
-        fallback_rule = self.style_css[fallback_start:self.style_css.index("}", fallback_start)]
         enhanced_start = self.style_css.index(enhanced_selector)
         enhanced_rule = self.style_css[enhanced_start:self.style_css.index("}", enhanced_start)]
         custom_button_start = self.style_css.index(custom_button_selector)
         custom_button_rule = self.style_css[custom_button_start:self.style_css.index("}", custom_button_start)]
 
-        self.assertIn("display: block !important", fallback_rule)
-        self.assertIn("opacity: 1 !important", fallback_rule)
-        self.assertIn("pointer-events: auto !important", fallback_rule)
+        self.assertNotIn(removed_fallback_selector, self.style_css)
+        self.assertNotIn(".developer-custom-select:not(.is-enhanced) > .developer-native-select", self.style_css)
         self.assertIn("position: absolute !important", enhanced_rule)
         self.assertIn("inset: 0 !important", enhanced_rule)
         self.assertIn("display: none !important", enhanced_rule)

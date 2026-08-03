@@ -56868,20 +56868,7 @@ html body.app-body .task-detail-related-actions .task-detail-excel-link i::befor
   }
 }
 
-/* v636: site-error filters must stay usable before inline AJAX scripts enhance selects. */
-body:has(.developer-section-tabs) .site-errors-filter-form .developer-custom-select:not(.is-enhanced) > .developer-native-select {
-  position: relative !important;
-  inset: auto !important;
-  display: block !important;
-  width: 100% !important;
-  height: 44px !important;
-  min-height: 44px !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-  z-index: 1 !important;
-}
-
+/* v638: site-error filters must not show native and custom selects together. */
 body:has(.developer-section-tabs) .site-errors-filter-form .developer-custom-select.is-enhanced > .developer-native-select {
   position: absolute !important;
   inset: 0 !important;

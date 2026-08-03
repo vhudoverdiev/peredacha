@@ -45,7 +45,7 @@ class GlassDeleteConfirmModalTest(unittest.TestCase):
 
         self.assertIn("script.js') }}?v=v671-site-error-native-select-hidden", template)
         self.assertIn("/static/script.js?v=v671-site-error-native-select-hidden", worker)
-        self.assertIn("peredacha-static-v159-site-error-native-select-hidden", worker)
+        self.assertIn("peredacha-static-v160-site-error-remove-native-fallback", worker)
 
 
 if __name__ == "__main__":
