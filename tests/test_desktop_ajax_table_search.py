@@ -216,8 +216,26 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
                         "data-ajax-pagination-content",
                         content_class_position,
                     ),
-                    content_class_position,
+                        content_class_position,
                 )
+
+    def test_material_tab_clicks_replace_content_so_table_animation_remounts(self):
+        update_start = self.script.index("const updatePaginationPage = async")
+        update_end = self.script.index("document.addEventListener('click', event => {", update_start)
+        update_script = self.script[update_start:update_end]
+
+        self.assertIn("replaceContent = false", update_script)
+        self.assertIn("if (replaceContent)", update_script)
+        self.assertIn("currentContent.replaceChildren(", update_script)
+        self.assertIn("document.importNode(node, true)", update_script)
+        self.assertIn("morphPaginationNode(currentContent, nextContent)", update_script)
+
+        tabs_start = self.script.index(
+            "const link = event.target.closest('[data-ajax-pagination-tabs] .remarks-tab-link[href]');"
+        )
+        tabs_end = self.script.index("document.addEventListener('submit'", tabs_start)
+        tabs_script = self.script[tabs_start:tabs_end]
+        self.assertIn("replaceContent: pageKey === 'materials'", tabs_script)
 
     def test_material_tabs_replay_the_writeoff_entrance_animation_after_ajax_swap(self):
         materials_listener_start = self.script.index("event.detail?.pageKey !== 'materials'")

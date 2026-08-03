@@ -80,7 +80,7 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v162-material-tab-replay-animation")
+        self.assertEqual(worker_version, "v163-material-tabs-replace-content")
 
 
 if __name__ == "__main__":
