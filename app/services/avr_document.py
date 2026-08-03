@@ -327,8 +327,3 @@ def _remove_bold(run_props: ET.Element) -> None:
 def _remove_underline(run_props: ET.Element) -> None:
     for child in list(run_props.findall(f"{XML_NS}u")):
         run_props.remove(child)
-
-
-def _remove_underline(run_props: ET.Element) -> None:
-    for child in list(run_props.findall(f"{XML_NS}u")):
-        run_props.remove(child)

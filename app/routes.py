@@ -2758,7 +2758,7 @@ def site_error_close(report_id: int):
         abort(404)
     report.status = "closed" if report.status != "closed" else "new"
     db.session.commit()
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+    if _wants_json_response():
         return jsonify(ok=True, status=report.status, message="Статус ошибки обновлен")
     flash("Статус ошибки обновлен", "success")
     return redirect(request.referrer or url_for("main.site_errors"))
@@ -4616,7 +4616,7 @@ def my_task_done(task_id: int):
     elif task.responsible_id != current_user.id:
         abort(403)
     change_task_status(task, STATUS_DONE, user_id=current_user.id)
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+    if _wants_json_response():
         return jsonify(_worker_status_payload(task))
     flash("Задача отмечена выполненной", "success")
     return redirect(url_for("main.my_tasks"))
@@ -4633,7 +4633,7 @@ def my_task_return(task_id: int):
     elif task.responsible_id != current_user.id:
         abort(403)
     change_task_status(task, STATUS_NOT_STARTED, user_id=current_user.id)
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+    if _wants_json_response():
         return jsonify(_worker_status_payload(task))
     flash("Задача возвращена в работу", "success")
     return redirect(url_for("main.my_tasks"))
@@ -5216,7 +5216,7 @@ def glass_need_measure(task_id: int):
     if return_tab not in {"all", "order"}:
         return_tab = "order"
     success_message = "Позиция переведена в статус «В заказе»"
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+    if _wants_json_response():
         return jsonify({
             "ok": True,
             "message": success_message,
@@ -5278,7 +5278,7 @@ def glass_measurement_add(task_id: int):
     db.session.commit()
 
     success_message = "Добавлен ещё один независимый замер к замечанию"
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+    if _wants_json_response():
         return jsonify({
             "ok": True,
             "message": success_message,
@@ -5333,7 +5333,7 @@ def glass_measurement_save(task_id: int):
         if not size_text and not item_comment:
             continue
         if not size_text:
-            if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+            if _wants_json_response():
                 return jsonify({"ok": False, "message": "В каждой добавленной позиции укажите размер"}), 400
             flash("В каждой добавленной позиции укажите размер", "warning")
             return redirect(url_for("main.glass_measurements", tab="order"))
@@ -5350,7 +5350,7 @@ def glass_measurement_save(task_id: int):
         })
 
     if not parsed_items:
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+        if _wants_json_response():
             return jsonify({"ok": False, "message": "Добавьте хотя бы один размер"}), 400
         flash("Добавьте хотя бы один размер", "warning")
         return redirect(url_for("main.glass_measurements", tab="order"))
@@ -5372,7 +5372,7 @@ def glass_measurement_save(task_id: int):
     if not measurement.apartment_id:
         measurement.apartment_id = task.apartment_id
     db.session.commit()
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+    if _wants_json_response():
         return jsonify({
             "ok": True,
             "message": "Размеры перенесены в заказ",
@@ -5444,7 +5444,7 @@ def glass_status_update(measurement_id: int):
     next_status = (request.form.get("status") or "").strip()
     status_date = parse_date(request.form.get("status_date")) or date.today()
     if next_status not in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}:
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+        if _wants_json_response():
             return jsonify({"ok": False, "message": "Некорректный статус стеклопакета"}), 400
         flash("Некорректный статус стеклопакета", "warning")
         return redirect(url_for("main.glass_measurements", tab="ordered"))
@@ -5456,7 +5456,7 @@ def glass_status_update(measurement_id: int):
     else:
         measurement.replaced_at = status_date
     db.session.commit()
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+    if _wants_json_response():
         return jsonify({
             "ok": True,
             "message": "Статус стеклопакета обновлён",
@@ -8106,15 +8106,6 @@ def _apartment_inspection_status_class(status: str | None) -> str:
     return "status-pill-muted"
 
 
-def _apartment_inspection_status(apartments: list[Apartment]) -> str | None:
-    # Для непроданных квартир статус осмотра фиксируем как «Не был».
-    # В интерфейсе для них нельзя переключить это состояние вручную.
-    if apartments and any(_is_unsold_apartment(apartment) for apartment in apartments):
-        return "Не был"
-    if any(apartment.first_inspection_present for apartment in apartments):
-        return "Был"
-    return "Не был"
-
 
 def _group_remark_deadline(apartments: list[Apartment]) -> date | None:
     deadlines = [apartment.effective_app_deadline_date() for apartment in apartments]
@@ -8903,7 +8894,7 @@ def update_apartment_po_status(apartment_id: int):
     if logged_change:
         history_entry = _build_change_history_entry(logged_change[0], task=logged_change[1], users_cache={})
     db.session.commit()
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+    if _wants_json_response():
         return jsonify({
             "ok": True,
             "message": "Внутренний статус обновлён",
@@ -8938,7 +8929,7 @@ def update_apartment_inspection_status(apartment_id: int):
     target_group = group or [apartment]
     if _is_app_inspection_locked(target_group) and status != "not_was":
         message = "В режиме АПП осмотр с датой изменить нельзя"
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+        if _wants_json_response():
             return jsonify({"ok": False, "message": message}), 400
         flash(message, "warning")
         return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
@@ -8969,7 +8960,7 @@ def update_apartment_inspection_status(apartment_id: int):
             if _parse_inspection_schedule_marker(item.inspection_note):
                 item.inspection_note = None
     db.session.commit()
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+    if _wants_json_response():
         overview = _build_apartment_overview(target_group)
         return jsonify({
             "ok": True,
@@ -9005,7 +8996,7 @@ def update_apartment_inspection_date(apartment_id: int):
     target_group = group or [apartment]
     if _is_app_inspection_locked(target_group):
         message = "В режиме АПП осмотр с датой изменить нельзя"
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+        if _wants_json_response():
             return jsonify({"ok": False, "message": message}), 400
         flash(message, "warning")
         return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
@@ -9018,7 +9009,7 @@ def update_apartment_inspection_date(apartment_id: int):
     db.session.commit()
 
     message = "Дата осмотра обновлена" if inspection_date else "Дата осмотра очищена"
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+    if _wants_json_response():
         overview = _build_apartment_overview(target_group)
         return jsonify({
             "ok": True,
@@ -9056,7 +9047,7 @@ def update_apartment_inspection_note(apartment_id: int):
         item.inspection_note = note or None
     history_change = _log_apartment_field_change(target_group, "apartment_inspection_note", old_note, note)
     db.session.commit()
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+    if _wants_json_response():
         history_entry = _build_change_history_entry(history_change[0], task=history_change[1]) if history_change else None
         return jsonify({"ok": True, "message": "Комментарий сохранен", "inspection_note": note, "history_entry": history_entry})
     flash("Комментарий сохранен", "success")
@@ -9087,7 +9078,7 @@ def update_apartment_comment(apartment_id: int):
         item.comment = comment or None
     history_change = _log_apartment_field_change(target_group, "apartment_comment", old_comment, comment)
     db.session.commit()
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+    if _wants_json_response():
         history_entry = _build_change_history_entry(history_change[0], task=history_change[1]) if history_change else None
         return jsonify({"ok": True, "message": "Комментарий сохранен", "comment": comment, "history_entry": history_entry})
     flash("Комментарий сохранен", "success")
@@ -9132,7 +9123,7 @@ def update_apartment_avr_status(apartment_id: int):
         signed_date.isoformat() if signed_date and status == AVR_STATUS_SIGNED else "",
     )
     db.session.commit()
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json":
+    if _wants_json_response():
         history_entry = None
         for history_change in (date_history_change, status_history_change):
             if history_change:
