@@ -80,7 +80,14 @@ from app.models import (
     task_guarantee_contractor_setting_key,
 )
 from app.permissions import can_change_task, can_export, can_manage_mapping, can_manage_sync, role_required
-from app.security import client_ip, hit_rate_limit, is_protected_developer_user, resolve_site_visit_project_id
+from app.security import (
+    client_ip,
+    hit_rate_limit,
+    is_protected_developer_user,
+    resolve_site_visit_project_id,
+    security_event,
+    validate_upload,
+)
 from app.services.changelog_service import log_change
 from app.services.document_flow import (
     addendum_field_keys,
@@ -133,10 +140,15 @@ from app.services.task_service import (
 from app.services.status_rules import is_problem_details_required
 from app.services.sync_rollback import apply_sync_rollback, build_project_rollback_data
 from app.time_utils import to_moscow_datetime
+from app.services.user_agent import (
+    is_mobile_phone_user_agent,
+    visit_browser_label,
+    visit_device_label,
+    visit_os_label,
+)
 from app.services.uid_service import build_task_uid, cell_hash, normalize_text, split_cell_remarks, stable_hash
 from app.services.remark_entities import split_task_into_entities
 from app.services.remark_format import remark_plain_text_html, remark_sentence_lines_html
-from app.security import hit_rate_limit, security_event, validate_upload
 from app.two_factor import generate_totp_secret, provisioning_uri, qr_svg_data_uri, verify_totp
 
 bp = Blueprint("main", __name__)
@@ -2007,67 +2019,23 @@ def report_error():
 
 
 def _visit_browser_label(user_agent: str | None) -> str:
-    ua = (user_agent or "").lower()
-    if "yabrowser" in ua:
-        return "Yandex Browser"
-    if "edg/" in ua:
-        return "Microsoft Edge"
-    if "opr/" in ua or "opera" in ua:
-        return "Opera"
-    if "chrome/" in ua and "chromium" not in ua:
-        return "Google Chrome"
-    if "firefox/" in ua:
-        return "Mozilla Firefox"
-    if "safari/" in ua and "chrome/" not in ua:
-        return "Safari"
-    if "postmanruntime" in ua:
-        return "Postman"
-    if "python-requests" in ua:
-        return "Python Requests"
-    return "Неизвестный браузер"
+    return visit_browser_label(user_agent)
 
 
 def _visit_os_label(user_agent: str | None) -> str:
-    ua = (user_agent or "").lower()
-    if "windows" in ua:
-        return "Windows"
-    if "iphone" in ua or "ios" in ua:
-        return "iPhone (iOS)"
-    if "ipad" in ua:
-        return "iPadOS"
-    if "android" in ua:
-        return "Android"
-    if "mac os x" in ua or "macintosh" in ua:
-        return "macOS"
-    if "linux" in ua:
-        return "Linux"
-    return "Неизвестная ОС"
+    return visit_os_label(user_agent)
 
 
 def _visit_device_label(user_agent: str | None) -> str:
-    ua = (user_agent or "").lower()
-    if "ipad" in ua or "tablet" in ua:
-        return "Планшет"
-    if "iphone" in ua or "android" in ua and "mobile" in ua:
-        return "Телефон"
-    if "mobile" in ua:
-        return "Телефон"
-    return "Компьютер"
+    return visit_device_label(user_agent)
 
 
 def _is_mobile_phone_request(user_agent: str | None = None) -> bool:
-    ua = (user_agent or request.headers.get("User-Agent") or "").lower()
-    return (
-        "iphone" in ua
-        or "ipod" in ua
-        or "windows phone" in ua
-        or "webos" in ua
-        or "blackberry" in ua
-        or "opera mini" in ua
-        or "iemobile" in ua
-        or ("android" in ua and "mobile" in ua)
-        or ("mobile" in ua and "ipad" not in ua and "tablet" not in ua)
-    )
+    return is_mobile_phone_user_agent(user_agent or request.headers.get("User-Agent"))
+
+
+def _wants_json_response() -> bool:
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
 
 
 def _mobile_phone_home_endpoint() -> str:
@@ -3802,7 +3770,7 @@ def assignments():
     if project is None:
         return redirect(url_for("main.objects"))
     users = _executor_users(project.id)
-    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    wants_json = _wants_json_response()
     view_mode = (request.args.get("view") or "issue").strip()
     if view_mode not in {"issue", "issued"}:
         view_mode = "issue"
@@ -4208,7 +4176,7 @@ def assignment_unassign(task_id: int):
     task = db.session.get(Task, task_id) or abort(404)
     if task.project_id != project.id:
         abort(404)
-    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    wants_json = _wants_json_response()
     if not task.responsible_id:
         if wants_json:
             return jsonify({"ok": False, "message": "У задачи уже нет исполнителя"}), 400
@@ -4240,7 +4208,7 @@ def assignment_unassign(task_id: int):
 @bp.route("/assignments/<int:task_id>/delete-from-employee", methods=["POST"])
 @login_required
 def assignment_delete_from_employee(task_id: int):
-    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    wants_json = _wants_json_response()
     if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
         abort(403)
     project = selected_project()
@@ -4992,7 +4960,7 @@ def _get_or_create_glass_measurement(task: Task, status: str = GLASS_STATUS_MEAS
         measurement = GlassMeasurement(
             project_id=task.project_id,
             apartment_id=task.apartment_id,
-            task_id=task.id,
+            task=task,
             status=status,
             quantity=1,
         )
@@ -5425,7 +5393,7 @@ def glass_measurement_return_to_all(measurement_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    wants_json = _wants_json_response()
     measurement = (
         GlassMeasurement.query.options(selectinload(GlassMeasurement.task))
         .filter(GlassMeasurement.id == measurement_id, GlassMeasurement.project_id == project.id)
@@ -5700,7 +5668,7 @@ def glass_create_material_request():
 def glass_measurements_delete():
     if current_user.role == "viewer":
         abort(403)
-    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    wants_json = _wants_json_response()
     project = selected_project()
     if project is None:
         if wants_json:
@@ -6645,7 +6613,7 @@ def material_writeoff_new():
         return redirect(url_for("main.objects"))
     if not _can_edit_materials():
         abort(403)
-    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    wants_json = _wants_json_response()
     if request.method == "GET":
         redirect_args = request.args.to_dict()
         redirect_args["tab"] = "writeoff"
@@ -7567,7 +7535,7 @@ def material_manual_task_new():
         abort(403)
 
     balance_options = _balance_options(project.id)
-    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    wants_json = _wants_json_response()
 
     def fail(message: str, status_code: int = 400):
         if wants_json:
@@ -9685,7 +9653,7 @@ def add_task_comment(task_id: int):
     if not can_change_task(current_user, task):
         abort(403)
     form = CommentForm()
-    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    wants_json = _wants_json_response()
     if form.validate_on_submit():
         comment = TaskComment(task_id=task.id, user_id=current_user.id, body=form.body.data)
         db.session.add(comment)
@@ -9713,7 +9681,7 @@ def add_task_comment(task_id: int):
 @bp.route("/tasks/<int:task_id>/status/<status>", methods=["POST"])
 @login_required
 def quick_status(task_id: int, status: str):
-    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    wants_json = _wants_json_response()
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
@@ -9953,7 +9921,7 @@ def export_category_tasks_pdf(category_id: int):
 def export_source_with_strikes():
     if not can_export(current_user):
         abort(403)
-    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    wants_json = _wants_json_response()
     try:
         project = selected_project()
         if project is None:
@@ -10021,7 +9989,7 @@ def mapping_settings():
         .all()
     )
     if request.method == "POST":
-        wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+        wants_json = _wants_json_response()
         allowed_point_ids = {point.id for point in points}
         for category in categories_to_show:
             selected = request.form.getlist(f"category_{category.id}")
@@ -10180,7 +10148,7 @@ def users():
 @login_required
 @role_required(ROLE_ADMIN)
 def user_update_projects(user_id: int):
-    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    wants_json = _wants_json_response()
     user = db.session.get(User, user_id) or abort(404)
     rejection = _reject_protected_developer_user(user, "изменять")
     if rejection:
@@ -10215,7 +10183,7 @@ def user_update_projects(user_id: int):
 @login_required
 @role_required(ROLE_ADMIN)
 def user_update_name(user_id: int):
-    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+    wants_json = _wants_json_response()
     user = db.session.get(User, user_id) or abort(404)
     rejection = _reject_protected_developer_user(user, "переименовывать")
     if rejection:

@@ -763,7 +763,7 @@ class SiteErrorReport(TimestampMixin, db.Model):
 class DeletionActionLog(TimestampMixin, db.Model):
     __tablename__ = "deletion_action_logs"
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=True, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
     action_key = db.Column(db.String(80), nullable=False, index=True)

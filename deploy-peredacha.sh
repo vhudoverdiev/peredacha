@@ -63,6 +63,9 @@ git clean -fd \
   -e venv/ \
   -e .venv/
 
+echo "=== Cleaning local temporary files ==="
+find "$PROJECT_DIR" -maxdepth 1 \( -name '.tmp-*' -o -name '.co?ex' -o -name 'outputs' \) -exec rm -rf {} + 2>/dev/null || true
+
 echo "=== Обновляю зависимости ==="
 if [ ! -d "$PROJECT_DIR/venv" ]; then
   python3 -m venv "$PROJECT_DIR/venv"

@@ -31,3 +31,14 @@ Thumbs.db
 
 # Temporary archives
 *.zip
+
+# Local temporary artifacts
+.tmp-*/
+.tmp-*
+.co?ex/
+outputs/
+outputs/**/node_modules/
+
+# Visual regression generated artifacts
+tests/e2e_visual/current/
+tests/e2e_visual/diff/

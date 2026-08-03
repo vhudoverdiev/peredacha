@@ -897,7 +897,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v154-apartments-filtered-export', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v158-site-error-filter-selects', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
