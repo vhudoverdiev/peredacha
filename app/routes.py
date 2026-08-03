@@ -2467,34 +2467,21 @@ def _build_developer_statistics_context() -> dict:
         visit_kind="request",
     )
 
-    total_visits = tab_query.order_by(None).count()
+    statistics_query = request_query
+    total_visits = statistics_query.order_by(None).filter(SiteVisit.ip_address.isnot(None)).count()
     avg_duration = request_query.with_entities(func.avg(SiteVisit.duration_ms)).scalar() or 0
     unique_ips = (
-        tab_query
+        statistics_query
         .with_entities(func.count(distinct(SiteVisit.ip_address)))
         .filter(SiteVisit.ip_address.isnot(None))
         .scalar()
         or 0
     )
-    known_users = (
-        tab_query
-        .with_entities(SiteVisit.user_id)
-        .filter(SiteVisit.user_id.isnot(None))
-        .distinct()
-        .all()
-    )
-    guest_ips = (
-        tab_query
-        .with_entities(SiteVisit.ip_address)
-        .filter(SiteVisit.user_id.is_(None), SiteVisit.ip_address.isnot(None))
-        .distinct()
-        .all()
-    )
-    latest_visit_at = tab_query.with_entities(func.max(SiteVisit.created_at)).scalar()
-    unique_visitors = len(known_users) + len(guest_ips)
+    latest_visit_at = statistics_query.with_entities(func.max(SiteVisit.created_at)).scalar()
+    unique_visitors = int(unique_ips or 0)
 
     top_ip_rows = (
-        tab_query
+        statistics_query
         .with_entities(
             SiteVisit.ip_address,
             func.count(SiteVisit.id).label("hits"),
@@ -2518,7 +2505,7 @@ def _build_developer_statistics_context() -> dict:
     ]
 
     top_user_rows = (
-        tab_query
+        statistics_query
         .with_entities(
             SiteVisit.user_id,
             func.count(SiteVisit.id).label("hits"),
@@ -2544,7 +2531,7 @@ def _build_developer_statistics_context() -> dict:
     ]
 
     recent_visits = (
-        tab_query
+        statistics_query
         .options(selectinload(SiteVisit.user), selectinload(SiteVisit.project))
         .order_by(SiteVisit.created_at.desc(), SiteVisit.id.desc())
         .limit(240)
@@ -2560,7 +2547,7 @@ def _build_developer_statistics_context() -> dict:
         browser_counter: Counter[str] = Counter()
         first_seen = None
         for visit in (
-            tab_query
+            statistics_query
             .options(selectinload(SiteVisit.user), selectinload(SiteVisit.project))
             .order_by(SiteVisit.created_at.asc(), SiteVisit.id.asc())
             .limit(500)
@@ -2587,19 +2574,19 @@ def _build_developer_statistics_context() -> dict:
         }
 
     ip_summaries = {
-        item["ip_address"]: _build_site_visit_ip_summary(tab_query, item["ip_address"])
+        item["ip_address"]: _build_site_visit_ip_summary(statistics_query, item["ip_address"])
         for item in top_ips
     }
     if ip_filter and not focused_ip_summary:
         focused_ip_summary = ip_summaries.get(ip_filter)
 
-    browser_stats, os_stats, device_stats = _build_site_visit_agent_stats(tab_query)
+    browser_stats, os_stats, device_stats = _build_site_visit_agent_stats(statistics_query)
     environment_summary = {
         "browser": browser_stats[0] if browser_stats else None,
         "os": os_stats[0] if os_stats else None,
         "device": device_stats[0] if device_stats else None,
     }
-    daily_series = _build_site_visit_daily_series(tab_query, period_start_date, period_end_date)
+    daily_series = _build_site_visit_daily_series(statistics_query, period_start_date, period_end_date)
     chart_month_label = _build_site_visit_chart_month_label(period_start_date, period_end_date)
     period_display_label = _build_site_visit_period_label(period_start_date, period_end_date)
     future_notice = _build_site_visit_future_notice(period_start_date, period_end_date, filters["today"], total_visits)

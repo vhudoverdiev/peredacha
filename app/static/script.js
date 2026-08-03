@@ -1084,10 +1084,13 @@ document.addEventListener('DOMContentLoaded', () => {
         select.removeAttribute('aria-hidden');
         select.classList.remove('developer-native-select');
         selectShell.querySelectorAll('.developer-select-button').forEach(button => button.remove());
-        selectShell.classList.remove('is-open');
+        selectShell.classList.remove('is-open', 'is-enhanced');
         return;
       }
-      if (selectShell.querySelector('.developer-select-button')) return;
+      if (selectShell.querySelector('.developer-select-button')) {
+        selectShell.classList.add('is-enhanced');
+        return;
+      }
 
       select.tabIndex = -1;
       select.setAttribute('aria-hidden', 'true');
@@ -1258,6 +1261,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       select.addEventListener('change', setActiveOption);
       selectShell.appendChild(button);
+      selectShell.classList.add('is-enhanced');
       setActiveOption();
     });
   };
@@ -1280,7 +1284,7 @@ document.addEventListener('DOMContentLoaded', () => {
         select.tabIndex = 0;
         select.removeAttribute('aria-hidden');
         selectShell.querySelectorAll('.developer-select-button').forEach(button => button.remove());
-        selectShell.classList.remove('is-open');
+        selectShell.classList.remove('is-open', 'is-enhanced');
         return;
       }
     });

@@ -160,7 +160,11 @@
 document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.js-developer-custom-select').forEach(function (selectShell) {
     const select = selectShell.querySelector('select');
-    if (!select || selectShell.querySelector('.developer-select-button')) return;
+    if (!select) return;
+    if (selectShell.querySelector('.developer-select-button')) {
+      selectShell.classList.add('is-enhanced');
+      return;
+    }
 
     select.tabIndex = -1;
     select.setAttribute('aria-hidden', 'true');

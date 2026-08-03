@@ -87,8 +87,36 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
         self.assertIn("display: block !important", fallback_rule)
         self.assertIn("opacity: 1 !important", fallback_rule)
         self.assertIn("pointer-events: auto !important", fallback_rule)
+        self.assertIn("position: absolute !important", enhanced_rule)
+        self.assertIn("inset: 0 !important", enhanced_rule)
+        self.assertIn("visibility: hidden !important", enhanced_rule)
         self.assertIn("opacity: 0 !important", enhanced_rule)
         self.assertIn("pointer-events: none !important", enhanced_rule)
+
+    def test_ajax_custom_selects_mark_enhanced_shells_before_hiding_native_fallback(self):
+        init_start = self.script.index("const initDeveloperCustomSelects = (scope = document) =>")
+        init_end = self.script.index("const refreshCustomSelectViewportMode", init_start)
+        init_script = self.script[init_start:init_end]
+
+        existing_button_start = init_script.index("if (selectShell.querySelector('.developer-select-button'))")
+        existing_button_end = init_script.index("select.tabIndex = -1;", existing_button_start)
+        existing_button_branch = init_script[existing_button_start:existing_button_end]
+
+        self.assertIn("selectShell.classList.add('is-enhanced');", existing_button_branch)
+        self.assertIn(
+            "selectShell.appendChild(button);\n"
+            "      selectShell.classList.add('is-enhanced');",
+            init_script,
+        )
+        self.assertIn("selectShell.classList.remove('is-open', 'is-enhanced');", init_script)
+        self.assertIn("const customSelectObserver = new MutationObserver", self.script)
+        self.assertIn("refreshCustomSelectViewportMode(node.matches?.('select')", self.script)
+
+        site_errors_template = (TEMPLATES / "site_errors.html").read_text(encoding="utf-8")
+        guard_start = site_errors_template.index("if (selectShell.querySelector('.developer-select-button'))")
+        guard_end = site_errors_template.index("select.tabIndex = -1;", guard_start)
+        guard_script = site_errors_template[guard_start:guard_end]
+        self.assertIn("selectShell.classList.add('is-enhanced');", guard_script)
 
     def test_style_cache_version_matches_service_worker(self):
         version_pattern = r"style\.css[^\n]*\?v=(v[\w-]+)"
