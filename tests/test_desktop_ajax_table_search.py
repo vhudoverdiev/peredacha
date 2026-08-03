@@ -231,9 +231,12 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
         self.assertIn("shell.classList.add('crm-tab-enter')", materials_listener)
 
         writeoff_selector = ".material-writeoff-form .materials-animated-card"
+        list_table_selector = ".materials-list-page-region > .materials-animated-card"
         replay_selector = ".materials-animated-card.crm-tab-enter"
         writeoff_start = self.desktop_css.index(writeoff_selector)
         writeoff_rule = self.desktop_css[writeoff_start:self.desktop_css.index("}", writeoff_start)]
+        list_table_start = self.desktop_css.index(list_table_selector)
+        list_table_rule = self.desktop_css[list_table_start:self.desktop_css.index("}", list_table_start)]
         replay_start = self.desktop_css.index(replay_selector)
         replay_rule = self.desktop_css[replay_start:self.desktop_css.index("}", replay_start)]
 
@@ -244,6 +247,7 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
             "will-change: transform, opacity !important",
         ):
             self.assertIn(expected, writeoff_rule)
+            self.assertIn(expected, list_table_rule)
             self.assertIn(expected, replay_rule)
 
     def test_material_list_tables_keep_visible_top_card_edges(self):

@@ -445,7 +445,9 @@ html.desktop-like-pointer body.app-body:has(.assignments-page-head)
 
 /* Both write-off steps enter together with exactly the same motion. */
 html.desktop-like-pointer body.app-body
-  .material-writeoff-form .materials-animated-card {
+  .material-writeoff-form .materials-animated-card,
+html.desktop-like-pointer body.app-body
+  .materials-list-page-region > .materials-animated-card {
   animation: desktopMaterialWriteoffRise .35s ease both !important;
   animation-delay: 0ms !important;
   transition-delay: 0ms !important;

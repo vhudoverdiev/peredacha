@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v160-site-error-remove-native-fallback';
+const STATIC_CACHE = 'peredacha-static-v161-material-list-rise-animation';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -14,7 +14,7 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v638-site-error-remove-native-fallback',
   '/static/mobile-only.css?v=v88-remark-sentence-lines',
-  '/static/desktop-only.css?v=v68-confirm-modal-actions',
+  '/static/desktop-only.css?v=v69-material-list-rise-animation',
   '/static/script.js?v=v671-site-error-native-select-hidden',
 ];
 
