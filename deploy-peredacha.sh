@@ -26,6 +26,20 @@ cd "$PROJECT_DIR"
 echo "=== Добавляю safe.directory для Git ==="
 git config --global --add safe.directory "$PROJECT_DIR" || true
 
+echo "=== Проверяю локальные изменения на сервере ==="
+LOCAL_STATUS="$(git status --short || true)"
+if [ -n "$LOCAL_STATUS" ]; then
+  echo "На сервере есть локальные изменения. Deploy приведет код к версии GitHub:"
+  echo "$LOCAL_STATUS"
+  if ! git diff --quiet; then
+    LOCAL_DIFF_BACKUP="$BACKUP_DIR/local_changes_${DATE_TAG}.patch"
+    git diff > "$LOCAL_DIFF_BACKUP" || true
+    echo "Бэкап diff локальных правок: $LOCAL_DIFF_BACKUP"
+  fi
+else
+  echo "Локальных изменений на сервере нет."
+fi
+
 echo "=== Проверяю изменения на GitHub ==="
 git fetch origin "$BRANCH"
 
@@ -51,6 +65,9 @@ fi
 echo "=== Останавливаю сайт ==="
 systemctl stop "$SERVICE_NAME" || true
 
+echo "=== Удаляю временные SQLite-файлы после остановки сайта ==="
+find "$PROJECT_DIR/instance" -maxdepth 1 -type f \( -name '*.sqlite-shm' -o -name '*.sqlite-wal' \) -delete 2>/dev/null || true
+
 echo "=== Загружаю новую версию с GitHub ==="
 git reset --hard "origin/$BRANCH"
 
@@ -65,6 +82,26 @@ git clean -fd \
 
 echo "=== Cleaning local temporary files ==="
 find "$PROJECT_DIR" -maxdepth 1 \( -name '.tmp-*' -o -name '.co?ex' -o -name 'outputs' \) -exec rm -rf {} + 2>/dev/null || true
+
+echo "=== Обновляю системные команды ==="
+if [ -f "$PROJECT_DIR/deploy/server-audit.sh" ]; then
+  chmod +x "$PROJECT_DIR/deploy/server-audit.sh"
+  ln -sf "$PROJECT_DIR/deploy/server-audit.sh" /usr/local/bin/audit-peredacha
+  echo "audit-peredacha -> $PROJECT_DIR/deploy/server-audit.sh"
+fi
+if [ -f "$PROJECT_DIR/audit-peredacha.sh" ]; then
+  chmod +x "$PROJECT_DIR/audit-peredacha.sh"
+fi
+
+echo "=== Версия после синхронизации с GitHub ==="
+git rev-parse --short HEAD
+POST_RESET_STATUS="$(git status --short || true)"
+if [ -n "$POST_RESET_STATUS" ]; then
+  echo "Остались локальные файлы, которые deploy сохранил:"
+  echo "$POST_RESET_STATUS"
+else
+  echo "Git-рабочая копия чистая."
+fi
 
 echo "=== Обновляю зависимости ==="
 if [ ! -d "$PROJECT_DIR/venv" ]; then

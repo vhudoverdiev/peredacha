@@ -6,6 +6,7 @@ from app import create_app, db
 from app.models import (
     AppSetting,
     Apartment,
+    ChangeLog,
     Contractor,
     Project,
     ROLE_ADMIN,
@@ -15,6 +16,7 @@ from app.models import (
     STATUS_DONE,
     STATUS_GUARANTEE,
     STATUS_NOT_STARTED,
+    SyncLog,
     Task,
     User,
     WorkPoint,
@@ -162,6 +164,25 @@ class ApartmentAndTaskModelContractsTests(unittest.TestCase):
         self.assertEqual(concession.status_class(), "secondary")
         self.assertEqual(unknown.status_label(), "custom")
         self.assertEqual(unknown.status_class(), "secondary")
+
+    def test_model_timestamp_defaults_remain_naive_datetime_values(self):
+        project = Project(name="Timestamp defaults QA")
+        apartment = Apartment(project=project, apartment_number="1")
+        point = WorkPoint(point_number="10")
+        task = Task(source_uid="timestamp-default-task", project=project, apartment=apartment, work_point=point)
+        change = ChangeLog(task=task, action="created_from_test")
+        sync_log = SyncLog(project=project, source_type="excel", status="running")
+        db.session.add_all([project, apartment, point, task, change, sync_log])
+        db.session.commit()
+
+        self.assertIsNotNone(project.created_at)
+        self.assertIsNone(project.created_at.tzinfo)
+        self.assertIsNotNone(project.updated_at)
+        self.assertIsNone(project.updated_at.tzinfo)
+        self.assertIsNotNone(change.created_at)
+        self.assertIsNone(change.created_at.tzinfo)
+        self.assertIsNotNone(sync_log.started_at)
+        self.assertIsNone(sync_log.started_at.tzinfo)
 
 
 if __name__ == "__main__":

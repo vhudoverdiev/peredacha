@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 import json
 import re
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import db
+from app.time_utils import utc_now
 
 
 ROLE_ADMIN = "admin"
@@ -91,8 +92,8 @@ contractor_apartments = db.Table(
 
 
 class TimestampMixin:
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 
 class User(UserMixin, TimestampMixin, db.Model):
@@ -712,7 +713,7 @@ class ChangeLog(db.Model):
     field_name = db.Column(db.String(120), nullable=True)
     old_value = db.Column(db.Text, nullable=True)
     new_value = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False, index=True)
 
     task = db.relationship("Task", back_populates="changes")
     user = db.relationship("User")
@@ -725,7 +726,7 @@ class SyncLog(db.Model):
     project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=True, index=True)
     source_type = db.Column(db.String(50), nullable=False, index=True)
     source_name = db.Column(db.String(255), nullable=True)
-    started_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    started_at = db.Column(db.DateTime, default=utc_now, nullable=False)
     finished_at = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(50), default="running", nullable=False, index=True)
     created_count = db.Column(db.Integer, default=0, nullable=False)

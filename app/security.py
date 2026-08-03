@@ -13,6 +13,8 @@ from typing import Iterable
 
 from flask import current_app, g, request, session
 from flask_login import current_user
+from sqlalchemy import inspect, select, update
+from sqlalchemy.orm.exc import ObjectDeletedError
 from werkzeug.datastructures import FileStorage
 
 from app import db
@@ -208,12 +210,30 @@ def mark_login_success(user) -> None:
 def mark_login_failure(user) -> None:
     if not user:
         return
-    user_id = getattr(user, "id", None)
+    user_cls = type(user)
+    try:
+        user_id = getattr(user, "id", None)
+    except ObjectDeletedError:
+        identity = inspect(user).identity
+        user_id = identity[0] if identity else None
     if user_id is not None:
-        fresh_user = db.session.get(type(user), user_id, populate_existing=True)
-        if fresh_user is None:
+        current_count = db.session.execute(
+            select(user_cls.failed_login_count).where(user_cls.id == user_id)
+        ).scalar_one_or_none()
+        if current_count is None:
             return
-        user = fresh_user
+        failed_login_count = int(current_count or 0) + 1
+        values = {"failed_login_count": failed_login_count}
+        if failed_login_count >= 5:
+            extra = max(failed_login_count - 5, 0)
+            minutes = min(15 * (2 ** min(extra, 6)), 24 * 60)
+            values["locked_until"] = utc_now() + timedelta(minutes=minutes)
+        db.session.execute(
+            update(user_cls).where(user_cls.id == user_id).values(**values),
+            execution_options={"synchronize_session": "fetch"},
+        )
+        db.session.commit()
+        return
     user.failed_login_count = int(user.failed_login_count or 0) + 1
     # 5 failures = 15 min; then progressively longer, capped at 24 hours.
     if user.failed_login_count >= 5:

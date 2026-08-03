@@ -1,8 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from io import BytesIO
 import unittest
 from unittest.mock import patch
 
+from sqlalchemy import text
 from werkzeug.datastructures import FileStorage
 
 from config import Config
@@ -146,6 +147,19 @@ class SecurityAuthContractsTests(unittest.TestCase):
 
         stored_user = db.session.get(User, user_id)
         self.assertEqual(stored_user.failed_login_count, 1)
+
+    def test_login_failure_ignores_stale_user_when_database_row_is_gone(self):
+        user = User(username="missing-row-user", password_hash="unused", role=ROLE_MANAGER)
+        db.session.add(user)
+        db.session.commit()
+        user_id = user.id
+        db.session.execute(text("DELETE FROM users WHERE id = :user_id"), {"user_id": user_id})
+        db.session.commit()
+
+        with self.app.test_request_context("/", environ_base={"REMOTE_ADDR": "192.0.2.10"}):
+            mark_login_failure(user)
+
+        self.assertIsNone(db.session.get(User, user_id))
 
     def test_permission_helpers_enforce_role_and_assignment_rules(self):
         admin = User(id=1, username="admin", role=ROLE_ADMIN)
