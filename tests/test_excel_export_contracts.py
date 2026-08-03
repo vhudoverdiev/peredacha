@@ -2,6 +2,8 @@ from datetime import datetime
 import unittest
 from unittest.mock import patch
 
+from openpyxl import Workbook
+
 from config import Config
 from app import create_app, db
 from app.models import (
@@ -25,6 +27,8 @@ from app.services.excel_export import (
     _excel_premise_label,
     _prefix_dash_for_struck_cell,
     _safe_filename_part,
+    style_header_row,
+    style_report_header_row,
     _task_export_value,
     _task_remark_text,
     build_export_path,
@@ -59,6 +63,27 @@ class ExcelExportPureContractsTests(unittest.TestCase):
     def test_safe_filename_part_strips_windows_forbidden_characters_and_has_fallback(self):
         self.assertEqual(_safe_filename_part('A/B:C*D?"E<>|'), "A B C D E")
         self.assertEqual(_safe_filename_part("   "), "object")
+
+    def test_header_style_helpers_keep_identical_layout_and_fill(self):
+        workbook = Workbook()
+        regular = workbook.active
+        regular.append(["A", "B"])
+        report = workbook.create_sheet("report")
+        report.append(["A", "B"])
+
+        style_header_row(regular)
+        style_report_header_row(report)
+
+        for sheet in (regular, report):
+            self.assertEqual(sheet.row_dimensions[1].height, 32)
+            for cell in sheet[1]:
+                self.assertTrue(cell.font.bold)
+                self.assertEqual(cell.font.color.rgb, "00111827")
+                self.assertEqual(cell.alignment.horizontal, "center")
+                self.assertEqual(cell.alignment.vertical, "center")
+                self.assertTrue(cell.alignment.wrap_text)
+                self.assertEqual(cell.border.left.style, "thin")
+                self.assertEqual(cell.fill.fgColor.rgb, "FFE2F0D9")
 
 
 class ExcelExportDatabaseContractsTests(unittest.TestCase):

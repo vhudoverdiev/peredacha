@@ -10,6 +10,7 @@ from typing import Iterable, Sequence
 from flask import current_app
 
 from app.models import Task
+from app.services.filename import safe_filename_part
 
 
 MM_TO_PT = 72 / 25.4
@@ -17,9 +18,14 @@ A4_LANDSCAPE = (841.89, 595.28)
 
 
 def _safe_filename_part(value: str | None) -> str:
-    text = re.sub(r"[\\/:*?\"<>|]+", " ", str(value or "").strip())
-    text = re.sub(r"\s+", " ", text).strip()
-    return text or "export"
+    return safe_filename_part(value, fallback="export")
+
+
+def _pdf_output_path(filename_prefix: str) -> Path:
+    folder = Path(current_app.config["EXPORT_FOLDER"])
+    folder.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    return folder / f"{_safe_filename_part(filename_prefix)}_{timestamp}.pdf"
 
 
 def _task_text(task: Task) -> str:
@@ -101,9 +107,7 @@ def _export_table_pdf_reportlab(
     from reportlab.lib.units import mm
     from reportlab.platypus import SimpleDocTemplate, Spacer, LongTable, TableStyle
 
-    folder = Path(current_app.config["EXPORT_FOLDER"])
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d_%H-%M')}.pdf"
+    path = _pdf_output_path(filename_prefix)
 
     font_regular, font_bold = _register_fonts()
     styles = getSampleStyleSheet()
@@ -365,9 +369,7 @@ def _export_table_pdf_pillow(
             "Выполните: pip install -r requirements.txt"
         )
 
-    folder = Path(current_app.config["EXPORT_FOLDER"])
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d_%H-%M')}.pdf"
+    path = _pdf_output_path(filename_prefix)
 
     # A4 landscape at 150 DPI. This is sharp enough and does not create huge files.
     dpi = 150
@@ -502,9 +504,7 @@ def _export_table_pdf_basic(
     ReportLab dependency. The main path still uses ReportLab. The fallback keeps
     Cyrillic readable through a Unicode Type0 PDF font and always uses black text.
     """
-    folder = Path(current_app.config["EXPORT_FOLDER"])
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"{_safe_filename_part(filename_prefix)}_{datetime.now().strftime('%Y-%m-%d_%H-%M')}.pdf"
+    path = _pdf_output_path(filename_prefix)
 
     margin = 28.0
     page_width, page_height = A4_LANDSCAPE

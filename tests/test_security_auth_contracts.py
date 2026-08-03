@@ -133,6 +133,19 @@ class SecurityAuthContractsTests(unittest.TestCase):
             self.assertIsNone(user.locked_until)
             self.assertEqual(user.last_login_ip, "192.0.2.10")
 
+    def test_login_failure_refreshes_detached_user_before_updating_counter(self):
+        user = User(username="detached-user", password_hash="unused", role=ROLE_MANAGER)
+        db.session.add(user)
+        db.session.commit()
+        user_id = user.id
+        db.session.expunge(user)
+
+        with self.app.test_request_context("/", environ_base={"REMOTE_ADDR": "192.0.2.10"}):
+            mark_login_failure(user)
+
+        stored_user = db.session.get(User, user_id)
+        self.assertEqual(stored_user.failed_login_count, 1)
+
     def test_permission_helpers_enforce_role_and_assignment_rules(self):
         admin = User(id=1, username="admin", role=ROLE_ADMIN)
         manager = User(id=2, username="manager", role=ROLE_MANAGER)

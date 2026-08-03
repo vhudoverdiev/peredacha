@@ -34,10 +34,14 @@ def current_totp(secret: str, period: int = 30, digits: int = 6) -> str:
     return _hotp(secret, int(time.time()) // period, digits=digits)
 
 
+def _clean_totp_code(code: str | None) -> str:
+    return "".join(ch for ch in str(code or "") if ch.isdigit())
+
+
 def verify_totp(secret: str | None, code: str | None, period: int = 30, window: int = 1, digits: int = 6) -> bool:
     if not secret or not code:
         return False
-    cleaned = "".join(ch for ch in str(code) if ch.isdigit())
+    cleaned = _clean_totp_code(code)
     if len(cleaned) != digits:
         return False
     now_counter = int(time.time()) // period

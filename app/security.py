@@ -207,6 +207,12 @@ def mark_login_success(user) -> None:
 def mark_login_failure(user) -> None:
     if not user:
         return
+    user_id = getattr(user, "id", None)
+    if user_id is not None:
+        fresh_user = db.session.get(type(user), user_id, populate_existing=True)
+        if fresh_user is None:
+            return
+        user = fresh_user
     user.failed_login_count = int(user.failed_login_count or 0) + 1
     # 5 failures = 15 min; then progressively longer, capped at 24 hours.
     if user.failed_login_count >= 5:

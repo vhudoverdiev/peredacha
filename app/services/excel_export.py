@@ -16,6 +16,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from app.models import Apartment, SyncLog, Task, STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR, STATUS_GUARANTEE, STATUS_CONCESSION
 from app.services.excel_import import inspect_remarks_workbook
+from app.services.filename import safe_filename_part
 from app.services.task_service import get_setting
 
 
@@ -25,22 +26,21 @@ REPORT_HEADER_FILL = PatternFill(fill_type="solid", start_color=EXCEL_HEADER_FIL
 THIN_BORDER = Border(left=Side(style="thin", color="000000"), right=Side(style="thin", color="000000"), top=Side(style="thin", color="000000"), bottom=Side(style="thin", color="000000"))
 
 
-def style_header_row(ws) -> None:
+def _style_header_row(ws, fill: PatternFill) -> None:
     ws.row_dimensions[1].height = 32
     for cell in ws[1]:
         cell.font = Font(bold=True, color="111827")
-        cell.fill = HEADER_FILL
+        cell.fill = fill
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         cell.border = THIN_BORDER
+
+
+def style_header_row(ws) -> None:
+    _style_header_row(ws, HEADER_FILL)
 
 
 def style_report_header_row(ws) -> None:
-    ws.row_dimensions[1].height = 32
-    for cell in ws[1]:
-        cell.font = Font(bold=True, color="111827")
-        cell.fill = REPORT_HEADER_FILL
-        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        cell.border = THIN_BORDER
+    _style_header_row(ws, REPORT_HEADER_FILL)
 
 
 def apply_borders(ws) -> None:
@@ -686,9 +686,7 @@ def _is_tmc_column(ws, column_index: int) -> bool:
 
 
 def _safe_filename_part(value: str | None) -> str:
-    text = re.sub(r"[\\/:*?\"<>|]+", " ", str(value or "").strip())
-    text = re.sub(r"\s+", " ", text).strip()
-    return text or "object"
+    return safe_filename_part(value, fallback="object")
 
 
 def _remarks_source_quality(path: Path) -> tuple[int, int] | None:

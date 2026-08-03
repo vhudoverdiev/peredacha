@@ -1,11 +1,16 @@
 from datetime import date
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
+
+from flask import Flask
 
 from app.models import Apartment, Project, STATUS_CONTRACTOR, Task, WorkPoint
 from app.services.pdf_export import (
     _date,
     _latin_text,
     _limit_pdf_text,
+    _pdf_output_path,
     _pdf_escape,
     _pdf_text_hex,
     _point,
@@ -22,6 +27,18 @@ class PdfExportContractsTests(unittest.TestCase):
         self.assertEqual(_safe_filename_part('  Report: A/B*C? "Q" <1>|  '), "Report A B C Q 1")
         self.assertEqual(_safe_filename_part("  "), "export")
         self.assertEqual(_safe_filename_part(None), "export")
+
+    def test_pdf_output_path_creates_export_folder_and_uses_safe_prefix(self):
+        app = Flask(__name__)
+        with TemporaryDirectory() as tempdir:
+            app.config["EXPORT_FOLDER"] = str(Path(tempdir) / "nested" / "exports")
+            with app.app_context():
+                path = _pdf_output_path('  Report: A/B  ')
+
+            self.assertTrue(path.parent.exists())
+            self.assertEqual(path.parent.name, "exports")
+            self.assertTrue(path.name.startswith("Report A B_"))
+            self.assertEqual(path.suffix, ".pdf")
 
     def test_text_limiting_is_deterministic_and_preserves_meaningful_newlines(self):
         text = "Line 1\n\n\nLine 2 " + "x" * 20

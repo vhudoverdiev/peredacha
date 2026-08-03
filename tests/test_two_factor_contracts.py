@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch
 from urllib.parse import unquote, urlparse, parse_qs
 
-from app.two_factor import current_totp, generate_totp_secret, provisioning_uri, qr_svg_data_uri, verify_totp
+from app.two_factor import _clean_totp_code, current_totp, generate_totp_secret, provisioning_uri, qr_svg_data_uri, verify_totp
 
 
 class TwoFactorContractsTests(unittest.TestCase):
@@ -33,6 +33,10 @@ class TwoFactorContractsTests(unittest.TestCase):
     def test_invalid_secret_never_raises_from_verify(self):
         with patch("app.two_factor.time.time", return_value=120):
             self.assertFalse(verify_totp("not base32!!!", "123456"))
+
+    def test_clean_totp_code_keeps_only_digits(self):
+        self.assertEqual(_clean_totp_code(" 12-34 5a6 "), "123456")
+        self.assertEqual(_clean_totp_code(None), "")
 
     def test_provisioning_uri_encodes_issuer_username_and_totp_parameters(self):
         uri = provisioning_uri("qa@example.com", self.RFC_SECRET, issuer="Peredacha CRM")
