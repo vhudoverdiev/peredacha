@@ -75,7 +75,7 @@ const scenarios = [
       }
       await page.fill("input[name=\"q\"]", "12");
       await Promise.all([
-        page.waitForLoadState("networkidle"),
+        page.waitForURL((url) => url.searchParams.get("q") === "12", { timeout: 8000 }),
         page.locator(".apartments-filter-form button[type=\"submit\"]").click(),
       ]);
       if (!page.url().includes("q=12")) {
@@ -289,9 +289,7 @@ async function exerciseScenario(page, scenario, viewport, errors) {
   return compareOrUpdateScreenshot(screenshotName);
 }
 
-async function runPublicScenario(browser, scenario, viewport) {
-  console.log(`E2E_VISUAL_START ${scenario.name}/${viewport.name}`);
-  const errors = [];
+async function newScenarioPage(browser, viewport, errors) {
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
     userAgent: viewport.userAgent,
@@ -304,6 +302,13 @@ async function runPublicScenario(browser, scenario, viewport) {
     if (message.type() === "error") errors.push(`console error: ${message.text()}`);
   });
   page.on("pageerror", (error) => errors.push(`page error: ${error.message}`));
+  return { context, page };
+}
+
+async function runPublicScenario(browser, scenario, viewport) {
+  console.log(`E2E_VISUAL_START ${scenario.name}/${viewport.name}`);
+  const errors = [];
+  const { context, page } = await newScenarioPage(browser, viewport, errors);
   try {
     return await exerciseScenario(page, scenario, viewport, errors);
   } finally {
@@ -313,26 +318,15 @@ async function runPublicScenario(browser, scenario, viewport) {
 
 async function runAuthenticatedScenarios(browser, viewport, authenticatedScenarios) {
   console.log(`E2E_VISUAL_LOGIN ${viewport.name}`);
-  let errors = [];
-  const context = await browser.newContext({
-    viewport: { width: viewport.width, height: viewport.height },
-    userAgent: viewport.userAgent,
-    deviceScaleFactor: 1,
-    locale: "ru-RU",
-    serviceWorkers: "block",
-  });
-  const page = await context.newPage();
-  page.on("console", (message) => {
-    if (message.type() === "error") errors.push(`console error: ${message.text()}`);
-  });
-  page.on("pageerror", (error) => errors.push(`page error: ${error.message}`));
+  const errors = [];
+  const { context, page } = await newScenarioPage(browser, viewport, errors);
 
   try {
     await login(page);
     const results = [];
     for (const scenario of authenticatedScenarios) {
       console.log(`E2E_VISUAL_START ${scenario.name}/${viewport.name}`);
-      errors = [];
+      errors.length = 0;
       results.push({
         scenario: scenario.name,
         viewport: viewport.name,

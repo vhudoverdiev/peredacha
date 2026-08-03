@@ -161,6 +161,19 @@ class SecurityAuthContractsTests(unittest.TestCase):
 
         self.assertIsNone(db.session.get(User, user_id))
 
+    def test_login_success_ignores_stale_user_when_database_row_is_gone(self):
+        user = User(username="missing-success-user", password_hash="unused", role=ROLE_MANAGER)
+        db.session.add(user)
+        db.session.commit()
+        user_id = user.id
+        db.session.execute(text("DELETE FROM users WHERE id = :user_id"), {"user_id": user_id})
+        db.session.commit()
+
+        with self.app.test_request_context("/", environ_base={"REMOTE_ADDR": "192.0.2.10"}):
+            mark_login_success(user)
+
+        self.assertIsNone(db.session.get(User, user_id))
+
     def test_permission_helpers_enforce_role_and_assignment_rules(self):
         admin = User(id=1, username="admin", role=ROLE_ADMIN)
         manager = User(id=2, username="manager", role=ROLE_MANAGER)

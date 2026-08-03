@@ -50,6 +50,52 @@ def _browser_executable() -> str | None:
     return None
 
 
+def _visual_env(temp_path: Path) -> dict[str, str]:
+    env = os.environ.copy()
+    env.update(
+        {
+            "E2E_VISUAL_DATABASE_URL": f"sqlite:///{(temp_path / 'e2e_visual.sqlite').as_posix()}",
+            "E2E_VISUAL_UPLOAD_FOLDER": str(temp_path / "uploads"),
+            "E2E_VISUAL_EXPORT_FOLDER": str(temp_path / "exports"),
+            "PYTHONIOENCODING": "utf-8",
+        }
+    )
+    return env
+
+
+def _runner_env(
+    env: dict[str, str],
+    *,
+    base_url: str,
+    browser_executable: str,
+    node_modules: str,
+    viewport_name: str,
+) -> dict[str, str]:
+    runner_env = env.copy()
+    runner_env.update(
+        {
+            "E2E_VISUAL_BASE_URL": base_url,
+            "E2E_VISUAL_MAX_DIFF_PIXELS": "1000",
+            "E2E_VISUAL_THRESHOLD": "0.1",
+            "E2E_VISUAL_BROWSER_EXECUTABLE": browser_executable,
+            "E2E_VISUAL_VIEWPORTS": viewport_name,
+            "NODE_PATH": node_modules,
+        }
+    )
+    return runner_env
+
+
+def _stop_server(server: subprocess.Popen) -> None:
+    server.terminate()
+    try:
+        server.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        server.kill()
+        server.wait(timeout=10)
+    if server.stdout:
+        server.stdout.close()
+
+
 class E2EVisualBaselineTests(unittest.TestCase):
     def test_browser_e2e_visual_baseline(self):
         node, node_modules = _bundled_node_paths()
@@ -70,19 +116,7 @@ class E2EVisualBaselineTests(unittest.TestCase):
             temp_path = Path(temp_dir)
             port = _free_port()
             base_url = f"http://127.0.0.1:{port}"
-            database_path = temp_path / "e2e_visual.sqlite"
-            upload_path = temp_path / "uploads"
-            export_path = temp_path / "exports"
-
-            env = os.environ.copy()
-            env.update(
-                {
-                    "E2E_VISUAL_DATABASE_URL": f"sqlite:///{database_path.as_posix()}",
-                    "E2E_VISUAL_UPLOAD_FOLDER": str(upload_path),
-                    "E2E_VISUAL_EXPORT_FOLDER": str(export_path),
-                    "PYTHONIOENCODING": "utf-8",
-                }
-            )
+            env = _visual_env(temp_path)
 
             for viewport_name in ("desktop", "tablet", "mobile"):
                 server = subprocess.Popen(
@@ -95,17 +129,12 @@ class E2EVisualBaselineTests(unittest.TestCase):
                 )
                 try:
                     self._wait_for_server(base_url, server)
-
-                    runner_env = env.copy()
-                    runner_env.update(
-                        {
-                            "E2E_VISUAL_BASE_URL": base_url,
-                            "E2E_VISUAL_MAX_DIFF_PIXELS": "1000",
-                            "E2E_VISUAL_THRESHOLD": "0.1",
-                            "E2E_VISUAL_BROWSER_EXECUTABLE": browser_executable,
-                            "E2E_VISUAL_VIEWPORTS": viewport_name,
-                            "NODE_PATH": node_modules,
-                        }
+                    runner_env = _runner_env(
+                        env,
+                        base_url=base_url,
+                        browser_executable=browser_executable,
+                        node_modules=node_modules,
+                        viewport_name=viewport_name,
                     )
                     result = subprocess.run(
                         [node, str(RUNNER)],
@@ -118,14 +147,7 @@ class E2EVisualBaselineTests(unittest.TestCase):
                     )
                     self.assertEqual(result.returncode, 0, result.stdout)
                 finally:
-                    server.terminate()
-                    try:
-                        server.wait(timeout=10)
-                    except subprocess.TimeoutExpired:
-                        server.kill()
-                        server.wait(timeout=10)
-                    if server.stdout:
-                        server.stdout.close()
+                    _stop_server(server)
 
     def _wait_for_server(self, base_url: str, server: subprocess.Popen) -> None:
         deadline = time.monotonic() + 30

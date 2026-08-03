@@ -199,23 +199,56 @@ def record_site_visit(response) -> None:
         pass
 
 
+def _identity_id(obj) -> int | None:
+    try:
+        return getattr(obj, "id", None)
+    except ObjectDeletedError:
+        identity = inspect(obj).identity
+        return identity[0] if identity else None
+
+
+def _update_user_by_id(user_cls, user_id: int, values: dict) -> None:
+    db.session.execute(
+        update(user_cls).where(user_cls.id == user_id).values(**values),
+        execution_options={"synchronize_session": "fetch"},
+    )
+
+
 def mark_login_success(user) -> None:
+    if not user:
+        return
+    user_cls = type(user)
+    user_id = _identity_id(user)
+    values = {
+        "failed_login_count": 0,
+        "locked_until": None,
+        "last_login_at": utc_now(),
+        "last_login_ip": client_ip()[:80],
+    }
+    if user_id is not None:
+        _update_user_by_id(user_cls, user_id, values)
+        db.session.commit()
+        return
     user.failed_login_count = 0
     user.locked_until = None
-    user.last_login_at = utc_now()
-    user.last_login_ip = client_ip()[:80]
+    user.last_login_at = values["last_login_at"]
+    user.last_login_ip = values["last_login_ip"]
     db.session.commit()
+
+
+def _lockout_until_for_failure_count(failed_login_count: int):
+    if failed_login_count < 5:
+        return None
+    extra = max(failed_login_count - 5, 0)
+    minutes = min(15 * (2 ** min(extra, 6)), 24 * 60)
+    return utc_now() + timedelta(minutes=minutes)
 
 
 def mark_login_failure(user) -> None:
     if not user:
         return
     user_cls = type(user)
-    try:
-        user_id = getattr(user, "id", None)
-    except ObjectDeletedError:
-        identity = inspect(user).identity
-        user_id = identity[0] if identity else None
+    user_id = _identity_id(user)
     if user_id is not None:
         current_count = db.session.execute(
             select(user_cls.failed_login_count).where(user_cls.id == user_id)
@@ -224,22 +257,16 @@ def mark_login_failure(user) -> None:
             return
         failed_login_count = int(current_count or 0) + 1
         values = {"failed_login_count": failed_login_count}
-        if failed_login_count >= 5:
-            extra = max(failed_login_count - 5, 0)
-            minutes = min(15 * (2 ** min(extra, 6)), 24 * 60)
-            values["locked_until"] = utc_now() + timedelta(minutes=minutes)
-        db.session.execute(
-            update(user_cls).where(user_cls.id == user_id).values(**values),
-            execution_options={"synchronize_session": "fetch"},
-        )
+        locked_until = _lockout_until_for_failure_count(failed_login_count)
+        if locked_until is not None:
+            values["locked_until"] = locked_until
+        _update_user_by_id(user_cls, user_id, values)
         db.session.commit()
         return
     user.failed_login_count = int(user.failed_login_count or 0) + 1
-    # 5 failures = 15 min; then progressively longer, capped at 24 hours.
-    if user.failed_login_count >= 5:
-        extra = max(user.failed_login_count - 5, 0)
-        minutes = min(15 * (2 ** min(extra, 6)), 24 * 60)
-        user.locked_until = utc_now() + timedelta(minutes=minutes)
+    locked_until = _lockout_until_for_failure_count(user.failed_login_count)
+    if locked_until is not None:
+        user.locked_until = locked_until
     db.session.commit()
 
 
