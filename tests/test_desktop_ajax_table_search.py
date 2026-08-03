@@ -7,6 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = PROJECT_ROOT / "app" / "static" / "script.js"
 TEMPLATES = PROJECT_ROOT / "app" / "templates"
 STYLE_CSS = PROJECT_ROOT / "app" / "static" / "style.css"
+DESKTOP_CSS = PROJECT_ROOT / "app" / "static" / "desktop-only.css"
 BASE_TEMPLATE = PROJECT_ROOT / "app" / "templates" / "base.html"
 SERVICE_WORKER = PROJECT_ROOT / "app" / "static" / "service-worker.js"
 
@@ -16,6 +17,7 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
     def setUpClass(cls):
         cls.script = SCRIPT.read_text(encoding="utf-8")
         cls.style_css = STYLE_CSS.read_text(encoding="utf-8")
+        cls.desktop_css = DESKTOP_CSS.read_text(encoding="utf-8")
         cls.base_template = BASE_TEMPLATE.read_text(encoding="utf-8")
         cls.service_worker = SERVICE_WORKER.read_text(encoding="utf-8")
 
@@ -79,10 +81,16 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
             "body:has(.developer-section-tabs) .site-errors-filter-form "
             ".developer-custom-select.is-enhanced > .developer-native-select"
         )
+        custom_button_selector = (
+            "body:has(.developer-section-tabs) .site-errors-filter-form "
+            ".developer-custom-select:has(> .developer-select-button) > select"
+        )
         fallback_start = self.style_css.index(fallback_selector)
         fallback_rule = self.style_css[fallback_start:self.style_css.index("}", fallback_start)]
         enhanced_start = self.style_css.index(enhanced_selector)
         enhanced_rule = self.style_css[enhanced_start:self.style_css.index("}", enhanced_start)]
+        custom_button_start = self.style_css.index(custom_button_selector)
+        custom_button_rule = self.style_css[custom_button_start:self.style_css.index("}", custom_button_start)]
 
         self.assertIn("display: block !important", fallback_rule)
         self.assertIn("opacity: 1 !important", fallback_rule)
@@ -92,6 +100,20 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
         self.assertIn("visibility: hidden !important", enhanced_rule)
         self.assertIn("opacity: 0 !important", enhanced_rule)
         self.assertIn("pointer-events: none !important", enhanced_rule)
+        self.assertIn("position: absolute !important", custom_button_rule)
+        self.assertIn("visibility: hidden !important", custom_button_rule)
+        self.assertIn("opacity: 0 !important", custom_button_rule)
+        self.assertIn("pointer-events: none !important", custom_button_rule)
+
+    def test_site_error_filter_form_exposes_only_status_filter(self):
+        site_errors_template = (TEMPLATES / "site_errors.html").read_text(encoding="utf-8")
+        filter_start = site_errors_template.index("site-errors-filter-form")
+        filter_end = site_errors_template.index("</form>", filter_start)
+        filter_markup = site_errors_template[filter_start:filter_end]
+
+        self.assertIn('data-site-errors-kind-filter-disabled="1"', filter_markup)
+        self.assertIn('name="kind" disabled', filter_markup)
+        self.assertIn('name="status"', filter_markup)
 
     def test_ajax_custom_selects_mark_enhanced_shells_before_hiding_native_fallback(self):
         init_start = self.script.index("const initDeveloperCustomSelects = (scope = document) =>")
@@ -166,6 +188,33 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
                     ),
                     content_class_position,
                 )
+
+    def test_material_tabs_replay_the_writeoff_entrance_animation_after_ajax_swap(self):
+        materials_listener_start = self.script.index("event.detail?.pageKey !== 'materials'")
+        materials_listener_end = self.script.index("// Contractor names are also written", materials_listener_start)
+        materials_listener = self.script[materials_listener_start:materials_listener_end]
+
+        self.assertIn("document.documentElement.classList.contains('desktop-like-pointer')", materials_listener)
+        self.assertIn("'.materials-animated-card'", materials_listener)
+        self.assertIn("shell.classList.remove('crm-tab-enter')", materials_listener)
+        self.assertIn("void shell.offsetWidth", materials_listener)
+        self.assertIn("shell.classList.add('crm-tab-enter')", materials_listener)
+
+        writeoff_selector = ".material-writeoff-form .materials-animated-card"
+        replay_selector = ".materials-animated-card.crm-tab-enter"
+        writeoff_start = self.desktop_css.index(writeoff_selector)
+        writeoff_rule = self.desktop_css[writeoff_start:self.desktop_css.index("}", writeoff_start)]
+        replay_start = self.desktop_css.index(replay_selector)
+        replay_rule = self.desktop_css[replay_start:self.desktop_css.index("}", replay_start)]
+
+        for expected in (
+            "animation: desktopMaterialWriteoffRise .35s ease both !important",
+            "animation-delay: 0ms !important",
+            "transition-delay: 0ms !important",
+            "will-change: transform, opacity !important",
+        ):
+            self.assertIn(expected, writeoff_rule)
+            self.assertIn(expected, replay_rule)
 
     def test_assignment_report_filter_updates_totals_and_rows_together(self):
         template = (TEMPLATES / "assignment_report.html").read_text(encoding="utf-8")

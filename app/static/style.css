@@ -56883,3 +56883,15 @@ body:has(.developer-section-tabs) .site-errors-filter-form .developer-custom-sel
   pointer-events: none !important;
   z-index: -1 !important;
 }
+
+body:has(.developer-section-tabs) .site-errors-filter-form .developer-custom-select:has(> .developer-select-button) > select {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}

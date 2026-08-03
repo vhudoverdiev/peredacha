@@ -103,16 +103,18 @@ const scenarios = [
       const assertCustomFilters = async (label) => {
         await page.waitForFunction(
           () => {
-            const shells = Array.from(document.querySelectorAll(".site-errors-filter-form .js-developer-custom-select"));
-            if (shells.length !== 2) return false;
+            const shells = Array.from(document.querySelectorAll(".site-errors-filter-form .js-developer-custom-select"))
+              .filter((shell) => !shell.closest("[hidden]"));
+            if (shells.length !== 1) return false;
             return shells.every((shell) => {
               const button = shell.querySelector(".developer-select-button");
-              const select = shell.querySelector("select.developer-native-select");
-              if (!button || !select || !shell.classList.contains("is-enhanced")) return false;
+              const select = shell.querySelector("select");
+              if (!button || !select || select.name !== "status") return false;
               const buttonStyle = getComputedStyle(button);
               const buttonRect = button.getBoundingClientRect();
               const selectStyle = getComputedStyle(select);
               const nativeVisible = selectStyle.visibility !== "hidden"
+                && selectStyle.display !== "none"
                 && Number(selectStyle.opacity || "1") > 0.01
                 && select.getBoundingClientRect().height > 1;
               return buttonStyle.display !== "none"
@@ -133,6 +135,7 @@ const scenarios = [
             const selectStyle = select ? getComputedStyle(select) : null;
             return {
               className: shell.className,
+              hiddenAncestor: Boolean(shell.closest("[hidden]")),
               hasButton: Boolean(button),
               buttonHidden: Boolean(button?.hidden),
               buttonRect: buttonRect ? { width: buttonRect.width, height: buttonRect.height } : null,

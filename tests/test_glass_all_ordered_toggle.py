@@ -109,6 +109,17 @@ class GlassAllOrderedToggleTests(unittest.TestCase):
         self.assertEqual(query.get("include_ordered"), ["1"])
         self.assertEqual(query.get("page"), ["2"])
 
+    def test_ordered_checkbox_does_not_submit_until_search_button(self):
+        page = self._desktop_get("?tab=all").get_data(as_text=True)
+        checkbox = re.search(r'<input[^>]+name="include_ordered"[^>]*>', page)
+        search_button = re.search(r'<button[^>]+class="[^"]*\bcrm-search-btn\b[^"]*"[^>]*type="submit"[^>]*>', page)
+
+        self.assertIsNotNone(checkbox)
+        self.assertIsNotNone(search_button)
+        self.assertNotIn("onchange=", checkbox.group(0))
+        self.assertNotIn("requestSubmit", checkbox.group(0))
+        self.assertNotIn("form.submit", checkbox.group(0))
+
     def test_mobile_layout_does_not_get_the_desktop_toggle(self):
         response = self.client.get(
             "/glass-measurements?tab=all&include_ordered=1",

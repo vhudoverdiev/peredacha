@@ -5119,6 +5119,24 @@ document.addEventListener('crm:ajax-pagination-updated', event => {
   shell.classList.add('crm-tab-enter');
 });
 
+// Materials tabs morph some compatible table nodes in place. Replay the same
+// bottom-up entrance after every desktop tab swap so Balance, Requests,
+// Write-off and History feel identical.
+document.addEventListener('crm:ajax-pagination-updated', event => {
+  if (event.detail?.pageKey !== 'materials') return;
+  if (!document.documentElement.classList.contains('desktop-like-pointer')) return;
+  const content = event.detail?.content || document;
+  const shells = Array.from(content.querySelectorAll?.('.materials-animated-card') || []);
+  if (!shells.length) {
+    document.querySelectorAll('[data-ajax-pagination-page="materials"] .materials-animated-card').forEach(shell => shells.push(shell));
+  }
+  shells.forEach(shell => {
+    shell.classList.remove('crm-tab-enter');
+    void shell.offsetWidth;
+    shell.classList.add('crm-tab-enter');
+  });
+});
+
 // Contractor names are also written into the status pill by quick actions.
 // Rebuild the two-line desktop label after any such in-place update so the
 // specialization never falls back to arbitrary word wrapping.

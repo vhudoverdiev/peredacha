@@ -452,6 +452,14 @@ html.desktop-like-pointer body.app-body
   will-change: transform, opacity !important;
 }
 
+html.desktop-like-pointer body.app-body
+  .materials-animated-card.crm-tab-enter {
+  animation: desktopMaterialWriteoffRise .35s ease both !important;
+  animation-delay: 0ms !important;
+  transition-delay: 0ms !important;
+  will-change: transform, opacity !important;
+}
+
 @keyframes desktopMaterialWriteoffRise {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }

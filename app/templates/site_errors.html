@@ -42,11 +42,11 @@
 <div class="card content-card mb-3">
   <div class="card-body">
     <form class="row g-2 align-items-end crm-filter-form site-errors-filter-form" method="get">
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-md-4 d-none" hidden data-site-errors-kind-filter-disabled="1">
         <div class="site-errors-filter-field">
           <label class="form-label">Тип</label>
           <div class="developer-custom-select js-developer-custom-select">
-            <select class="form-select developer-native-select" name="kind">
+            <select class="form-select developer-native-select" name="kind" disabled>
             <option value="" {% if not kind %}selected{% endif %}>Все</option>
             <option value="user" {% if kind == 'user' %}selected{% endif %}>От пользователей</option>
             <option value="registration" {% if kind == 'registration' %}selected{% endif %}>Регистрации</option>

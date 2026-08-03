@@ -40,7 +40,7 @@
       {% if not is_mobile_phone_request %}
       <div class="col-12 col-lg-auto d-flex align-items-center pb-2">
         <label class="d-inline-flex align-items-center gap-2 mb-0">
-          <input class="form-check-input mt-0" type="checkbox" name="include_ordered" value="1" {% if include_ordered %}checked{% endif %} onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
+          <input class="form-check-input mt-0" type="checkbox" name="include_ordered" value="1" {% if include_ordered %}checked{% endif %}>
           <span>Заказаны</span>
         </label>
       </div>
