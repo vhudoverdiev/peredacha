@@ -14,9 +14,11 @@ from app.security import (
     generate_captcha,
     hit_rate_limit,
     is_account_locked,
+    login_ip_password_limit_reached,
     mark_login_failure,
     mark_login_success,
     security_event,
+    site_error_daily_ip_limit_reached,
     verify_captcha,
 )
 from app.two_factor import verify_totp
@@ -124,11 +126,16 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         username = (form.username.data or "").strip()
-        user = User.query.filter_by(username=username).first()
+        user = User.query.filter(db.func.lower(User.username) == username.lower()).order_by(User.id.asc()).first()
 
         if hit_rate_limit("login-ip", 40, 300) or hit_rate_limit(f"login-user:{username.lower()}", 10, 300):
             security_event("login_rate_limited", f"Слишком много попыток входа для логина {username}", user_id=user.id if user else None, severity="warning")
             flash("Слишком много попыток входа. Попробуйте позже.", "danger")
+            return _render_login(form)
+
+        if login_ip_password_limit_reached():
+            security_event("login_ip_password_limited", f"Достигнут лимит неверных паролей с IP для логина {username}", user_id=user.id if user else None, severity="warning")
+            flash("С этого IP адреса было слишком много неверных попыток входа. Попробуйте через 30 минут.", "danger")
             return _render_login(form)
 
         if user and is_account_locked(user):
@@ -246,6 +253,11 @@ def registration_request():
         flash("Слишком много заявок. Попробуйте немного позже.", "warning")
         return redirect(url_for("auth.login"))
 
+    if site_error_daily_ip_limit_reached("registration", 1):
+        security_event("registration_request_daily_ip_limited", "Достигнут суточный лимит заявок на регистрацию с IP", severity="warning")
+        flash("С этого IP адреса уже отправлена заявка на регистрацию. Повторить можно через сутки.", "warning")
+        return redirect(url_for("auth.login"))
+
     if not verify_captcha(captcha_answer, prefix="registration"):
         security_event("registration_request_bad_captcha", "Неверная капча при заявке на регистрацию", severity="warning")
         clear_captcha(prefix="registration")
@@ -270,6 +282,7 @@ def registration_request():
         message=message[:5000],
         page_url=request.referrer or request.url,
         user_agent=(request.headers.get("User-Agent") or "")[:500],
+        ip_address=client_ip()[:80],
         status="new",
     )
     db.session.add(report)

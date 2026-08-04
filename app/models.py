@@ -754,6 +754,7 @@ class SiteErrorReport(TimestampMixin, db.Model):
     message = db.Column(db.Text, nullable=False)
     page_url = db.Column(db.String(500), nullable=True)
     user_agent = db.Column(db.String(500), nullable=True)
+    ip_address = db.Column(db.String(80), nullable=True, index=True)
     traceback_text = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(30), default="new", nullable=False, index=True)
 

@@ -1,12 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import unittest
 from unittest.mock import patch
 
 from config import Config
 from app import create_app, db, login_manager
-from app.models import ROLE_ADMIN, ROLE_GLAZIER, ROLE_MANAGER, ROLE_VERIFIER, AppSetting, Project, SiteErrorReport, User
-from app.security import _BUCKETS
+from app.models import ROLE_ADMIN, ROLE_GLAZIER, ROLE_MANAGER, ROLE_VERIFIER, AppSetting, Project, SecurityEvent, SiteErrorReport, User
+from app.time_utils import utc_now
+from app.security import _BUCKETS, login_ip_password_limit_reached
 
 
 class TestConfig(Config):
@@ -62,6 +63,20 @@ class AuthFlowContractsTests(unittest.TestCase):
         stored_user = db.session.get(User, user.id)
         self.assertEqual(stored_user.failed_login_count, 0)
         self.assertEqual(stored_user.last_login_ip, "203.0.113.10")
+
+    def test_password_login_matches_username_case_insensitively(self):
+        user = self._user(username="vladimir", role=ROLE_ADMIN)
+
+        response = self.client.post(
+            "/login",
+            data={"username": "Vladimir", "password": "correct-password"},
+            follow_redirects=False,
+            environ_base={"REMOTE_ADDR": "203.0.113.101"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        with self.client.session_transaction() as session:
+            self.assertEqual(session.get("_user_id"), str(user.id))
 
     def test_worker_login_honors_safe_next_url_for_field_workflows(self):
         worker = self._user(username="glazier", role=ROLE_GLAZIER)
@@ -191,6 +206,46 @@ class AuthFlowContractsTests(unittest.TestCase):
         self.assertEqual(report.user_agent, "AuthFlowTest/1.0")
         with self.client.session_transaction() as session:
             self.assertNotIn("registration_captcha_answer", session)
+
+    def test_login_blocks_ip_for_thirty_minutes_after_five_bad_passwords(self):
+        user = self._user(username="real-user", role=ROLE_MANAGER)
+
+        for index in range(5):
+            response = self.client.post(
+                "/login",
+                data={"username": f"missing-{index}", "password": "wrong-password"},
+                environ_base={"REMOTE_ADDR": "203.0.113.88"},
+                follow_redirects=False,
+            )
+            self.assertEqual(response.status_code, 200)
+
+        blocked = self.client.post(
+            "/login",
+            data={"username": user.username, "password": "correct-password"},
+            environ_base={"REMOTE_ADDR": "203.0.113.88"},
+            follow_redirects=False,
+        )
+        self.assertEqual(blocked.status_code, 200)
+        with self.client.session_transaction() as session:
+            self.assertNotIn("_user_id", session)
+
+        self.assertTrue(login_ip_password_limit_reached(ip_address="203.0.113.89"))
+        self.assertFalse(login_ip_password_limit_reached(ip_address="203.0.114.89"))
+
+        SecurityEvent.query.filter_by(kind="login_failed", ip_address="203.0.113.88").update(
+            {"created_at": utc_now() - timedelta(minutes=31)},
+            synchronize_session=False,
+        )
+        db.session.commit()
+
+        fresh_client = self.app.test_client()
+        expired = fresh_client.post(
+            "/login",
+            data={"username": user.username, "password": "correct-password"},
+            environ_base={"REMOTE_ADDR": "203.0.113.88"},
+            follow_redirects=False,
+        )
+        self.assertEqual(expired.status_code, 302)
 
 
 if __name__ == "__main__":

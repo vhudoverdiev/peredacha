@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+import ipaddress
 import re
 import secrets
 import time
@@ -36,8 +37,32 @@ def client_ip() -> str:
     return request.remote_addr or "unknown"
 
 
+def ip_limit_key(ip_address: str | None = None) -> str:
+    normalized_ip = (ip_address or client_ip() or "unknown")[:80]
+    try:
+        parsed_ip = ipaddress.ip_address(normalized_ip)
+    except ValueError:
+        return normalized_ip
+    if parsed_ip.version == 4:
+        parts = normalized_ip.split(".")
+        return ".".join(parts[:3] + ["0"]) + "/24"
+    return ":".join(parsed_ip.exploded.split(":")[:4]) + "::/64"
+
+
+def _ip_bucket_filter(column, ip_address: str | None = None):
+    normalized_ip = (ip_address or client_ip() or "unknown")[:80]
+    try:
+        parsed_ip = ipaddress.ip_address(normalized_ip)
+    except ValueError:
+        return column == normalized_ip
+    if parsed_ip.version == 4:
+        prefix = ".".join(normalized_ip.split(".")[:3]) + "."
+        return column.like(f"{prefix}%")
+    return column == normalized_ip
+
+
 def _bucket_key(scope: str) -> str:
-    return f"{scope}:{client_ip()}"
+    return f"{scope}:{ip_limit_key()}"
 
 
 def hit_rate_limit(scope: str, limit: int, window_seconds: int) -> bool:
@@ -50,6 +75,40 @@ def hit_rate_limit(scope: str, limit: int, window_seconds: int) -> bool:
         return True
     bucket.append(now)
     return False
+
+
+def site_error_daily_ip_limit_reached(kind: str, limit: int, *, ip_address: str | None = None) -> bool:
+    from app.models import SiteErrorReport
+
+    normalized_ip = (ip_address or client_ip() or "unknown")[:80]
+    since = utc_now() - timedelta(days=1)
+    count = (
+        SiteErrorReport.query
+        .filter(
+            SiteErrorReport.kind == kind,
+            _ip_bucket_filter(SiteErrorReport.ip_address, normalized_ip),
+            SiteErrorReport.created_at >= since,
+        )
+        .count()
+    )
+    return count >= limit
+
+
+def login_ip_password_limit_reached(*, ip_address: str | None = None) -> bool:
+    from app.models import SecurityEvent
+
+    normalized_ip = (ip_address or client_ip() or "unknown")[:80]
+    since = utc_now() - timedelta(minutes=30)
+    failed_count = (
+        SecurityEvent.query
+        .filter(
+            SecurityEvent.kind == "login_failed",
+            _ip_bucket_filter(SecurityEvent.ip_address, normalized_ip),
+            SecurityEvent.created_at >= since,
+        )
+        .count()
+    )
+    return failed_count >= 5
 
 
 def _captcha_session_key(prefix: str, name: str) -> str:

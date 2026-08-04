@@ -86,6 +86,7 @@ from app.security import (
     is_protected_developer_user,
     resolve_site_visit_project_id,
     security_event,
+    site_error_daily_ip_limit_reached,
     validate_upload,
 )
 from app.services.changelog_service import log_change
@@ -775,6 +776,7 @@ def _save_site_error(message: str, kind: str = "user", traceback_text: str | Non
         message=message[:5000],
         page_url=(page_url or request.form.get("page_url") or request.referrer or request.url or "")[:500],
         user_agent=(request.headers.get("User-Agent") or "")[:500],
+        ip_address=client_ip()[:80],
         traceback_text=(traceback_text or None),
         status="new",
     )
@@ -2013,6 +2015,9 @@ def report_error():
     message = (request.form.get("message") or "").strip()
     if not message:
         flash("Опишите ошибку текстом", "warning")
+    elif site_error_daily_ip_limit_reached("user", 3):
+        security_event("report_error_daily_ip_limited", "Достигнут суточный лимит сообщений об ошибке с IP", severity="warning")
+        flash("С этого IP адреса уже отправлено 3 сообщения об ошибке за сутки. Повторить можно позже.", "warning")
     else:
         _save_site_error(message[:5000], kind="user")
         flash("Ошибка отправлена. Спасибо, разберём.", "success")

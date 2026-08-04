@@ -380,6 +380,12 @@ def create_app(config_class=Config):
                 db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_site_visits_tab_id ON site_visits (tab_id)"))
                 db.session.commit()
 
+            if "site_error_reports" in inspector.get_table_names():
+                site_error_columns = {column["name"] for column in inspector.get_columns("site_error_reports")}
+                if "ip_address" not in site_error_columns:
+                    db.session.execute(text("ALTER TABLE site_error_reports ADD COLUMN ip_address VARCHAR(80)"))
+                db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_site_error_reports_ip_address ON site_error_reports (ip_address)"))
+                db.session.commit()
 
             if "sync_conflicts" in inspector.get_table_names():
                 sync_conflict_columns = {column["name"] for column in inspector.get_columns("sync_conflicts")}
