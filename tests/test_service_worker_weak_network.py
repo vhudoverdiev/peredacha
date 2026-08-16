@@ -61,18 +61,23 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         )
         self.assertIn("const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;", self.worker)
 
-    def test_cold_launch_returns_the_logo_shell_without_waiting_for_network(self):
+    def test_navigation_returns_the_logo_shell_without_waiting_for_network(self):
         fetch_start = self.worker.index("self.addEventListener('fetch'")
         helper_start = self.worker.index("async function fetchWithTimeout", fetch_start)
         fetch_handler = self.worker[fetch_start:helper_start]
 
-        self.assertIn("if (!event.clientId && !url.searchParams.has('_crm_retry'))", fetch_handler)
+        self.assertIn("if (!url.searchParams.has('_crm_retry'))", fetch_handler)
+        self.assertNotIn("event.clientId", fetch_handler)
         self.assertIn("event.respondWith(new Response(launchHtml", fetch_handler)
         self.assertLess(
             fetch_handler.index("event.respondWith(new Response(launchHtml"),
             fetch_handler.index("event.respondWith(navigationNetworkFirst(request))"),
         )
         self.assertIn("retryOnline(true);", self.worker)
+
+    def test_successful_retry_marker_is_removed_before_the_next_launch(self):
+        self.assertIn("currentUrl.searchParams.delete('_crm_retry');", self.template)
+        self.assertIn("window.history.replaceState(null, ''", self.template)
 
     def test_offline_logo_uses_the_same_stable_viewport_center_as_online_logo(self):
         self.assertIn("left: 50%; top: 50vh; top: 50svh;", self.worker)
@@ -129,7 +134,7 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v166-offline-logo-alignment")
+        self.assertEqual(worker_version, "v167-instant-network-probe")
 
 
 if __name__ == "__main__":

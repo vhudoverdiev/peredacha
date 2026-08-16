@@ -895,9 +895,17 @@
   </script>
   <script>
     (() => {
+      try {
+        const currentUrl = new URL(window.location.href);
+        if (currentUrl.searchParams.has('_crm_retry')) {
+          currentUrl.searchParams.delete('_crm_retry');
+          window.history.replaceState(null, '', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+        }
+      } catch (error) {}
+
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v166-offline-logo-alignment', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v167-instant-network-probe', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }

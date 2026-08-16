@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v166-offline-logo-alignment';
+const STATIC_CACHE = 'peredacha-static-v167-instant-network-probe';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -240,7 +240,7 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
-    if (!event.clientId && !url.searchParams.has('_crm_retry')) {
+    if (!url.searchParams.has('_crm_retry')) {
       const launchUrl = new URL(request.url);
       launchUrl.searchParams.set('_crm_launch_probe', '1');
       const launchHtml = MOBILE_OFFLINE_HTML.replace(
