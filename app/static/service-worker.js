@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v167-instant-network-probe';
+const STATIC_CACHE = 'peredacha-static-v168-iphone-16-pro-max-splash';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -7,6 +7,7 @@ const STATIC_ASSETS = [
   '/static/favicon-16x16.png',
   '/static/apple-splash.png',
   '/static/apple-splash-1290x2796.png',
+  '/static/apple-splash-1320x2868.png',
   '/static/vendor/bootstrap/bootstrap.min.css?v=5.3.3',
   '/static/vendor/bootstrap/bootstrap-icons.min.css?v=1.11.3',
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',

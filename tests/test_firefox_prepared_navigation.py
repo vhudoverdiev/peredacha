@@ -198,7 +198,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v167-instant-network-probe")
+        self.assertEqual(worker_version, "v168-iphone-16-pro-max-splash")
 
     def test_script_and_css_cache_busters_are_synchronized(self):
         script_version = re.search(

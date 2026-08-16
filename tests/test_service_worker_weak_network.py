@@ -1,4 +1,5 @@
 import re
+import struct
 import unittest
 from pathlib import Path
 
@@ -6,6 +7,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 BASE_TEMPLATE = PROJECT_ROOT / "app" / "templates" / "base.html"
 SERVICE_WORKER = PROJECT_ROOT / "app" / "static" / "service-worker.js"
+IPHONE_16_PRO_MAX_SPLASH = PROJECT_ROOT / "app" / "static" / "apple-splash-1320x2868.png"
 
 
 class ServiceWorkerWeakNetworkTests(unittest.TestCase):
@@ -83,6 +85,15 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         self.assertIn("left: 50%; top: 50vh; top: 50svh;", self.worker)
         self.assertIn("top: 50vh;\n      top: 50svh;", self.template)
 
+    def test_iphone_16_pro_max_has_an_exact_native_launch_image(self):
+        png = IPHONE_16_PRO_MAX_SPLASH.read_bytes()
+        self.assertEqual(png[:8], b"\x89PNG\r\n\x1a\n")
+        width, height = struct.unpack(">II", png[16:24])
+        self.assertEqual((width, height), (1320, 2868))
+        self.assertIn("apple-splash-1320x2868.png", self.template)
+        self.assertIn("(device-width: 440px) and (device-height: 956px)", self.template)
+        self.assertIn("'/static/apple-splash-1320x2868.png'", self.worker)
+
     def test_static_assets_fall_back_to_cache_without_waiting_indefinitely(self):
         self.assertIn("const STATIC_NETWORK_TIMEOUT_MS = 6000;", self.worker)
         static_start = self.worker.index("async function staticNetworkFirst(request)")
@@ -134,7 +145,7 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v167-instant-network-probe")
+        self.assertEqual(worker_version, "v168-iphone-16-pro-max-splash")
 
 
 if __name__ == "__main__":

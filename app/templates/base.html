@@ -11,6 +11,7 @@
   <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}?v=v327-mobile-shell-unify">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}?v=v327-mobile-shell-unify">
   <link rel="apple-touch-icon-precomposed" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}?v=v327-mobile-shell-unify">
+  <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='apple-splash-1320x2868.png') }}?v=v608-iphone-16-pro-max-launch" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)">
   <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='apple-splash-1290x2796.png') }}?v=v607-solid-mobile-launch" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)">
   <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='apple-splash.png') }}?v=v607-solid-mobile-launch">
   <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}?v=v473-safe-area-colors">
@@ -905,7 +906,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v167-instant-network-probe', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v168-iphone-16-pro-max-splash', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
