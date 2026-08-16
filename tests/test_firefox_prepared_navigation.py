@@ -198,7 +198,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v163-material-tabs-replace-content")
+        self.assertEqual(worker_version, "v164-fast-offline-retry")
 
     def test_script_and_css_cache_busters_are_synchronized(self):
         script_version = re.search(

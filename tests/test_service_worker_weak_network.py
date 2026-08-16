@@ -15,7 +15,7 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         cls.worker = SERVICE_WORKER.read_text(encoding="utf-8")
 
     def test_navigation_has_a_bounded_network_wait(self):
-        self.assertIn("const NAVIGATION_NETWORK_TIMEOUT_MS = 8000;", self.worker)
+        self.assertIn("const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;", self.worker)
         navigation_start = self.worker.index(
             "async function navigationNetworkFirst(request)"
         )
@@ -71,6 +71,22 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
             self.template,
         )
 
+    def test_retry_keeps_offline_card_visible_until_connection_succeeds(self):
+        retry_start = self.worker.index("const retryOnline = async () =>")
+        retry_end = self.worker.index("retryButton?.addEventListener", retry_start)
+        retry = self.worker[retry_start:retry_end]
+
+        self.assertIn("showRetryProgress();", retry)
+        self.assertLess(retry.index("showRetryProgress();"), retry.index("await fetch("))
+        self.assertGreater(retry.index("showLogo();"), retry.index("if (!response.ok)"))
+        self.assertNotIn("showLoader();", retry)
+
+    def test_retry_uses_the_same_three_second_network_timeout(self):
+        self.assertIn(
+            "setTimeout(() => controller.abort(), 3000)",
+            self.worker,
+        )
+
     def test_service_worker_cache_buster_is_updated_and_synchronized(self):
         worker_version = re.search(
             r"service-worker\.js\?v=([^']+)", self.template
@@ -80,7 +96,7 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v163-material-tabs-replace-content")
+        self.assertEqual(worker_version, "v164-fast-offline-retry")
 
 
 if __name__ == "__main__":
