@@ -898,15 +898,19 @@
     (() => {
       try {
         const currentUrl = new URL(window.location.href);
-        if (currentUrl.searchParams.has('_crm_retry')) {
+        if (
+          currentUrl.searchParams.has('_crm_retry')
+          || currentUrl.searchParams.get('source') === 'homescreen'
+        ) {
           currentUrl.searchParams.delete('_crm_retry');
+          currentUrl.searchParams.delete('source');
           window.history.replaceState(null, '', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
         }
       } catch (error) {}
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v168-iphone-16-pro-max-splash', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v169-first-launch-only', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }

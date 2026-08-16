@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v168-iphone-16-pro-max-splash';
+const STATIC_CACHE = 'peredacha-static-v169-first-launch-only';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -241,7 +241,8 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
-    if (!url.searchParams.has('_crm_retry')) {
+    const isHomescreenLaunch = url.searchParams.get('source') === 'homescreen';
+    if (isHomescreenLaunch && !url.searchParams.has('_crm_retry')) {
       const launchUrl = new URL(request.url);
       launchUrl.searchParams.set('_crm_launch_probe', '1');
       const launchHtml = MOBILE_OFFLINE_HTML.replace(
