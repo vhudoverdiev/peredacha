@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v164-fast-offline-retry';
+const STATIC_CACHE = 'peredacha-static-v166-offline-logo-alignment';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -44,7 +44,7 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
       background: #f9fbf5;
     }
     .offline-panel {
-      position: absolute; left: 50%; top: 50%;
+      position: absolute; left: 50%; top: 50vh; top: 50svh;
       width: min(calc(100% - 2.3rem), 25rem);
       transform: translate(-50%, -50%);
       transition: opacity .34s ease, transform .42s cubic-bezier(.2,.75,.24,1);
@@ -158,9 +158,13 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
       };
       const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
-      const retryOnline = async () => {
+      const retryOnline = async (initialLaunch = false) => {
         if (!retryButton || retryButton.disabled) return;
-        showRetryProgress();
+        if (initialLaunch) {
+          showLogo();
+        } else {
+          showRetryProgress();
+        }
 
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 3000);
@@ -185,6 +189,7 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
           await wait(520);
           const targetUrl = new URL(location.href);
           targetUrl.searchParams.delete('_crm_online_probe');
+          targetUrl.searchParams.delete('_crm_launch_probe');
           targetUrl.searchParams.set('_crm_retry', Date.now().toString());
           location.replace(targetUrl.toString());
         } catch (error) {
@@ -198,8 +203,12 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
         }
       };
 
-      retryButton?.addEventListener('click', retryOnline);
-      setTimeout(showCard, 1150);
+      retryButton?.addEventListener('click', () => retryOnline(false));
+      if (location.search.includes('_crm_launch_probe=1')) {
+        retryOnline(true);
+      } else {
+        setTimeout(showCard, 1150);
+      }
     })();
   </script>
 </body>
@@ -231,6 +240,22 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
+    if (!event.clientId && !url.searchParams.has('_crm_retry')) {
+      const launchUrl = new URL(request.url);
+      launchUrl.searchParams.set('_crm_launch_probe', '1');
+      const launchHtml = MOBILE_OFFLINE_HTML.replace(
+        '<script>',
+        `<script>history.replaceState(null, '', ${JSON.stringify(launchUrl.pathname + launchUrl.search + launchUrl.hash)});`,
+      );
+      event.respondWith(new Response(launchHtml, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store',
+        },
+      }));
+      return;
+    }
     event.respondWith(navigationNetworkFirst(request));
     return;
   }

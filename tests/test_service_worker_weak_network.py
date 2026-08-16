@@ -45,6 +45,39 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         self.assertIn("fetch(request, { signal: controller.signal })", helper)
         self.assertIn("clearTimeout(timeoutId)", helper)
 
+    def test_stalled_lte_is_detected_by_real_request_not_browser_online_flag(self):
+        navigation_start = self.worker.index(
+            "async function navigationNetworkFirst(request)"
+        )
+        navigation_end = self.worker.index(
+            "async function staticNetworkFirst(request)", navigation_start
+        )
+        navigation = self.worker[navigation_start:navigation_end]
+
+        self.assertNotIn("navigator.onLine", self.worker)
+        self.assertIn(
+            "fetchWithTimeout(request, NAVIGATION_NETWORK_TIMEOUT_MS)",
+            navigation,
+        )
+        self.assertIn("const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;", self.worker)
+
+    def test_cold_launch_returns_the_logo_shell_without_waiting_for_network(self):
+        fetch_start = self.worker.index("self.addEventListener('fetch'")
+        helper_start = self.worker.index("async function fetchWithTimeout", fetch_start)
+        fetch_handler = self.worker[fetch_start:helper_start]
+
+        self.assertIn("if (!event.clientId && !url.searchParams.has('_crm_retry'))", fetch_handler)
+        self.assertIn("event.respondWith(new Response(launchHtml", fetch_handler)
+        self.assertLess(
+            fetch_handler.index("event.respondWith(new Response(launchHtml"),
+            fetch_handler.index("event.respondWith(navigationNetworkFirst(request))"),
+        )
+        self.assertIn("retryOnline(true);", self.worker)
+
+    def test_offline_logo_uses_the_same_stable_viewport_center_as_online_logo(self):
+        self.assertIn("left: 50%; top: 50vh; top: 50svh;", self.worker)
+        self.assertIn("top: 50vh;\n      top: 50svh;", self.template)
+
     def test_static_assets_fall_back_to_cache_without_waiting_indefinitely(self):
         self.assertIn("const STATIC_NETWORK_TIMEOUT_MS = 6000;", self.worker)
         static_start = self.worker.index("async function staticNetworkFirst(request)")
@@ -72,13 +105,13 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         )
 
     def test_retry_keeps_offline_card_visible_until_connection_succeeds(self):
-        retry_start = self.worker.index("const retryOnline = async () =>")
+        retry_start = self.worker.index("const retryOnline = async (initialLaunch = false) =>")
         retry_end = self.worker.index("retryButton?.addEventListener", retry_start)
         retry = self.worker[retry_start:retry_end]
 
         self.assertIn("showRetryProgress();", retry)
         self.assertLess(retry.index("showRetryProgress();"), retry.index("await fetch("))
-        self.assertGreater(retry.index("showLogo();"), retry.index("if (!response.ok)"))
+        self.assertGreater(retry.rindex("showLogo();"), retry.index("if (!response.ok)"))
         self.assertNotIn("showLoader();", retry)
 
     def test_retry_uses_the_same_three_second_network_timeout(self):
@@ -96,7 +129,7 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v164-fast-offline-retry")
+        self.assertEqual(worker_version, "v166-offline-logo-alignment")
 
 
 if __name__ == "__main__":

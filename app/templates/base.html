@@ -897,7 +897,7 @@
     (() => {
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v164-fast-offline-retry', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v166-offline-logo-alignment', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
