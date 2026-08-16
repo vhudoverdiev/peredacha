@@ -45,7 +45,7 @@ class GlassDeleteConfirmModalTest(unittest.TestCase):
 
         self.assertIn("script.js') }}?v=v673-material-tabs-replace-content", template)
         self.assertIn("/static/script.js?v=v673-material-tabs-replace-content", worker)
-        self.assertIn("peredacha-static-v168-iphone-16-pro-max-splash", worker)
+        self.assertIn("peredacha-static-v169-first-launch-only", worker)
 
 
 if __name__ == "__main__":
