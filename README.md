@@ -13,34 +13,6 @@ CRM для контроля передачи помещений: замечан�
 - формирование АВР по шаблону Word;
 - журналы загрузок, синхронизаций и удалений.
 
-## Быстрый старт
-
-```powershell
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-flask db upgrade
-python create_admin.py
-flask run
-```
-
-После запуска откройте:
-
-```text
-http://127.0.0.1:5000
-```
-
-## Настройка
-
-Создайте `.env` на основе `.env.example` и проверьте основные параметры:
-
-```env
-SECRET_KEY=change-this-to-long-random-string
-DATABASE_URL=sqlite:///instance/crm.sqlite
-```
-
-Если используется Google Sheets, дополнительно укажите ID таблицы и путь к JSON сервисного аккаунта.
-
 ## Основные разделы
 
 - **Объекты** - загрузка таблиц и переход к работе по объекту.
@@ -53,14 +25,6 @@ DATABASE_URL=sqlite:///instance/crm.sqlite
 ## Стек
 
 Flask, SQLAlchemy, Flask-Login, Flask-Migrate, SQLite, openpyxl, python-docx.
-
-## Полезные команды
-
-```powershell
-flask db migrate -m "Описание изменений"
-flask db upgrade
-flask seed-defaults
-```
 
 ## Структура
 
