@@ -24,7 +24,7 @@ Current project stack:
 - Gunicorn;
 - Nginx;
 - Let's Encrypt HTTPS;
-- SQLite in the current test stage, with PostgreSQL recommended for production.
+- SQLite in the current test stage, with MariaDB recommended for production.
 
 Current test server configuration:
 
@@ -36,4 +36,3 @@ Current test server configuration:
 - public IP shown in the Selectel panel: `135.106.176.36`.
 
 For the test stage, the expected access is approximately 10 users. This is enough to verify login under personal accounts, task assignment, remarks, statuses, Excel import/export, materials, measurements and reports.
-

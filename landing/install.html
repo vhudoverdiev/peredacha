@@ -33,7 +33,7 @@
       </div>
     </header>
 
-    <a class="web-version-button web-version-button-top js-web-version" href="https://lk.akvilon-peredacha.ru/login">
+    <a class="web-version-button web-version-button-top js-web-version" href="https://lk-crm.akvilon.tech/login">
       <span class="web-version-symbol" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M5 6.5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z"/><path d="M3 10h18M7 8.2h.01M10 8.2h.01"/></svg>
       </span>
@@ -47,7 +47,7 @@
           <span class="step-number">01</span>
           <div>
             <h2>Откройте сайт в Safari</h2>
-            <p class="step-domain">akvilon-peredacha.ru</p>
+            <p class="step-domain">crm.akvilon.tech</p>
             <p>В нижней панели Safari нажмите кнопку «Поделиться».</p>
           </div>
         </div>
@@ -55,7 +55,7 @@
           <div class="iphone-island"></div>
           <div class="iphone-status"><b>9:41</b><span>●●●  Wi‑Fi  ▰</span></div>
           <div class="safari-page-mark"><img src="assets/brand-logo.png" alt=""><b>Передача</b></div>
-          <div class="safari-address"><b>akvilon-peredacha.ru</b><span class="safari-refresh">↻</span></div>
+          <div class="safari-address"><b>crm.akvilon.tech</b><span class="safari-refresh">↻</span></div>
           <div class="safari-toolbar">
             <span>‹</span><span class="is-muted">›</span>
             <span class="share-target">
@@ -122,7 +122,7 @@
     (function () {
       var webButton = document.querySelector(".js-web-version");
       var isLocal = ["127.0.0.1", "localhost"].indexOf(window.location.hostname) !== -1;
-      var loginUrl = isLocal ? "http://127.0.0.1:5000/login" : "https://lk.akvilon-peredacha.ru/login";
+      var loginUrl = isLocal ? "http://127.0.0.1:5000/login" : "https://lk-crm.akvilon.tech/login";
       if (webButton) {
         webButton.href = loginUrl;
         webButton.addEventListener("click", function (event) {

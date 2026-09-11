@@ -5,8 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-User=www-data
-Group=www-data
+User=nginx
+Group=nginx
 WorkingDirectory=/var/www/crm_flask
 Environment="PATH=/var/www/crm_flask/venv/bin"
 EnvironmentFile=/var/www/crm_flask/.env

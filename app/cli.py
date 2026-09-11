@@ -24,7 +24,7 @@ def register_cli(app):
 
     @app.cli.command("sync-sheets")
     def sync_sheets_command():
-        """Synchronize tasks from Google Sheets into SQLite."""
+        """Synchronize tasks from Google Sheets into the configured database."""
         with app.app_context():
             result = sync_google_sheets()
             click.echo(

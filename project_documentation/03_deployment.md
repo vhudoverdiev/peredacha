@@ -30,13 +30,12 @@ sudo systemctl daemon-reload
 sudo systemctl restart gunicorn.socket gunicorn.service
 ```
 
-Gunicorn should run as an unprivileged user, currently `www-data` in the deployment config.
+Gunicorn should run as an unprivileged user, currently `nginx` in the deployment config.
 
 Nginx should be the only public entry point for the Flask application. Direct Flask/Gunicorn ports such as `5000` or `8080` should not be exposed to the internet.
 
 Database recommendation:
 
 - current test stage may use SQLite;
-- production should use PostgreSQL bound to `127.0.0.1` or a private network only;
-- PostgreSQL port `5432` must not be publicly accessible.
-
+- production should use MariaDB bound to `127.0.0.1` or a private network only;
+- MariaDB port `3306` must not be publicly accessible.

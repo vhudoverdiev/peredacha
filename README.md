@@ -24,7 +24,7 @@ CRM для контроля передачи помещений: замечан�
 
 ## Стек
 
-Flask, SQLAlchemy, Flask-Login, Flask-Migrate, SQLite, openpyxl, python-docx.
+Flask, SQLAlchemy, Flask-Login, Flask-Migrate, SQLite (текущая база), MariaDB (целевая production-база), openpyxl, python-docx.
 
 ## Структура
 

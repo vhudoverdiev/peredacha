@@ -1,6 +1,6 @@
 # Landing Page
 
-Отдельная стартовая страница для `akvilon-peredacha.ru`.
+Отдельная стартовая страница для `crm.akvilon.tech`.
 
 ## Что здесь находится
 
@@ -8,7 +8,7 @@
 - [styles.css](/C:/Users/Владимир/Desktop/Сайты/Peredacha/landing/styles.css) — отдельные стили лендинга
 - `assets/` — логотип и favicon для главного домена
 
-CRM при этом остаётся на `lk.akvilon-peredacha.ru`.
+CRM при этом остаётся на `lk-crm.akvilon.tech`.
 
 ## Локальная проверка
 
@@ -34,7 +34,7 @@ flask run --host 127.0.0.1 --port 5000
 ```
 
 На `localhost` и `127.0.0.1` лендинг автоматически отправляет кнопку входа на `http://127.0.0.1:5000/login`.  
-На реальном домене кнопки ведут на `https://lk.akvilon-peredacha.ru/login`.
+На реальном домене кнопки ведут на `https://lk-crm.akvilon.tech/login`.
 
 ## Как выложить на сервер
 
@@ -60,9 +60,9 @@ sudo rsync -av --exclude venv --exclude .git ./ /var/www/crm_flask/
 
 Нужны записи:
 
-- `A` для `akvilon-peredacha.ru` -> IP сервера
-- `A` для `www.akvilon-peredacha.ru` -> IP сервера
-- `A` для `lk.akvilon-peredacha.ru` -> IP сервера
+- `A` для `crm.akvilon.tech` -> IP сервера
+- `A` для `www.crm.akvilon.tech` -> IP сервера
+- `A` для `lk-crm.akvilon.tech` -> IP сервера
 
 ### 3. Подключить nginx
 
@@ -82,7 +82,7 @@ sudo systemctl reload nginx
 После того как DNS уже смотрит на сервер:
 
 ```bash
-sudo certbot --nginx -d akvilon-peredacha.ru -d www.akvilon-peredacha.ru -d lk.akvilon-peredacha.ru
+sudo certbot --nginx -d crm.akvilon.tech -d www.crm.akvilon.tech -d lk-crm.akvilon.tech
 ```
 
 ### 5. Проверить gunicorn и CRM
@@ -101,9 +101,9 @@ sudo systemctl restart gunicorn
 
 Откройте:
 
-- `https://akvilon-peredacha.ru` — стартовая страница
-- `https://www.akvilon-peredacha.ru` — должен открываться тот же лендинг
-- `https://lk.akvilon-peredacha.ru/login` — форма входа в CRM
+- `https://crm.akvilon.tech` — стартовая страница
+- `https://www.crm.akvilon.tech` — должен открываться тот же лендинг
+- `https://lk-crm.akvilon.tech/login` — форма входа в CRM
 
 Проверьте:
 

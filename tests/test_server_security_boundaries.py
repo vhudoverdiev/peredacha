@@ -220,8 +220,8 @@ class ProductionConfigurationSecurityTests(unittest.TestCase):
     def test_gunicorn_runs_as_unprivileged_user_over_private_unix_socket(self):
         service = (ROOT / "deploy" / "gunicorn.service").read_text(encoding="utf-8")
         socket = (ROOT / "deploy" / "gunicorn.socket").read_text(encoding="utf-8")
-        self.assertIn("User=www-data", service)
-        self.assertIn("Group=www-data", service)
+        self.assertIn("User=nginx", service)
+        self.assertIn("Group=nginx", service)
         self.assertIn("EnvironmentFile=/opt/peredacha/.env", service)
         self.assertNotIn("User=root", service)
         self.assertNotIn("--reload", service)
@@ -261,7 +261,7 @@ class ProductionConfigurationSecurityTests(unittest.TestCase):
         env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
         self.assertIn("FLASK_DEBUG=0", env_example)
         self.assertIn("SECRET_KEY=replace-with-a-strong-random-secret", env_example)
-        self.assertIn("DATABASE_URL=postgresql://", env_example)
+        self.assertIn("DATABASE_URL=mysql+pymysql://", env_example)
         self.assertIn("SESSION_COOKIE_SECURE=true", env_example)
         self.assertIn("FORCE_HSTS=true", env_example)
         self.assertIn("TRUSTED_PROXY_COUNT=1", env_example)
@@ -285,7 +285,7 @@ class ProductionConfigurationSecurityTests(unittest.TestCase):
             headers={
                 "X-Forwarded-For": "203.0.113.77",
                 "X-Forwarded-Proto": "https",
-                "X-Forwarded-Host": "lk.akvilon-peredacha.ru",
+                "X-Forwarded-Host": "lk-crm.akvilon.tech",
             },
         )
         self.assertEqual(response.status_code, 200)

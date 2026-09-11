@@ -8,7 +8,7 @@ deploy/gunicorn.service
 
 Important production requirements:
 
-- run as `www-data`, not root;
+- run as `nginx`, not root;
 - use a private Unix socket;
 - restart automatically;
 - read environment variables from `/opt/peredacha/.env`;
@@ -19,4 +19,3 @@ Important production requirements:
   - `ProtectHome=true`;
   - `UMask=0077`;
   - resource limits.
-
