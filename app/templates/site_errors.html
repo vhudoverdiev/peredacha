@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+{% block title %}Для разработчика{% endblock %}
+{% block content %}
+<div class="developer-tools-ajax-page" data-ajax-pagination-page="developer-tools">
+<div class="page-head remarks-page-head">
+  <div>
+    <h1 class="page-title">Для разработчика</h1>
+    <p class="page-subtitle">Здесь собираются обращения пользователей, заявки на регистрацию и системные сообщения</p>
+  </div>
+</div>
+
+<div class="developer-section-tabs" data-ajax-pagination-tabs>
+  <a class="developer-section-tab remarks-tab-link active" href="{{ url_for('main.site_errors') }}">
+    <i class="bi bi-inbox"></i><span>Сообщения</span>
+  </a>
+  <a class="developer-section-tab remarks-tab-link" href="{{ url_for('main.developer_delete_logs') }}">
+    <i class="bi bi-clock-history"></i><span>Логи удалений</span>
+  </a>
+  <a class="developer-section-tab remarks-tab-link" href="{{ url_for('main.developer_statistics', days=7) }}">
+    <i class="bi bi-graph-up-arrow"></i><span>Статистика</span>
+  </a>
+</div>
+
+<div class="developer-tools-tab-content" data-ajax-pagination-content>
+<div class="site-errors-ajax-page" data-ajax-pagination-page="site-errors">
+<div class="site-errors-kind-tabs" data-ajax-pagination-tabs>
+  <a class="site-errors-kind-tab remarks-tab-link {% if not kind %}active{% endif %}" href="{{ url_for('main.site_errors', status=status) }}">
+    <i class="bi bi-list-ul"></i><span>Все</span>
+  </a>
+  <a class="site-errors-kind-tab remarks-tab-link {% if kind == 'user' %}active{% endif %}" href="{{ url_for('main.site_errors', kind='user', status=status) }}">
+    <i class="bi bi-chat-dots"></i><span>Обращения</span>
+  </a>
+  <a class="site-errors-kind-tab remarks-tab-link {% if kind == 'registration' %}active{% endif %}" href="{{ url_for('main.site_errors', kind='registration', status=status) }}">
+    <i class="bi bi-person-plus"></i><span>Регистрации</span>
+  </a>
+  <a class="site-errors-kind-tab remarks-tab-link {% if kind == 'system' %}active{% endif %}" href="{{ url_for('main.site_errors', kind='system', status=status) }}">
+    <i class="bi bi-exclamation-octagon"></i><span>Системные</span>
+  </a>
+</div>
+
+<div class="site-errors-tab-content" data-ajax-pagination-content>
+<div class="card content-card mb-3">
+  <div class="card-body">
+    <form class="row g-2 align-items-end crm-filter-form site-errors-filter-form" method="get">
+      <div class="col-12 col-md-4 d-none" hidden data-site-errors-kind-filter-disabled="1">
+        <div class="site-errors-filter-field">
+          <label class="form-label">Тип</label>
+          <div class="developer-custom-select js-developer-custom-select">
+            <select class="form-select developer-native-select" name="kind" disabled>
+            <option value="" {% if not kind %}selected{% endif %}>Все</option>
+            <option value="user" {% if kind == 'user' %}selected{% endif %}>От пользователей</option>
+            <option value="registration" {% if kind == 'registration' %}selected{% endif %}>Регистрации</option>
+            <option value="system" {% if kind == 'system' %}selected{% endif %}>Системные ошибки</option>
+          </select>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="site-errors-filter-field">
+          <label class="form-label">Статус</label>
+          <div class="developer-custom-select js-developer-custom-select">
+            <select class="form-select developer-native-select" name="status">
+            <option value="" {% if not status %}selected{% endif %}>Все</option>
+            <option value="new" {% if status == 'new' %}selected{% endif %}>Новые</option>
+            <option value="closed" {% if status == 'closed' %}selected{% endif %}>Закрытые / принятые</option>
+          </select>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4 filter-actions developer-filter-actions">
+        <button class="btn developer-filter-btn developer-filter-btn-apply" type="submit" data-site-error-close-btn="1">
+          <i class="bi bi-funnel-fill"></i><span>Применить</span>
+        </button>
+        <a class="btn developer-filter-btn developer-filter-btn-reset" href="{{ url_for('main.site_errors') }}">
+          <i class="bi bi-arrow-counterclockwise"></i><span>Сброс</span>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="site-errors-list" data-site-errors-status-filter="{{ status }}">
+  {% for report in reports %}
+  <article class="card content-card site-error-card {% if report.status == 'closed' %}closed{% else %}site-error-card-open{% endif %} {% if report.kind == 'registration' and report.status == 'closed' %}site-error-card-accepted{% endif %}" data-site-error-card="{{ report.id }}" data-site-error-kind="{{ report.kind }}" data-site-error-status="{{ report.status }}">
+    <div class="card-body">
+      <div class="site-error-head">
+        <div>
+          {% set kind_label = 'Системная' if report.kind == 'system' else ('Регистрация' if report.kind == 'registration' else 'От пользователя') %}
+          {% set kind_class = 'bg-danger' if report.kind == 'system' else ('bg-success' if report.kind == 'registration' else 'bg-primary') %}
+          <span class="badge {{ kind_class }}">
+            {{ kind_label }}
+          </span>
+          <span class="badge site-error-state-badge {% if report.kind == 'registration' and report.status == 'closed' %}site-error-state-accepted{% elif report.status == 'closed' %}site-error-state-closed{% else %}site-error-state-new{% endif %}">
+            {{ 'Принята' if report.kind == 'registration' and report.status == 'closed' else ('Закрыта' if report.status == 'closed' else 'Новая') }}
+          </span>
+        </div>
+        <div class="text-muted small">{{ report.created_at|ru_datetime }}</div>
+      </div>
+
+      <div class="site-error-message">{{ report.message }}</div>
+
+      <div class="site-error-meta">
+        <span><i class="bi bi-person me-1"></i>{% if report.user %}{{ report.user.full_name or report.user.username }}{% elif report.kind == 'registration' %}Заявка с экрана входа{% else %}Система{% endif %}</span>
+        {% if report.project %}<span><i class="bi bi-building me-1"></i>{{ report.project.name }}</span>{% endif %}
+        {% if report.page_url %}<span class="site-error-url"><i class="bi bi-link-45deg me-1"></i>{{ report.page_url }}</span>{% endif %}
+      </div>
+
+      {% if report.traceback_text %}
+      <details class="site-error-trace mt-3">
+        <summary>Технические детали</summary>
+        <pre>{{ report.traceback_text }}</pre>
+      </details>
+      {% endif %}
+
+      <div class="site-error-actions mt-3">
+        <form method="post" action="{{ url_for('main.site_error_close', report_id=report.id) }}" data-site-error-close-form="1" data-report-id="{{ report.id }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm site-error-action-btn {% if report.status == 'closed' or report.kind == 'registration' %}site-error-action-btn-success{% else %}site-error-action-btn-close{% endif %}" type="submit" data-site-error-close-btn="1">
+            {{ 'Вернуть в новые' if report.status == 'closed' else ('Принять' if report.kind == 'registration' else 'Закрыть ошибку') }}
+          </button>
+        </form>
+        <button class="btn btn-sm site-error-action-btn site-error-action-btn-danger site-error-delete-trigger" type="button"
+                data-bs-toggle="modal"
+                data-bs-target="#deleteErrorModal"
+                data-delete-url="{{ url_for('main.site_error_delete', report_id=report.id) }}"
+                data-error-title="{{ ('Системная ошибка' if report.kind == 'system' else ('Заявка на регистрацию' if report.kind == 'registration' else 'Пользовательская ошибка')) ~ ' от ' ~ (report.created_at|ru_datetime) }}">
+          <i class="bi bi-trash me-1"></i>Удалить
+        </button>
+      </div>
+    </div>
+  </article>
+  {% else %}
+  <div class="card content-card"><div class="card-body text-center text-muted py-5">Записей пока нет.</div></div>
+  {% endfor %}
+</div>
+
+<div class="modal fade" id="deleteErrorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <form class="modal-content delete-error-modal" method="post" id="deleteErrorForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-body text-center">
+        <div class="delete-error-icon"><i class="bi bi-trash3"></i></div>
+        <h5 class="delete-error-title">Удалить запись?</h5>
+        <p class="delete-error-text" id="deleteErrorText">Запись будет удалена из раздела «Для разработчика».</p>
+        <div class="delete-error-actions">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-danger">Удалить</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.js-developer-custom-select').forEach(function (selectShell) {
+    const select = selectShell.querySelector('select');
+    if (!select) return;
+    function hideEnhancedNativeSelect() {
+      select.hidden = true;
+      select.tabIndex = -1;
+      select.setAttribute('aria-hidden', 'true');
+      select.classList.add('developer-native-select');
+      select.classList.remove('mobile-native-select');
+    }
+    if (selectShell.querySelector('.developer-select-button')) {
+      hideEnhancedNativeSelect();
+      selectShell.classList.add('is-enhanced');
+      return;
+    }
+
+    hideEnhancedNativeSelect();
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'developer-select-button';
+    button.setAttribute('data-ajax-pagination-runtime', 'custom-select');
+    button.setAttribute('aria-haspopup', 'listbox');
+    button.setAttribute('aria-expanded', 'false');
+
+    const valueText = document.createElement('span');
+    valueText.className = 'developer-select-value';
+    const arrow = document.createElement('span');
+    arrow.className = 'developer-select-arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.innerHTML = '<i class="bi bi-chevron-down"></i>';
+    button.append(valueText, arrow);
+
+    const menu = document.createElement('div');
+    menu.className = 'developer-select-menu';
+    menu.setAttribute('data-ajax-pagination-runtime', 'custom-select');
+    menu.setAttribute('role', 'listbox');
+
+    const options = Array.from(select.options).map(function (option) {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'developer-select-option';
+      item.setAttribute('role', 'option');
+      item.dataset.value = option.value;
+      item.textContent = option.textContent;
+      item.addEventListener('click', function () {
+        select.value = option.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        setActiveOption();
+        closeSelect();
+        button.focus();
+      });
+      menu.appendChild(item);
+      return item;
+    });
+
+    function currentOption() {
+      return select.options[select.selectedIndex] || select.options[0];
+    }
+
+    function setActiveOption() {
+      const selected = currentOption();
+      valueText.textContent = selected ? selected.textContent : '';
+      options.forEach(function (item) {
+        const isActive = item.dataset.value === select.value;
+        item.classList.toggle('is-selected', isActive);
+        item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+    }
+
+    function openSelect() {
+      document.querySelectorAll('.js-developer-custom-select.is-open').forEach(function (opened) {
+        if (opened !== selectShell) opened.classList.remove('is-open');
+        const openedButton = opened.querySelector('.developer-select-button');
+        if (openedButton) openedButton.setAttribute('aria-expanded', 'false');
+      });
+      selectShell.classList.add('is-open');
+      button.setAttribute('aria-expanded', 'true');
+      const activeItem = menu.querySelector('.developer-select-option.is-selected') || options[0];
+      if (activeItem) activeItem.focus({ preventScroll: true });
+    }
+
+    function closeSelect() {
+      selectShell.classList.remove('is-open');
+      button.setAttribute('aria-expanded', 'false');
+    }
+
+    button.addEventListener('click', function () {
+      if (selectShell.classList.contains('is-open')) {
+        closeSelect();
+      } else {
+        openSelect();
+      }
+    });
+
+    button.addEventListener('keydown', function (event) {
+      if (['ArrowDown', 'Enter', ' '].includes(event.key)) {
+        event.preventDefault();
+        openSelect();
+      }
+    });
+
+    menu.addEventListener('keydown', function (event) {
+      const currentIndex = options.indexOf(document.activeElement);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeSelect();
+        button.focus();
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const next = options[Math.min(currentIndex + 1, options.length - 1)] || options[0];
+        next.focus();
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const prev = options[Math.max(currentIndex - 1, 0)] || options[0];
+        prev.focus();
+      }
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (document.activeElement && document.activeElement.classList.contains('developer-select-option')) {
+          document.activeElement.click();
+        }
+      }
+    });
+
+    selectShell.append(button, menu);
+    selectShell.classList.add('is-enhanced');
+    setActiveOption();
+  });
+
+  document.addEventListener('click', function (event) {
+    if (event.target.closest('.js-developer-custom-select')) return;
+    document.querySelectorAll('.js-developer-custom-select.is-open').forEach(function (selectShell) {
+      selectShell.classList.remove('is-open');
+      const button = selectShell.querySelector('.developer-select-button');
+      if (button) button.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  const modal = document.getElementById('deleteErrorModal');
+  const form = document.getElementById('deleteErrorForm');
+  const text = document.getElementById('deleteErrorText');
+  if (!modal || !form) return;
+  document.querySelectorAll('.site-error-delete-trigger').forEach(function (button) {
+    button.addEventListener('click', function () {
+      form.action = button.getAttribute('data-delete-url') || '';
+      const title = button.getAttribute('data-error-title') || 'эту ошибку';
+      if (text) text.textContent = 'Удалить запись: ' + title + '? Это действие нельзя отменить.';
+    });
+  });
+  form.addEventListener('submit', function (event) {
+    if (!form.action) {
+      event.preventDefault();
+      alert('Не удалось определить запись для удаления. Закройте окно и попробуйте ещё раз.');
+    }
+  });
+  modal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    if (!button) return;
+    form.action = button.getAttribute('data-delete-url') || '';
+    const title = button.getAttribute('data-error-title') || 'эту ошибку';
+    if (text) text.textContent = 'Удалить запись: ' + title + '? Это действие нельзя отменить.';
+  });
+});
+
+
+  document.querySelectorAll('[data-site-error-close-form="1"]').forEach(function (form) {
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const button = form.querySelector('[data-site-error-close-btn="1"]');
+      const card = document.querySelector('[data-site-error-card="' + form.dataset.reportId + '"]');
+      const list = document.querySelector('.site-errors-list');
+      const statusFilter = list ? (list.getAttribute('data-site-errors-status-filter') || '') : '';
+      const badge = document.querySelector('.site-errors-nav-badge');
+      const sidebar = document.querySelector('.developer-sidebar-link');
+      const previousText = button ? button.textContent : '';
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'Сохраняем...';
+      }
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(function () { return {}; });
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
+        const isClosed = data.status === 'closed';
+        const isRegistration = card && card.dataset.siteErrorKind === 'registration';
+        if (card) {
+          card.dataset.siteErrorStatus = data.status || '';
+          card.classList.toggle('closed', isClosed);
+          card.classList.toggle('site-error-card-open', !isClosed);
+          card.classList.toggle('site-error-card-accepted', Boolean(isRegistration && isClosed));
+          const stateBadge = card.querySelector('.site-error-state-badge');
+          if (stateBadge) {
+            stateBadge.textContent = isRegistration && isClosed ? 'Принята' : (isClosed ? 'Закрыта' : 'Новая');
+            stateBadge.classList.toggle('site-error-state-accepted', Boolean(isRegistration && isClosed));
+            stateBadge.classList.toggle('site-error-state-closed', Boolean(!isRegistration && isClosed));
+            stateBadge.classList.toggle('site-error-state-new', !isClosed);
+          }
+          if ((statusFilter === 'new' && isClosed) || (statusFilter === 'closed' && !isClosed)) {
+            card.remove();
+          }
+        }
+        if (button) {
+          button.textContent = isClosed ? 'Вернуть в новые' : (isRegistration ? 'Принять' : 'Закрыть ошибку');
+          button.classList.toggle('site-error-action-btn-success', Boolean(isClosed || isRegistration));
+          button.classList.toggle('site-error-action-btn-close', Boolean(!isClosed && !isRegistration));
+        }
+        if (badge) {
+          const nextCount = Math.max(0, Number.parseInt(badge.textContent || '0', 10) + (isClosed ? -1 : 1));
+          if (nextCount > 0) {
+            badge.textContent = String(nextCount);
+          } else {
+            badge.remove();
+          }
+          if (sidebar) sidebar.classList.toggle('has-nav-count', nextCount > 0);
+        }
+      } catch (error) {
+        window.alert(error.message || 'Не удалось обновить статус');
+      } finally {
+        if (button) {
+          button.disabled = false;
+          if (button.textContent === 'Сохраняем...') button.textContent = previousText;
+        }
+      }
+    });
+  });
+
+</script>
+{% endblock %}

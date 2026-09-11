@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Добавить замечание{% endblock %}
+{% block content %}
+<div class="page-head remarks-page-head task-add-page mobile-short-page-marker">
+  <div>
+    <h1 class="page-title">Добавить замечание</h1>
+    <p class="page-subtitle">Выберите способ добавления, а затем заполните данные по квартире и замечаниям.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.task_list') }}">Назад</a>
+</div>
+
+{% set current_mode = add_mode or request.args.get('mode', '') %}
+{% set current_kind = manual_kind or request.args.get('kind', '') %}
+{% set mobile_single_direct = is_mobile_phone_request and current_mode == 'manual' and current_kind == 'single' %}
+
+{% if not mobile_single_direct %}
+<div class="card content-card mb-3">
+  <div class="card-body">
+    <h2 class="section-title mb-3">Способ добавления</h2>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-sm btn-outline-success task-add-choice-btn {{ 'is-active' if current_mode == 'manual' else '' }}" href="{{ url_for('main.task_new', mode='manual') }}">
+        <i class="bi bi-pencil-square" aria-hidden="true"></i>Ручное
+      </a>
+      <a class="btn btn-sm btn-outline-success task-add-choice-btn {{ 'is-active' if current_mode == 'auto' else '' }}" href="{{ url_for('main.task_recognition') }}">
+        <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>Автоматическое
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if current_mode == 'manual' and not mobile_single_direct %}
+<div class="card content-card mb-3">
+  <div class="card-body">
+    <h2 class="section-title mb-3">Формат ручного добавления</h2>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-sm btn-outline-success task-add-choice-btn {{ 'is-active' if current_kind == 'single' else '' }}" href="{{ url_for('main.task_new', mode='manual', kind='single') }}">
+        <i class="bi bi-plus-circle" aria-hidden="true"></i>Одно
+      </a>
+      <a class="btn btn-sm btn-outline-success task-add-choice-btn {{ 'is-active' if current_kind == 'act' else '' }}" href="{{ url_for('main.task_new', mode='manual', kind='act') }}">
+        <i class="bi bi-list-check" aria-hidden="true"></i>С акта
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if current_mode == 'manual' and current_kind == 'single' %}
+<form method="post" class="card content-card task-manual-form compact-task-form task-single-form mobile-fill-card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="add_mode" value="manual">
+  <input type="hidden" name="manual_kind" value="single">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">Квартира / коммерция</label>
+        <select class="form-select" name="apartment_id" required>
+          <option value="">Выберите квартиру / коммерцию</option>
+          {% for apartment in apartments %}
+          <option value="{{ apartment.id }}" {% if request.form.get('apartment_id', '')|int == apartment.id %}selected{% endif %}>
+            {{ apartment.full_label() if apartment.premise_type == 'commercial' else apartment.label() }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Описание замечания</label>
+        <textarea class="form-control" name="description" rows="4" required placeholder="Например: отрегулировать входную дверь">{{ request.form.get('description', '') }}</textarea>
+      </div>
+    </div>
+    <div class="material-form-footer mt-4">
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Добавить</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.task_list') }}">Отмена</a>
+    </div>
+  </div>
+</form>
+{% elif current_mode == 'manual' and current_kind == 'act' %}
+<form method="post" class="card content-card task-manual-form compact-task-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="add_mode" value="manual">
+  <input type="hidden" name="manual_kind" value="act">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-12 col-lg-8">
+        <label class="form-label">Квартира / коммерция</label>
+        <select class="form-select" name="apartment_id" required>
+          <option value="">Выберите квартиру / коммерцию</option>
+          {% for apartment in apartments %}
+          <option value="{{ apartment.id }}" {% if request.form.get('apartment_id', '')|int == apartment.id %}selected{% endif %}>
+            {{ apartment.full_label() if apartment.premise_type == 'commercial' else apartment.label() }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-lg-4">
+        <label class="form-label">Дата осмотра</label>
+        <input class="form-control" type="date" name="inspection_date" value="{{ request.form.get('inspection_date', '') }}">
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <h3 class="h5 mb-3">Замечания по пунктам</h3>
+      <div class="row g-3">
+        {% for point in points %}
+        <div class="col-12">
+          <label class="form-label">{{ point.number }}. {{ point.label }}</label>
+          <textarea class="form-control" name="description_{{ point.number }}" rows="2">{{ request.form.get('description_' ~ point.number, '') }}</textarea>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="material-form-footer mt-4">
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Добавить</button>
+      <a class="btn btn-outline-secondary task-act-cancel-btn" href="{{ url_for('main.task_list') }}">Отмена</a>
+    </div>
+  </div>
+</form>
+{% elif current_mode == 'auto' %}
+<div class="card content-card">
+  <div class="card-body">
+    <h2 class="section-title mb-3">Автоматическое распознавание PDF</h2>
+    <p class="mb-3">Для автоматического добавления замечаний откройте вкладку распознавания: там можно загрузить до 3 актов, проверить каждую строку перед сохранением и только потом занести данные в базу.</p>
+    <a class="btn btn-primary" href="{{ url_for('main.task_recognition') }}">
+      <i class="bi bi-file-earmark-pdf me-2"></i>Открыть распознавание
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<style>
+.task-add-choice-btn,
+.task-add-choice-btn:visited,
+.task-add-choice-btn:focus {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: .38rem !important;
+  min-height: 2.9rem !important;
+  padding: .72rem 1.12rem !important;
+  border-radius: .92rem !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(95, 152, 36, .52) !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  font-size: .98rem !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, .05) !important;
+}
+
+.task-add-choice-btn *,
+.task-add-choice-btn i,
+.task-add-choice-btn .bi,
+.task-add-choice-btn .bi::before,
+.task-add-choice-btn:visited *,
+.task-add-choice-btn:focus * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+.task-add-choice-btn i,
+.task-add-choice-btn .bi,
+.task-add-choice-btn .bi::before {
+  margin: 0 !important;
+  font-size: 1rem !important;
+  line-height: 1 !important;
+}
+
+.task-add-choice-btn:hover,
+.task-add-choice-btn:focus-visible,
+.task-add-choice-btn:active,
+.task-add-choice-btn.is-active {
+  background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 12px 26px var(--peredacha-action-green-shadow) !important;
+  outline: none !important;
+}
+
+.task-add-choice-btn:hover *,
+.task-add-choice-btn:focus-visible *,
+.task-add-choice-btn:active *,
+.task-add-choice-btn.is-active *,
+.task-add-choice-btn:hover i,
+.task-add-choice-btn:focus-visible i,
+.task-add-choice-btn:active i,
+.task-add-choice-btn.is-active i,
+.task-add-choice-btn:hover .bi,
+.task-add-choice-btn:focus-visible .bi,
+.task-add-choice-btn:active .bi,
+.task-add-choice-btn.is-active .bi,
+.task-add-choice-btn:hover .bi::before,
+.task-add-choice-btn:focus-visible .bi::before,
+.task-add-choice-btn:active .bi::before,
+.task-add-choice-btn.is-active .bi::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.task-act-cancel-btn,
+.task-act-cancel-btn:visited,
+.task-act-cancel-btn:hover,
+.task-act-cancel-btn:focus {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+</style>
+{% endblock %}

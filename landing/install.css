@@ -1,0 +1,272 @@
+:root {
+  color-scheme: light;
+  --green: #7bcc18;
+  --green-dark: #5aa906;
+  --ink: #111827;
+  --muted: #667085;
+  --line: rgba(90, 110, 75, .13);
+  --card: rgba(255, 255, 255, .9);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  min-width: 320px;
+  background: #f8fbf4;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 86% 4%, rgba(123, 204, 24, .2), transparent 21rem),
+    radial-gradient(circle at 0 48%, rgba(213, 241, 169, .24), transparent 26rem),
+    linear-gradient(180deg, #fff 0%, #fbfcfa 62%, #f3f8ed 100%);
+}
+
+button, a { -webkit-tap-highlight-color: transparent; }
+
+.install-page {
+  width: min(100% - 28px, 880px);
+  margin: 0 auto;
+  padding: max(22px, env(safe-area-inset-top)) 0 max(28px, calc(env(safe-area-inset-bottom) + 18px));
+}
+
+.install-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 30px;
+  align-items: center;
+  padding: 10px 8px 28px;
+}
+
+.install-back {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 5px;
+  margin-bottom: 25px;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.install-back > span:first-child { display: block; color: #111827; font-size: 16px; line-height: 1; }
+.install-back > span:last-child { display: block; line-height: 1; }
+.install-kicker { margin: 0 0 9px; color: #639b22; font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.install-hero h1 { max-width: 620px; margin: 0; font-size: clamp(32px, 5vw, 50px); line-height: 1.08; letter-spacing: -.045em; }
+.install-lead { max-width: 590px; margin: 18px 0 0; color: var(--muted); font-size: clamp(16px, 2.4vw, 21px); line-height: 1.5; }
+
+.install-app-icon {
+  display: grid;
+  place-items: center;
+  width: 138px;
+  height: 138px;
+  transform: rotate(7deg);
+  border-radius: 34px;
+  background: linear-gradient(145deg, #91e329, #6ac313);
+  box-shadow: 0 24px 38px rgba(92, 169, 7, .25);
+}
+.install-app-icon img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+
+.install-steps { display: grid; gap: 18px; margin-top: 18px; }
+.install-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(230px, .8fr) minmax(300px, 1.2fr);
+  min-height: 340px;
+  overflow: hidden;
+  border: 1px solid rgba(98, 120, 82, .12);
+  border-radius: 28px;
+  background: var(--card);
+  box-shadow: 0 18px 45px rgba(31, 45, 24, .075);
+}
+
+.step-copy { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; align-content: center; padding: 34px 20px 34px 30px; }
+.step-number {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(105, 181, 24, .3);
+  border-radius: 13px;
+  background: rgba(246, 251, 239, .96);
+  color: #5c9f17;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: -.02em;
+  box-shadow: 0 6px 16px rgba(74, 118, 30, .07);
+}
+.step-copy h2 { margin: 5px 0 18px; font-size: clamp(21px, 3vw, 29px); line-height: 1.22; letter-spacing: -.025em; }
+.step-copy p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.55; }
+.step-domain { display: inline-flex; align-items: center; margin: 0 0 22px !important; padding: 9px 12px; border: 1px solid rgba(111, 192, 23, .35); border-radius: 12px; color: #5baa09 !important; font-size: 14px !important; font-weight: 750; white-space: nowrap; }
+
+.iphone-mock { position: relative; align-self: end; justify-self: center; width: min(92%, 390px); height: 315px; padding: 18px 14px 0; overflow: hidden; border: 8px solid #101114; border-bottom: 0; border-radius: 46px 46px 0 0; background: #fff; box-shadow: 0 -2px 0 #777, 0 18px 40px rgba(10, 15, 20, .2); }
+.iphone-island { position: absolute; z-index: 3; top: 0; left: 50%; width: 108px; height: 24px; transform: translateX(-50%); border-radius: 0 0 17px 17px; background: #090a0b; }
+.iphone-status { display: flex; justify-content: space-between; padding: 0 8px; color: #0f1720; font-size: 12px; }
+.safari-page-mark { display: grid; justify-items: center; gap: 8px; margin-top: 40px; color: #334155; font-size: 17px; }
+.safari-page-mark img { width: 48px; height: 48px; border-radius: 14px; }
+.safari-address { display: grid; grid-template-columns: minmax(0, 1fr) 24px; align-items: center; gap: 7px; margin-top: 28px; padding: 11px 10px; border-radius: 14px; background: #f1f2f4; color: #28313c; font-size: 12px; white-space: nowrap; }
+.safari-address b { overflow: hidden; font-weight: 600; text-align: center; text-overflow: ellipsis; }
+.safari-refresh { justify-self: end; color: #59636f; font-size: 16px; }
+.safari-toolbar { display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; margin-top: 15px; color: #087cf0; font-size: 27px; text-align: center; }
+.safari-toolbar .is-muted { color: #aeb4ba; }
+.share-target { display: grid; place-items: center; width: 52px; height: 52px; margin: auto; border: 3px solid #78d11d; border-radius: 50%; }
+.share-target svg { width: 27px; fill: none; stroke: #087cf0; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.share-sheet { margin-top: 39px; overflow: hidden; border: 1px solid #e3e5e8; border-radius: 15px; background: #fff; box-shadow: 0 15px 28px rgba(16, 24, 40, .1); }
+.share-sheet > div { display: flex; justify-content: space-between; align-items: center; min-height: 46px; padding: 0 15px; border-bottom: 1px solid #ebedf0; color: #1f2937; font-size: 13px; }
+.share-sheet > div:last-child { border-bottom: 0; }
+.share-sheet .home-row { margin: 4px; border: 2px solid #75cf1c; border-radius: 11px; }
+.share-sheet span { font-size: 21px; }
+
+.iphone-home { background: linear-gradient(145deg, #20384b 0%, #152b3d 55%, #315144 100%); }
+.iphone-status-light { position: relative; z-index: 2; color: #fff; }
+.home-glow { position: absolute; right: -90px; bottom: -50px; width: 330px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(120, 207, 29, .42), transparent 65%); transform: rotate(-15deg); }
+.home-app { position: relative; z-index: 2; display: grid; justify-items: center; gap: 8px; width: 88px; margin: 57px 0 0 32px; color: #fff; font-size: 13px; }
+.home-app img { width: 68px; height: 68px; border-radius: 18px; box-shadow: 0 12px 22px rgba(0, 0, 0, .2); }
+.home-dock { position: absolute; left: 24px; right: 24px; bottom: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 13px; border-radius: 24px; background: rgba(255, 255, 255, .18); backdrop-filter: blur(12px); }
+.home-dock span { aspect-ratio: 1; border-radius: 13px; background: rgba(255, 255, 255, .5); }
+
+.install-ready { position: relative; display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 18px; margin: 18px 0 0; padding: 22px 24px; overflow: hidden; border: 1px solid rgba(111, 192, 23, .28); border-radius: 26px; background: linear-gradient(135deg, #1d2a20 0%, #243528 56%, #304c2d 100%); color: #fff; box-shadow: 0 20px 40px rgba(24, 52, 24, .17); }
+.install-ready::after { content: ""; position: absolute; right: -55px; bottom: -75px; width: 210px; height: 210px; border-radius: 50%; background: radial-gradient(circle, rgba(139, 225, 44, .38), transparent 67%); pointer-events: none; }
+.ready-brand { position: relative; z-index: 1; width: 70px; height: 70px; }
+.ready-brand img { width: 100%; height: 100%; border-radius: 20px; box-shadow: 0 12px 24px rgba(0, 0, 0, .22); }
+.ready-brand > span { position: absolute; right: -5px; bottom: -4px; display: grid; place-items: center; width: 28px; height: 28px; border: 3px solid #243528; border-radius: 50%; background: #8add2b; color: #16220f; font-size: 15px; font-weight: 950; }
+.ready-copy { position: relative; z-index: 1; display: grid; gap: 4px; }
+.ready-copy small { color: #aee865; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.ready-copy b { font-size: 20px; line-height: 1.18; }
+.ready-copy > span { color: rgba(255, 255, 255, .7); font-size: 13px; line-height: 1.42; }
+
+.web-version-button { display: grid; grid-template-columns: 48px minmax(0, 1fr) 28px; align-items: center; gap: 14px; min-height: 88px; padding: 14px 18px 14px 16px; border: 1px solid rgba(126, 161, 91, .12); border-radius: 25px; background: radial-gradient(circle at 12% 14%, rgba(179, 231, 113, .16), transparent 34%), linear-gradient(145deg, rgba(255, 255, 255, .96), rgba(248, 252, 242, .94)); color: var(--ink); text-decoration: none; box-shadow: 0 16px 35px rgba(47, 76, 29, .075), inset 0 1px 0 rgba(255, 255, 255, .95); }
+.web-version-button-top { margin: 0 0 4px; transition: transform .18s ease, box-shadow .18s ease; }
+.web-version-button-top:hover { transform: translateY(-1px); border-color: rgba(116, 184, 44, .22); box-shadow: 0 20px 40px rgba(47, 76, 29, .1), inset 0 1px 0 rgba(255, 255, 255, .98); }
+.web-version-button-top:active { transform: translateY(0) scale(.995); }
+.web-version-symbol { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 15px; background: rgba(245, 252, 236, .98); color: #6fbd18; box-shadow: 0 9px 20px rgba(99, 168, 26, .1); }
+.web-version-symbol svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.web-version-button > span:nth-child(2) { display: grid; gap: 3px; }
+.web-version-button b { color: #172130; font-size: 16px; font-weight: 740; }
+.web-version-button small { color: #75806f; font-size: 12px; }
+.web-version-arrow { display: block; justify-self: end; color: #70b927; font-size: 29px; font-weight: 400; line-height: 1; }
+
+@media (max-width: 620px) {
+  .install-page { width: min(100% - 22px, 460px); padding-top: max(14px, env(safe-area-inset-top)); }
+  .install-hero { grid-template-columns: minmax(0, 1fr) 80px; gap: 12px; padding: 4px 4px 22px; }
+  .install-back { margin-bottom: 19px; }
+  .install-hero h1 { font-size: clamp(29px, 8.7vw, 39px); }
+  .install-lead { margin-top: 13px; font-size: 15px; line-height: 1.45; }
+  .install-app-icon { width: 74px; height: 74px; border-radius: 20px; box-shadow: 0 16px 26px rgba(92, 169, 7, .22); }
+  .install-steps { gap: 13px; margin-top: 13px; }
+  .install-step { grid-template-columns: minmax(0, 1fr); min-height: 0; border-radius: 24px; }
+  .step-copy { grid-template-columns: 41px minmax(0, 1fr); gap: 11px; padding: 22px 19px 18px; }
+  .step-number { width: 39px; height: 39px; border-radius: 12px; font-size: 15px; }
+  .step-copy h2 { margin: 3px 0 10px; font-size: 21px; }
+  .step-copy p { font-size: 14px; line-height: 1.5; }
+  .step-domain { margin-bottom: 13px !important; padding: 7px 9px; font-size: 12px !important; }
+  .iphone-mock { width: calc(100% - 38px); height: 276px; border-width: 7px; border-bottom: 0; border-radius: 39px 39px 0 0; }
+  .safari-page-mark { margin-top: 29px; }
+  .safari-address { margin-top: 19px; }
+  .share-sheet { margin-top: 31px; }
+  .share-sheet > div { min-height: 40px; font-size: 12px; }
+  .home-app { margin-top: 47px; }
+  .install-ready { grid-template-columns: 61px minmax(0, 1fr); gap: 14px; margin-top: 13px; padding: 17px; border-radius: 22px; }
+  .ready-brand { width: 59px; height: 59px; }
+  .ready-brand img { border-radius: 17px; }
+  .ready-copy b { font-size: 17px; }
+  .web-version-button { position: relative; z-index: 2; grid-template-columns: 44px minmax(0, 1fr) 24px; min-height: 78px; padding: 11px 13px; border-radius: 22px; }
+  .web-version-symbol { width: 42px; height: 42px; border-radius: 14px; }
+  .web-version-symbol svg { width: 23px; height: 23px; }
+  .web-version-button b { font-size: 14px; }
+}
+
+/* Compact iPhones: SE 2/3 and similarly narrow screens. */
+@media (max-width: 390px) {
+  .install-page { width: min(100% - 16px, 374px); }
+  .install-hero { grid-template-columns: minmax(0, 1fr) 64px; gap: 8px; padding-inline: 3px; }
+  .install-back { margin-bottom: 14px; font-size: 13px; }
+  .install-kicker { margin-bottom: 7px; font-size: 10px; }
+  .install-hero h1 { font-size: clamp(27px, 8.2vw, 32px); line-height: 1.08; }
+  .install-lead { margin-top: 10px; font-size: 14px; }
+  .install-app-icon { width: 60px; height: 60px; border-radius: 17px; }
+  .web-version-button { grid-template-columns: 39px minmax(0, 1fr) 20px; gap: 9px; min-height: 70px; padding: 9px 10px; border-radius: 19px; }
+  .web-version-symbol { width: 37px; height: 37px; border-radius: 12px; }
+  .web-version-symbol svg { width: 21px; height: 21px; }
+  .web-version-button b { font-size: 14px; }
+  .web-version-button small { font-size: 11px; }
+  .web-version-arrow { font-size: 25px; }
+  .install-step { border-radius: 21px; }
+  .step-copy { grid-template-columns: 37px minmax(0, 1fr); gap: 8px; padding: 18px 15px 15px; }
+  .step-number { width: 35px; height: 35px; border-radius: 11px; font-size: 14px; }
+  .step-copy h2 { font-size: 19px; }
+  .step-copy p { font-size: 13px; }
+  .iphone-mock { width: calc(100% - 24px); height: 246px; border-radius: 34px 34px 0 0; }
+  .iphone-island { width: 92px; height: 20px; }
+  .safari-page-mark { margin-top: 20px; }
+  .safari-page-mark img { width: 42px; height: 42px; }
+  .safari-address { margin-top: 13px; padding-block: 8px; font-size: 10px; }
+  .safari-toolbar { margin-top: 8px; font-size: 23px; }
+  .share-target { width: 45px; height: 45px; }
+  .share-sheet { margin-top: 23px; }
+  .share-sheet > div { min-height: 35px; padding-inline: 11px; font-size: 10.5px; }
+  .share-sheet span { font-size: 18px; }
+  .home-app { margin-top: 35px; }
+  .home-app img { width: 60px; height: 60px; }
+  .install-ready { grid-template-columns: 52px minmax(0, 1fr); gap: 12px; padding: 15px 13px; }
+  .ready-brand { width: 50px; height: 50px; }
+  .ready-brand img { border-radius: 14px; }
+  .ready-brand > span { width: 23px; height: 23px; font-size: 12px; }
+  .ready-copy b { font-size: 15px; }
+  .ready-copy > span { font-size: 11px; }
+}
+
+/* Large iPhones: Plus and Pro Max keep more breathing room without stretching. */
+@media (min-width: 428px) and (max-width: 620px) {
+  .install-page { width: min(100% - 28px, 446px); }
+  .install-hero { grid-template-columns: minmax(0, 1fr) 88px; gap: 16px; }
+  .install-app-icon { width: 82px; height: 82px; border-radius: 22px; }
+  .install-step { border-radius: 27px; }
+  .step-copy { padding: 25px 23px 20px; }
+  .iphone-mock { width: calc(100% - 48px); height: 292px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .install-page {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+    animation: install-page-in .42s ease-out both;
+    will-change: opacity, transform;
+  }
+
+  .install-page > *,
+  .install-page .install-step,
+  .install-page .iphone-mock,
+  .install-page .install-ready,
+  .install-page .web-version-button {
+    opacity: 1;
+    animation: none;
+    transform: none;
+  }
+
+  @keyframes install-page-in {
+    from { opacity: 0; transform: translate3d(0, 14px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .install-page,
+  .install-page > * {
+    opacity: 1;
+    animation: none;
+    transform: none;
+  }
+}

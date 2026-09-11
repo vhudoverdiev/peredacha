@@ -1,0 +1,2285 @@
+/* Mobile-only overrides live here so they cannot be undone by legacy rules in style.css. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartments-page) .po-notification-widget {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    /* The legacy body overrides --ref-mobile-nav-height with 5.45rem, so use
+       the dock's real fixed height here: 72px + a precise 4px visual gap. */
+    top: auto !important;
+    bottom: 76px !important;
+  }
+
+  /* One mobile action system for remark edit/split controls across every page. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body :is(.inline-edit-btn.inline-edit, .inline-edit-btn.inline-split-btn) {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    flex: 0 0 2.55rem !important;
+    width: 2.55rem !important;
+    min-width: 2.55rem !important;
+    max-width: 2.55rem !important;
+    height: 2.55rem !important;
+    min-height: 2.55rem !important;
+    max-height: 2.55rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: .9rem !important;
+    line-height: 1 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body :is(.inline-edit-btn.inline-edit, .inline-edit-btn.inline-edit:hover,
+    .inline-edit-btn.inline-edit:focus, .inline-edit-btn.inline-edit:focus-visible,
+    .inline-edit-btn.inline-edit:active) {
+    border: 1px solid rgba(141, 214, 44, .25) !important;
+    background: linear-gradient(180deg, #fff 0%, #f9fbf5 100%) !important;
+    color: #18231a !important;
+    -webkit-text-fill-color: #18231a !important;
+    box-shadow: 0 7px 16px rgba(37, 49, 32, .07) !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body :is(.inline-edit-btn.inline-split-btn, .inline-edit-btn.inline-split-btn:hover,
+    .inline-edit-btn.inline-split-btn:focus, .inline-edit-btn.inline-split-btn:focus-visible,
+    .inline-edit-btn.inline-split-btn:active) {
+    border: 1px solid var(--peredacha-action-green-hover) !important;
+    background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    box-shadow: 0 9px 18px rgba(141, 214, 44, .2) !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body :is(.inline-edit-btn.inline-edit, .inline-edit-btn.inline-split-btn) :is(i, .bi, svg) {
+    display: inline-flex !important;
+    width: 1.18rem !important;
+    height: 1.18rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    font-size: 1.08rem !important;
+    line-height: 1 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .inline-edit-btn.inline-edit :is(i, .bi, svg) {
+    color: #18231a !important;
+    -webkit-text-fill-color: #18231a !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .inline-edit-btn.inline-split-btn :is(i, .bi, svg) {
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table .task-text .task-text-tools {
+    display: flex !important;
+    flex-flow: row nowrap !important;
+    align-items: center !important;
+    gap: .5rem !important;
+    width: max-content !important;
+    min-width: 5.6rem !important;
+    max-width: 100% !important;
+    margin-top: .6rem !important;
+    grid-column: 2 !important;
+    justify-self: start !important;
+    align-self: start !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn {
+    display: inline-flex !important;
+    flex-flow: row nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .48rem !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 3.45rem !important;
+    padding: .78rem 1rem !important;
+    border: 1px solid rgba(141, 191, 80, .34) !important;
+    border-radius: 1.2rem !important;
+    background: linear-gradient(180deg, #fff 0%, #f6faef 100%) !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    font-size: 1rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    box-shadow: 0 12px 28px rgba(59, 82, 42, .08) !important;
+    transform: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    touch-action: manipulation !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn:active {
+    transform: translateY(1px) scale(.985) !important;
+    border-color: rgba(111, 169, 42, .5) !important;
+    background: linear-gradient(180deg, #f4faeb 0%, #edf6e2 100%) !important;
+    box-shadow: 0 5px 14px rgba(59, 82, 42, .1) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn > span {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    max-width: none !important;
+    align-items: center !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    transform: none !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn .glass-mobile-back-icon {
+    display: block !important;
+    flex: 0 0 1.18rem !important;
+    width: 1.18rem !important;
+    height: 1.18rem !important;
+    overflow: visible !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2.15 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page .glass-mobile-back-btn .glass-mobile-back-label {
+    position: static !important;
+    font-size: 1rem !important;
+    font-weight: 850 !important;
+    letter-spacing: 0 !important;
+    text-indent: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row > .task-text.inline-editing-host {
+    display: grid !important;
+    grid-template-columns: minmax(5.3rem, 29%) minmax(0, 1fr) !important;
+    grid-column: auto !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row
+    > .task-text.inline-editing-host::before {
+    display: block !important;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+    writing-mode: horizontal-tb !important;
+    line-height: 1.2 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row
+    > .task-text.inline-editing-host > .inline-editor-floating {
+    position: static !important;
+    inset: auto !important;
+    grid-column: 1 / -1 !important;
+    justify-self: stretch !important;
+    box-sizing: border-box !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: .7rem 0 0 !important;
+    padding: .75rem !important;
+    overflow: visible !important;
+    z-index: auto !important;
+  }
+
+  body.app-body .glass-page .inline-editor-anchor.inline-editing-host {
+    display: flex !important;
+    flex-flow: row wrap !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.app-body .glass-page
+    .inline-editor-anchor.inline-editing-host > .inline-editor-floating {
+    position: static !important;
+    inset: auto !important;
+    flex: 1 0 100% !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: .7rem 0 0 !important;
+    padding: .75rem !important;
+    overflow: visible !important;
+    z-index: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page
+    .mobile-card-table .task-text:has(> .inline-editor-anchor.inline-editing-host)
+    > .inline-editor-anchor.inline-editing-host {
+    grid-column: 2 !important;
+    justify-self: stretch !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page
+    .mobile-card-table
+    .inline-editor-anchor.inline-editing-host {
+    display: flex !important;
+    flex-flow: row wrap !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    align-items: center !important;
+    gap: .5rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page
+    .mobile-card-table
+    .inline-editor-anchor.inline-editing-host > .inline-editor-floating {
+    position: static !important;
+    inset: auto !important;
+    justify-self: stretch !important;
+    flex: 1 0 100% !important;
+    order: 2 !important;
+    box-sizing: border-box !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: .7rem 0 0 !important;
+    padding: .75rem !important;
+    overflow: visible !important;
+    z-index: auto !important;
+  }
+
+  body.app-body :is(.remarks-export-table-shell, .glass-page, .assignment-contractor-table)
+    .inline-editor-floating textarea.form-control {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 7.5rem !important;
+    padding: .78rem .85rem !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+    white-space: pre-wrap !important;
+    font-size: 1rem !important;
+    line-height: 1.45 !important;
+  }
+
+  body.app-body :is(.remarks-export-table-shell, .glass-page, .assignment-contractor-table)
+    .inline-editor-floating .inline-editor-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: .55rem !important;
+  }
+
+  body.app-body :is(.remarks-export-table-shell, .glass-page, .assignment-contractor-table)
+    .inline-editor-floating .inline-editor-actions .btn {
+    display: inline-flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.75rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .62rem .7rem !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child {
+    display: flex !important;
+    width: 100% !important;
+    min-height: 3.45rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .78rem 1rem !important;
+    border: 1px solid rgba(141, 191, 80, .34) !important;
+    border-radius: 1.2rem !important;
+    background: linear-gradient(180deg, #fff 0%, #f6faef 100%) !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    box-shadow: 0 12px 28px rgba(59, 82, 42, .08) !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    touch-action: manipulation !important;
+    transition:
+      transform .18s cubic-bezier(.2, .8, .2, 1),
+      background .18s ease,
+      border-color .18s ease,
+      box-shadow .18s ease !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child:active {
+    transform: translateY(1px) scale(.985) !important;
+    border-color: rgba(111, 169, 42, .5) !important;
+    background: linear-gradient(180deg, #f4faeb 0%, #edf6e2 100%) !important;
+    box-shadow: 0 5px 14px rgba(59, 82, 42, .1) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child
+    .assignment-desktop-issue-content {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child
+    .assignment-mobile-back-content {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .48rem !important;
+    font-size: 1rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    background: transparent !important;
+    transition: transform .18s cubic-bezier(.2, .8, .2, 1) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child
+    .assignment-mobile-back-content > span {
+    display: inline-block !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transition: color .18s ease, opacity .18s ease !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child
+    .assignment-mobile-back-content svg {
+    display: block !important;
+    width: 1.18rem !important;
+    height: 1.18rem !important;
+    flex: 0 0 1.18rem !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2.15 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    color: #253120 !important;
+    transition: transform .18s cubic-bezier(.2, .8, .2, 1) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child:active
+    .assignment-mobile-back-content svg {
+    transform: translateX(-.2rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-subtabs
+    .assignment-subtab.assignment-issued-back-link:first-child::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    .remarks-tab-link-category::after {
+    content: attr(data-category-label) !important;
+    position: absolute !important;
+    left: 50% !important;
+    bottom: calc(100% + .42rem) !important;
+    display: block !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    transform: translateX(-50%) translateY(.18rem) !important;
+    min-width: max-content !important;
+    padding: .38rem .62rem !important;
+    border-radius: .58rem !important;
+    background: #111820 !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    font-size: .72rem !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+    box-shadow: 0 10px 24px rgba(10, 16, 24, .26) !important;
+    pointer-events: none !important;
+    transition: opacity .14s ease, transform .14s ease !important;
+    z-index: 30 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    .remarks-tab-link-category.is-mobile-label-visible::after {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: translateX(-50%) translateY(0) !important;
+  }
+
+  /* Keep the last category tooltip inside the right edge of the mobile screen. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    .crm-tabs.justify-content-end .nav-item:last-child
+    .remarks-tab-link-category::after {
+    right: 0 !important;
+    left: auto !important;
+    max-width: min(14rem, calc(100vw - 2rem)) !important;
+    min-width: 0 !important;
+    width: max-content !important;
+    white-space: normal !important;
+    text-align: center !important;
+    transform: translateY(.18rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs
+    .crm-tabs.justify-content-end .nav-item:last-child
+    .remarks-tab-link-category.is-mobile-label-visible::after {
+    transform: translateY(0) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs .crm-tabs,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs .nav-item,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-tabs .remarks-tab-link-category {
+    overflow: visible !important;
+  }
+
+  /* Keep primary green identical to the mobile Save button in every state. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.task-detail-page) .task-detail-comments-card
+    form[data-task-comment-async="1"]
+    :is(.btn, .btn:hover, .btn:focus, .btn:focus-visible, .btn:active),
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page)
+    .apartment-inspection-status-form-detail .apartment-inspection-date-actions
+    :is(.btn, .btn:hover, .btn:focus, .btn:focus-visible, .btn:active) {
+    border-color: var(--peredacha-action-green-hover) !important;
+    background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    box-shadow: 0 12px 24px rgba(141, 214, 44, .22) !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.task-detail-page) .task-detail-related-actions
+    .task-detail-excel-link {
+    display: none !important;
+  }
+
+  /* Deadline mirrors the mobile Inspection row: badge first, date below, left aligned. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-data-deadline-row
+    .apartment-deadline-display {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    justify-items: start !important;
+    justify-content: start !important;
+    align-items: start !important;
+    gap: .42rem !important;
+    width: 100% !important;
+    margin: 0 !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-detail-page
+    .apartment-data-row.apartment-data-deadline-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+    justify-items: start !important;
+    align-items: start !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-data-deadline-row
+    > :is(span, b) {
+    grid-column: 1 / -1 !important;
+    justify-self: start !important;
+    width: 100% !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-data-deadline-row
+    :is(.apartment-deadline-status, .deadline-badge) {
+    order: 1 !important;
+    justify-self: start !important;
+    margin: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-data-deadline-row
+    .apartment-deadline-date {
+    order: 2 !important;
+    display: block !important;
+    justify-self: start !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    font-size: 1.02rem !important;
+    font-weight: 900 !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Opening the editor must not move the existing remark label or text. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row
+    > .task-text.inline-editing-host
+    > .task-text-body {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    justify-self: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row
+    > .task-text.inline-editing-host > .task-text-tools {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    flex-flow: row nowrap !important;
+    justify-self: start !important;
+    width: max-content !important;
+    max-width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.remarks-page-head) .remarks-export-table-shell
+    .task-table.mobile-card-table tr.inline-editor-open-row
+    > .task-text.inline-editing-host > .inline-editor-floating {
+    grid-column: 1 / -1 !important;
+    grid-row: 3 !important;
+  }
+}
+
+/* Mobile v16: stable inline editing, professional issued-task cards and
+   clearly separated informational statuses. Desktop remains untouched. */
+@media (max-width: 767.98px) {
+  /* Current status is information, not another management button. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-status-mobile {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: .72rem !important;
+    margin-top: .9rem !important;
+    padding-top: .85rem !important;
+    border-top: 1px solid rgba(121, 191, 37, .14) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-status-mobile::before {
+    content: "Статус" !important;
+    display: block !important;
+    color: #778273 !important;
+    font-size: .68rem !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    letter-spacing: .11em !important;
+    text-transform: uppercase !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-status-current-mobile {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    min-height: 2.15rem !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    justify-self: start !important;
+    padding: .44rem .82rem !important;
+    border: 1px solid rgba(128, 145, 118, .22) !important;
+    border-radius: 999px !important;
+    background: #f5f8f1 !important;
+    color: #34412f !important;
+    -webkit-text-fill-color: #34412f !important;
+    font-size: .84rem !important;
+    font-weight: 850 !important;
+    line-height: 1.1 !important;
+    box-shadow: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-actions {
+    margin-top: .08rem !important;
+    padding-top: .78rem !important;
+    border-top: 1px dashed rgba(128, 145, 118, .2) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-delete-mobile-form {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: .12rem 0 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-inspection-reset-mobile-only {
+    display: block !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-delete-mobile-btn {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    width: 100% !important;
+    min-height: 3.05rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .72rem 1rem !important;
+    border: 1px solid rgba(220, 53, 69, .28) !important;
+    border-radius: 1rem !important;
+    background: linear-gradient(180deg, #fff 0%, #fff8f8 100%) !important;
+    color: #b42332 !important;
+    -webkit-text-fill-color: #b42332 !important;
+    font-size: .9rem !important;
+    font-weight: 850 !important;
+    line-height: 1.1 !important;
+    box-shadow: 0 10px 22px rgba(180, 35, 50, .06) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-delete-mobile-btn:is(:active, :focus-visible) {
+    border-color: rgba(180, 35, 50, .46) !important;
+    background: #fff3f3 !important;
+    color: #9f1d2b !important;
+    -webkit-text-fill-color: #9f1d2b !important;
+    box-shadow: 0 6px 15px rgba(180, 35, 50, .09) !important;
+  }
+
+  /* "Проблема" shares the final row with "Отступные" in management grids. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.task-detail-page) .task-detail-status-grid .problem-action-form,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.apartment-detail-page) .apartment-task-actions .apartment-task-action-form-problem {
+    grid-column: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-contractor-table) .assignment-task-inline-anchor {
+    display: flex !important;
+    flex-flow: row wrap !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: .5rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-contractor-table) .assignment-mobile-task-edit-btn {
+    display: inline-flex !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-contractor-table) .assignment-task-inline-anchor > .assignment-task-text {
+    flex: 1 1 calc(100% - 7rem) !important;
+    min-width: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-contractor-table) .assignment-task-inline-anchor > .inline-edit-btn {
+    flex: 0 0 2.65rem !important;
+    align-self: flex-start !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-contractor-table) .assignment-task-inline-anchor > .inline-editor-floating {
+    position: static !important;
+    inset: auto !important;
+    flex: 1 0 100% !important;
+    order: 2 !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin-top: .2rem !important;
+    padding: .75rem !important;
+    overflow: visible !important;
+    z-index: auto !important;
+  }
+
+  /* One clean mobile system for issued-day, employee and task cards. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters)
+    .assignment-issued-layout:not(.assignment-issued-layout-empty) {
+    display: grid !important;
+    gap: 1rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-group {
+    box-sizing: border-box !important;
+    display: grid !important;
+    gap: .82rem !important;
+    width: 100% !important;
+    padding: .82rem !important;
+    border: 1px solid rgba(226, 77, 84, .2) !important;
+    border-radius: 1.35rem !important;
+    background: linear-gradient(180deg, rgba(255, 249, 249, .96), rgba(255, 255, 255, .98)) !important;
+    box-shadow: 0 16px 34px rgba(80, 35, 38, .07) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head {
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: .75rem !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: .78rem .84rem !important;
+    border: 1px solid rgba(226, 77, 84, .16) !important;
+    border-radius: 1rem !important;
+    background: #fff !important;
+    box-shadow: 0 9px 22px rgba(80, 35, 38, .05) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head > div {
+    min-width: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head :is(b, h2, h3) {
+    color: #24301f !important;
+    font-size: 1rem !important;
+    font-weight: 900 !important;
+    line-height: 1.15 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head strong,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-count {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    min-height: 2rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .38rem .68rem !important;
+    border: 1px solid rgba(121, 191, 37, .2) !important;
+    border-radius: 999px !important;
+    background: #f7faf3 !important;
+    color: #53634c !important;
+    font-size: .76rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-cards {
+    display: grid !important;
+    gap: .82rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-card {
+    overflow: hidden !important;
+    margin: 0 !important;
+    border: 1px solid rgba(121, 191, 37, .2) !important;
+    border-radius: 1.22rem !important;
+    background: #fff !important;
+    box-shadow: 0 14px 30px rgba(31, 45, 61, .07) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-head {
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: .7rem !important;
+    min-height: 4.65rem !important;
+    padding: .82rem .88rem !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(121, 191, 37, .13) !important;
+    background: linear-gradient(135deg, #f6fbee 0%, #ffffff 76%) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-user {
+    display: flex !important;
+    min-width: 0 !important;
+    align-items: center !important;
+    gap: .68rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-user > span {
+    display: inline-flex !important;
+    flex: 0 0 2.55rem !important;
+    width: 2.55rem !important;
+    height: 2.55rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid rgba(121, 191, 37, .18) !important;
+    border-radius: .9rem !important;
+    background: #fff !important;
+    color: #69a91e !important;
+    box-shadow: 0 8px 18px rgba(121, 191, 37, .1) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-user b {
+    display: block !important;
+    color: #1d281a !important;
+    font-size: .98rem !important;
+    font-weight: 900 !important;
+    line-height: 1.16 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-user small {
+    display: block !important;
+    margin-top: .2rem !important;
+    color: #73806d !important;
+    font-size: .68rem !important;
+    font-weight: 850 !important;
+    letter-spacing: .09em !important;
+    line-height: 1.1 !important;
+    text-transform: uppercase !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-head-actions {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    gap: .38rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-export-btn {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table tbody {
+    gap: .78rem !important;
+    padding: .78rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-areas: "room room" "task task" "date status" "actions actions" !important;
+    gap: .72rem .58rem !important;
+    width: 100% !important;
+    padding: .9rem !important;
+    border: 1px solid rgba(209, 222, 199, .92) !important;
+    border-radius: 1.08rem !important;
+    background: linear-gradient(180deg, #fff 0%, #fbfdf8 100%) !important;
+    box-shadow: 0 10px 24px rgba(31, 45, 61, .055) !important;
+    overflow: hidden !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(1) {
+    grid-area: room !important;
+    justify-content: flex-start !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(2) {
+    grid-area: task !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(3) {
+    grid-area: date !important;
+    justify-content: flex-start !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(4) {
+    grid-area: status !important;
+    justify-content: flex-end !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-row > td:nth-child(5) {
+    grid-area: actions !important;
+    padding-top: .72rem !important;
+    border-top: 1px solid rgba(121, 191, 37, .12) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-room-pill {
+    justify-content: flex-start !important;
+    min-height: 2rem !important;
+    padding: .38rem .68rem !important;
+    font-size: .84rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-task-open-link {
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+    line-height: 1.38 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-date-cell {
+    display: flex !important;
+    flex-flow: row wrap !important;
+    gap: .3rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-date-cell > span,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-status-toggle {
+    min-height: 2rem !important;
+    padding: .38rem .62rem !important;
+    font-size: .75rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-actions {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: .5rem !important;
+    width: 100% !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table
+    :is(.assignment-date-action-form, .assignment-remove-user-form) {
+    display: contents !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-actions .btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .34rem !important;
+    min-height: 2.85rem !important;
+    padding: .5rem .35rem !important;
+    border-radius: .86rem !important;
+    font-size: .72rem !important;
+    font-weight: 850 !important;
+    box-shadow: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-actions
+    :is(.assignment-date-action-text, .assignment-change-assignee-text, .assignment-remove-user-text) {
+    display: inline !important;
+    min-width: 0 !important;
+    font: inherit !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-issued-actions .btn > i {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    color: currentColor !important;
+    -webkit-text-fill-color: currentColor !important;
+    font-size: .92rem !important;
+    line-height: 1 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-change-assignee-btn {
+    border-color: var(--peredacha-action-green-hover) !important;
+    background: linear-gradient(180deg, var(--peredacha-action-green), var(--peredacha-action-green-hover)) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table .assignment-remove-user-btn {
+    border: 1px solid rgba(180, 35, 50, .3) !important;
+    background: linear-gradient(180deg, #fff8f8 0%, #fff3f4 100%) !important;
+    color: #b42332 !important;
+    -webkit-text-fill-color: #b42332 !important;
+    box-shadow: 0 8px 18px rgba(180, 35, 50, .08) !important;
+  }
+}
+
+/* Final mobile authority: Measurements and Issued tasks use the same component. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 3.45rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .78rem 1rem !important;
+    border: 1px solid rgba(141, 191, 80, .34) !important;
+    border-radius: 1.2rem !important;
+    background: linear-gradient(180deg, #fff 0%, #f6faef 100%) !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    font-size: 1rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    box-shadow: 0 12px 28px rgba(59, 82, 42, .08) !important;
+    text-decoration: none !important;
+    transform: none !important;
+    filter: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  /* Glass legacy button rules have unusually high specificity. This selector
+     keeps its shared back component identical to the Issued tasks version. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.glass-page) .glass-page
+    a.btn.btn-outline-secondary.glass-mobile-back-btn.mobile-shared-back-btn.mobile-shared-back-btn {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 3.45rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .78rem 1rem !important;
+    border: 1px solid rgba(141, 191, 80, .34) !important;
+    border-radius: 1.2rem !important;
+    background: linear-gradient(180deg, #fff 0%, #f6faef 100%) !important;
+    background-image: linear-gradient(180deg, #fff 0%, #f6faef 100%) !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    font-size: 1rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    box-shadow: 0 12px 28px rgba(59, 82, 42, .08) !important;
+    text-decoration: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn
+    .mobile-shared-back-content.mobile-shared-back-content {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .48rem !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    font-size: 1rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    box-shadow: none !important;
+    background-image: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn
+    .mobile-shared-back-label.mobile-shared-back-label {
+    display: inline-block !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #253120 !important;
+    -webkit-text-fill-color: #253120 !important;
+    font-size: 1rem !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    background-image: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn
+    .mobile-shared-back-icon.mobile-shared-back-icon {
+    display: block !important;
+    flex: 0 0 1.18rem !important;
+    width: 1.18rem !important;
+    height: 1.18rem !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2.15 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    color: #253120 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-image: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn:active {
+    transform: translateY(1px) scale(.985) !important;
+    border-color: rgba(111, 169, 42, .5) !important;
+    background: linear-gradient(180deg, #f4faeb 0%, #edf6e2 100%) !important;
+    box-shadow: 0 5px 14px rgba(59, 82, 42, .1) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn:active
+    .mobile-shared-back-icon.mobile-shared-back-icon {
+    transform: translateX(-.2rem) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-btn.mobile-shared-back-btn::after,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-content.mobile-shared-back-content::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-content.mobile-shared-back-content::after,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-label.mobile-shared-back-label::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-label.mobile-shared-back-label::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-icon.mobile-shared-back-icon::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .mobile-shared-back-icon.mobile-shared-back-icon::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+  }
+}
+
+/* Final mobile authority: reliable issued-task controls, left-aligned headers,
+   and one compact end-of-page clearance above the fixed navigation dock. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head {
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    flex-direction: column !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head > div {
+    display: flex !important;
+    width: 100% !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head > div > div {
+    min-width: 0 !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-overdue-day-head strong {
+    width: auto !important;
+    align-self: flex-start !important;
+    margin-left: 3.3rem !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-head {
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    flex-direction: column !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-user {
+    width: 100% !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-user > div {
+    min-width: 0 !important;
+    text-align: left !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-head-actions {
+    width: auto !important;
+    align-self: flex-start !important;
+    justify-content: flex-start !important;
+    margin-left: 3.23rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-issued-table
+    :is(.assignment-date-action-form, .assignment-remove-user-form) {
+    position: relative !important;
+    display: block !important;
+    min-width: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-remove-user-icon {
+    display: block !important;
+    flex: 0 0 1.05rem !important;
+    width: 1.05rem !important;
+    height: 1.05rem !important;
+    overflow: visible !important;
+    fill: none !important;
+    stroke: #b42332 !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    color: #b42332 !important;
+    -webkit-text-fill-color: #b42332 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.assignment-issued-filters) .assignment-remove-user-btn:is(:hover, :focus-visible, :active) {
+    color: #b42332 !important;
+    -webkit-text-fill-color: #b42332 !important;
+    background: #fff0f2 !important;
+    border-color: rgba(180, 35, 50, .5) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app) {
+    --ref-mobile-nav-height: 72px !important;
+    /* The installed iOS PWA may report a shorter window.innerHeight than the
+       CSS viewport.  --app-height is intentionally kept for the launch cover,
+       while page geometry follows the real viewport so no dark strip can be
+       exposed above the fixed dock. */
+    --mobile-layout-height: 100dvh;
+    background: #111820 !important;
+    background-color: #111820 !important;
+  }
+
+  html body.app-body.app-body.app-body {
+    min-height: var(--mobile-layout-height, 100dvh) !important;
+    height: auto !important;
+    padding-bottom: 0 !important;
+    background: #111820 !important;
+    background-color: #111820 !important;
+  }
+
+  /* Every worker role uses the same fixed 72px dock.  Installed iOS PWAs can
+     temporarily report a layout height shorter than the fixed-position
+     viewport; the uncovered body strip must remain part of the light page
+     canvas instead of visually extending the dark dock. */
+  html body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav) {
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html body.app-body.app-body.app-body:not(:has(.mobile-short-page-marker))
+    :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
+    min-height: calc(var(--mobile-layout-height, 100dvh) - 72px) !important;
+    height: auto !important;
+    max-height: none !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html body.app-body.app-body.app-body:not(:has(.mobile-short-page-marker))
+    .app-main {
+    min-height: calc(var(--mobile-layout-height, 100dvh) - 72px) !important;
+    height: auto !important;
+    max-height: none !important;
+    padding-bottom: 0 !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html body.app-body.app-body.app-body:not(:has(.mobile-short-page-marker))
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: 0 0 auto !important;
+  }
+
+  html body.app-body.app-body.app-body:not(:has(.mobile-short-page-marker)) [data-ajax-pagination-page] {
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  html body.app-body.app-body.app-body:not(:has(.mobile-short-page-marker))
+    :is(.app-content, .objects-content, .documents-content, .documents-standalone-content) {
+    padding-bottom: calc(72px + .75rem) !important;
+  }
+
+  /* Short worker/settings pages must paint the light application canvas all
+     the way to the real 72px dock. Legacy worker rules used min-height:auto,
+     which made the dark body look like an enormously stretched navigation. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.mobile-worker-project-topbar):not(:has(.mobile-short-page-marker))
+    .app-layout.worker-layout {
+    min-height: calc(var(--mobile-layout-height, 100dvh) - 72px) !important;
+    height: auto !important;
+    max-height: none !important;
+    box-sizing: border-box !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body:has(.mobile-worker-project-topbar):not(:has(.mobile-short-page-marker))
+    .app-layout.worker-layout > .app-main {
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: 1 0 auto !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .documents-standalone-layout.settings-standalone-layout {
+    min-height: calc(var(--mobile-layout-height, 100dvh) - 72px) !important;
+    height: auto !important;
+    max-height: none !important;
+    box-sizing: border-box !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body .documents-standalone-layout.settings-standalone-layout > .documents-content {
+    min-height: 0 !important;
+    flex: 1 0 auto !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  /* The verifier header is fixed. Old report rules reserved the same header
+     height on app-layout once more, producing the thick white strip. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .app-layout {
+    min-height: calc(var(--mobile-layout-height, 100dvh) - 72px) !important;
+    margin-top: 0 !important;
+    padding-top: var(--ref-mobile-topbar-height, calc(4.18rem + var(--ios-safe-top, 0px))) !important;
+    box-sizing: border-box !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .app-layout > .app-main {
+    min-height: 0 !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .app-layout > .app-main > .app-content {
+    padding-top: .65rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-page {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head {
+    display: block !important;
+    min-height: 0 !important;
+    margin: 0 0 .42rem !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head > div:first-child {
+    display: none !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head > div:last-child {
+    display: flex !important;
+    width: 100% !important;
+    gap: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.verifier-layout:has(.work-report-page) .work-report-export-all-btn {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  html body.app-body.app-body.app-body .crm-mobile-page-shell,
+  html body.app-body.app-body.app-body .crm-mobile-page-shell
+    > :last-child:not(.crm-toast-stack):not(.account-page) {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Account is the last child of the mobile shell. The generic reset above
+     used to erase its iPhone home-indicator clearance, leaving that system
+     area painted with the dark root colour and making the 72px dock look
+     about 34px taller than it is. Keep exactly the safe-area as light space
+     below the 2FA card; the dock itself remains identical to Objects. */
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.account-page) .crm-mobile-page-shell > .account-page,
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.has-account-page .crm-mobile-page-shell > .account-page {
+    margin-bottom: 0 !important;
+    padding-bottom: var(--ios-safe-bottom, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Keep the mobile shell visually fixed while documents are switched. The
+     loader still spins on a cold launch, but its card/logo no longer jump. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body :is(.mobile-app-topbar, .mobile-project-topbar, .mobile-bottom-nav) {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+  }
+
+  /* Mobile navigation is not an entrance animation. Keep every page subtree
+     in its final layout while selects/icons initialise and while an empty
+     result is replaced. This changes no colours or geometry. */
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .crm-page-entry-surface > * {
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+    animation: none !important;
+    transition: none !important;
+    will-change: auto !important;
+  }
+
+  /* The dock is a viewport component, so its geometry must not depend on
+     JavaScript device classes.  Those classes can be added a frame later in
+     an installed iOS web app and previously left the legacy tall dock visible
+     on empty pages.  The media query is the only mobile boundary we need. */
+  html body.app-body.app-body.app-body nav.mobile-bottom-nav.mobile-bottom-nav-root,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    body.app-body.app-body nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    position: fixed !important;
+    z-index: 2147481000 !important;
+    display: grid !important;
+    grid-template-columns: repeat(var(--mobile-nav-count, 4), minmax(0, 1fr)) !important;
+    gap: 0 !important;
+    top: auto !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    inset: auto 0 0 0 !important;
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+    height: 72px !important;
+    min-height: 72px !important;
+    max-height: 72px !important;
+    margin: 0 !important;
+    padding: 4px 5px 3px !important;
+    box-sizing: border-box !important;
+    align-items: stretch !important;
+    border: 0 !important;
+    border-radius: 30px 30px 0 0 !important;
+    background: #111820 !important;
+    background-color: #111820 !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    contain: layout paint !important;
+    overflow: hidden !important;
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+  }
+
+  /* Remove the two legacy mobile shell conflicts. The launch cover owns the
+     whole viewport, and every short page paints one light canvas up to the
+     fixed dock (including Measurements, Account and empty Remarks). */
+  html.mobile-standalone-boot .mobile-standalone-boot-screen {
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  /* The old painted containment clipped the soft logo shadow to a visible
+     translucent square. Keep the circular rings/glow, but let them paint
+     naturally and remove every rectangular layer around the mark. */
+  html.mobile-standalone-boot .mobile-standalone-boot-screen__orbit {
+    contain: layout !important;
+    overflow: visible !important;
+    border: 0 !important;
+    outline: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html.mobile-standalone-boot .mobile-standalone-boot-screen__mark,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    .app-launch-loader .mobile-loading-mark {
+    border: 0 !important;
+    outline: 0 !important;
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html.mobile-standalone-boot .mobile-standalone-boot-screen__mark::before,
+  html.mobile-standalone-boot .mobile-standalone-boot-screen__mark::after,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    .app-launch-loader .mobile-loading-mark::before,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
+    .app-launch-loader .mobile-loading-mark::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
+    body > :not(.mobile-standalone-boot-screen):not(.portrait-orientation-guard) {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  body.app-body .mobile-bottom-nav.mobile-bottom-nav-root
+    > :is(.mobile-nav-item, .mobile-menu-toggle) {
+    display: grid !important;
+    align-self: stretch !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    align-content: center !important;
+    justify-items: center !important;
+    gap: .12rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    .site-page-loader :is(.site-page-loader-card, .mobile-loading-mark) {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* Mobile Safari in a regular browser tab is not covered by the standalone
+   shell override. Legacy rules therefore restore a translucent gradient and
+   blur on the topbar while the bottom dock stays solid. Keep the web topbar
+   on the exact same uninterrupted dark surface; installed PWAs are excluded. */
+@media (max-width: 767.98px) {
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body
+    :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar) {
+    background: #111820 !important;
+    background-color: #111820 !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .mobile-fixed-top-scroll-mask {
+    background: #111820 !important;
+    background-color: #111820 !important;
+    background-image: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    filter: none !important;
+  }
+
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body
+    :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar)::before,
+  html:not(.standalone-app):is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body
+    :is(.mobile-app-topbar.mobile-shell-topbar, .mobile-project-topbar.mobile-shell-topbar)::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    opacity: 0 !important;
+  }
+}
+
+/* Empty and regular mobile pages use the same viewport geometry. Switching
+   the dock from fixed to absolute after the external stylesheet loaded caused
+   the visible jump and the extra dark strip in installed iOS PWAs. */
+@media (max-width: 767.98px) {
+  body.app-body:has(.mobile-short-page-marker) {
+    --mobile-empty-dock-height: 72px;
+    --mobile-empty-content-gap: .75rem;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-height: var(--mobile-layout-height, 100dvh) !important;
+    height: auto !important;
+    max-height: none !important;
+    padding-bottom: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    position: relative !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  body.app-body:has(.mobile-short-page-marker)::before,
+  body.app-body:has(.mobile-short-page-marker)::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  body.app-body:has(.mobile-short-page-marker)
+    > :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-height: calc(var(--mobile-layout-height, 100dvh) - var(--mobile-empty-dock-height)) !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  body.app-body:has(.mobile-short-page-marker) .app-main {
+    box-sizing: border-box !important;
+    display: flex !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    overflow: visible !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  body.app-body:has(.mobile-short-page-marker) .app-content {
+    box-sizing: border-box !important;
+    display: flex !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    overflow: visible !important;
+    padding-bottom: var(--mobile-empty-content-gap) !important;
+    scroll-padding-bottom: var(--mobile-empty-content-gap) !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  body.app-body:has(.mobile-short-page-marker) .crm-mobile-page-shell {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    flex: 1 0 auto !important;
+    flex-direction: column !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  /* Empty worker dashboards must start directly below the fixed project bar.
+     A legacy flex-centering rule could vertically centre the entire day card
+     when no task cards followed it. */
+  html body.app-body.app-body:has(.worker-page-empty) .app-main,
+  html body.app-body.app-body:has(.worker-page-empty) .app-content,
+  html body.app-body.app-body:has(.worker-page-empty) .crm-mobile-page-shell {
+    align-content: flex-start !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+  }
+
+  html body.app-body.app-body:has(.worker-page-empty)
+    > .app-layout.worker-layout {
+    padding-top: 0 !important;
+  }
+
+  /* The populated worker task feed uses the same fixed project bar as its
+     empty state. Do not reserve the bar height on worker-layout a second
+     time: that legacy padding pushed the employee/day card far down. */
+  html body.app-body.app-body:has(.worker-page-minimal)
+    > .app-layout.worker-layout {
+    padding-top: 0 !important;
+  }
+
+  html body.app-body.app-body:has(.worker-page-empty) .worker-page-empty {
+    align-self: stretch !important;
+    margin: 0 auto auto !important;
+    padding-top: 0 !important;
+    translate: none !important;
+    transform: none !important;
+  }
+
+  html body.app-body.app-body:has(.worker-page-empty) .worker-day-head {
+    margin-top: 0 !important;
+  }
+
+  body.app-body .remarks-empty-table-shell {
+    display: none !important;
+  }
+
+  body.app-body .remarks-mobile-empty-page,
+  body.app-body [data-ajax-pagination-page="assignments"]:has(.assignment-issued-layout-empty) {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    flex: 1 0 auto !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.app-body .remarks-mobile-empty-page .remarks-export-scope {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    flex: 0 0 auto !important;
+    flex-direction: column !important;
+    margin: .7rem 0 0 !important;
+    padding: 0 !important;
+  }
+
+  body.app-body .remarks-mobile-empty-panel {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 4.5rem !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 1rem .8rem !important;
+    border: 1px solid rgba(207, 221, 195, .96) !important;
+    border-radius: 1.15rem !important;
+    background:
+      radial-gradient(circle at 84% 10%, rgba(141, 214, 44, .09), transparent 32%),
+      rgba(255, 255, 255, .96) !important;
+    color: #172033 !important;
+    font-size: clamp(.84rem, 3.5vw, 1.03rem) !important;
+    font-weight: 760 !important;
+    line-height: 1.28 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    box-shadow: 0 14px 30px rgba(31, 45, 61, .06) !important;
+  }
+
+  body.app-body .remarks-mobile-empty-panel > span {
+    display: block !important;
+    width: auto !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
+  }
+
+  body.app-body .assignment-issued-layout-empty,
+  body.app-body .assignment-issued-layout-empty > .assignment-issued-empty {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 12rem !important;
+    flex: 0 0 auto !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.app-body .assignment-issued-layout-empty > .assignment-issued-empty > .card-body {
+    display: flex !important;
+    min-height: 12rem !important;
+    flex: 1 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-direction: column !important;
+  }
+
+  /* A no-results table row must occupy the complete mobile card.  Legacy
+     mobile table columns otherwise leave only one narrow cell, which rendered
+     “Задач по этому поиску нет” vertically. */
+  body.app-body:has(.assignments-page-head)
+    .assignment-contractor-table:has(.assignment-empty-row) {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: auto !important;
+  }
+
+  body.app-body:has(.assignments-page-head)
+    .assignment-contractor-table:has(.assignment-empty-row) tbody {
+    box-sizing: border-box !important;
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: .82rem !important;
+  }
+
+  body.app-body:has(.assignments-page-head)
+    .assignment-contractor-table tbody > .assignment-empty-row,
+  body.app-body:has(.assignments-page-head)
+    .assignment-contractor-table tbody > .assignment-empty-row > .assignment-empty-cell {
+    box-sizing: border-box !important;
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.app-body:has(.assignments-page-head)
+    .assignment-contractor-table tbody > .assignment-empty-row {
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.app-body:has(.assignments-page-head)
+    .assignment-contractor-table tbody > .assignment-empty-row > .assignment-empty-cell {
+    grid-column: 1 / -1 !important;
+    padding: 0 !important;
+  }
+
+  body.app-body:has(.assignments-page-head)
+    .assignment-empty-state {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 3.5rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .8rem .65rem !important;
+    font-size: clamp(.78rem, 3.35vw, .96rem) !important;
+    line-height: 1.2 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+
+  body.app-body:has(.remarks-mobile-empty-panel) [data-ajax-pagination-summary] .search-result-summary {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 4.25rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: .7rem 0 0 !important;
+    padding: .95rem 1rem !important;
+    border: 1px solid rgba(214, 226, 204, .95) !important;
+    border-radius: 1.05rem !important;
+    background: rgba(255, 255, 255, .94) !important;
+    color: #172033 !important;
+    font-weight: 760 !important;
+    text-align: center !important;
+    overflow-wrap: anywhere !important;
+    box-shadow: 0 12px 26px rgba(31, 45, 61, .06) !important;
+  }
+
+  /* Mobile short-page geometry. The dock is already an exact fixed 72px.
+     Fill the content canvas instead of changing the dock height: this keeps
+     only a small, stable gap between the final control and the dock. */
+  html body.app-body.app-body:has(.mobile-form-fill-page) .app-content,
+  html body.app-body.app-body:has(.task-single-form) .app-content {
+    padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
+    scroll-padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
+  }
+
+  html body.app-body.app-body:has(.mobile-form-fill-page) .crm-mobile-page-shell,
+  html body.app-body.app-body:has(.task-single-form) .crm-mobile-page-shell {
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    padding-bottom: 0 !important;
+  }
+
+  html body.app-body.app-body .mobile-fill-card {
+    box-sizing: border-box !important;
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    margin-bottom: 0 !important;
+  }
+
+  html body.app-body.app-body .mobile-fill-card > .card-body {
+    box-sizing: border-box !important;
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+  }
+
+  html body.app-body.app-body .mobile-fill-card .material-form-footer {
+    margin-top: auto !important;
+    padding-top: .9rem !important;
+  }
+
+  /* The empty worker feed keeps its heading at the top. Only the empty-state
+     card expands, so its lower edge reaches the same 12px content gap used by
+     the engineer pages. */
+  html body.app-body.app-body:has(.worker-page-empty) .worker-page-empty {
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+  }
+
+  html body.app-body.app-body:has(.worker-page-empty) .worker-task-list-minimal {
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+  }
+
+  html body.app-body.app-body:has(.worker-page-empty) .worker-empty-card {
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-direction: column !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Worker Account uses the settings shell, but must consume exactly the same
+     canvas above the shared dock as Tasks. */
+  html body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
+    .documents-content,
+  html body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
+    .crm-mobile-page-shell {
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+  }
+
+  /* The shared mobile documents rule reserves a second 72px dock inside the
+     page. The dock is fixed already, so Account ended 77px above it while
+     Tasks ended 12px above it. Remove only that duplicate content reserve. */
+  html.standalone-app body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
+    main.documents-content.documents-content {
+    padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
+    scroll-padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
+  }
+
+  /* Empty "Issued to employees" is another short page, but its assignment
+     filter selector had greater specificity than the shared short-page rule.
+     Keep the final card/surface 12px above the same fixed dock.  This body
+     selector deliberately matches the specificity of the dark app root: on
+     iOS the layout viewport can temporarily be about one status-bar shorter
+     than the fixed-position viewport.  Any exposed strip must stay part of
+     the light page canvas, not look like extra dock height. */
+  html body.app-body.app-body.app-body:has(.assignment-issued-layout-empty) {
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.assignment-issued-layout-empty) {
+    min-height: var(--mobile-physical-app-height, 100dvh) !important;
+    height: var(--mobile-physical-app-height, 100dvh) !important;
+    max-height: var(--mobile-physical-app-height, 100dvh) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    position: relative !important;
+  }
+
+  /* Empty issued results are a root scrolling page on iOS standalone. Safari
+     reports both fixed bottom:0 and 100dvh against the shorter innerHeight,
+     leaving a 61px strip below an otherwise correct 72px dock. Anchor this
+     short page to screen.height; long pages keep the shared fixed navigation
+     behaviour. */
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    position: absolute !important;
+    top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
+    inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+  }
+
+  /* Opening "Add" from task assignment produces the same shortened iOS
+     layout viewport. Keep its light canvas and dock on the physical screen
+     height as well, instead of painting 61px of root background below it. */
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.assignment-manual-task-form) {
+    min-height: var(--mobile-physical-app-height, 100dvh) !important;
+    height: var(--mobile-physical-app-height, 100dvh) !important;
+    max-height: var(--mobile-physical-app-height, 100dvh) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    position: relative !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.assignment-manual-task-form)
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    position: absolute !important;
+    top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
+    inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+  }
+
+  /* Opening the direct Add remark form produces the same shortened iOS
+     layout viewport. Keep the panel on the physical screen height without
+     affecting the remarks list or other scrollable pages. */
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.task-single-form) {
+    min-height: var(--mobile-physical-app-height, 100dvh) !important;
+    height: var(--mobile-physical-app-height, 100dvh) !important;
+    max-height: var(--mobile-physical-app-height, 100dvh) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    position: relative !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.task-single-form)
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    position: absolute !important;
+    top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
+    inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+  }
+
+  /* The short worker Account and empty Tasks pages expose the same iOS
+     innerHeight gap. Anchor only those states to the physical canvas; task
+     lists with rows remain fixed and retain their normal scroll behaviour. */
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty)) {
+    min-height: var(--mobile-physical-app-height, 100dvh) !important;
+    height: var(--mobile-physical-app-height, 100dvh) !important;
+    max-height: var(--mobile-physical-app-height, 100dvh) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    position: relative !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty))
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    position: absolute !important;
+    top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
+    inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+  }
+
+  html.standalone-app body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)
+    main.app-content.app-content {
+    padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
+    scroll-padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
+  }
+
+  html.standalone-app body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)
+    .crm-mobile-page-shell {
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+  }
+
+  html body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
+    .account-page {
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* The add-assignment selects inherit desktop emphasis from the custom-select
+     component. Keep labels bold, but selected values and options regular. */
+  html body.app-body.app-body .assignment-manual-task-form
+    :is(select, option, .form-select, .developer-select-button,
+        .developer-select-value, .developer-select-option) {
+    font-weight: 400 !important;
+  }
+
+  html body.app-body.app-body .assignment-manual-task-form
+    .developer-native-select.form-select {
+    font-weight: 400 !important;
+  }
+
+  /* iOS uses native selects in the installed app, while the web fallback
+     renders custom select/date buttons and a body-level options portal.
+     Normalize every displayed value and option, but leave field labels bold. */
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.assignment-manual-task-form)
+    :is(
+      .assignment-manual-task-form select,
+      .assignment-manual-task-form select option,
+      .assignment-manual-task-form .form-select,
+      .assignment-manual-task-form .developer-native-select,
+      .assignment-manual-task-form .developer-select-button,
+      .assignment-manual-task-form .developer-select-button *,
+      .assignment-manual-task-form .developer-select-value,
+      .assignment-manual-task-form .global-date-button,
+      .assignment-manual-task-form .global-date-button *,
+      .assignment-manual-task-form .global-date-value,
+      .developer-select-menu-portal .developer-select-option
+    ) {
+    font-weight: 400 !important;
+  }
+
+  /* Match desktop remark formatting: each sentence is a separate visual line
+     while the underlying editable value remains unchanged. */
+  .remark-sentence-line {
+    display: block;
+  }
+}

@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block layout_mode %}documents{% endblock %}
+{% block title %}Подготовка документов{% endblock %}
+{% block content %}
+{% if not document_type %}
+<section class="document-type-grid">
+  <a class="document-type-card" href="{{ url_for('main.documents_addendum') }}">
+    <span class="document-type-icon"><i class="bi bi-file-earmark-plus"></i></span>
+    <strong>Доп соглашение</strong>
+    <small>Загрузка Word, замена даты, собственников, договора, материалов, текста “взамен устранения...” и подписей.</small>
+  </a>
+  <article class="document-type-card is-disabled">
+    <span class="document-type-icon"><i class="bi bi-file-earmark-text"></i></span>
+    <strong>ДКП</strong>
+    <small>Раздел будет подключен следующим.</small>
+  </article>
+  <article class="document-type-card is-disabled">
+    <span class="document-type-icon"><i class="bi bi-building-check"></i></span>
+    <strong>ДДУ</strong>
+    <small>Раздел будет подключен следующим.</small>
+  </article>
+  <article class="document-type-card is-disabled">
+    <span class="document-type-icon"><i class="bi bi-person-vcard"></i></span>
+    <strong>ДДУ по доверенности</strong>
+    <small>Раздел будет подключен следующим.</small>
+  </article>
+</section>
+{% else %}
+<div class="document-selected-head">
+  <a class="btn btn-outline-secondary document-back-button" href="{{ url_for('main.documents') }}">
+    <i class="bi bi-arrow-left me-2"></i>Назад
+  </a>
+</div>
+
+<form class="document-flow-layout document-addendum-form js-document-editor {% if result %}document-editor-hidden{% endif %}" method="post" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <section class="card content-card document-flow-panel document-flow-main-panel">
+    <div class="card-body">
+      <div class="document-flow-section-head">
+        <div>
+          <h2 class="section-title mb-1">Доп соглашение</h2>
+          <p class="text-muted mb-0"></p>
+        </div>
+      </div>
+
+      <section class="document-step-card document-upload-box mb-3">
+        <div class="document-step-head">
+          <span class="document-step-number">1</span>
+          <div>
+            <h3>Файл</h3>
+          </div>
+        </div>
+        <label class="document-upload-drop">
+          <input type="file" name="document" accept=".docx,.doc">
+          <span><i class="bi bi-upload"></i></span>
+          <span class="document-upload-title">Выберите файл Word</span>
+          <small>или перетащите файл сюда</small>
+        </label>
+        <div class="form-text"></div>
+      </section>
+
+      <section class="document-step-card document-owner-switch mb-3">
+        <div class="document-step-head">
+          <span class="document-step-number">2</span>
+          <div>
+            <h3>Собственники</h3>
+          </div>
+        </div>
+        <div class="document-owner-options-grid">
+          <label class="document-owner-option document-owner-option-number">
+            <input class="form-check-input js-owner-count" type="radio" name="owner_count" value="1" {% if request.form.get('owner_count', '1') not in ['2', 'two'] %}checked{% endif %}>
+            <span class="document-owner-option-title">1 собственник</span>
+          </label>
+          <label class="document-owner-option document-owner-option-number">
+            <input class="form-check-input js-owner-count" type="radio" name="owner_count" value="2" {% if request.form.get('owner_count') in ['2', 'two'] %}checked{% endif %}>
+            <span class="document-owner-option-title">2 собственника</span>
+          </label>
+        </div>
+      </section>
+
+      {% for group in fields %}
+      {% set clean_group_title = group.title|replace('1. ', '')|replace('2. ', '')|replace('3. ', '')|replace('4. ', '')|replace('5. ', '') %}
+      <section class="document-step-card document-field-group">
+        <div class="document-step-head">
+          <span class="document-step-number">{{ loop.index + 2 }}</span>
+          <div>
+            <h3>{{ clean_group_title }}</h3>
+          </div>
+        </div>
+        <div class="document-fields-grid document-fields-grid-wide">
+          {% for field in group.fields %}
+          {% set owner_count_value = request.form.get('owner_count', '1') %}
+          {% set owner_two_hidden = field.owner_two_only and owner_count_value not in ['2', 'two'] %}
+          {% set owner_one_hidden = field.owner_one_only and owner_count_value in ['2', 'two'] %}
+          {% set field_hidden = owner_two_hidden or owner_one_hidden %}
+          <div class="document-field-block {% if field.owner_two_only %}js-owner-two-field{% endif %} {% if field.owner_one_only %}js-owner-one-field{% endif %} {% if field.advanced %}document-field-advanced{% endif %} {% if field.type == 'hidden' %}d-none{% endif %}" {% if field_hidden %}style="display:none"{% endif %}>
+            <div class="document-label-row">
+              <label class="form-label" for="field-{{ field.key }}">
+                {% if field.key == 'owner_one_data' and owner_count_value in ['2', 'two'] %}Данные 1 собственника{% else %}{{ field.label }}{% endif %}
+                {% if field.required %}<span class="required-dot">*</span>{% endif %}
+              </label>
+              {# Подсказки-буквы i и подпись "шаблоны" скрыты по просьбе пользователя. #}
+            </div>
+            {% set field_value = request.form.get(field.key, field.default or '') %}
+            {% if field.type == 'hidden' %}
+            <input class="js-document-field-control" id="field-{{ field.key }}" type="hidden" name="{{ field.key }}" value="{{ field_value }}" data-required="0" {% if field_hidden %}disabled{% endif %}>
+            {% elif field.type == 'gender_buttons' %}
+            <input class="js-document-field-control js-document-choice-value" id="field-{{ field.key }}" type="hidden" name="{{ field.key }}" value="{{ field_value }}" data-required="{% if field.required %}1{% else %}0{% endif %}" {% if field.owner_templates %}data-owner-template-female="{{ field.owner_templates.female|e }}" data-owner-template-male="{{ field.owner_templates.male|e }}"{% endif %} {% if field_hidden %}disabled{% endif %}>
+            <div class="document-choice-group document-gender-buttons" data-choice-target="field-{{ field.key }}">
+              {% for option in field.options or [] %}
+              <button type="button" class="document-choice-btn js-document-choice-btn {% if field_value == option.value %}is-active{% endif %}" data-value="{{ option.value }}">{{ option.title }}</button>
+              {% endfor %}
+            </div>
+            {% elif field.type == 'transfer_buttons' %}
+            <input class="js-document-field-control js-document-choice-value" id="field-{{ field.key }}" type="hidden" name="{{ field.key }}" value="{{ field_value }}" data-required="{% if field.required %}1{% else %}0{% endif %}" {% if field_hidden %}disabled{% endif %}>
+            <div class="document-choice-group document-transfer-buttons" data-choice-target="field-{{ field.key }}">
+              {% for option in field.options or [] %}
+              <button type="button" class="document-choice-btn js-document-choice-btn js-document-transfer-btn {% if field_value == option.value %}is-active{% endif %}" data-value="{{ option.value }}" data-materials-template="{{ option.template|e }}" data-acceptance="{{ option.acceptance|e }}">{{ option.title }}</button>
+              {% endfor %}
+            </div>
+            {% elif field.type == 'textarea' %}
+            <textarea class="form-control js-document-field-control" id="field-{{ field.key }}" name="{{ field.key }}" rows="{{ field.rows or 3 }}" placeholder="{{ field.placeholder }}" data-required="{% if field.required %}1{% else %}0{% endif %}" {% if field.owner_templates %}data-owner-template-female="{{ field.owner_templates.female|e }}" data-owner-template-male="{{ field.owner_templates.male|e }}"{% endif %} {% if field.required %}required{% endif %} {% if field_hidden %}disabled{% endif %}>{{ field_value }}</textarea>
+            {% elif field.type == 'select' %}
+            <select class="form-select js-document-field-control" id="field-{{ field.key }}" name="{{ field.key }}" data-required="{% if field.required %}1{% else %}0{% endif %}" {% if field.required %}required{% endif %} {% if field_hidden %}disabled{% endif %}>
+              {% for option in field.options or [] %}
+              <option value="{{ option.value }}" {% if field_value == option.value %}selected{% endif %}>{{ option.title }}</option>
+              {% endfor %}
+            </select>
+            {% else %}
+            <input class="form-control js-document-field-control" id="field-{{ field.key }}" type="{{ 'number' if field.type == 'number' else 'text' }}" name="{{ field.key }}" value="{{ field_value }}" placeholder="{{ field.placeholder }}" data-required="{% if field.required %}1{% else %}0{% endif %}" {% if field.type == 'number' %}min="0" step="1" inputmode="numeric"{% endif %} {% if field.required %}required{% endif %} {% if field_hidden %}disabled{% endif %}>
+            {% endif %}
+            {% if field.presets %}
+            <div class="document-preset-panel">
+              <div class="document-preset-title">Заготовки</div>
+              <div class="document-preset-actions">
+                {% for preset in field.presets %}
+                <button type="button" class="document-quick-btn js-document-quick-insert" data-target="field-{{ field.key }}" data-value="{{ preset.value|e }}">{{ preset.title }}</button>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+    </div>
+  </section>
+
+  <aside class="card content-card document-flow-panel document-flow-help-panel">
+    <div class="card-body">
+      <h2 class="section-title mb-3">Заполните данные</h2>
+      <div class="document-help-list">
+        <div><i class="bi bi-file-earmark-word"></i><span>Сформируем документ за вас</span></div>
+      </div>
+
+      <button class="btn btn-primary w-100 mt-4" type="submit">
+        <i class="bi bi-magic me-2"></i>Генерировать
+      </button>
+    </div>
+  </aside>
+</form>
+
+{% if result %}
+<section class="document-result-page js-document-result-page" aria-live="polite">
+  <div class="document-result-hero card content-card">
+    <div class="card-body">
+      <div class="document-result-hero-content">
+        <span class="document-result-status"><i class="bi bi-check2-circle"></i> Документ готов</span>
+        <h2 class="section-title mb-2">История подготовки доп. соглашения</h2>
+        <p class="text-muted mb-0">Проверьте изменения как отдельный следующий шаг. Можно скачать Word или вернуться назад и отредактировать заполненные поля.</p>
+      </div>
+      <div class="document-result-actions">
+        <button class="btn btn-outline-secondary js-document-edit-back" type="button">
+          <i class="bi bi-arrow-left me-2"></i>Вернуться к редактированию
+        </button>
+        <a class="btn btn-success" href="{{ url_for('main.documents_download', filename=result.filename) }}">
+          <i class="bi bi-download me-2"></i>Скачать Word
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="document-result-summary-grid">
+    <article class="document-result-stat card content-card">
+      <div class="card-body">
+        <span>Заменено фрагментов</span>
+        <b>{{ result.replace_count }}</b>
+      </div>
+    </article>
+    <article class="document-result-stat card content-card">
+      <div class="card-body">
+        <span>Добавлено пунктов</span>
+        <b>{{ result.append_count }}</b>
+      </div>
+    </article>
+    <article class="document-result-stat card content-card">
+      <div class="card-body">
+        <span>Всего изменений</span>
+        <b>{{ result.changes|length }}</b>
+      </div>
+    </article>
+  </div>
+
+  <section class="card content-card document-result-card">
+    <div class="card-body">
+      <div class="document-result-head document-result-head-simple">
+        <div>
+          <h3 class="section-title mb-1">Что изменилось</h3>
+          <p class="text-muted mb-0">Ниже вся история замен и добавленных пунктов.</p>
+        </div>
+      </div>
+
+      <div class="document-change-list document-change-list-page">
+        {% for change in result.changes %}
+        <article class="document-change">
+          <div class="document-change-title">{{ change.title }}</div>
+          {% if change.before %}
+          <div class="document-diff-line"><span>Было</span><p>{{ change.before }}</p></div>
+          {% endif %}
+          <div class="document-diff-line document-diff-line-after"><span>Стало</span><p>{{ change.after }}</p></div>
+        </article>
+        {% else %}
+        <div class="document-empty-result">Подходящие фрагменты не найдены. Проверьте, что загруженный документ содержит нужные фрагменты или плейсхолдеры.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

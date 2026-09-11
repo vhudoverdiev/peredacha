@@ -1,0 +1,91 @@
+{% extends "developer_statistics_base.html" %}
+{% block statistics_page_content %}
+  <section id="top-users" class="developer-stat-list-grid developer-stat-list-grid-single developer-stat-anchor-section">
+    <article class="developer-top-users-panel">
+      <div class="developer-card-head">
+        <div>
+          <h2 class="section-title developer-stat-card-title">Пользователи и гости</h2>
+        </div>
+      </div>
+      <div class="developer-ranked-list">
+        {% for group in visitor_groups %}
+        <details class="developer-visitor-item">
+          <summary class="developer-ranked-item developer-visitor-summary">
+            <div class="developer-ranked-main">
+              <div class="developer-visit-title-row">
+                <strong>{{ group.label }}</strong>
+                <span class="developer-visit-kind {{ group.kind_class }}">{{ group.kind_label }}</span>
+              </div>
+              <div class="developer-ranked-subline">
+                {{ group.ip_count }} разных IP{% if group.last_seen %} · {{ group.last_seen|ru_datetime }}{% endif %}
+              </div>
+            </div>
+            <div class="developer-ranked-value">
+              <strong>{{ group.hits }}</strong>
+              <span>входов</span>
+            </div>
+            <span class="developer-visitor-caret" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
+          </summary>
+
+          <div class="developer-visitor-group-visits">
+            {% for visit in group.visits %}
+            <article class="card content-card developer-visit-card developer-visit-card-nested">
+              <div class="card-body">
+                <div class="developer-visit-head">
+                  <div class="developer-visit-main">
+                    <div class="developer-visit-subtitle">
+                      {{ visit.created_at|ru_datetime }}{% if visit.project %} · {{ visit.project.name }}{% endif %}
+                    </div>
+                  </div>
+                  <span class="developer-visit-status developer-visit-status-info">Новая вкладка</span>
+                </div>
+
+                <code class="developer-visit-url">{{ visit.path or '—' }}</code>
+
+                <div class="developer-visit-chip-row">
+                  <a class="developer-visit-chip developer-visit-chip-link" href="{{ url_for('main.developer_statistics_sources', start_date=period_start_date_iso, end_date=period_end_date_iso, scope=scope, user_id=user_filter_id or None, path=path_filter or None, ip=visit.ip_address) }}">{{ visit.ip_address or '—' }}</a>
+                  <span class="developer-visit-chip">{{ visit_browser_label(visit.user_agent) }}</span>
+                  <span class="developer-visit-chip">{{ visit_device_label(visit.user_agent) }}</span>
+                </div>
+
+                {% if visit.referrer or visit.forwarded_for or visit.user_agent %}
+                <details class="developer-visit-details">
+                  <summary>Тех. детали</summary>
+                  <div class="developer-visit-details-grid">
+                    <div>
+                      <span>ОС</span>
+                      <code>{{ visit_os_label(visit.user_agent) }}</code>
+                    </div>
+                    {% if visit.referrer %}
+                    <div>
+                      <span>Referrer</span>
+                      <code>{{ visit.referrer }}</code>
+                    </div>
+                    {% endif %}
+                    {% if visit.forwarded_for %}
+                    <div>
+                      <span>X-Forwarded-For</span>
+                      <code>{{ visit.forwarded_for }}</code>
+                    </div>
+                    {% endif %}
+                    {% if visit.user_agent %}
+                    <div>
+                      <span>User-Agent</span>
+                      <code>{{ visit.user_agent }}</code>
+                    </div>
+                    {% endif %}
+                  </div>
+                </details>
+                {% endif %}
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+        </details>
+        {% else %}
+        <div class="developer-empty-state">Нет данных по входам за выбранный период.</div>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+{% endblock %}

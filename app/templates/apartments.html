@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Квартиры{% endblock %}
+{% block content %}
+<div class="apartments-page" data-ajax-pagination-page="apartments">
+<div class="page-head apartments-page-head">
+  <div>
+    <h1 class="page-title">Квартиры</h1>
+    <p class="page-subtitle">Данные, замечания, комментарии и история изменений.</p>
+  </div>
+  <a class="btn btn-success" href="{{ url_for('main.apartments_export', **export_args) }}" data-ajax-pagination-sync="apartments-export"><i class="bi bi-file-earmark-excel me-2"></i>Скачать Excel</a>
+</div>
+
+<div class="card content-card mb-3">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end apartments-filter-form">
+      <div class="col-12 col-lg-2">
+        <label class="form-label">Поиск</label>
+        <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите цифры или текст">
+      </div>
+      <div class="col-12 col-sm-6 col-lg-2">
+        <label class="form-label">Осмотр</label>
+        <select class="form-select" name="inspection_status" data-force-custom-select>
+          <option value="">Все</option>
+          <option value="was" {% if args.get('inspection_status') == 'was' %}selected{% endif %}>Был</option>
+          <option value="not_was" {% if args.get('inspection_status') == 'not_was' %}selected{% endif %}>Не был</option>
+        </select>
+      </div>
+      <div class="col-12 col-sm-6 col-lg-2">
+        <label class="form-label">Сортировка осмотра</label>
+        <select class="form-select" name="inspection_order" data-force-custom-select>
+          <option value="">По номеру</option>
+          <option value="was_first" {% if args.get('inspection_order') == 'was_first' %}selected{% endif %}>Сначала был</option>
+          <option value="not_was_first" {% if args.get('inspection_order') == 'not_was_first' %}selected{% endif %}>Сначала не был</option>
+        </select>
+      </div>
+      <div class="col-12 col-sm-6 col-lg-2">
+        <label class="form-label">АПП</label>
+        <select class="form-select" name="app_status" data-force-custom-select>
+          <option value="">Все</option>
+          <option value="accepted" {% if args.get('app_status') == 'accepted' %}selected{% endif %}>АПП</option>
+          <option value="not_accepted" {% if args.get('app_status') == 'not_accepted' %}selected{% endif %}>Не принята</option>
+        </select>
+      </div>
+      <div class="col-12 col-sm-6 col-lg-1">
+        <label class="form-label">АВР</label>
+        <select class="form-select" name="avr_status" data-force-custom-select>
+          <option value="">Все</option>
+          <option value="{{ avr_status_needed }}" {% if args.get('avr_status') == avr_status_needed %}selected{% endif %}>Нужен</option>
+          <option value="{{ avr_status_signed }}" {% if args.get('avr_status') == avr_status_signed %}selected{% endif %}>Подписан</option>
+        </select>
+      </div>
+      <div class="col-12 col-sm-6 col-lg-1">
+        <label class="form-label">Внутренний статус</label>
+        <select class="form-select" name="po_status" data-force-custom-select>
+          <option value="">Все</option>
+          {% for value, label in po_status_labels.items() %}
+          {% if value != 'po' %}<option value="{{ value }}" {% if args.get('po_status') == value or (po_only and value == 'to_throw') %}selected{% endif %}>{{ label }}</option>{% endif %}
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-lg-2 filter-actions">
+        <button class="btn btn-primary" type="submit">Применить</button>
+        <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.apartments') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="d-flex align-items-center justify-content-between mb-3 apartments-page-summary">
+  <div class="text-muted">Найдено квартир / помещений: <b>{{ total_count }}</b></div>
+</div>
+
+{% if mobile_total_pages > 1 %}
+<nav class="page-pagination-top apartments-pagination-top mb-3" aria-label="Страницы квартир сверху" data-ajax-pagination-nav>
+  <ul class="pagination justify-content-center mb-0">
+    <li class="page-item {% if mobile_page <= 1 %}disabled{% endif %}">
+      <a class="page-link" href="{% if mobile_page > 1 %}{{ url_for('main.apartments', page=mobile_page - 1, **mobile_pagination_args) }}{% else %}#{% endif %}">Назад</a>
+    </li>
+    <li class="page-item disabled"><span class="page-link">Стр. {{ mobile_page }} / {{ mobile_total_pages }}</span></li>
+    <li class="page-item {% if mobile_page >= mobile_total_pages %}disabled{% endif %}">
+      <a class="page-link" href="{% if mobile_page < mobile_total_pages %}{{ url_for('main.apartments', page=mobile_page + 1, **mobile_pagination_args) }}{% else %}#{% endif %}">Далее</a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+
+<div class="apartments-grid" data-ajax-pagination-content data-ajax-items-selector=".apartment-card">
+  {% for row in rows %}
+  {% set apartment = row.apartment %}
+  <article class="apartment-card">
+    <a class="apartment-card-link" href="{{ url_for('main.apartment_detail', apartment_id=apartment.id, back=request.full_path) }}">
+    <div class="apartment-card-top">
+      <div>
+        <div class="apartment-card-label apartment-card-full-label">{{ apartment.label() }}</div>
+      </div>
+      {% if row.mode == 'АПП' %}
+        <span class="status-pill status-pill-success">АПП</span>
+      {% elif row.mode == 'не продана' %}
+        <span class="status-pill status-pill-muted">не продана</span>
+      {% else %}
+        <span class="status-pill status-pill-warning">не принята</span>
+      {% endif %}
+      {% if row.inspection_status %}
+        <span class="status-pill {{ row.inspection_status_class }}">Осмотр: {{ row.inspection_status }}</span>
+      {% endif %}
+      {% if row.has_replaced_glass %}<span class="glass-ordered-badge glass-replaced-badge" title="{{ row.glass_status_label }}">{{ row.glass_status_label }}</span>{% elif row.has_ordered_glass %}<span class="glass-ordered-badge" title="{{ row.glass_status_label }}">{{ row.glass_status_label }}</span>{% endif %}
+    </div>
+
+    <div class="apartment-card-info">
+      {% if apartment.premise_type != 'commercial' %}
+      <span><i class="bi bi-brush"></i>{{ apartment.finishing_type or 'отделка не указана' }}</span>
+      {% endif %}
+      <span class="apartment-owner-line"><i class="bi bi-person"></i>Собственник: {{ row.owner_names|join(', ') if row.owner_names else '—' }}</span>
+      <span class="apartment-phone-line"><i class="bi bi-telephone"></i>Телефон: {{ row.phones|join(', ') if row.phones else '—' }}</span>
+      {% if row.mode == 'АПП' %}
+      <span class="apartment-deadline-line">
+        <i class="bi bi-calendar2-check"></i>
+        Срок устранения: {{ row.remark_deadline_display }}
+        {% if row.remark_deadline_status %}
+          <b class="deadline-badge deadline-badge-{{ row.remark_deadline_status.class }}">{{ row.remark_deadline_status.label }}</b>
+        {% endif %}
+      </span>
+      {% endif %}
+      {% if row.show_avr %}
+      <span class="apartment-avr-line">
+        <i class="bi bi-file-earmark-check"></i>
+        АВР:
+        {% if row.avr_status == avr_status_signed %}
+          <b class="badge-avr-signed">Подписан{% if row.avr_signed_date %} от {{ row.avr_signed_date|ru_date }}{% endif %}</b>
+        {% else %}
+          <b class="badge-avr-needed">Нужен</b>
+        {% endif %}
+      </span>
+      {% endif %}
+      <span><i class="bi bi-list-check"></i>Замечаний: {{ row.total }}</span>
+      {% if row.mode == 'АПП' %}
+        <span><i class="bi bi-chat-left-text"></i>Комментарий: {{ row.manual_comment or '—' }}</span>
+      {% elif row.mode == 'не принята' %}
+        <span><i class="bi bi-chat-left-text"></i>Комментарий: {{ row.inspection_comment or '—' }}</span>
+      {% endif %}
+    </div>
+    </a>
+
+
+    {% if row.po_status %}
+    <form method="post" action="{{ url_for('main.update_apartment_po_status', apartment_id=apartment.id) }}" class="apartment-po-form" data-apartment-async="1">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-label">Внутренний статус</label>
+      <div class="apartment-po-row apartment-po-options">
+        {% if current_user.role != 'viewer' %}
+          {% for value, label in po_status_labels.items() %}
+          {% if value != 'po' %}<input class="btn-check" type="radio" name="po_status" id="po-{{ apartment.id }}-{{ value }}" value="{{ value }}" {% if row.po_status == value %}checked{% endif %} onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
+          <label class="po-option po-option-{{ value }}" for="po-{{ apartment.id }}-{{ value }}">{{ label }}</label>{% endif %}
+          {% endfor %}
+        {% else %}
+          <span class="po-option po-option-{{ row.po_status }} is-static">{{ po_status_labels.get(row.po_status, row.po_status) }}</span>
+        {% endif %}
+      </div>
+    </form>
+    {% endif %}
+
+    <div class="apartment-progress">
+      <div class="apartment-progress-head">
+        <span>Готовность</span>
+        <b>{{ row.percent }}%</b>
+      </div>
+      <div class="progress slim-progress">
+        <div class="progress-bar" role="progressbar" style="width: {{ row.percent }}%"></div>
+      </div>
+    </div>
+
+    <div class="apartment-stat-row">
+      <span>Всего <b>{{ row.total }}</b></span>
+      <span>Выполнено <b>{{ row.done }}</b></span>
+      <span>Осталось <b>{{ row.left }}</b></span>
+    </div>
+  </article>
+  {% else %}
+  <div class="card content-card"><div class="card-body text-muted">{% if args.get('q') %}По поиску "{{ args.get('q') }}" ничего не найдено{% else %}Квартир по этому фильтру нет.{% endif %}</div></div>
+  {% endfor %}
+</div>
+
+{% if mobile_total_pages > 1 %}
+<nav class="mt-3" aria-label="Страницы квартир" data-ajax-pagination-nav>
+  <ul class="pagination justify-content-center mb-0">
+    <li class="page-item {% if mobile_page <= 1 %}disabled{% endif %}">
+      <a class="page-link" href="{% if mobile_page > 1 %}{{ url_for('main.apartments', page=mobile_page - 1, **mobile_pagination_args) }}{% else %}#{% endif %}">Назад</a>
+    </li>
+    <li class="page-item disabled"><span class="page-link">Стр. {{ mobile_page }} / {{ mobile_total_pages }}</span></li>
+    <li class="page-item {% if mobile_page >= mobile_total_pages %}disabled{% endif %}">
+      <a class="page-link" href="{% if mobile_page < mobile_total_pages %}{{ url_for('main.apartments', page=mobile_page + 1, **mobile_pagination_args) }}{% else %}#{% endif %}">Далее</a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+
+</div>
+{% endblock %}
+
+{% block floating_content %}
+<a class="po-notification-widget" href="{{ url_for('main.apartments', po='1') }}">
+  <span>ПО</span>
+  <b>{{ po_alert_count }}</b>
+</a>
+{% endblock %}

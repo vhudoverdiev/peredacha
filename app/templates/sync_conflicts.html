@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Несостыковки{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Синхронизация</h1>
+    <p class="page-subtitle">Здесь показаны несостыковки импорта, распознавания и ручного добавления.</p>
+  </div>
+  {% if conflicts %}
+  <div class="d-flex gap-2 flex-wrap">
+    {% if not is_mobile_phone_request %}
+    <form method="post" action="{{ url_for('main.cancel_sync_from_conflicts') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Отменить синхронизацию</button>
+    </form>
+    {% endif %}
+    <form method="post" action="{{ url_for('main.resolve_conflicts_bulk', action='keep_old') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-outline-secondary sync-conflict-neutral-btn">Оставить всё старое</button>
+    </form>
+    <form method="post" action="{{ url_for('main.resolve_conflicts_bulk', action='apply_new') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-primary">Принять всё новое</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card table-shell">
+  <div class="card-body p-0 table-responsive">
+  <table class="table table-sm table-hover align-middle sync-conflicts-table">
+    <thead>
+      <tr>
+        <th>Помещение</th>
+        <th>Было</th>
+        <th>Стало</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for c in conflicts %}
+      <tr>
+        <td>
+          <div><b>{{ c.apartment.label() if c.apartment else (c.task.apartment.label() if c.task and c.task.apartment else '—') }}</b></div>
+          <div class="text-muted small">{{ conflict_field_label(c) }}</div>
+          <div class="text-muted small">{{ c.sheet_name }}{% if c.cell_address %} &middot; {{ c.cell_address }}{% endif %}</div>
+        </td>
+        <td class="sync-conflict-value">
+          {{ conflict_value_label(c, c.old_value) }}
+        </td>
+        <td class="sync-conflict-value">
+          {{ conflict_value_label(c, c.new_value) }}
+        </td>
+        <td>
+          <div class="d-flex gap-2 flex-wrap">
+            <form method="post" action="{{ url_for('main.resolve_conflict', conflict_id=c.id, action='keep_old') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-secondary sync-conflict-neutral-btn">Оставить старое</button>
+            </form>
+            <form method="post" action="{{ url_for('main.resolve_conflict', conflict_id=c.id, action='apply_new') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-primary">Принять новое</button>
+            </form>
+            {% if c.task and c.target_type == 'task' and c.field_name in [None, 'source_cell_value', 'description'] and (c.new_value or '').strip() %}
+            <form method="post" action="{{ url_for('main.resolve_conflict', conflict_id=c.id, action='keep_both') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-primary">Оставить оба</button>
+            </form>
+            {% endif %}
+            {% if c.task %}
+              <a class="btn btn-sm btn-outline-secondary sync-conflict-neutral-btn" href="{{ url_for('main.task_detail', task_id=c.task.id) }}">Карточка</a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="text-center text-muted py-5">Несостыковок нет</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

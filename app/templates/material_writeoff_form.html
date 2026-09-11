@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Списать материал{% endblock %}
+{% block content %}
+<div{% if not is_mobile_phone_request %} data-ajax-pagination-page="materials"{% endif %}>
+<div class="page-head remarks-page-head materials-page-head">
+  <div>
+    <h1 class="page-title">Списать материал</h1>
+    <p class="page-subtitle">Сначала выберите замечания, затем спишите материал только из остатков на балансе.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-success" href="{{ url_for('main.material_manual_task_new') }}">Ручное списание</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='writeoff') }}">Назад</a>
+  </div>
+</div>
+
+<div class="card content-card mb-3">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end crm-filter-form materials-filter-form">
+      <div class="col-12 col-lg-8">
+        <label class="form-label">Поиск</label>
+        <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите цифру">
+      </div>
+      <div class="col-12 col-lg-4 filter-actions">
+        <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
+        <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.material_writeoff_new') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<form method="post" class="material-writeoff-form js-material-writeoff-form js-multi-material-form" data-selection-key="material-writeoff-{{ project.id }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="js-material-selected-hidden"></div>
+
+  <div class="row g-3">
+    <div class="col-12 col-xl-7">
+      <div class="card content-card h-100">
+        <div class="card-body">
+          <div class="material-form-title">1. Выберите замечания</div>
+          <div class="material-selected-strip">
+            Выбрано для списания: <b class="js-material-selected-count">0</b>
+            <button class="btn btn-sm btn-outline-secondary js-material-selected-clear" type="button">Очистить выбор</button>
+          </div>
+          <div class="material-tasks-box"{% if not is_mobile_phone_request %} data-search-highlight="{{ args.get('q', '') }}" data-ajax-pagination-content data-ajax-items-selector=".material-select-row"{% endif %}>
+            <table class="table table-hover align-middle material-tasks-table">
+              <thead>
+                <tr>
+                  <th style="width:48px"></th>
+                  <th style="width:130px">№ помещения</th>
+                  <th>Замечание</th>
+                  <th style="width:120px">Статус</th>
+                </tr>
+              </thead>
+              <tbody>
+              {% for task in tasks %}
+                <tr class="material-select-row {% if task.is_done %}done-task table-success{% endif %}" data-task-id="{{ task.id }}">
+                  <td><input class="form-check-input material-task-check" type="checkbox" name="task_ids" value="{{ task.id }}" data-task-id="{{ task.id }}"></td>
+                  <td>{{ task.apartment.label() if task.apartment else '—' }}</td>
+                  <td class="task-text">
+                    <div class="d-flex align-items-start gap-2">
+                      <span class="inline-text" data-task-id="{{ task.id }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
+                      {% if current_user.role != 'viewer' %}
+                      <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-{{ task.status_class() }}">{{ task.status_label() }}</span>
+                  </td>
+                </tr>
+              {% else %}
+                <tr><td colspan="4" class="text-center text-muted py-4">{% if args.get('q') %}По поиску "{{ args.get('q') }}" ничего не найдено{% else %}Замечаний для списания нет{% endif %}</td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-5">
+      <div class="card content-card h-100">
+        <div class="card-body">
+          <div class="material-form-title">2. Списать материал с баланса</div>
+          {% if balance_options %}
+          <div class="mb-3">
+            <label class="form-label">Дата списания</label>
+            <input class="form-control" type="date" name="writeoff_date" value="{{ today.isoformat() if today else '' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Материал</label>
+            <select class="form-select js-writeoff-material-select" name="material_key" required>
+              <option value="">Выберите материал с остатком</option>
+              {% for row in balance_options %}<option value="{{ row.key }}" data-unit="{{ row.unit }}" data-balance="{{ fmt_quantity(row.balance) }}">{{ row.label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="mb-3 js-writeoff-quantity-block d-none">
+            <label class="form-label d-flex justify-content-between align-items-center gap-2">
+              <span>Количество списания</span>
+              <span class="material-unit-pill js-writeoff-unit-badge"></span>
+            </label>
+            <input class="form-control js-writeoff-quantity-input" name="quantity" inputmode="decimal" required placeholder="Введите количество">
+            <div class="form-text js-writeoff-balance-hint"></div>
+          </div>
+          <div class="material-form-footer">
+            <button class="btn btn-primary" type="submit" name="action" value="writeoff"><i class="bi bi-check2-circle me-2"></i>Списать материал</button>
+            <button class="btn btn-outline-primary" type="submit" name="action" value="distribute"><i class="bi bi-shuffle me-2"></i>Распределить</button>
+            <a class="btn btn-outline-secondary" href="{{ url_for('main.materials', tab='writeoff') }}">Отмена</a>
+          </div>
+          {% else %}
+          <div class="empty-info-box">Нет материалов на балансе. Сначала добавьте материал на баланс.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run crm_flask Google Sheets synchronization every 30 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=30min
+Unit=sync-sheets.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Пользователи{% endblock %}
+{% block content %}
+<div class="users-page">
+  <div class="page-head users-page-head">
+    <div>
+      <h1 class="page-title">Пользователи</h1>
+    </div>
+  </div>
+  <div class="row g-3 users-layout">
+    <div class="col-lg-4">
+      <div class="card content-card users-create-card">
+        <div class="card-body">
+          <h2 class="section-title">Создать пользователя</h2>
+          <form method="post" class="users-create-form">
+            {{ form.hidden_tag() }}
+            <div class="mb-2">{{ form.username.label(class="form-label") }} {{ form.username(class="form-control") }}</div>
+            <div class="mb-2">{{ form.full_name.label(class="form-label") }} {{ form.full_name(class="form-control") }}</div>
+            <div class="mb-3">{{ form.password.label(class="form-label") }} {{ form.password(class="form-control", placeholder="минимум 8 символов", required=True) }}</div>
+            <fieldset class="mb-3 users-role-fieldset">
+              <legend class="form-label mb-2">{{ form.role.label.text }}</legend>
+              <div class="users-role-grid" role="radiogroup" aria-label="{{ form.role.label.text }}">
+                {% for subfield in form.role %}
+                  <label class="users-role-option" for="{{ subfield.id }}">
+                    {{ subfield(class="users-role-input") }}
+                    <span class="users-role-check" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+                    <span class="users-role-copy"><strong>{{ subfield.label.text }}</strong></span>
+                  </label>
+                {% endfor %}
+              </div>
+            </fieldset>
+            <div class="dropdown users-access-dropdown users-create-access-dropdown mb-3" data-project-access-control>
+              <button class="btn btn-outline-secondary dropdown-toggle users-access-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                <i class="bi bi-buildings me-2"></i><span data-project-access-label>{% if project %}1 объект{% else %}0 объектов{% endif %}</span>
+              </button>
+              <div class="dropdown-menu users-access-menu p-3">
+                <div class="users-access-projects" data-project-access-list>
+                  {% for access_project in all_projects %}
+                  <label class="users-access-project-option">
+                    <input type="checkbox" name="project_ids" value="{{ access_project.id }}" {% if access_project.id|string in request.form.getlist('project_ids') or (not request.form and project and project.id == access_project.id) %}checked{% endif %}>
+                    <span>{{ access_project.name }}</span>
+                  </label>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            {{ form.submit(class="btn btn-primary users-submit-btn") }}
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card table-shell users-table-shell">
+        <div class="card-body p-0 table-responsive">
+          <table class="table align-middle users-table">
+            <colgroup>
+              <col class="users-col-login">
+              <col class="users-col-name">
+              <col class="users-col-role">
+              <col class="users-col-project">
+              <col class="users-col-password">
+              <col class="users-col-captcha">
+              <col class="users-col-created">
+              <col class="users-col-actions">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Логин</th>
+                <th>Имя</th>
+                <th>Роль</th>
+                <th>Объект</th>
+                <th>Пароль</th>
+                <th>Капча</th>
+                <th>Создан</th>
+                <th class="users-actions-heading">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for user in users %}
+              <tr>
+                <td class="users-login-cell">{{ user.username }}</td>
+                <td class="users-name-cell">
+                  <form class="users-name-autosave" method="post" action="{{ url_for('main.user_update_name', user_id=user.id) }}" data-saved-value="{{ user.full_name or '' }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <span class="users-name-input-wrap">
+                      <input class="users-name-input" type="text" name="full_name" value="{{ user.full_name or '' }}" maxlength="160" placeholder="—" aria-label="Имя пользователя {{ user.username }}" {% if user.id in protected_user_ids %}readonly{% endif %}>
+                      <i class="bi bi-pencil" aria-hidden="true"></i>
+                    </span>
+                  </form>
+                </td>
+                <td class="users-role-cell">{{ ROLE_LABELS.get(user.role, user.role) }}</td>
+                <td class="users-project-cell">
+                  {% set access_ids = user.project_access_ids %}
+                  {% set access_count = all_projects|length if user.can_access_all_projects else access_ids|length %}
+                  <div class="dropdown users-access-dropdown" data-project-access-control>
+                    <button class="users-access-summary" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" {% if user.role == 'admin' or user.id in protected_user_ids %}disabled{% endif %}>
+                      <i class="bi bi-buildings"></i>
+                      <span data-project-access-label>
+                        {% if access_count == 1 %}1 объект{% elif access_count in [2, 3, 4] %}{{ access_count }} объекта{% else %}{{ access_count }} объектов{% endif %}
+                      </span>
+                      {% if user.role != 'admin' and user.id not in protected_user_ids %}<i class="bi bi-chevron-down"></i>{% endif %}
+                    </button>
+                    {% if user.role != 'admin' and user.id not in protected_user_ids %}
+                    <div class="dropdown-menu users-access-menu p-3">
+                      <form class="users-project-autosave" method="post" action="{{ url_for('main.user_update_projects', user_id=user.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="users-access-projects" data-project-access-list>
+                          {% for access_project in all_projects %}
+                          <label class="users-access-project-option">
+                            <input type="checkbox" name="project_ids" value="{{ access_project.id }}" {% if user.can_access_all_projects or access_project.id in access_ids %}checked{% endif %}>
+                            <span>{{ access_project.name }}</span>
+                          </label>
+                          {% endfor %}
+                        </div>
+                      </form>
+                    </div>
+                    {% endif %}
+                  </div>
+                </td>
+                <td class="users-password-cell">
+                  <div class="password-preview" data-hidden="••••••••" data-visible="{{ user.password_plain or 'Пароль не сохранён' }}" data-state="hidden">
+                    <span>••••••••</span>
+                    {% if user.id not in protected_user_ids %}<button class="password-preview-toggle" type="button" aria-label="Показать пароль"><i class="bi bi-eye"></i></button>{% endif %}
+                  </div>
+                </td>
+                <td class="users-captcha-cell">
+                  <form method="post" action="{{ url_for('main.user_toggle_captcha', user_id=user.id) }}" class="users-captcha-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="captcha_disabled" value="{{ '1' if user.captcha_disabled else '0' }}" data-captcha-disabled-value>
+                    {% if user.id not in protected_user_ids %}
+                    <label class="users-captcha-toggle" title="Включить или отключить капчу для этого пользователя">
+                      <input class="users-captcha-input" type="checkbox" {% if not user.captcha_disabled %}checked{% endif %}>
+                      <span></span>
+                      <small>{{ 'Откл.' if user.captcha_disabled else 'Вкл.' }}</small>
+                    </label>
+                    {% else %}
+                    <span class="text-muted">Защищён</span>
+                    {% endif %}
+                    <noscript><button class="btn btn-sm btn-primary mt-2" type="submit">Сохранить</button></noscript>
+                  </form>
+                </td>
+                <td class="users-created-cell">{{ user.created_at|ru_date }}</td>
+                <td class="users-actions-cell">
+                  {% if user.id != current_user.id and user.id not in protected_user_ids %}
+                  <div class="d-inline-flex gap-2 users-actions">
+                    {% if user.id not in protected_user_ids %}
+                    <a class="btn btn-sm users-action-btn users-action-btn-password" href="{{ url_for('main.user_set_password_page', user_id=user.id) }}" title="Сменить пароль" aria-label="Сменить пароль">
+                      <i class="bi bi-key"></i>
+                    </a>
+                    {% endif %}
+                    {% if user.id not in protected_user_ids %}
+                    <a class="btn btn-sm users-action-btn users-action-btn-delete" href="{{ url_for('main.user_delete_confirm', user_id=user.id) }}" title="Удалить аккаунт" aria-label="Удалить аккаунт">
+                      <i class="bi bi-trash"></i>
+                    </a>
+                    {% endif %}
+                  </div>
+                  {% else %}
+                  <span class="text-muted">Текущий</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

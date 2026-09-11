@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+env/
+
+# Flask / local
+.env
+instance/*.sqlite
+instance/*.db
+
+# Uploads / generated files
+uploads/*
+!uploads/.gitkeep
+exports/*
+!exports/.gitkeep
+
+# System
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Temporary archives
+*.zip
+
+# Local temporary artifacts
+.tmp-*/
+.tmp-*
+.co?ex/
+outputs/
+outputs/**/node_modules/
+
+# Visual regression generated artifacts
+tests/e2e_visual/current/
+tests/e2e_visual/diff/

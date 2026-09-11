@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <title>{{ title or 'Технические работы' }}</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}?v=v327-mobile-shell-unify">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}?v=v327-mobile-shell-unify">
+  <link rel="apple-touch-icon-precomposed" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}?v=v327-mobile-shell-unify">
+  <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='apple-splash.png') }}?v=v327-mobile-shell-unify">
+  <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}?v=v405-homescreen-adaptation">
+  <meta name="application-name" content="Передача">
+  <meta name="apple-mobile-web-app-title" content="Передача">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1f2730">
+  <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v327-mobile-shell-unify">
+</head>
+<body class="maintenance-body">
+  <main class="maintenance-screen" aria-live="polite">
+    <section class="under-dev-page maintenance-under-dev-page">
+      <div class="under-dev-card maintenance-card card content-card">
+        <div class="card-body">
+          <div class="under-dev-icon"><i class="bi bi-cone-striped"></i></div>
+          <h1>{{ message or 'Технические работы' }}</h1>
+          <p>Раздел находится на тех.обслуживании, скоро я восстановлю к нему доступ</p>
+          {% if current_user.is_authenticated %}
+          <form class="maintenance-logout-form" method="post" action="{{ url_for('auth.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-primary maintenance-logout-btn" type="submit">
+              <i class="bi bi-box-arrow-right me-2"></i>Выйти
+            </button>
+          </form>
+          {% else %}
+          <a class="btn btn-primary maintenance-logout-btn" href="{{ url_for('auth.login') }}">
+            <i class="bi bi-box-arrow-in-right me-2"></i>Войти
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

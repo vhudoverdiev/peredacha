@@ -1,0 +1,1555 @@
+{% set layout_mode %}{% block layout_mode %}app{% endblock %}{% endset %}
+<!doctype html>
+<html lang="ru" class="{% if current_user.is_authenticated %}app-root{% else %}auth-root{% endif %}{% if current_user.is_authenticated and layout_mode.strip() == 'app' %} desktop-shell-with-sidebar{% endif %}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <title>{% block title %}Передача{% endblock %}</title>
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}?v=v327-mobile-shell-unify">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}?v=v327-mobile-shell-unify">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}?v=v327-mobile-shell-unify">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}?v=v327-mobile-shell-unify">
+  <link rel="apple-touch-icon-precomposed" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}?v=v327-mobile-shell-unify">
+  <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='apple-splash-1290x2796.png') }}?v=v607-solid-mobile-launch" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='apple-splash.png') }}?v=v607-solid-mobile-launch">
+  <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}?v=v473-safe-area-colors">
+  <meta name="application-name" content="Передача">
+  <meta name="apple-mobile-web-app-title" content="Передача">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="{% if current_user.is_authenticated %}#111820{% else %}#f9fbf5{% endif %}">
+  <meta name="msapplication-TileColor" content="{% if current_user.is_authenticated %}#111820{% else %}#f9fbf5{% endif %}">
+  <meta name="msapplication-tap-highlight" content="no">
+  <link rel="preload" href="{{ url_for('static', filename='brand-logo.png') }}" as="image" fetchpriority="high">
+  <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap/fonts/bootstrap-icons.woff2') }}?dd67030699838ea613ee6dbda90effa6" as="font" type="font/woff2" crossorigin>
+  <script>
+    window.__CRM_OFFLINE_MESSAGE__ = 'Не удается обновить. Показана сохраненная версия.';
+  </script>
+  {% if not current_user.is_authenticated %}
+  <style>
+    html.auth-root,
+    html.auth-root body {
+      background: #f9fbf5 !important;
+      background-color: #f9fbf5 !important;
+      color-scheme: light;
+    }
+  </style>
+  <script>
+    (() => {
+      const authIntroLoaderStorageKey = 'crm-auth-intro-loader-seen-v2';
+      try {
+        if (window.sessionStorage.getItem(authIntroLoaderStorageKey) === '1') {
+          document.documentElement.classList.add('crm-auth-intro-loader-seen');
+          return;
+        }
+        window.sessionStorage.setItem(authIntroLoaderStorageKey, '1');
+      } catch (error) {}
+    })();
+  </script>
+  {% endif %}
+  <script>
+    (() => {
+      const DESKTOP_REFERENCE_WIDTH = 1920;
+      const DESKTOP_REFERENCE_HEIGHT = 1080;
+      const DESKTOP_TO_MOBILE_VIEWPORT_WIDTH = 768;
+      const allowAdaptiveMobileViewport = false;
+      const getViewportWidth = () => Math.max(
+        320,
+        Math.round(window.visualViewport?.width || window.innerWidth || document.documentElement.clientWidth || DESKTOP_REFERENCE_WIDTH),
+      );
+      const getViewportHeight = () => Math.max(
+        480,
+        Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || DESKTOP_REFERENCE_HEIGHT),
+      );
+      const nav = window.navigator || {};
+      const userAgent = nav.userAgent || '';
+      const isPreparedDesktopNavigation = (() => {
+        try {
+          return new URL(window.location.href).searchParams.has('_crm_prepared_navigation');
+        } catch (error) {
+          return false;
+        }
+      })();
+      const maxTouchPoints = nav.maxTouchPoints || 0;
+      const coarseTouchPointer = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+      const isIpadOsLike = nav.platform === 'MacIntel' && maxTouchPoints > 1;
+      const isRealPhoneDevice = nav.userAgentData?.mobile === true
+        || /iPhone|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile/i.test(userAgent)
+        || (/Android/i.test(userAgent) && /Mobile/i.test(userAgent));
+      const hasTabletTouchProfile = isIpadOsLike
+        || /iPad|Tablet|PlayBook|Silk|Kindle|KFAPWI|SM-T|Lenovo Tab/i.test(userAgent)
+        || (/Android/i.test(userAgent) && !/Mobile/i.test(userAgent) && maxTouchPoints > 0);
+      const isPhoneTouchDevice = coarseTouchPointer && isRealPhoneDevice;
+      const isTabletTouchDevice = coarseTouchPointer && !isRealPhoneDevice && hasTabletTouchProfile;
+      const isTouchAppDevice = isPhoneTouchDevice || isTabletTouchDevice;
+      const getTouchViewportProfile = () => {
+        const viewportWidth = getViewportWidth();
+        const viewportHeight = getViewportHeight();
+        const shortEdge = Math.min(viewportWidth, viewportHeight);
+        const longEdge = Math.max(viewportWidth, viewportHeight);
+        if (isTabletTouchDevice) {
+          return viewportHeight >= viewportWidth ? 'tablet-portrait' : 'tablet-landscape';
+        }
+        if (shortEdge <= 390 || longEdge <= 760) return 'phone-compact';
+        if (shortEdge >= 430 || longEdge >= 920) return 'phone-large';
+        return 'phone-standard';
+      };
+      const applyTouchViewportProfile = () => {
+        const profileClassNames = [
+          'touch-profile-phone-compact',
+          'touch-profile-phone-standard',
+          'touch-profile-phone-large',
+          'touch-profile-tablet-portrait',
+          'touch-profile-tablet-landscape',
+        ];
+        document.documentElement.classList.remove(...profileClassNames);
+        if (!isTouchAppDevice) {
+          document.documentElement.style.removeProperty('--crm-touch-shell-max-width');
+          document.documentElement.style.removeProperty('--crm-touch-shell-gutter');
+          document.documentElement.style.removeProperty('--crm-touch-shell-radius');
+          return;
+        }
+        const profile = getTouchViewportProfile();
+        const profileConfig = ({
+          'phone-compact': { className: 'touch-profile-phone-compact', maxWidth: '25.75rem', gutter: '.82rem', radius: '1.42rem' },
+          'phone-standard': { className: 'touch-profile-phone-standard', maxWidth: '27rem', gutter: '.94rem', radius: '1.5rem' },
+          'phone-large': { className: 'touch-profile-phone-large', maxWidth: '28.5rem', gutter: '1.02rem', radius: '1.58rem' },
+          'tablet-portrait': { className: 'touch-profile-tablet-portrait', maxWidth: '29.75rem', gutter: '1.08rem', radius: '1.64rem' },
+          'tablet-landscape': { className: 'touch-profile-tablet-landscape', maxWidth: '31rem', gutter: '1.14rem', radius: '1.7rem' },
+        })[profile];
+        document.documentElement.classList.add(profileConfig.className);
+        document.documentElement.style.setProperty('--crm-touch-shell-max-width', profileConfig.maxWidth);
+        document.documentElement.style.setProperty('--crm-touch-shell-gutter', profileConfig.gutter);
+        document.documentElement.style.setProperty('--crm-touch-shell-radius', profileConfig.radius);
+      };
+      if (isTouchAppDevice) {
+        const touchViewportWidth = getViewportWidth();
+        const touchViewportHeight = getViewportHeight();
+        document.documentElement.style.setProperty('--mobile-reference-width', `${touchViewportWidth}px`);
+        document.documentElement.style.setProperty('--mobile-reference-height', `${touchViewportHeight}px`);
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        viewportMeta?.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
+      }
+      const getDesktopStageScale = () => Math.min(1, getViewportWidth() / DESKTOP_REFERENCE_WIDTH);
+      const useAdaptiveMobileViewport = allowAdaptiveMobileViewport && !isTouchAppDevice && getViewportWidth() <= DESKTOP_TO_MOBILE_VIEWPORT_WIDTH;
+      const mobileEntrySkipStorageKey = 'crm-mobile-nav-skip-entry';
+      let skipNextMobileEntryTransition = false;
+      if (isTouchAppDevice || useAdaptiveMobileViewport) {
+        try {
+          skipNextMobileEntryTransition = window.sessionStorage.getItem(mobileEntrySkipStorageKey) === '1';
+          window.sessionStorage.removeItem(mobileEntrySkipStorageKey);
+        } catch (error) {}
+      }
+      if (skipNextMobileEntryTransition) {
+        document.documentElement.classList.add('crm-loader-suppressed', 'crm-mobile-entry-skip');
+      }
+      document.documentElement.classList.add('crm-js');
+      {% if current_user.is_authenticated %}
+      // Page tabs render immediately so the fixed mobile shell never changes
+      // geometry while a full-page navigation is being painted.
+      document.documentElement.classList.add('crm-page-entry-complete');
+      {% endif %}
+      const isStandaloneDisplayMode = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+      const shouldUseStableStandaloneAppHeight = Boolean(
+        {% if current_user.is_authenticated %}true{% else %}false{% endif %}
+        && isStandaloneDisplayMode
+        && (isTouchAppDevice || useAdaptiveMobileViewport)
+        && (/iPhone|iPod/i.test(userAgent) || isIpadOsLike)
+      );
+      if (shouldUseStableStandaloneAppHeight) {
+        const layoutViewportHeight = Math.round(window.innerHeight || document.documentElement.clientHeight || DESKTOP_REFERENCE_HEIGHT);
+        const visualViewportHeight = Math.round(window.visualViewport?.height || 0);
+        const deviceScreenHeight = Math.round(window.screen?.height || 0);
+        const deviceAvailableHeight = Math.round(window.screen?.availHeight || 0);
+        const physicalAppHeight = Math.max(layoutViewportHeight, visualViewportHeight, deviceScreenHeight, deviceAvailableHeight);
+        // Keep the legacy layout height for regular pages. Empty issued
+        // results need a second value because iOS standalone can expose a
+        // 956px physical canvas while both innerHeight and 100dvh stay at
+        // roughly 895px during the whole session.
+        const stableAppHeight = layoutViewportHeight;
+        if (stableAppHeight > 0) {
+          document.documentElement.style.setProperty('--app-height', `${stableAppHeight}px`);
+        }
+        if (physicalAppHeight > 0) {
+          document.documentElement.style.setProperty('--mobile-physical-app-height', `${physicalAppHeight}px`);
+        }
+      }
+      document.documentElement.classList.toggle('desktop-like-pointer', !isTouchAppDevice && !useAdaptiveMobileViewport);
+      document.documentElement.classList.toggle('desktop-firefox-stable-motion', !isTouchAppDevice && !useAdaptiveMobileViewport && /Firefox\//i.test(userAgent));
+      document.documentElement.classList.toggle('adaptive-mobile-viewport', useAdaptiveMobileViewport);
+      document.documentElement.classList.toggle('mobile-viewport', isTouchAppDevice || useAdaptiveMobileViewport);
+      document.documentElement.classList.toggle('real-phone-device', isPhoneTouchDevice);
+      document.documentElement.classList.toggle('tablet-touch-device', isTabletTouchDevice);
+      document.documentElement.classList.toggle('touch-app-device', isTouchAppDevice);
+      applyTouchViewportProfile();
+      if (!isTouchAppDevice && !useAdaptiveMobileViewport) {
+        // A desktop Firefox page loaded inside the navigation buffer is kept
+        // off-screen until window.load. Pause its native page animations at
+        // their first frame; the persistent host releases them exactly when
+        // this complete document becomes visible.
+        try {
+          if (window.top !== window.self && /Firefox\//i.test(userAgent)) {
+            document.documentElement.classList.add('crm-firefox-buffered-page');
+          }
+        } catch (error) {}
+        // Regular reloads still need the opaque shell canvas. Prepared Firefox
+        // navigation already has its HTML and versioned CSS in CacheStorage;
+        // applying the gate there would replace the old page with a shell-only
+        // frame before the cached stylesheets release it.
+        if (!isPreparedDesktopNavigation) {
+          document.documentElement.classList.add('desktop-styles-pending');
+        }
+        const desktopStageScale = getDesktopStageScale();
+        const desktopShellHasSidebar = document.documentElement.classList.contains('desktop-shell-with-sidebar');
+        document.documentElement.style.setProperty('--desktop-shell-sidebar-visual-width', `${desktopShellHasSidebar ? 230 * desktopStageScale : 0}px`);
+        document.documentElement.style.setProperty('--desktop-shell-topbar-visual-height', `${(desktopShellHasSidebar ? 78.4 : 92) * desktopStageScale}px`);
+        document.documentElement.style.setProperty('--desktop-reference-width', `${DESKTOP_REFERENCE_WIDTH}px`);
+        document.documentElement.style.setProperty('--desktop-reference-height', `${DESKTOP_REFERENCE_HEIGHT}px`);
+        document.documentElement.style.setProperty('--desktop-lock-width', `${DESKTOP_REFERENCE_WIDTH}px`);
+        document.documentElement.style.setProperty('--desktop-stage-scale', desktopStageScale.toFixed(4));
+      }
+      try {
+        if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+      } catch (error) {}
+      let navigationType = 'navigate';
+      try {
+        const navEntry = window.performance?.getEntriesByType?.('navigation')?.[0];
+        navigationType = navEntry?.type || (window.performance?.navigation?.type === 1 ? 'reload' : 'navigate');
+        document.documentElement.classList.toggle(
+          'crm-loader-suppressed',
+          skipNextMobileEntryTransition || navigationType === 'back_forward',
+        );
+      } catch (error) {}
+      const standaloneBootSessionKey = 'crm-standalone-boot-session-v1';
+      let standaloneBootSessionStarted = false;
+      if (isStandaloneDisplayMode) {
+        try {
+          standaloneBootSessionStarted = window.sessionStorage.getItem(standaloneBootSessionKey) === '1';
+          window.sessionStorage.setItem(standaloneBootSessionKey, '1');
+        } catch (error) {}
+      }
+      document.documentElement.classList.add('crm-custom-select-pending');
+      window.setTimeout(() => {
+        if (document.documentElement.classList.contains('crm-custom-select-ready')) return;
+        document.documentElement.classList.remove('crm-custom-select-pending');
+        document.documentElement.classList.add('crm-custom-select-fallback');
+      }, 8000);
+      if (isStandaloneDisplayMode) {
+        document.documentElement.classList.add('standalone-app');
+        if (/iPhone|iPod/i.test(userAgent) || isIpadOsLike) {
+          document.documentElement.classList.add('ios-standalone-bottom-chrome');
+        }
+        if (
+          (isTouchAppDevice || useAdaptiveMobileViewport)
+          && !skipNextMobileEntryTransition
+          && (!standaloneBootSessionStarted || navigationType === 'reload')
+          && navigationType !== 'back_forward'
+        ) {
+          document.documentElement.classList.add('mobile-standalone-boot');
+        }
+      }
+    })();
+  </script>
+  <style>
+    /* desktop-styles-pending is only assigned to the desktop device branch
+       above. Keep the new document on its final canvas until the blocking
+       stylesheet barrier at the end of <head> releases the first paint. */
+    html.app-root.desktop-like-pointer.desktop-styles-pending {
+      background: #fefdfe !important;
+      background-color: #fefdfe !important;
+    }
+
+    /* Preserve the desktop chrome surfaces while a new document waits for
+       its external stylesheets. These root layers exist before <body>, so a
+       browser refresh never clears the fixed shell to a white frame. */
+    html.app-root.desktop-like-pointer.desktop-styles-pending.desktop-shell-with-sidebar::before,
+    html.app-root.desktop-like-pointer.desktop-styles-pending::after {
+      content: "";
+      position: fixed;
+      z-index: 2147480000;
+      display: block;
+      pointer-events: none;
+    }
+
+    html.app-root.desktop-like-pointer.desktop-styles-pending.desktop-shell-with-sidebar::before {
+      inset: 0 auto 0 0;
+      width: var(--desktop-shell-sidebar-visual-width, 230px);
+      background: linear-gradient(180deg, #23292f 0%, #1a1f24 100%);
+    }
+
+    html.app-root.desktop-like-pointer.desktop-styles-pending::after {
+      top: 0;
+      right: 0;
+      left: var(--desktop-shell-sidebar-visual-width, 0px);
+      height: var(--desktop-shell-topbar-visual-height, 78.4px);
+      background:
+        radial-gradient(circle at 7% 26%, rgba(141, 214, 44, .06), transparent 15rem),
+        linear-gradient(180deg, #23292f 0%, #1a1f24 100%);
+      border-bottom: 1px solid rgba(255, 255, 255, .05);
+      box-shadow: 0 10px 28px rgba(86, 93, 98, .16);
+    }
+
+    html.desktop-like-pointer.desktop-styles-pending body {
+      visibility: hidden !important;
+    }
+
+    /* Fix intrinsic logo geometry before slow external stylesheets arrive. */
+    img.brand-logo {
+      display: block !important;
+      width: 38px !important;
+      height: 38px !important;
+      min-width: 38px !important;
+      min-height: 38px !important;
+      max-width: 38px !important;
+      max-height: 38px !important;
+      object-fit: cover !important;
+      border-radius: 13px !important;
+    }
+
+    img.mobile-top-avatar-logo {
+      display: block !important;
+      width: 40px !important;
+      height: 40px !important;
+      max-width: 40px !important;
+      max-height: 40px !important;
+      object-fit: cover !important;
+    }
+
+    img.brand-mark-image {
+      display: block !important;
+      width: 48px !important;
+      height: 48px !important;
+      max-width: 48px !important;
+      max-height: 48px !important;
+      object-fit: contain !important;
+    }
+
+    /* The launch loader is mobile/PWA-only. Hide it before the external CSS is
+       downloaded so desktop browsers never paint the logo at intrinsic size. */
+    .app-launch-loader,
+    html.desktop-like-pointer .app-launch-loader {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
+    /* Desktop navigation must never expose mobile/PWA splash markup while
+       external stylesheets are still loading. */
+    html.desktop-like-pointer .site-page-loader,
+    html.desktop-like-pointer .mobile-standalone-boot-screen {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
+    html.standalone-app .app-launch-loader {
+      display: grid !important;
+      place-items: center !important;
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 2147483000 !important;
+      padding: max(1.25rem, env(safe-area-inset-top)) 1.25rem max(1.25rem, env(safe-area-inset-bottom)) !important;
+      background: #f9fbf5 !important;
+      background-color: #f9fbf5 !important;
+    }
+
+    html.standalone-app .app-launch-loader .site-page-loader-card {
+      width: min(62vw, 18.25rem) !important;
+      min-width: 14.75rem !important;
+      aspect-ratio: 1 !important;
+      display: grid !important;
+      place-items: center !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      border: 0 !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    html.standalone-app .app-launch-loader .mobile-loading-orbit {
+      position: relative !important;
+      width: clamp(8.25rem, 27vw, 9.85rem) !important;
+      height: clamp(8.25rem, 27vw, 9.85rem) !important;
+      display: grid !important;
+      place-items: center !important;
+    }
+
+    html.standalone-app .app-launch-loader .mobile-loading-mark {
+      width: clamp(4.25rem, 13vw, 5rem) !important;
+      height: clamp(4.25rem, 13vw, 5rem) !important;
+      display: grid !important;
+      place-items: center !important;
+      overflow: hidden !important;
+      border-radius: clamp(1.18rem, 3vw, 1.45rem) !important;
+      background: linear-gradient(135deg, #9fdf4c, #8dd62c) !important;
+      box-shadow: 0 18px 42px rgba(141, 214, 44, .28) !important;
+    }
+
+    html.standalone-app .app-launch-loader .mobile-loading-logo {
+      display: block !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      object-fit: cover !important;
+      border-radius: inherit !important;
+    }
+
+    /* Critical mobile-web dock geometry is available before the external
+       stylesheet and icon fonts finish loading. */
+    @media (max-width: 767.98px) {
+      html {
+        --ref-mobile-nav-height: 72px !important;
+        /* Page geometry must follow the CSS viewport.  On an installed iOS
+           PWA --app-height can temporarily be shorter than 100dvh while the
+           browser chrome/safe area settles; using it for page layouts leaves
+           a dark strip above the fixed dock on short and empty pages.  Keep
+           --app-height exclusively for the launch cover. */
+        --mobile-layout-height: 100dvh;
+      }
+
+      /* Mobile documents are painted at their final position from the first
+         frame. The main stylesheet still contains desktop entrance effects;
+         keeping this critical rule inline prevents them from running for a
+         fraction of a second before mobile-only.css arrives. */
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body .crm-page-entry-surface,
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body .crm-page-entry-surface > :not(.crm-toast-stack) {
+        visibility: visible !important;
+        opacity: 1 !important;
+        transform: none !important;
+        translate: none !important;
+        scale: none !important;
+        animation: none !important;
+        transition: none !important;
+      }
+
+      html body.app-body nav.mobile-bottom-nav-root,
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body nav.mobile-bottom-nav-root {
+        position: fixed !important;
+        z-index: 2147481000 !important;
+        display: grid !important;
+        grid-template-columns: repeat(var(--mobile-nav-count, 4), minmax(0, 1fr)) !important;
+        gap: 0 !important;
+        inset: auto 0 0 0 !important;
+        width: 100vw !important;
+        min-width: 100vw !important;
+        max-width: 100vw !important;
+        height: 72px !important;
+        min-height: 72px !important;
+        max-height: 72px !important;
+        margin: 0 !important;
+        padding: 4px 5px 3px !important;
+        box-sizing: border-box !important;
+        align-items: stretch !important;
+        border: 0 !important;
+        border-radius: 30px 30px 0 0 !important;
+        background: #111820 !important;
+        background-color: #111820 !important;
+        box-shadow: none !important;
+        transform: none !important;
+        translate: none !important;
+        scale: none !important;
+        animation: none !important;
+        transition: none !important;
+        overflow: hidden !important;
+      }
+
+      /* On a short issued-results page iOS standalone makes body the root
+         scroller. A fixed bottom edge is then resolved against innerHeight
+         (about 895px on iPhone 16 Pro Max), not the full 100dvh canvas. Keep
+         this one dock on the physical canvas from the very first paint. */
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.assignment-issued-layout-empty) {
+        min-height: var(--mobile-physical-app-height, 100dvh) !important;
+        height: var(--mobile-physical-app-height, 100dvh) !important;
+        max-height: var(--mobile-physical-app-height, 100dvh) !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        position: relative !important;
+        background: #f6f8fb !important;
+        background-color: #f6f8fb !important;
+      }
+
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)
+        > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+        position: absolute !important;
+        top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+        right: 0 !important;
+        bottom: auto !important;
+        left: 0 !important;
+        inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+      }
+
+      /* The manual assignment form has the same short iOS canvas as empty
+         issued results. Use the already measured physical screen height so
+         the 72px dock does not inherit the 61px area below innerHeight. */
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.assignment-manual-task-form) {
+        min-height: var(--mobile-physical-app-height, 100dvh) !important;
+        height: var(--mobile-physical-app-height, 100dvh) !important;
+        max-height: var(--mobile-physical-app-height, 100dvh) !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        position: relative !important;
+        background: #f6f8fb !important;
+        background-color: #f6f8fb !important;
+      }
+
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.assignment-manual-task-form)
+        > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+        position: absolute !important;
+        top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+        right: 0 !important;
+        bottom: auto !important;
+        left: 0 !important;
+        inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+      }
+
+      /* The direct Add remark form is another short root-scrolling page in
+         iOS standalone. Anchor its dock to the measured physical screen so
+         the area below innerHeight cannot enlarge the dark panel. */
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.task-single-form) {
+        min-height: var(--mobile-physical-app-height, 100dvh) !important;
+        height: var(--mobile-physical-app-height, 100dvh) !important;
+        max-height: var(--mobile-physical-app-height, 100dvh) !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        position: relative !important;
+        background: #f6f8fb !important;
+        background-color: #f6f8fb !important;
+      }
+
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.task-single-form)
+        > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+        position: absolute !important;
+        top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+        right: 0 !important;
+        bottom: auto !important;
+        left: 0 !important;
+        inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+      }
+
+      /* Worker Account and the empty Tasks state are short pages too. Limit
+         the physical anchor to those two states so populated task lists keep
+         the normal fixed dock while scrolling. */
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty)) {
+        min-height: var(--mobile-physical-app-height, 100dvh) !important;
+        height: var(--mobile-physical-app-height, 100dvh) !important;
+        max-height: var(--mobile-physical-app-height, 100dvh) !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        position: relative !important;
+        background: #f6f8fb !important;
+        background-color: #f6f8fb !important;
+      }
+
+      html.standalone-app
+        body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty))
+        > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+        position: absolute !important;
+        top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
+        right: 0 !important;
+        bottom: auto !important;
+        left: 0 !important;
+        inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+      }
+
+      html body.app-body nav.mobile-worker-bottom-nav.mobile-bottom-nav-root
+        > .mobile-nav-item {
+        align-self: stretch !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+      }
+
+      html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
+        body.app-body nav.mobile-bottom-nav,
+      html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
+        body.app-body :is(.mobile-app-topbar, .mobile-project-topbar) {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        animation: none !important;
+        transition: none !important;
+      }
+
+      /* The launch cover is the only visible body child until it is removed.
+         This also covers the unauthenticated login page, whose bottom card
+         used to protrude into the iOS safe-area during the first launch. */
+      html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
+        body > :not(.mobile-standalone-boot-screen):not(.portrait-orientation-guard) {
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+
+      /* Keep short pages on one stable viewport canvas from the first paint.
+         The dock stays fixed; the light page background reaches its top. */
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body {
+        min-height: var(--mobile-layout-height, 100dvh) !important;
+        background: #111820 !important;
+        background-color: #111820 !important;
+      }
+
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body
+        :is(.app-layout, .objects-layout, .documents-layout, .documents-standalone-layout) {
+        min-height: calc(var(--mobile-layout-height, 100dvh) - 72px) !important;
+        background-color: #f6f8fb !important;
+      }
+
+      /* The layout already owns the viewport height. Giving app-main the same
+         minimum a second time makes short pages taller by the fixed header. */
+      html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+        body.app-body .app-main {
+        min-height: 0 !important;
+        background-color: #f6f8fb !important;
+      }
+
+      html.mobile-standalone-boot:not(.mobile-standalone-boot-complete)
+        body.app-body::after {
+        content: none !important;
+        display: none !important;
+      }
+    }
+
+    /* The orientation cover is selected by CSS itself, before delayed iOS
+       resize/orientation events can expose the rotated application layout. */
+    @media (orientation: landscape) and (hover: none) and (pointer: coarse) {
+      html.touch-app-device body > :not(.portrait-orientation-guard) {
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+
+      html.touch-app-device .portrait-orientation-guard {
+        position: fixed !important;
+        z-index: 2147483647 !important;
+        inset: 0 !important;
+        display: grid !important;
+        place-items: center !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        background: #111820 !important;
+      }
+    }
+
+    html.crm-loader-suppressed .js-app-launch-loader,
+    html.crm-loader-suppressed .js-success-loader,
+    html.crm-loader-suppressed .viewport-transition-loader,
+    html.crm-loader-suppressed .mobile-dev-screen.site-page-loader {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
+    html.crm-auth-intro-loader-seen body.auth-body .js-app-launch-loader {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
+    html.crm-offline-fallback .js-app-launch-loader,
+    html.crm-offline-fallback .js-success-loader,
+    html.crm-offline-fallback .viewport-transition-loader,
+    html.crm-offline-fallback .mobile-standalone-boot-screen {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
+    .crm-offline-banner {
+      position: fixed;
+      top: calc(max(.85rem, env(safe-area-inset-top)) + .25rem);
+      left: 50%;
+      z-index: 2147483646;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: min(calc(100% - 1.5rem), 30rem);
+      padding: .82rem 1rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(245, 158, 11, .22);
+      background: rgba(255, 248, 235, .96);
+      color: #7c4a03;
+      box-shadow: 0 18px 42px rgba(15, 23, 42, .12);
+      transform: translateX(-50%);
+      text-align: center;
+      font-size: .95rem;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    html.crm-offline-fallback .crm-offline-banner {
+      display: flex;
+    }
+
+    html.mobile-standalone-boot,
+    html.mobile-standalone-boot body {
+      background: #f9fbf5 !important;
+      background-color: #f9fbf5 !important;
+    }
+
+    html.mobile-standalone-boot:not(.mobile-standalone-boot-complete).ios-standalone-bottom-chrome,
+    html.mobile-standalone-boot:not(.mobile-standalone-boot-complete).ios-standalone-bottom-chrome body.app-body {
+      background: #f9fbf5 !important;
+      background-color: #f9fbf5 !important;
+    }
+
+    .mobile-standalone-boot-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483640;
+      display: none;
+      width: 100%;
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      padding: 0;
+      background: #f9fbf5;
+      background-color: #f9fbf5;
+      opacity: 1;
+      visibility: visible;
+      transition: none;
+    }
+
+    html.mobile-standalone-boot .mobile-standalone-boot-screen {
+      display: block;
+    }
+
+    html.mobile-standalone-boot.crm-loader-suppressed .mobile-standalone-boot-screen {
+      display: none;
+    }
+
+    .mobile-standalone-boot-screen__orbit {
+      position: absolute;
+      top: 50vh;
+      top: 50svh;
+      left: 50%;
+      width: 8rem;
+      height: 8rem;
+      min-width: 8rem;
+      min-height: 8rem;
+      max-width: 8rem;
+      max-height: 8rem;
+      display: grid;
+      place-items: center;
+      flex: 0 0 8rem;
+      contain: layout paint;
+      transform: translate(-50%, -50%);
+    }
+
+    .mobile-standalone-boot-screen__ring,
+    .mobile-standalone-boot-screen__glow {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .mobile-standalone-boot-screen__ring {
+      border: 2px solid transparent;
+    }
+
+    .mobile-standalone-boot-screen__ring--outer {
+      border-top-color: rgba(141, 214, 44, .94);
+      border-right-color: rgba(141, 214, 44, .2);
+      animation: mobileStandaloneBootSpin 1.15s linear infinite;
+    }
+
+    .mobile-standalone-boot-screen__ring--inner {
+      inset: .72rem;
+      border-bottom-color: rgba(141, 214, 44, .88);
+      border-left-color: rgba(141, 214, 44, .16);
+      animation: mobileStandaloneBootSpin 1.55s linear infinite reverse;
+    }
+
+    .mobile-standalone-boot-screen__glow {
+      inset: 1.65rem;
+      background: radial-gradient(circle, rgba(141, 214, 44, .24), transparent 68%);
+      animation: mobileStandaloneBootGlow 1.5s ease-in-out infinite alternate;
+    }
+
+    .mobile-standalone-boot-screen__mark {
+      position: relative;
+      z-index: 1;
+      width: 5.15rem;
+      height: 5.15rem;
+      min-width: 5.15rem;
+      min-height: 5.15rem;
+      max-width: 5.15rem;
+      max-height: 5.15rem;
+      overflow: hidden;
+      border-radius: 1.45rem;
+      box-shadow:
+        0 0 0 1px rgba(141, 214, 44, .14),
+        0 20px 42px rgba(144, 170, 111, .2),
+        0 0 28px rgba(141, 214, 44, .14);
+      animation: none;
+      transform: none;
+    }
+
+    .mobile-standalone-boot-screen__mark img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    @keyframes mobileStandaloneBootSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes mobileStandaloneBootGlow {
+      from { transform: scale(.92); opacity: .36; }
+      to { transform: scale(1.08); opacity: .74; }
+    }
+
+    @keyframes mobileStandaloneBootPulse {
+      from { transform: translateY(0) scale(.98); }
+      to { transform: translateY(-2px) scale(1.02); }
+    }
+
+    html.standalone-app .app-launch-loader {
+      background: #f9fbf5 !important;
+      background-color: #f9fbf5 !important;
+    }
+
+    /* The mobile loader card is stretched to the viewport width by the main
+       stylesheet. It must stay transparent during the critical first paint,
+       otherwise it flashes as a wide white stripe behind the logo. */
+    html.standalone-app body.auth-body .app-launch-loader .site-page-loader-card {
+      border: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    html.standalone-app body.auth-body .app-launch-loader .mobile-loading-mark {
+      background: linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(246, 250, 239, .98)) !important;
+      box-shadow:
+        0 .95rem 2.3rem rgba(144, 170, 111, .14),
+        0 0 0 1px rgba(141, 214, 44, .16) !important;
+    }
+
+    /* Standalone mode already has the branded launch cover above. Rendering
+       the older login loader underneath created a second translucent layer. */
+    html.standalone-app .js-app-launch-loader {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+  </style>
+  <script>
+    window.crmHideStandaloneBootSplash = (immediate = false) => {
+      const root = document.documentElement;
+      if (!root.classList.contains('mobile-standalone-boot')) return;
+      const screen = document.querySelector('.mobile-standalone-boot-screen');
+      const completeBoot = () => {
+        root.classList.add('mobile-standalone-boot-complete');
+      };
+      if (!screen) {
+        completeBoot();
+        return;
+      }
+      if (immediate) {
+        screen.remove();
+        completeBoot();
+        return;
+      }
+      // Remove the splash and switch the iOS safe-area background in the same
+      // frame, so the system region never exposes the dark app background.
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          if (screen.isConnected) screen.remove();
+          completeBoot();
+        });
+      });
+    };
+
+    window.addEventListener('pagehide', () => window.crmHideStandaloneBootSplash(true));
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') window.crmHideStandaloneBootSplash(true);
+    });
+  </script>
+  <script>
+    (() => {
+      try {
+        const currentUrl = new URL(window.location.href);
+        if (currentUrl.searchParams.has('_crm_retry')) {
+          currentUrl.searchParams.delete('_crm_retry');
+          window.history.replaceState(null, '', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+        }
+      } catch (error) {}
+
+      if ('serviceWorker' in navigator && window.isSecureContext) {
+        navigator.serviceWorker
+          .register('/service-worker.js?v=v167-instant-network-probe', { scope: '/', updateViaCache: 'none' })
+          .then(registration => registration.update().catch(() => {}))
+          .catch(() => {});
+      }
+
+      window.crmShowOfflineFallback = () => {
+        document.documentElement.classList.add('crm-offline-fallback');
+        const banner = document.querySelector('.js-crm-offline-banner');
+        if (banner) {
+          banner.hidden = false;
+          banner.textContent = window.__CRM_OFFLINE_MESSAGE__ || 'Не удается обновить. Показана сохраненная версия.';
+        }
+        if (typeof window.crmHideStandaloneBootSplash === 'function') {
+          window.crmHideStandaloneBootSplash(true);
+        }
+      };
+
+      window.crmHideOfflineFallback = () => {
+        document.documentElement.classList.remove('crm-offline-fallback');
+        const banner = document.querySelector('.js-crm-offline-banner');
+        if (banner) banner.hidden = true;
+      };
+
+      document.addEventListener('DOMContentLoaded', () => {
+        if (window.__CRM_OFFLINE_FALLBACK__ === true) {
+          window.crmShowOfflineFallback();
+        }
+      }, { once: true });
+
+      window.addEventListener('offline', () => {
+        window.crmShowOfflineFallback();
+      });
+
+      window.addEventListener('online', () => {
+        if (window.__CRM_OFFLINE_FALLBACK__ === true) return;
+        window.crmHideOfflineFallback();
+      });
+    })();
+  </script>
+  <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v638-site-error-remove-native-fallback">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v88-remark-sentence-lines">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v69-material-list-rise-animation">
+  <script>
+    // A classic inline script waits for all previously parsed stylesheets.
+    // Releasing the gate here guarantees that desktop body markup cannot be
+    // painted before Bootstrap and both application style layers are ready.
+    (() => {
+      const root = document.documentElement;
+      if (!root.classList.contains('desktop-like-pointer')) return;
+      root.classList.remove('desktop-styles-pending');
+      root.classList.add('desktop-styles-ready');
+    })();
+  </script>
+</head>
+<body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and current_user.role == 'verifier' %} verifier-layout{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
+<div class="crm-offline-banner js-crm-offline-banner" hidden>Не удается обновить. Показана сохраненная версия.</div>
+<div class="mobile-standalone-boot-screen" aria-hidden="true">
+  <div class="mobile-standalone-boot-screen__orbit" aria-hidden="true">
+    <span class="mobile-standalone-boot-screen__ring mobile-standalone-boot-screen__ring--outer"></span>
+    <span class="mobile-standalone-boot-screen__ring mobile-standalone-boot-screen__ring--inner"></span>
+    <span class="mobile-standalone-boot-screen__glow"></span>
+    <div class="mobile-standalone-boot-screen__mark">
+      <img src="{{ url_for('static', filename='brand-logo.png') }}" width="82" height="82" style="display:block;width:82px;height:82px;max-width:82px;max-height:82px;object-fit:cover" decoding="sync" alt="">
+    </div>
+  </div>
+</div>
+<div class="portrait-orientation-guard" aria-live="polite" aria-label="Поверните устройство вертикально">
+  <div class="portrait-orientation-guard-card">
+    <i class="bi bi-phone" aria-hidden="true"></i>
+    <strong>Поверните телефон</strong>
+    <span>Приложение работает в вертикальном режиме</span>
+  </div>
+</div>
+{% set mobile_dev_loader = false %}
+{% set show_success_loader = false %}
+{% if not current_user.is_authenticated %}
+<section class="site-page-loader app-launch-loader js-app-launch-loader" role="status" aria-label="Загрузка приложения">
+  <div class="site-page-loader-card">
+    <div class="mobile-loading-orbit" aria-hidden="true">
+      <span></span>
+      <span></span>
+      <span></span>
+      <div class="mobile-loading-mark"><img class="mobile-loading-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="96" height="96" decoding="async" fetchpriority="high" alt=""></div>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% if show_success_loader and not mobile_dev_loader %}
+<section class="site-page-loader js-success-loader" role="status" aria-label="Загрузка сайта">
+  <div class="site-page-loader-card">
+    <div class="mobile-loading-orbit" aria-hidden="true">
+      <span></span>
+      <span></span>
+      <span></span>
+      <div class="mobile-loading-mark"><img class="mobile-loading-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="96" height="96" decoding="async" fetchpriority="high" alt=""></div>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% if mobile_dev_loader %}
+<section class="site-page-loader mobile-dev-screen" aria-live="polite" role="status" aria-label="Загрузка">
+  <div class="site-page-loader-card">
+    <div class="mobile-loading-orbit" aria-hidden="true">
+      <span></span>
+      <span></span>
+      <span></span>
+      <div class="mobile-loading-mark"><img class="mobile-loading-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="96" height="96" decoding="async" fetchpriority="high" alt=""></div>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% if false and current_user.is_authenticated and not mobile_dev_loader %}
+<section class="site-page-loader viewport-transition-loader is-hidden" aria-live="polite" role="status" aria-label="Загрузка">
+  <div class="site-page-loader-card">
+    <div class="mobile-loading-orbit" aria-hidden="true">
+      <span></span>
+      <span></span>
+      <span></span>
+      <div class="mobile-loading-mark"><img class="mobile-loading-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="96" height="96" decoding="async" fetchpriority="high" alt=""></div>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% if current_user.is_authenticated %}
+<div class="mobile-fixed-top-scroll-mask" aria-hidden="true"></div>
+{% endif %}
+{% set page_content %}{% block content %}{% endblock %}{% endset %}
+{% set worker_role = current_user.is_authenticated and current_user.role in ['executor', 'painter', 'handyman', 'glazier'] %}
+{% set report_only_role = current_user.is_authenticated and current_user.role == 'verifier' %}
+
+{% macro report_error_button(extra_class='') -%}
+<button type="button" class="btn btn-sm report-error-btn {{ extra_class }}" data-bs-toggle="modal" data-bs-target="#reportErrorModal" title="Сообщить об ошибке" aria-label="Сообщить об ошибке">
+  <span class="report-error-icon" aria-hidden="true">?</span>
+</button>
+{%- endmacro %}
+
+{% macro flash_toasts(messages, extra_class='') -%}
+  {% if messages %}
+    <div class="flash-stack crm-toast-stack {{ extra_class }}" aria-live="polite" aria-atomic="true">
+    {% for category, message in messages %}
+      {% set toast_is_duplicate_act = (message|string) == 'Точно такой же акт уже подгружен' %}
+      {% set toast_category = 'warning' if toast_is_duplicate_act else ('danger' if category in ['error', 'danger'] else (category if category in ['success', 'warning', 'info'] else 'info')) %}
+      {% set icon = 'bi-check-circle-fill' if toast_category == 'success' else ('bi-exclamation-triangle-fill' if toast_category == 'warning' else ('bi-x-circle-fill' if toast_category == 'danger' else 'bi-info-circle-fill')) %}
+      {% set title = 'Готово' if toast_category == 'success' else ('Внимание' if toast_category == 'warning' else ('Ошибка' if toast_category == 'danger' else 'Сообщение')) %}
+      <div class="alert alert-{{ toast_category }} alert-dismissible fade show crm-toast crm-toast-{{ toast_category }}{% if toast_is_duplicate_act %} crm-toast-duplicate-act{% endif %}" role="alert">
+        <div class="crm-toast-icon"><i class="bi {{ icon }}"></i></div>
+        <div class="crm-toast-body">
+          <div class="crm-toast-title">{{ title }}</div>
+          <div class="crm-toast-text">{{ message }}</div>
+        </div>
+        <button type="button" class="crm-toast-close" data-bs-dismiss="alert" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+{%- endmacro %}
+
+{% macro mobile_page_chrome(title='Передача', back_href=None) -%}
+{% if worker_role %}
+  <div class="mobile-project-topbar mobile-shell-topbar mobile-shell-topbar-static mobile-worker-project-topbar" aria-label="Текущий объект">
+    <a class="mobile-top-avatar mobile-shell-brand" href="{{ url_for('main.my_tasks') }}" aria-label="К задачам">
+      <img class="mobile-top-avatar-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="40" height="40" alt="">
+    </a>
+    <div class="mobile-shell-project-link mobile-shell-project-link-static mobile-worker-project-label" aria-current="page">
+      <span class="mobile-shell-project-name">Объект: {{ current_project.name if current_project else 'не назначен' }}</span>
+    </div>
+    <a class="mobile-shell-account {% if request.endpoint == 'main.account' %}is-active{% endif %}" href="{{ url_for('main.account') }}" aria-label="Аккаунт">
+      <i class="bi bi-person-fill"></i>
+    </a>
+  </div>
+{% elif current_project and layout_mode.strip() != 'objects' and request.endpoint not in ['main.account', 'main.site_settings'] %}
+  <div class="mobile-project-topbar mobile-shell-topbar" aria-label="Выбранный объект">
+    <a class="mobile-top-avatar mobile-shell-brand" href="{{ url_for('main.dashboard') }}" aria-label="На дашборд">
+      <img class="mobile-top-avatar-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="40" height="40" alt="">
+    </a>
+    <button class="mobile-shell-project-link mobile-project-switch-toggle" type="button" aria-label="Сменить объект" aria-haspopup="listbox" aria-expanded="false" data-mobile-project-toggle>
+      <span class="mobile-shell-project-name">Объект: {{ current_project.name }}</span>
+      <i class="bi bi-chevron-down mobile-shell-project-caret" aria-hidden="true"></i>
+    </button>
+    <a class="mobile-shell-account {% if request.endpoint == 'main.account' %}is-active{% endif %}" href="{{ url_for('main.account') }}" aria-label="Аккаунт">
+      <i class="bi bi-person-fill"></i>
+    </a>
+    <div class="mobile-project-switch-panel" role="listbox" aria-label="Выберите объект" hidden data-mobile-project-panel>
+      <div class="mobile-project-switch-head">
+        <span>Выбор объекта</span>
+        <small>{{ mobile_switch_projects|length }} {{ 'объект' if mobile_switch_projects|length == 1 else 'объекта' if mobile_switch_projects|length in [2, 3, 4] else 'объектов' }}</small>
+      </div>
+      <div class="mobile-project-switch-list">
+        {% for project in mobile_switch_projects %}
+        <a class="mobile-project-switch-option {% if project.id == current_project.id %}is-current{% endif %}" href="{{ url_for('main.object_open', project_id=project.id) }}" role="option" aria-selected="{{ 'true' if project.id == current_project.id else 'false' }}">
+          <span class="mobile-project-switch-mark" aria-hidden="true"><i class="bi bi-buildings"></i></span>
+          <span class="mobile-project-switch-copy">
+            <b>{{ project.name }}</b>
+            <small>{{ project.address or ('Объект №' ~ project.id) }}</small>
+          </span>
+          {% if project.id == current_project.id %}<i class="bi bi-check2 mobile-project-switch-check" aria-hidden="true"></i>{% else %}<i class="bi bi-chevron-right mobile-project-switch-arrow" aria-hidden="true"></i>{% endif %}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% elif not worker_role and request.endpoint in ['main.account', 'main.objects'] %}
+  <div class="mobile-project-topbar mobile-shell-topbar mobile-shell-topbar-static" aria-label="Мобильная шапка">
+    <a class="mobile-top-avatar mobile-shell-brand" href="{{ url_for('main.objects') }}" aria-label="К объектам">
+      <img class="mobile-top-avatar-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="40" height="40" alt="">
+    </a>
+    <a class="mobile-shell-project-link mobile-shell-project-link-static" href="{{ url_for('main.account') if request.endpoint == 'main.account' else url_for('main.objects') }}" aria-current="page">
+      <span class="mobile-shell-project-name">{{ title }}</span>
+    </a>
+    <a class="mobile-shell-account {% if request.endpoint == 'main.account' %}is-active{% endif %}" href="{{ url_for('main.account') }}" aria-label="Аккаунт">
+      <i class="bi bi-person-fill"></i>
+    </a>
+  </div>
+  {% else %}
+  <div class="mobile-app-topbar {% if worker_role %}mobile-app-topbar-worker{% endif %} mobile-shell-topbar" aria-label="Мобильная шапка">
+    <a class="mobile-top-avatar" href="{{ url_for('main.my_tasks') if worker_role else (url_for('main.dashboard') if current_user.is_authenticated and current_user.role == 'manager' else url_for('main.objects')) }}" aria-label="Главная"><img class="mobile-top-avatar-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="40" height="40" alt=""></a>
+    {% if not worker_role %}
+    <div class="mobile-top-title">{{ title }}</div>
+    <a class="mobile-shell-account {% if request.endpoint == 'main.account' %}is-active{% endif %}" href="{{ url_for('main.account') }}" aria-label="Аккаунт">
+      <i class="bi bi-person-fill"></i>
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+{%- endmacro %}
+
+{% macro mobile_bottom_nav(active='dashboard') -%}
+  {% if worker_role %}
+  <nav class="mobile-bottom-nav mobile-bottom-nav-root mobile-worker-bottom-nav" aria-label="Основная навигация" data-mobile-dock="unified" style="--mobile-nav-count: 2; --ref-mobile-nav-height: 72px !important; width: 100vw !important; min-width: 100vw !important; max-width: 100vw !important; height: 72px !important; min-height: 72px !important; max-height: 72px !important; margin: 0 !important; padding: 4px 5px 3px !important; box-sizing: border-box !important">
+    <a class="mobile-nav-item {% if active == 'tasks' %}active{% endif %}" href="{{ url_for('main.my_tasks') }}">
+      <i class="bi bi-card-checklist"></i><span>Задачи</span>
+    </a>
+    <a class="mobile-nav-item {% if active == 'account' %}active{% endif %}" href="{{ url_for('main.account') }}">
+      <i class="bi bi-person-circle"></i><span>Аккаунт</span>
+    </a>
+  </nav>
+  {% else %}
+  {% set primary_mobile_shell = current_project and layout_mode.strip() == 'app' and request.endpoint not in ['main.account', 'main.site_settings'] %}
+  {% set no_mobile_project = not primary_mobile_shell %}
+  {% set nav_count = 2 if report_only_role or no_mobile_project else (4 if current_user.role in ['admin', 'manager'] else 3) %}
+  <nav class="mobile-bottom-nav mobile-bottom-nav-root{% if report_only_role %} mobile-verifier-bottom-nav{% endif %}" aria-label="Основная навигация" data-mobile-dock="unified" style="--mobile-nav-count: {{ nav_count }}; --ref-mobile-nav-height: 72px !important; width: 100vw !important; min-width: 100vw !important; max-width: 100vw !important; height: 72px !important; min-height: 72px !important; max-height: 72px !important; margin: 0 !important; padding: 4px 5px 3px !important; box-sizing: border-box !important">
+    {% if report_only_role %}
+      {% if primary_mobile_shell %}
+    <a class="mobile-nav-item {% if active == 'report' %}active{% endif %}" href="{{ url_for('main.work_report') }}">
+      <i class="bi bi-file-earmark-bar-graph"></i><span>Отчет</span>
+    </a>
+      {% else %}
+    <a class="mobile-nav-item {% if active == 'objects' %}active{% endif %}" href="{{ url_for('main.objects') }}">
+      <i class="bi bi-diagram-3"></i><span>Объекты</span>
+    </a>
+      {% endif %}
+    <a class="mobile-nav-item {% if active == 'account' %}active{% endif %}" href="{{ url_for('main.account') }}">
+      <i class="bi bi-person-circle"></i><span>Аккаунт</span>
+    </a>
+    {% elif no_mobile_project %}
+    <a class="mobile-nav-item {% if active == 'objects' %}active{% endif %}" href="{{ url_for('main.objects') }}">
+      <i class="bi bi-diagram-3"></i><span>Объекты</span>
+    </a>
+    <a class="mobile-nav-item {% if active == 'account' %}active{% endif %}" href="{{ url_for('main.account') }}">
+      <i class="bi bi-person-circle"></i><span>Аккаунт</span>
+    </a>
+    {% else %}
+    <a class="mobile-nav-item mobile-nav-item-home {% if active == 'dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">
+      <i class="bi bi-grid-1x2"></i><span>Главная</span>
+    </a>
+    <a class="mobile-nav-item {% if active == 'remarks' %}active{% endif %}" href="{{ url_for('main.task_list') }}">
+      <i class="bi bi-card-checklist"></i><span>Замечания</span>
+    </a>
+    {% if current_user.role in ['admin', 'manager'] %}
+    <a class="mobile-nav-item mobile-nav-item-assignments {% if active == 'assignments' %}active{% endif %}" href="{{ url_for('main.assignments') }}">
+      <i class="bi bi-person-check"></i><span class="mobile-nav-label-assignments">&#1042;&#1099;&#1076;&#1072;&#1095;&#1072; &#1079;&#1072;&#1076;&#1072;&#1095;</span>
+    </a>
+    {% endif %}
+    <a class="mobile-nav-item mobile-nav-item-apartments {% if active == 'apartments' %}active{% endif %}" href="{{ url_for('main.apartments') }}">
+      <i class="bi bi-buildings"></i><span>&#1050;&#1074;&#1072;&#1088;&#1090;&#1080;&#1088;&#1099;</span>
+    </a>
+    {% endif %}
+  </nav>
+  {% endif %}
+{%- endmacro %}
+
+{% set mobile_title = 'Передача' %}
+{% set mobile_active = 'dashboard' %}
+{% if request.endpoint == 'main.account' %}
+  {% set mobile_title = 'Аккаунт' %}
+  {% set mobile_active = 'account' %}
+{% elif layout_mode.strip() == 'objects' %}
+  {% set mobile_title = 'Объекты' %}
+  {% set mobile_active = 'objects' %}
+{% elif layout_mode.strip() == 'documents' %}
+  {% set mobile_title = 'Документы' %}
+  {% set mobile_active = 'objects' %}
+{% elif layout_mode.strip() == 'settings' %}
+  {% set mobile_title = 'Настройки' %}
+  {% set mobile_active = 'objects' %}
+{% elif report_only_role or request.endpoint in ['main.work_report', 'main.work_report_export', 'main.assignments_report', 'main.assignments_report_worker_pdf'] %}
+  {% set mobile_title = 'Отчет' %}
+  {% set mobile_active = 'report' %}
+{% elif worker_role %}
+  {% set mobile_title = 'Задачи' %}
+  {% set mobile_active = 'tasks' %}
+{% elif request.endpoint == 'main.dashboard' %}
+  {% set mobile_title = 'Главная' %}
+  {% set mobile_active = 'dashboard' %}
+{% elif request.endpoint in ['main.task_list', 'main.task_detail', 'main.task_new', 'main.task_recognition', 'main.remarks_excel_selection'] %}
+  {% set mobile_title = 'Замечания' %}
+  {% set mobile_active = 'remarks' %}
+{% elif request.endpoint in ['main.contractors_list', 'main.contractors_export', 'main.contractors_excel_selection', 'main.contractor_directory', 'main.contractor_response_statuses', 'main.contractor_new', 'main.contractor_edit', 'main.contractor_delete'] %}
+  {% set mobile_title = 'Подрядчики' %}
+  {% set mobile_active = 'contractors' %}
+{% elif request.endpoint == 'main.avr' %}
+  {% set mobile_title = 'АВР' %}
+  {% set mobile_active = 'apartments' %}
+{% elif request.endpoint in ['main.apartments', 'main.apartment_detail'] %}
+  {% set mobile_title = 'Квартиры' %}
+  {% set mobile_active = 'apartments' %}
+{% elif request.endpoint in ['main.materials', 'main.material_request_new', 'main.material_writeoff_new', 'main.material_expense_export', 'main.material_manual_task_new', 'main.material_request_detail'] %}
+  {% set mobile_title = 'Расход материалов' %}
+  {% set mobile_active = 'materials' %}
+{% elif request.endpoint in ['main.glass_measurements', 'main.glass_measurement_save', 'main.glass_order'] %}
+  {% set mobile_title = 'Замеры' %}
+  {% set mobile_active = 'glass' %}
+{% elif request.endpoint in ['main.assignments', 'main.assignment_manual_task_new'] %}
+  {% set mobile_title = 'Выдача задач' %}
+  {% set mobile_active = 'assignments' %}
+{% elif request.endpoint == 'main.site_settings' %}
+  {% set mobile_title = 'Настройки' %}
+  {% set mobile_active = 'objects' %}
+{% elif request.endpoint in ['main.notifications', 'main.notification_avr_status'] %}
+  {% set mobile_title = 'Уведомления' %}
+  {% set mobile_active = 'objects' %}
+{% endif %}
+
+{% if current_user.is_authenticated and layout_mode.strip() == 'objects' %}
+{{ mobile_page_chrome(mobile_title) }}
+<div class="objects-layout">
+  <header class="objects-topbar">
+    <a class="sidebar-brand-link" href="{{ url_for('main.objects') }}">
+      <img class="brand-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="38" height="38" alt="">
+      <span class="brand-text">Передача</span>
+    </a>
+    <div class="topbar-actions">
+      {% if current_user.role in ['admin', 'manager'] %}
+      <a class="btn btn-primary object-add-button" href="{{ url_for('main.object_new') }}"><i class="bi bi-plus-lg me-2"></i>Добавить объект</a>
+      {% endif %}
+      {% if not worker_role and not hide_documents_section %}
+      <a class="btn btn-outline-light objects-documents-button" href="{{ url_for('main.documents') }}"><i class="bi bi-files me-2"></i>Документы</a>
+      {% endif %}
+      <div class="dropdown">
+        <a class="topbar-user dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="topbar-avatar"><i class="bi bi-person-fill"></i></span>
+          <span>{{ current_user.full_name or current_user.username }}</span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end">
+          {% if current_user.role == 'admin' or request.endpoint == 'main.site_settings' %}
+          <li><a class="dropdown-item" href="{{ url_for('main.site_settings') }}"><i class="bi bi-sliders me-2"></i>Настройки сайта</a></li>
+          <li><hr class="dropdown-divider"></li>
+          {% endif %}
+          <li><a class="dropdown-item" href="{{ url_for('main.account') }}"><i class="bi bi-person-circle me-2"></i>Аккаунт</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <form class="px-3 py-1 js-auth-safe-submit" method="post" action="{{ url_for('auth.logout') }}" data-loading-text="Выходим...">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-secondary w-100 js-auth-submit-button" type="submit">Выйти</button>
+            </form>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </header>
+  <main class="objects-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {{ flash_toasts(messages) }}
+    {% endwith %}
+    <div class="crm-mobile-page-shell crm-page-entry-surface">{{ page_content }}</div>
+  </main>
+</div>
+{{ mobile_bottom_nav(mobile_active) }}
+{% elif current_user.is_authenticated and (layout_mode.strip() in ['documents', 'settings'] or request.endpoint in ['main.account', 'main.site_settings']) %}
+{{ mobile_page_chrome(mobile_title) }}
+<div class="documents-standalone-layout {% if layout_mode.strip() == 'settings' %}settings-standalone-layout{% endif %}">
+  <header class="objects-topbar">
+    <a class="sidebar-brand-link" href="{{ url_for('main.objects') }}">
+      <img class="brand-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="38" height="38" alt="">
+      <span class="brand-text">Передача</span>
+    </a>
+    <div class="topbar-actions">
+      <div class="dropdown">
+        <a class="topbar-user dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="topbar-avatar"><i class="bi bi-person-fill"></i></span>
+          <span>{{ current_user.full_name or current_user.username }}</span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end global-standalone-user-menu" aria-label="Меню профиля">
+          {% if current_user.role == 'admin' or request.endpoint == 'main.site_settings' %}
+          <li><a class="dropdown-item" href="{{ url_for('main.site_settings') }}"><i class="bi bi-sliders me-2"></i>Настройки сайта</a></li>
+          <li><hr class="dropdown-divider"></li>
+          {% endif %}
+          <li><a class="dropdown-item" href="{{ url_for('main.account') }}"><i class="bi bi-person-circle me-2"></i>Аккаунт</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <form class="px-3 py-1 js-auth-safe-submit" method="post" action="{{ url_for('auth.logout') }}" data-loading-text="Выходим...">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-secondary w-100 js-auth-submit-button" type="submit">Выйти</button>
+            </form>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </header>
+  <main class="documents-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {{ flash_toasts(messages) }}
+    {% endwith %}
+    <div class="crm-mobile-page-shell crm-page-entry-surface">{{ page_content }}</div>
+  </main>
+</div>
+{{ mobile_bottom_nav(mobile_active) }}
+{% elif current_user.is_authenticated %}
+{{ mobile_page_chrome(mobile_title) }}
+<div class="app-layout {% if worker_role %}worker-layout{% endif %}">
+  {% if not is_mobile_phone_request %}
+  <button class="mobile-menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="appSidebar">
+    <i class="bi bi-list"></i><span>Меню</span>
+  </button>
+  <div class="mobile-sidebar-backdrop" aria-hidden="true"></div>
+  <aside class="app-sidebar" id="appSidebar">
+    <div class="sidebar-brand">
+      <a class="sidebar-brand-link" href="{{ url_for('main.work_report') if report_only_role else url_for('main.dashboard') }}">
+        <img class="brand-logo" src="{{ url_for('static', filename='brand-logo.png') }}" width="38" height="38" alt="">
+        <span class="brand-text">Передача</span>
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      {% if report_only_role %}
+      <a class="sidebar-link {% if request.endpoint in ['main.work_report', 'main.work_report_export', 'main.assignments_report', 'main.assignments_report_worker_pdf'] %}active{% endif %}" href="{{ url_for('main.work_report') }}" {% if request.endpoint in ['main.work_report', 'main.work_report_export', 'main.assignments_report', 'main.assignments_report_worker_pdf'] %}aria-current="page"{% endif %}>
+        <i class="bi bi-file-earmark-bar-graph"></i><span>Отчет</span>
+      </a>
+      {% elif worker_role %}
+      <a class="sidebar-link {% if request.endpoint in ['main.my_tasks', 'main.my_task_done', 'main.my_task_return'] %}active{% endif %}" href="{{ url_for('main.my_tasks') }}">
+        <i class="bi bi-check2-square"></i><span>Мои задачи</span>
+      </a>
+      {% else %}
+      <a class="sidebar-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">
+        <i class="bi bi-grid-1x2"></i><span>Главная</span>
+      </a>
+      {% set remarks_active = request.endpoint in ['main.task_list', 'main.task_detail', 'main.task_new', 'main.task_recognition', 'main.remarks_excel_selection'] %}
+      <a class="sidebar-link {% if remarks_active %}active{% endif %}" href="{{ url_for('main.task_list') }}">
+        <i class="bi bi-card-checklist"></i><span>Замечания</span>
+      </a>
+      <a class="sidebar-link {% if request.endpoint in ['main.contractors_list', 'main.contractors_export', 'main.contractors_excel_selection', 'main.contractor_directory', 'main.contractor_response_statuses', 'main.contractor_new', 'main.contractor_edit', 'main.contractor_delete'] %}active{% endif %}" href="{{ url_for('main.contractors_list') }}">
+        <i class="bi bi-person-gear"></i><span>Подрядчики</span>
+      </a>
+      <a class="sidebar-link {% if request.endpoint in ['main.apartments', 'main.apartment_detail'] %}active{% endif %}" href="{{ url_for('main.apartments') }}">
+        <i class="bi bi-buildings"></i><span>Квартиры</span>
+      </a>
+      <a class="sidebar-link {% if request.endpoint == 'main.avr' %}active{% endif %}" href="{{ url_for('main.avr') }}">
+        <i class="bi bi-file-earmark-check"></i><span>АВР</span>
+      </a>
+      <a class="sidebar-link {% if request.endpoint in ['main.materials', 'main.material_request_new', 'main.material_writeoff_new', 'main.material_expense_export', 'main.material_manual_task_new', 'main.material_request_detail'] %}active{% endif %}" href="{{ url_for('main.materials') }}">
+        <i class="bi bi-box-seam"></i><span>Расход материалов</span>
+      </a>
+      <a class="sidebar-link {% if request.endpoint in ['main.glass_measurements', 'main.glass_measurement_save', 'main.glass_order'] %}active{% endif %}" href="{{ url_for('main.glass_measurements') }}">
+        <i class="bi bi-window"></i><span>Замеры</span>
+      </a>
+      {% if current_user.role in ['admin', 'manager'] %}
+      <a class="sidebar-link {% if request.endpoint in ['main.assignments', 'main.assignment_manual_task_new'] %}active{% endif %}" href="{{ url_for('main.assignments') }}">
+        <i class="bi bi-person-check"></i><span>Выдача задач</span>
+      </a>
+      {% endif %}
+      <a class="sidebar-link {% if request.endpoint in ['main.work_report', 'main.work_report_export', 'main.assignments_report', 'main.assignments_report_worker_pdf'] %}active{% endif %}" href="{{ url_for('main.work_report') }}">
+        <i class="bi bi-file-earmark-bar-graph"></i><span>Отчет</span>
+      </a>
+      {% if current_user.role == 'admin' %}
+      {% set developer_sidebar_active = request.endpoint in ['main.site_errors', 'main.site_error_close', 'main.site_error_delete', 'main.developer_delete_logs', 'main.developer_delete_log_undo', 'main.developer_statistics', 'main.developer_statistics_visits', 'main.developer_statistics_sources'] %}
+      <a class="sidebar-link developer-sidebar-link {% if developer_sidebar_active %}active{% endif %} {% if new_site_errors_count %}has-nav-count{% endif %}" href="{{ url_for('main.site_errors') }}" {% if developer_sidebar_active %}aria-current="page"{% endif %}>
+        <i class="bi bi-bug"></i><span>Для разработчика</span>
+        {% if new_site_errors_count %}<span class="nav-count-badge site-errors-nav-badge" aria-label="Новые уведомления: {{ new_site_errors_count }}">{{ new_site_errors_count }}</span>{% endif %}
+      </a>
+      {% endif %}
+      {% endif %}
+    </nav>
+  </aside>
+  {% endif %}
+
+  <div class="app-main">
+    <header class="app-topbar">
+      {% if report_only_role %}
+      <div class="topbar-project verifier-topbar-actions">
+        <span>Объект: {{ current_project.name if current_project else 'не выбран' }}</span>
+        <a class="btn btn-outline-light btn-sm" href="{{ url_for('main.objects') }}">Сменить объект</a>
+      </div>
+      {% elif request.endpoint in ['main.documents', 'main.documents_addendum', 'main.documents_download'] %}
+      <div class="topbar-project worker-topbar-title">
+        <span>Документы</span>
+      </div>
+      {% elif not worker_role %}
+      <div class="topbar-project">
+        <span>Объект: {{ current_project.name if current_project else 'не выбран' }}</span>
+        <a class="btn btn-outline-light btn-sm" href="{{ url_for('main.objects') }}">Сменить объект</a>
+      </div>
+      {% else %}
+      <div class="topbar-project worker-topbar-title">
+        <span>Объект: {{ current_project.name if current_project else 'не назначен' }}</span>
+      </div>
+      {% endif %}
+
+      <div class="topbar-actions">
+        {% if current_user.role in ['admin', 'manager'] %}
+        <div class="dropdown">
+          <a class="topbar-icon dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Разделы">
+            <i class="bi bi-gear"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="{{ url_for('main.upload_excel') }}"><i class="bi bi-cloud-arrow-up me-2"></i>Импорт Excel</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('main.sync_conflicts') }}"><i class="bi bi-arrow-repeat me-2"></i>Синхронизация</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('main.sync_logs') }}"><i class="bi bi-clock-history me-2"></i>Журнал</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('main.mapping_settings') }}"><i class="bi bi-diagram-3 me-2"></i>Распределение</a></li>
+          </ul>
+        </div>
+        {% endif %}
+        <div class="dropdown">
+          <a class="topbar-user dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="topbar-avatar"><i class="bi bi-person-fill"></i></span>
+            <span>{{ current_user.full_name or current_user.username }}</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            {% if current_project and current_user.role == 'admin' %}
+            <li><a class="dropdown-item" href="{{ url_for('main.users') }}">Пользователи</a></li>
+            <li><a class="dropdown-item download-excel-btn" href="{{ url_for('main.export_source_with_strikes') }}" data-download-mode="fetch" data-loading-text="Готовим Excel..."><i class="bi bi-file-earmark-arrow-down me-2"></i>Скачать Excel</a></li>
+            <li><hr class="dropdown-divider"></li>
+            {% endif %}
+            <li><a class="dropdown-item" href="{{ url_for('main.account') }}"><i class="bi bi-person-circle me-2"></i>Аккаунт</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <form class="px-3 py-1 js-auth-safe-submit" method="post" action="{{ url_for('auth.logout') }}" data-loading-text="Выходим...">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-secondary w-100 js-auth-submit-button" type="submit">Выйти</button>
+              </form>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {{ flash_toasts(messages) }}
+    {% endwith %}
+      <div class="crm-mobile-page-shell crm-page-entry-surface">{{ page_content }}</div>
+    </main>
+  </div>
+</div>
+{{ mobile_bottom_nav(mobile_active) }}
+{% else %}
+<main class="auth-shell">
+  <div class="auth-brand">
+    <div class="auth-brand-main">
+      <div class="brand-mark"><img class="brand-mark-image" src="{{ url_for('static', filename='brand-logo.png') }}" width="48" height="48" alt=""></div>
+      <div class="auth-brand-title">Передача</div>
+    </div>
+  </div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {{ flash_toasts(messages, 'auth-flashes') }}
+  {% endwith %}
+  {{ page_content }}
+  <footer class="crm-footer auth-footer">
+    <span class="auth-footer-line-main">CRM от Худовердиева В.С.</span>
+  </footer>
+</main>
+{% endif %}
+
+{% block floating_content %}{% endblock %}
+<div class="floating-error-corner">
+  {{ report_error_button('report-error-floating') }}
+</div>
+<div class="modal fade" id="reportErrorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content error-report-modal" method="post" action="{{ url_for('main.report_error') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="page_url" value="{{ request.url }}">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Сообщить об ошибке</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Описание ошибки</label>
+        <textarea class="form-control" name="message" rows="5" placeholder="Например: Не работает раздел" required></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-send me-2"></i>Отправить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<div class="modal fade task-problem-modal" id="taskProblemModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content task-problem-modal-content" id="taskProblemModalForm" novalidate>
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Проблема</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label" for="taskProblemModalComment">Описание проблемы</label>
+        <textarea class="form-control" id="taskProblemModalComment" name="problem_comment" rows="5" required></textarea>
+        <div class="invalid-feedback">Заполните описание проблемы.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary task-problem-modal-cancel" data-bs-dismiss="modal">Отмена</button>
+        <button class="btn btn-success" type="submit"><i class="bi bi-check2 me-2"></i>Добавить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal fade guarantee-contractor-modal" id="guaranteeContractorModal" tabindex="-1" aria-hidden="true" aria-labelledby="guaranteeContractorModalTitle">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content guarantee-contractor-modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title" id="guaranteeContractorModalTitle">Выберите подрядчика</h5>
+          <p>Кто будет выполнять гарантийное замечание?</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="guarantee-contractor-options" data-guarantee-contractor-options></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v673-material-tabs-replace-content"></script>
+</body>
+</html>

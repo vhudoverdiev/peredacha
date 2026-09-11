@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Загрузить Excel{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Загрузить Excel-таблицы</h1>
+  </div>
+</div>
+
+<div class="excel-import-layout excel-import-layout-wide">
+  <div class="card content-card excel-import-card">
+    <div class="card-body">
+      <div class="excel-import-icon"><i class="bi bi-card-checklist"></i></div>
+      <h2 class="section-title">Замечания</h2>
+      <form method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <input type="hidden" name="upload_kind" value="remarks">
+        <label class="excel-dropzone" for="{{ form.file.id }}">
+          <i class="bi bi-cloud-arrow-up"></i>
+          <span>Выберите Excel-файл замечаний</span>
+          <small>Поддерживается формат .xlsx</small>
+        </label>
+        {{ form.file(class="form-control excel-file-input") }}
+        {{ form.submit(class="btn btn-primary w-100 mt-3", value="Загрузить замечания") }}
+      </form>
+    </div>
+  </div>
+
+  <div class="card content-card excel-import-card">
+    <div class="card-body">
+      <div class="excel-import-icon"><i class="bi bi-clipboard2-check"></i></div>
+      <h2 class="section-title">Статистика передач</h2>
+      <form method="post" enctype="multipart/form-data">
+        {{ transfer_form.hidden_tag() }}
+        <input type="hidden" name="upload_kind" value="transfers">
+        <label class="excel-dropzone" for="{{ transfer_form.file.id }}">
+          <i class="bi bi-cloud-arrow-up"></i>
+          <span>Выберите Excel-файл передач</span>
+          <small>Поддерживается формат .xlsx</small>
+        </label>
+        {{ transfer_form.file(class="form-control excel-file-input") }}
+        {{ transfer_form.submit(class="btn btn-success w-100 mt-3", value="Загрузить статистику") }}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

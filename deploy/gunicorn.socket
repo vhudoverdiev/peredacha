@@ -1,0 +1,11 @@
+[Unit]
+Description=Gunicorn socket for crm_flask
+
+[Socket]
+ListenStream=/run/gunicorn-crm_flask.sock
+SocketUser=www-data
+SocketGroup=www-data
+SocketMode=0660
+
+[Install]
+WantedBy=sockets.target

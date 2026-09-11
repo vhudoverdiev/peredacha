@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Заказать стеклопакеты{% endblock %}
+{% block content %}
+<div class="page-head remarks-page-head">
+  <div>
+    <h1 class="page-title">Заказать стеклопакеты</h1>
+    <p class="page-subtitle">Выберите позиции с указанными размерами. После заказа они попадут в заявку материалов и на баланс объекта.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.glass_measurements') }}">Назад</a>
+</div>
+
+<form method="post" class="card table-shell glass-order-shell">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card-body border-bottom d-flex gap-2 justify-content-end">
+    <button class="btn btn-outline-secondary js-check-all" type="button" data-target=".glass-order-check">Выбрать все</button>
+    <button class="btn btn-success" type="submit"><i class="bi bi-cart-plus me-2"></i>Создать заявку</button>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle task-table mb-0">
+        <thead>
+          <tr>
+            <th style="width:48px"></th>
+            <th>Кв №</th>
+            <th>Размер</th>
+            <th>Замечание</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for measurement in measurements %}
+          <tr class="{% if not measurement.size_label() %}table-warning{% endif %}">
+            <td><input class="form-check-input glass-order-check" type="checkbox" name="measurement_ids" value="{{ measurement.id }}" {% if not measurement.size_label() %}disabled{% endif %}></td>
+            <td>{{ measurement.task.apartment.label() if measurement.task and measurement.task.apartment else '—' }}</td>
+            <td><b>{{ measurement.size_label() or 'размер не указан' }}</b></td>
+            <td class="task-text">{{ remark_text(measurement.task.description or measurement.task.source_cell_value) }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="text-center text-muted py-5">Нет стеклопакетов для заказа</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</form>
+{% endblock %}

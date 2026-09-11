@@ -1,0 +1,1880 @@
+/* Overrides in this file are intentionally limited to desktop layouts. */
+/* The critical mobile dock CSS is intentionally available before device
+   detection completes. Once the page is confirmed as desktop, keep that dock
+   hidden even when the browser window is narrower than the mobile breakpoint. */
+html.desktop-like-pointer body.app-body
+  nav.mobile-bottom-nav.mobile-bottom-nav-root[data-mobile-dock="unified"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.work-report-export-desktop-only {
+  display: none !important;
+}
+
+.materials-history-inline-export {
+  display: none !important;
+}
+
+/* Give programmatically clickable table rows real link hit areas on desktop.
+   Native browser actions (context menu, Ctrl-click and middle click) can then
+   open the destination in a new tab. Interactive controls stay above the
+   transparent link and retain their original behaviour. */
+html.desktop-native-row-links body.app-body .desktop-native-row-link-cell {
+  position: relative;
+}
+
+html.desktop-native-row-links body.app-body .desktop-native-row-link-cell
+  > .desktop-native-row-link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Keep a real text node inside each full-cell link. Firefox can then expose a
+   normal named link in its native context menu without painting duplicate text
+   over the table cell. */
+html.desktop-native-row-links body.app-body .desktop-native-row-link-cell
+  > .desktop-native-row-link > .desktop-native-row-link-label {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+html.desktop-native-row-links body.app-body .desktop-native-row-link-cell
+  :is(a:not(.desktop-native-row-link), button, form, input, textarea, select, label,
+      [role="button"], [contenteditable="true"], .inline-editor, .problem-comment-wrap) {
+  position: relative;
+  z-index: 2;
+}
+
+/* Materials forces generic button text to black. Keep the destructive action
+   readable when its outline button becomes filled on desktop interaction. */
+html.desktop-like-pointer body.app-body:has(.materials-page-head)
+  .material-request-detail-delete-btn:is(:hover, :focus, :focus-visible, :active) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Material request edit: move Save into the desktop page header in place of Excel. */
+html.desktop-like-pointer body.app-body:has(.materials-page-head)
+  :is(.material-request-edit-save-top, .material-request-edit-cancel-top) {
+  display: none !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.js-material-request-edit-form:not(.d-none))
+  .material-request-edit-save-top {
+  display: inline-flex !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.js-material-request-edit-form:not(.d-none))
+  :is(.material-request-detail-export-btn, .material-request-back-btn) {
+  display: none !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.js-material-request-edit-form:not(.d-none))
+  .material-request-edit-cancel-top {
+  display: inline-flex !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.materials-page-head)
+  :is(.material-request-edit-save-bottom, .material-request-edit-cancel-bottom) {
+  display: none !important;
+}
+
+/* Match the task comment hover to the floating help button while keeping the
+   label deliberately black for contrast, as requested for desktop only. */
+html.desktop-like-pointer body.app-body:has(.task-detail-page)
+  .task-detail-comments-card form[data-task-comment-async="1"]
+  .btn:is(:hover, :focus-visible) {
+  background: linear-gradient(
+    180deg,
+    var(--peredacha-action-green) 0%,
+    var(--peredacha-action-green-hover) 100%
+  ) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  box-shadow: 0 12px 26px var(--peredacha-action-green-shadow) !important;
+}
+
+/* Match the standard section badge exactly, only replacing the Additional
+   Agreement category color on desktop. */
+html.desktop-like-pointer body.app-body:has(.task-detail-page)
+  .task-detail-dop-agreement-badge {
+  --section-color: #f59e0b !important;
+}
+
+/* Narrow desktop windows keep only the lower paginator and must not let a
+   long contractor/status label intrude into the action controls. */
+html.desktop-like-pointer body.app-body :is(.page-pagination-top, .glass-ordered-pagination-top) {
+  display: none !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table .task-status-cell {
+  min-width: 9rem !important;
+  max-width: 11rem !important;
+  padding-right: .75rem !important;
+  overflow: hidden !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table .task-status-cell .status-pill {
+  display: inline-flex !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  min-height: 2rem !important;
+  max-height: 3rem !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  line-height: 1.15 !important;
+  text-align: center !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table .task-actions-cell {
+  position: relative !important;
+  z-index: 1 !important;
+  background-clip: padding-box !important;
+}
+
+/* Contractors can use a full company name as the status. Reserve real table
+   columns for it and for all action buttons so neither cell can cover the
+   other in a narrow desktop window. */
+html.desktop-like-pointer body.app-body
+  .contractor-task-table :is(th.task-col-status, td.task-status-cell) {
+  width: 11rem !important;
+  min-width: 11rem !important;
+  max-width: 11rem !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table :is(th.task-col-actions, td.task-actions-cell) {
+  width: 13rem !important;
+  min-width: 13rem !important;
+  max-width: 13rem !important;
+}
+
+html.desktop-like-pointer body.app-body .contractor-task-table td.task-status-cell {
+  box-sizing: border-box !important;
+  padding-left: .5rem !important;
+  padding-right: 1.25rem !important;
+  text-align: center !important;
+  overflow: hidden !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table td.task-status-cell > .status-pill {
+  display: -webkit-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: .38rem .5rem !important;
+  overflow: hidden !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  line-height: 1.15 !important;
+  text-align: center !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table td.task-status-cell > .contractor-status-pill.has-contractor-break {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table .contractor-status-desktop {
+  display: inline-flex !important;
+  width: 100% !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: .08rem !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table .contractor-status-default {
+  display: none !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table .contractor-status-line {
+  display: block !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  text-overflow: clip !important;
+  line-height: 1.05 !important;
+  text-align: center !important;
+}
+
+html.desktop-like-pointer body.app-body .contractor-task-table td.task-actions-cell {
+  box-sizing: border-box !important;
+  padding-left: .75rem !important;
+  padding-right: .65rem !important;
+  overflow: hidden !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table td.task-actions-cell > .actions-cell {
+  width: max-content !important;
+  min-width: max-content !important;
+  max-width: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  justify-content: flex-start !important;
+  gap: .2rem !important;
+  overflow: visible !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .contractor-task-table td.task-actions-cell .btn {
+  flex: 0 0 auto !important;
+}
+
+/* Keep every status action, including the red Problem button, fully inside
+   the fixed desktop table at narrow widths. The same sizing is shared by the
+   Contractors and Remarks tables. */
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table :is(th.task-col-actions, td.task-actions-cell) {
+  width: 13rem !important;
+  min-width: 13rem !important;
+  max-width: 13rem !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table th.task-col-status {
+  box-sizing: border-box !important;
+  padding-left: .5rem !important;
+  padding-right: 1.25rem !important;
+  text-align: left !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table th.task-col-actions {
+  box-sizing: border-box !important;
+  padding-left: .75rem !important;
+  padding-right: .65rem !important;
+  text-align: left !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table td.task-actions-cell {
+  box-sizing: border-box !important;
+  padding-left: .75rem !important;
+  padding-right: .65rem !important;
+  overflow: hidden !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table td.task-status-cell {
+  padding-left: .5rem !important;
+  padding-right: 1.25rem !important;
+  text-align: left !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table td.task-actions-cell > .actions-cell {
+  width: max-content !important;
+  min-width: max-content !important;
+  max-width: none !important;
+  margin: 0 !important;
+  gap: .2rem !important;
+  justify-content: flex-start !important;
+  overflow: visible !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table td.task-actions-cell .actions-cell .btn.btn-sm {
+  flex: 0 0 1.65rem !important;
+  width: 1.65rem !important;
+  min-width: 1.65rem !important;
+  max-width: 1.65rem !important;
+  height: 1.65rem !important;
+  min-height: 1.65rem !important;
+  max-height: 1.65rem !important;
+  padding: 0 !important;
+  border-radius: .5rem !important;
+  font-size: .7rem !important;
+}
+
+/* The Additional Agreement table has only one binary action. Keep its
+   "Entered" / "Return" control distinct, but more compact than the previous
+   oversized desktop target. */
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table td.task-actions-cell .actions-cell
+  .dop-binary-status-toggle-form .btn.btn-sm {
+  flex-basis: 2.25rem !important;
+  width: 2.25rem !important;
+  min-width: 2.25rem !important;
+  max-width: 2.25rem !important;
+  height: 2.25rem !important;
+  min-height: 2.25rem !important;
+  max-height: 2.25rem !important;
+  border-radius: .65rem !important;
+  font-size: 1rem !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table td.task-actions-cell .actions-cell
+  .dop-binary-status-toggle-form .btn.btn-sm > i {
+  font-size: 1rem !important;
+  line-height: 1 !important;
+}
+
+/* Keep the completed-state strike inside the remark copy. Applying it to the
+   table cell also paints the line through the edit/split controls below it. */
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .done-task .task-text {
+  text-decoration: none !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .done-task .task-text .inline-text {
+  text-decoration: line-through !important;
+}
+
+/* A contractor label in the regular Remarks table gets the same intentional
+   two-line desktop presentation as it does on the Contractors page. */
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table td.task-status-cell > .contractor-status-pill.has-contractor-break {
+  display: inline-flex !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  line-height: 1.1 !important;
+  text-align: center !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table .contractor-status-desktop {
+  display: inline-flex !important;
+  width: 100% !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: .08rem !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table .contractor-status-default {
+  display: none !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.remarks-page-head)
+  .remarks-export-table-shell .task-table .contractor-status-line {
+  display: block !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: clip !important;
+  line-height: 1.05 !important;
+  text-align: center !important;
+}
+
+/* The objects page is shorter than the viewport when there are only a few
+   cards. Its desktop canvas must still cover the dark application body. */
+html.desktop-like-pointer body.app-body:has(.objects-page) {
+  min-height: 100vh !important;
+  background: #f6f8fb !important;
+  background-color: #f6f8fb !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.objects-page) .objects-layout {
+  min-height: calc(100vh / var(--desktop-stage-scale, 1)) !important;
+  background: #f6f8fb !important;
+  background-color: #f6f8fb !important;
+}
+
+/* The first assignment tab contains its label in a span. It is text, not the
+   numeric badge used by the second tab, so it must not receive a translucent
+   pill of its own. */
+html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+  .assignment-subtab .assignment-desktop-issue-content {
+  display: inline-flex !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  gap: .45rem !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-family: inherit !important;
+  font-size: .95rem !important;
+  font-weight: 600 !important;
+  line-height: 1.1 !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+  .assignment-subtabs > .assignment-subtab {
+  font-family: inherit !important;
+  font-size: .95rem !important;
+  font-weight: 600 !important;
+  line-height: 1.1 !important;
+}
+
+/* Both write-off steps enter together with exactly the same motion. */
+html.desktop-like-pointer body.app-body
+  .material-writeoff-form .materials-animated-card,
+html.desktop-like-pointer body.app-body
+  .materials-list-page-region > .materials-animated-card {
+  animation: desktopMaterialWriteoffRise .35s ease both !important;
+  animation-delay: 0ms !important;
+  transition-delay: 0ms !important;
+  will-change: transform, opacity !important;
+}
+
+html.desktop-like-pointer body.app-body
+  .materials-animated-card.crm-tab-enter {
+  animation: desktopMaterialWriteoffRise .35s ease both !important;
+  animation-delay: 0ms !important;
+  transition-delay: 0ms !important;
+  will-change: transform, opacity !important;
+}
+
+@keyframes desktopMaterialWriteoffRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Replayed after an in-place Measurements tab update so All, To order and
+   Ordered use the same table entrance. */
+html.desktop-like-pointer body.app-body .glass-table-shell.crm-tab-enter {
+  animation: desktopGlassTableRise .35s ease both !important;
+}
+
+@keyframes desktopGlassTableRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Statistics keeps the same fixed upper section as Messages. The statistics
+   root used to become a stretching grid, which moved and widened the tabs. */
+html.desktop-like-pointer body.app-body
+  .developer-tools-ajax-page.developer-statistics-page {
+  display: block !important;
+  gap: 0 !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
+  .developer-tools-ajax-page > .developer-stat-shell-head {
+  margin-bottom: 1rem !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
+  .developer-tools-ajax-page > .developer-stat-top-tabs {
+  width: fit-content !important;
+  margin: 0 0 .85rem !important;
+  justify-self: start !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
+  .developer-stat-hero-card {
+  margin-bottom: .85rem !important;
+}
+
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .materials-history-export-page-head {
+    display: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-history-inline-export {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.4rem;
+    border-radius: .75rem;
+    font-weight: 700 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .work-report-export-desktop-only {
+    display: inline-flex !important;
+  }
+
+  html.desktop-like-pointer body.app-body .work-report-export-mobile-only {
+    display: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .js-material-writeoff-edit-form .material-writeoff-empty-row {
+    display: none;
+  }
+
+  html.desktop-like-pointer body.app-body .material-writeoff-add-row-wrap {
+    display: flex !important;
+    justify-content: flex-start;
+    margin: 0.85rem 0 1.15rem;
+  }
+
+  html.desktop-like-pointer body.app-body .js-material-writeoff-add-row {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .js-multi-material-form:has(.materials-writeoff-balance-card .js-writeoff-material-select):not(.is-material-lines-ready)
+    .materials-writeoff-balance-card .card-body {
+    visibility: visible;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-writeoff-balance-card {
+    transition-delay: 0ms !important;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-writeoff-list-column {
+    position: relative;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-writeoff-pagination {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+  }
+
+  html.desktop-like-pointer body.app-body .material-writeoff-form:has(.materials-writeoff-pagination) {
+    margin-bottom: 4.75rem;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active),
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active):hover,
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active):focus {
+    border-color: rgba(112, 189, 29, 0.42) !important;
+    background: #ffffff !important;
+    color: #5c9f17 !important;
+    -webkit-text-fill-color: #5c9f17 !important;
+    box-shadow: 0 10px 22px rgba(31, 45, 61, 0.07) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active) i,
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn:not(.is-active) i::before {
+    color: #5c9f17 !important;
+    -webkit-text-fill-color: #5c9f17 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn.is-active {
+    border-color: #6aa81f !important;
+    background: linear-gradient(180deg, #79bf25 0%, #6aa81f 100%) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 10px 22px rgba(121, 191, 37, 0.22) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn.is-active i,
+  html.desktop-like-pointer body.app-body .materials-filter-form .materials-filter-icon-btn.is-active i::before {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:hover,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:focus,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:focus-visible,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:-webkit-autofill,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:-webkit-autofill:hover,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:-webkit-autofill:focus {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+    -webkit-text-fill-color: #111827 !important;
+    caret-color: #5c9f17 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:not(.is-invalid):focus,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:not(.is-invalid):focus-visible,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input:not(.is-invalid):-webkit-autofill:focus {
+    border-color: #8dd62c !important;
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 0.2rem rgba(141, 214, 44, 0.14) !important;
+    box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 0.2rem rgba(141, 214, 44, 0.14) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input.is-invalid,
+  html.desktop-like-pointer body.app-body .js-material-request-form .material-name-input.is-invalid:focus {
+    border-color: #dc3545 !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 0.2rem rgba(220, 53, 69, 0.14) !important;
+  }
+}
+
+/* Contractors: keep the complete filter toolbar on one desktop row. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .contractor-filter-form {
+    display: grid !important;
+    grid-template-columns:
+      minmax(0, 1.55fr)
+      minmax(0, 1.35fr)
+      minmax(0, .82fr)
+      minmax(0, .9fr)
+      minmax(0, 1.45fr)
+      auto !important;
+    grid-template-areas: "search contractor mode status finishing actions" !important;
+    align-items: end !important;
+    gap: .65rem !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > div:has(input[name="q"]) {
+    grid-area: search !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > div:has(select[name="contractor_id"]) {
+    grid-area: contractor !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > div:has(select[name="acceptance_status"]) {
+    grid-area: mode !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > div:has(select[name="status"]) {
+    grid-area: status !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > [class*="col-"] {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+    flex: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form :is(.form-control, .form-select, .custom-select-trigger) {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .remarks-filter-finishing-col {
+    grid-area: finishing !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form .remarks-filter-checks {
+    display: flex !important;
+    min-height: 3.05rem !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: .5rem !important;
+    white-space: nowrap !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form .remarks-filter-check {
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .contractor-filter-actions {
+    grid-area: actions !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    gap: .5rem !important;
+    white-space: nowrap !important;
+  }
+
+  /* Contractor wizard: keep desktop step accents aligned with its green buttons. */
+  html.desktop-like-pointer body.app-body
+    .contractor-wizard-tab.active .contractor-wizard-tab-number {
+    border-color: var(--crm-primary-dark, #78bb24) !important;
+    background: linear-gradient(
+      180deg,
+      var(--crm-primary, #8dd62c),
+      var(--crm-primary-dark, #78bb24)
+    ) !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-choice-toolbar .btn[data-contractor-clear="apartments"],
+  html.desktop-like-pointer body.app-body
+    .contractor-choice-toolbar .btn[data-contractor-clear="apartments"]:hover,
+  html.desktop-like-pointer body.app-body
+    .contractor-choice-toolbar .btn[data-contractor-clear="apartments"]:focus {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-apartment-meta-default {
+    display: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-apartment-meta-desktop {
+    display: inline !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-edit-save-desktop {
+    display: inline-flex !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-edit-continue-default {
+    display: none !important;
+  }
+
+  /* Task details: mirror the contractor delete interaction and use Problem red. */
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn,
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn:focus {
+    min-height: 48px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    border: 1px solid #dc4c4c !important;
+    border-radius: 12px !important;
+    background-color: #ffffff !important;
+    background-image: linear-gradient(180deg, #ffffff 0%, #fff8f8 100%) !important;
+    color: #dc4c4c !important;
+    -webkit-text-fill-color: #dc4c4c !important;
+    font-weight: 700 !important;
+    box-shadow: 0 8px 18px rgba(220, 76, 76, .12) !important;
+    transition: border-color .18s ease, background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease;
+  }
+
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn i.bi,
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn i.bi::before {
+    margin-right: 0 !important;
+    color: #dc4c4c !important;
+    -webkit-text-fill-color: #dc4c4c !important;
+    opacity: 1 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn:hover,
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn:active,
+  html.desktop-like-pointer body.app-body .task-detail-delete-btn:focus-visible {
+    border-color: #dc4c4c !important;
+    background: #dc4c4c !important;
+    background-image: none !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(220, 76, 76, .24) !important;
+    transform: translateY(-1px);
+  }
+
+  html.desktop-like-pointer body.app-body
+    :is(
+      .task-detail-delete-btn:hover,
+      .task-detail-delete-btn:active,
+      .task-detail-delete-btn:focus-visible
+    )
+    :is(i, .bi, .bi::before) {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  /* Contractor directory: white delete button, red only on interaction. */
+  html.desktop-like-pointer body.app-body .contractor-directory-delete-btn,
+  html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:focus {
+    min-width: 126px;
+    min-height: 48px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    border: 1px solid #c62828 !important;
+    border-radius: 12px !important;
+    background-color: #ffffff !important;
+    background-image: linear-gradient(180deg, #ffffff 0%, #fff7f7 100%) !important;
+    color: #c62828 !important;
+    -webkit-text-fill-color: #c62828 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 8px 18px rgba(198, 40, 40, .12) !important;
+    transition: border-color .18s ease, background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-directory-delete-btn
+    :is(i, .bi, .bi::before),
+  html.desktop-like-pointer body.app-body
+    .contractor-directory-delete-btn:focus
+    :is(i, .bi, .bi::before) {
+    color: #c62828 !important;
+    -webkit-text-fill-color: #c62828 !important;
+    opacity: 1 !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-directory-delete-btn i.bi {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0 !important;
+    font-size: 1rem !important;
+    line-height: 1 !important;
+    visibility: visible !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-directory-delete-btn i.bi::before {
+    display: inline-block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .btn.btn-danger.contractor-directory-delete-btn:not(:hover):not(:active):not(:focus-visible)
+    i.bi,
+  html.desktop-like-pointer body.app-body
+    .btn.btn-danger.contractor-directory-delete-btn:not(:hover):not(:active):not(:focus-visible)
+    i.bi::before {
+    color: #c62828 !important;
+    fill: #c62828 !important;
+    stroke: #c62828 !important;
+    -webkit-text-fill-color: #c62828 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:hover,
+  html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:active,
+  html.desktop-like-pointer body.app-body .contractor-directory-delete-btn:focus-visible {
+    border-color: #c62828 !important;
+    background: #c62828 !important;
+    background-image: none !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(198, 40, 40, .24) !important;
+    transform: translateY(-1px);
+  }
+
+  html.desktop-like-pointer body.app-body
+    :is(
+      .contractor-directory-delete-btn:hover,
+      .contractor-directory-delete-btn:active,
+      .contractor-directory-delete-btn:focus-visible
+    )
+    :is(i, .bi, .bi::before) {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-status-link,
+  html.desktop-like-pointer body.app-body .contractor-response-page {
+    display: flex !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-page {
+    width: min(980px, 100%);
+    margin: 0 auto;
+    flex-direction: column;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-status-link {
+    align-items: center;
+    border-color: #78bb24 !important;
+    background: #ffffff !important;
+    color: #315f14 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-status-link:hover,
+  html.desktop-like-pointer body.app-body .contractor-response-status-link:focus {
+    background: #f3fae9 !important;
+    color: #244b0d !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-directory-card-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-directory-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-directory-title-row h2 {
+    min-width: 0;
+    margin: 0;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-status-badge {
+    display: inline-flex !important;
+    flex: 0 0 auto;
+    align-items: center;
+    min-height: 30px;
+    padding: .35rem .72rem;
+    border: 1px solid rgba(104, 170, 29, .28);
+    border-radius: 999px;
+    background: #eef8e2;
+    color: #356b14;
+    font-size: .78rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-status-not_responding {
+    border-color: rgba(220, 38, 38, .24);
+    background: #fff0f0;
+    color: #b42318;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-head {
+    margin-bottom: 1.25rem;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-head .page-subtitle {
+    margin: .4rem 0 0;
+    color: var(--crm-muted);
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-form {
+    overflow: hidden;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--crm-radius);
+    background: #ffffff;
+    box-shadow: var(--crm-shadow-soft);
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-list {
+    display: grid;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1.5rem;
+    min-height: 92px;
+    padding: 1.15rem 1.35rem;
+    border-bottom: 1px solid var(--crm-border);
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-name {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: .9rem;
+    color: var(--crm-title);
+    font-size: 1rem;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-name > span {
+    display: grid;
+    flex: 0 0 2.7rem;
+    width: 2.7rem;
+    height: 2.7rem;
+    place-items: center;
+    border-radius: .85rem;
+    background: rgba(141, 214, 44, .15);
+    color: #5f991c;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-options {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-option {
+    cursor: pointer;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-option > span {
+    display: inline-flex;
+    min-width: 145px;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    padding: .55rem .85rem;
+    border: 1px solid #d9e3d0;
+    border-radius: .8rem;
+    background: #ffffff;
+    color: #596274;
+    font-weight: 750;
+    transition: border-color .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-response-option-positive input:checked + span {
+    border-color: #78bb24;
+    background: #eef8e2;
+    color: #356b14;
+    box-shadow: 0 7px 18px rgba(120, 187, 36, .14);
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-response-option-negative input:checked + span {
+    border-color: #dc2626;
+    background: #fff0f0;
+    color: #b42318;
+    box-shadow: 0 7px 18px rgba(220, 38, 38, .12);
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.2rem 1.35rem;
+    background: #fbfdf8;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-actions .btn {
+    display: inline-flex;
+    min-width: 180px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-response-actions .btn.btn-outline-secondary,
+  html.desktop-like-pointer body.app-body
+    .contractor-response-actions .btn.btn-outline-secondary:hover,
+  html.desktop-like-pointer body.app-body
+    .contractor-response-actions .btn.btn-outline-secondary:focus {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .contractor-response-actions .btn.btn-outline-secondary
+    :is(i, .bi, .bi::before),
+  html.desktop-like-pointer body.app-body
+    .contractor-response-actions .btn.btn-outline-secondary:hover
+    :is(i, .bi, .bi::before),
+  html.desktop-like-pointer body.app-body
+    .contractor-response-actions .btn.btn-outline-secondary:focus
+    :is(i, .bi, .bi::before) {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-save-state {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    gap: .55rem;
+    padding: .55rem .85rem;
+    border-radius: .8rem;
+    color: #667085;
+    font-size: .88rem;
+    font-weight: 650;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-save-state.is-saving {
+    color: #4f6f25;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-save-state.is-saved {
+    color: #356b14;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-save-state.is-error {
+    color: #b42318;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-card.is-saving {
+    background: #fbfdf8;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-card.is-saving
+    .contractor-response-options {
+    opacity: .72;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-response-empty {
+    display: flex;
+    min-height: 330px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-modal-content {
+    overflow: hidden;
+    border: 1px solid var(--crm-border);
+    border-radius: 1.35rem;
+    box-shadow: 0 24px 70px rgba(31, 52, 90, .18);
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-modal .modal-header {
+    align-items: flex-start;
+    padding: 1.35rem 1.4rem 1rem;
+    border-bottom-color: var(--crm-border);
+    background: linear-gradient(135deg, #fbfef7 0%, #f2f8e9 100%);
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-modal .modal-title {
+    color: var(--crm-title);
+    font-weight: 850;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-modal .modal-header p {
+    margin: .3rem 0 0;
+    color: var(--crm-muted);
+    font-size: .9rem;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-modal .modal-body {
+    padding: 1.2rem 1.4rem;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-options {
+    display: grid;
+    gap: .65rem;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-option {
+    display: grid;
+    grid-template-columns: 2.55rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .8rem;
+    width: 100%;
+    min-height: 62px;
+    padding: .65rem .85rem;
+    border: 1px solid #dce7d2;
+    border-radius: .95rem;
+    background: #ffffff;
+    color: var(--crm-title);
+    text-align: left;
+    transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-option:hover,
+  html.desktop-like-pointer body.app-body .guarantee-contractor-option:focus {
+    border-color: #8dd62c;
+    background: #f8fdf2;
+    box-shadow: 0 8px 20px rgba(120, 187, 36, .13);
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-option-icon {
+    display: grid;
+    width: 2.55rem;
+    height: 2.55rem;
+    place-items: center;
+    border-radius: .8rem;
+    background: rgba(141, 214, 44, .15);
+    color: #5f991c;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-option-arrow {
+    color: #8a9580;
+  }
+
+  html.desktop-like-pointer body.app-body .guarantee-contractor-modal .modal-footer {
+    padding: 1rem 1.4rem 1.2rem;
+    border-top-color: var(--crm-border);
+    background: #fbfdf8;
+  }
+
+  /* Issued assignments: keep remark names readable and make employee actions
+     permanently visible instead of revealing white icons only on hover. */
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-table .assignment-task-text {
+    color: #182230 !important;
+    font-weight: 400 !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-table :is(
+      col.assignment-issued-col-actions,
+      th:nth-child(5),
+      td:nth-child(5)
+    ) {
+    width: 272px !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-table .assignment-issued-actions-cell {
+    min-width: 272px !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions {
+    gap: .5rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-change-assignee-btn,
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-remove-user-btn {
+    display: inline-flex !important;
+    width: auto !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .38rem !important;
+    padding: 0 .72rem !important;
+    border-width: 1px !important;
+    border-style: solid !important;
+    border-radius: .75rem !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    font-size: .82rem !important;
+    font-weight: 750 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    -webkit-text-fill-color: currentColor !important;
+    transition: background-color .18s ease, border-color .18s ease,
+      color .18s ease, box-shadow .18s ease, transform .18s ease !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-change-assignee-btn {
+    min-width: 104px !important;
+    border-color: #b9d995 !important;
+    background: #eef8e3 !important;
+    color: #4e811c !important;
+    box-shadow: 0 5px 14px rgba(93, 148, 31, .12) !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-remove-user-btn {
+    min-width: 92px !important;
+    border-color: #efb2ae !important;
+    background: #fff3f2 !important;
+    color: #c43d36 !important;
+    box-shadow: 0 5px 14px rgba(196, 61, 54, .09) !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-change-assignee-btn
+    :is(i, .bi, .bi::before),
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-remove-user-btn
+    :is(i, .bi, .bi::before, svg, svg *) {
+    color: currentColor !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: currentColor !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-change-assignee-btn
+    :is(i, .bi, .bi::before) {
+    color: #4e811c !important;
+    -webkit-text-fill-color: #4e811c !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    .assignment-change-assignee-btn
+    :is(i, .bi)::before {
+    color: #4e811c !important;
+    -webkit-text-fill-color: #4e811c !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-remove-user-icon {
+    display: inline-flex !important;
+    width: auto !important;
+    height: auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #c43d36 !important;
+    font-size: 1.18rem !important;
+    line-height: 1 !important;
+    -webkit-text-fill-color: #c43d36 !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    .assignment-remove-user-icon::before {
+    color: #c43d36 !important;
+    font-size: 1.18rem !important;
+    line-height: 1 !important;
+    -webkit-text-fill-color: #c43d36 !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    :is(.assignment-change-assignee-text, .assignment-remove-user-text) {
+    display: inline !important;
+    color: currentColor !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: currentColor !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-change-assignee-btn:hover,
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-change-assignee-btn:focus-visible {
+    border-color: #67ad1e !important;
+    background: #67ad1e !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 18px rgba(103, 173, 30, .22) !important;
+    transform: translateY(-1px);
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    .assignment-change-assignee-btn:is(:hover, :focus-visible)
+    :is(i, .bi, .bi::before) {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    .assignment-change-assignee-btn:is(:hover, :focus-visible)
+    :is(i, .bi)::before {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-remove-user-btn:hover,
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions .assignment-remove-user-btn:focus-visible {
+    border-color: #d7473f !important;
+    background: #d7473f !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 18px rgba(215, 71, 63, .2) !important;
+    transform: translateY(-1px);
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    .assignment-remove-user-btn:is(:hover, :focus-visible)
+    .assignment-remove-user-icon {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+    .assignment-issued-actions
+    .assignment-remove-user-btn:is(:hover, :focus-visible)
+    .assignment-remove-user-icon::before {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  /* The backdrop is attached to <body>; keep the reparented assignee dialog
+     one layer above it and explicitly interactive. */
+  html.desktop-like-pointer body.app-body:has(#assignmentChangeAssigneeModal.show)
+    .crm-page-entry-surface {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(#assignmentChangeAssigneeModal.show)
+    > .modal-backdrop {
+    z-index: 20020 !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    > #assignmentChangeAssigneeModal {
+    z-index: 20030 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    > #assignmentChangeAssigneeModal
+    .assignment-change-assignee-icon {
+    background: linear-gradient(
+      180deg,
+      var(--peredacha-action-green) 0%,
+      var(--peredacha-action-green-hover) 100%
+    ) !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    > #assignmentChangeAssigneeModal
+    .assignment-change-assignee-icon
+    :is(i, .bi, .bi::before),
+  html.desktop-like-pointer body.app-body
+    > #assignmentChangeAssigneeModal
+    .assignment-change-assignee-icon
+    :is(i, .bi)::before {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    > #assignmentChangeAssigneeModal
+    :is(
+      .modal-dialog,
+      .modal-content,
+      button,
+      label,
+      input,
+      .assignment-change-assignee-option
+    ) {
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .material-writeoff-delete-btn {
+    position: relative !important;
+    display: inline-grid !important;
+    place-items: center !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .material-writeoff-delete-btn.is-submitting > i {
+    opacity: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    .material-writeoff-delete-btn.is-submitting::after {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border .75s linear infinite;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    .crm-page-entry-surface {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
+    contain: none !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    > .modal-backdrop {
+    z-index: 20020 !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    > #avrDataModal {
+    z-index: 20030 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    > #avrDataModal .modal-dialog {
+    width: min(1180px, calc(100vw - 3rem)) !important;
+    max-width: min(1180px, calc(100vw - 3rem)) !important;
+    height: auto !important;
+    max-height: calc(100vh - 3rem) !important;
+    margin: 1.5rem auto !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    > #avrDataModal .modal-content {
+    width: 100% !important;
+    height: auto !important;
+    max-height: calc(100vh - 3rem) !important;
+    min-height: 0 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    > #avrDataModal :is(.modal-body, .modal-header, .modal-footer, button, input, select, textarea, label) {
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    > #avrDataModal .modal-body {
+    flex: 0 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    > #avrDataModal .modal-footer .btn.btn-outline-secondary,
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    > #avrDataModal .modal-footer .btn.btn-outline-secondary:hover,
+  html.desktop-like-pointer.avr-modal-open body.app-body
+    > #avrDataModal .modal-footer .btn.btn-outline-secondary:focus {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+}
+
+/* Cross-browser desktop shell. The shared stylesheet ends with legacy
+   relative/sticky overrides; explicit fixed positioning here wins after it
+   in Chrome, Firefox, Safari and Edge. Content offsets reserve the same space,
+   so fixing the chrome does not move or cover the working area. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .app-layout {
+    position: relative !important;
+    display: block !important;
+    min-height: calc(100vh / var(--desktop-stage-scale, 1)) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .app-layout > .app-sidebar {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    width: var(--desktop-sidebar-width, 230px) !important;
+    min-width: var(--desktop-sidebar-width, 230px) !important;
+    max-width: var(--desktop-sidebar-width, 230px) !important;
+    height: calc(100vh / var(--desktop-stage-scale, 1)) !important;
+    min-height: calc(100vh / var(--desktop-stage-scale, 1)) !important;
+    margin: 0 !important;
+    overflow-y: auto !important;
+    z-index: 1040 !important;
+    transform: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .app-layout > .app-main {
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: calc(var(--desktop-reference-width, 1920px) - var(--desktop-sidebar-width, 230px)) !important;
+    min-width: 0 !important;
+    min-height: calc(100vh / var(--desktop-stage-scale, 1)) !important;
+    margin-left: var(--desktop-sidebar-width, 230px) !important;
+    padding-top: 4.9rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body .app-layout > .app-main > .app-topbar {
+    position: fixed !important;
+    inset: 0 auto auto var(--desktop-sidebar-width, 230px) !important;
+    box-sizing: border-box !important;
+    width: calc(var(--desktop-reference-width, 1920px) - var(--desktop-sidebar-width, 230px)) !important;
+    min-height: 4.9rem !important;
+    height: 4.9rem !important;
+    margin: 0 !important;
+    z-index: 1035 !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    :is(.objects-layout, .documents-standalone-layout, .settings-standalone-layout) {
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: calc(100vh / var(--desktop-stage-scale, 1)) !important;
+    padding-top: 5.75rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body
+    :is(.objects-layout, .documents-standalone-layout, .settings-standalone-layout)
+    > .objects-topbar {
+    position: fixed !important;
+    inset: 0 auto auto 0 !important;
+    box-sizing: border-box !important;
+    width: var(--desktop-reference-width, 1920px) !important;
+    min-height: 5.75rem !important;
+    height: 5.75rem !important;
+    margin: 0 !important;
+    z-index: 1035 !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+
+  /* Partial tab navigation keeps surplus nodes as hidden spares. The filter
+     action layout uses display:flex!important, so preserve the hidden state
+     when moving from "Ordered" to the shorter "Order" filter. */
+  html.desktop-like-pointer body.app-body
+    .glass-page [data-ajax-pagination-spare][hidden] {
+    display: none !important;
+  }
+
+  /* Keep every sentence of a remark visually distinct while preserving the
+     original text as one editable value. */
+  html.desktop-like-pointer .remark-sentence-line {
+    display: block;
+  }
+
+  /* Keep app modals inside the visible desktop viewport so action buttons
+     never slide below the screen after scroll/zoomed window states. */
+  html.desktop-like-pointer body.app-body .modal.show {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    padding: 1rem !important;
+    margin: 0 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.modal-open,
+  html.desktop-like-pointer body.app-body.modal-open {
+    overflow: hidden !important;
+    padding-right: 0 !important;
+  }
+
+  html.desktop-like-pointer .modal-backdrop.show,
+  html.desktop-like-pointer body.app-body > .modal-backdrop.show {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+  }
+
+  html.desktop-like-pointer .modal.show {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    padding: 1rem !important;
+    margin: 0 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show .modal-dialog {
+    display: block !important;
+    width: min(var(--bs-modal-width, 500px), calc(100vw - 2rem)) !important;
+    max-width: calc(100vw - 2rem) !important;
+    max-height: calc(100dvh - 2rem) !important;
+    min-height: 0 !important;
+    height: auto !important;
+    flex: 0 1 auto !important;
+    margin: 0 auto !important;
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    zoom: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer .modal.show .modal-dialog {
+    display: block !important;
+    width: min(var(--bs-modal-width, 500px), calc(100vw - 2rem)) !important;
+    max-width: calc(100vw - 2rem) !important;
+    max-height: calc(100dvh - 2rem) !important;
+    min-height: 0 !important;
+    height: auto !important;
+    flex: 0 1 auto !important;
+    margin: 0 auto !important;
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    zoom: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show .modal-dialog.modal-sm {
+    width: min(380px, calc(100vw - 2rem)) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show .modal-dialog.modal-lg {
+    width: min(800px, calc(100vw - 2rem)) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show .modal-dialog.modal-xl {
+    width: min(1140px, calc(100vw - 2rem)) !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show .modal-content {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: calc(100dvh - 2rem) !important;
+    min-height: 0 !important;
+    flex: 0 1 auto !important;
+    overflow: hidden !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer .modal.show .modal-content {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: calc(100dvh - 2rem) !important;
+    min-height: 0 !important;
+    flex: 0 1 auto !important;
+    overflow: hidden !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show .modal-body {
+    flex: 0 1 auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 10rem) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer .modal.show .modal-body {
+    flex: 0 1 auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 10rem) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show :is(.modal-header, .modal-footer, .modal-actions, .confirm-modal-actions, .registration-modal-actions, .assignment-date-modal-actions) {
+    flex-shrink: 0 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer .modal.show :is(.modal-header, .modal-footer, .modal-actions, .confirm-modal-actions, .registration-modal-actions, .assignment-date-modal-actions) {
+    flex-shrink: 0 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .modal.show :is(button, .btn, input, select, textarea, label, a) {
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-rollback {
+    color: #ffffff !important;
+    background: #e7a025 !important;
+    border-color: #e7a025 !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-rollback:hover,
+  html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-rollback:focus {
+    color: #ffffff !important;
+    background: #d8921a !important;
+    border-color: #d8921a !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-delete {
+    color: #ffffff !important;
+    background: #e04b4b !important;
+    border-color: #e04b4b !important;
+  }
+
+  html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-delete:hover,
+  html.desktop-like-pointer body.app-body:has(.sync-logs-page) .sync-modal-btn-delete:focus {
+    color: #ffffff !important;
+    background: #cb3f3f !important;
+    border-color: #cb3f3f !important;
+  }
+
+  html.desktop-like-pointer body.app-body .crm-confirm-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    padding: 1rem !important;
+    margin: 0 !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .crm-confirm-overlay.d-none {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .crm-confirm-card {
+    width: min(460px, calc(100vw - 2rem)) !important;
+    max-width: calc(100vw - 2rem) !important;
+    max-height: calc(100dvh - 2rem) !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    pointer-events: auto !important;
+  }
+
+  html.desktop-like-pointer body.app-body .crm-confirm-card :is(.modal-actions, button, .btn, a) {
+    pointer-events: auto !important;
+  }
+
+  /* Page-specific entrance effects would otherwise finish while Firefox is
+     loading the standby document off-screen. Freeze every existing animation
+     at its own first frame, then let the host release it on the atomic swap. */
+  html.desktop-like-pointer.crm-firefox-buffered-page:not(.crm-firefox-buffer-revealed)
+    body.app-body .crm-page-entry-surface,
+  html.desktop-like-pointer.crm-firefox-buffered-page:not(.crm-firefox-buffer-revealed)
+    body.app-body .crm-page-entry-surface * {
+    animation-play-state: paused !important;
+  }
+
+  /* Firefox briefly clears the native viewport between top-level documents.
+     Same-origin page frames are double-buffered by script: the next page is
+     fully painted below the current one and then becomes visible atomically. */
+  html.desktop-like-pointer.crm-firefox-frame-host-active,
+  html.desktop-like-pointer.crm-firefox-frame-host-active body.app-body {
+    overflow: hidden !important;
+  }
+
+  html.desktop-like-pointer body.app-body > .crm-firefox-navigation-frame {
+    position: fixed !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #fefdfe !important;
+    opacity: 0 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
+    transition: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body > .crm-firefox-navigation-frame.is-active {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+}
