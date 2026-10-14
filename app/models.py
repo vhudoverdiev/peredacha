@@ -198,7 +198,6 @@ class Project(TimestampMixin, db.Model):
     section = db.Column(db.String(120), nullable=True)
     address = db.Column(db.String(255), nullable=True)
     description = db.Column(db.Text, nullable=True)
-    google_sheet_id = db.Column(db.String(255), nullable=True)
     has_apartments = db.Column(db.Boolean, default=True, nullable=False)
     has_commercial = db.Column(db.Boolean, default=True, nullable=False)
     has_storerooms = db.Column(db.Boolean, default=False, nullable=False)

@@ -31,7 +31,6 @@ class ProjectForm(FlaskForm):
     name = StringField("Название объекта", validators=[DataRequired(), Length(max=180)])
     address = StringField("Адрес", validators=[Optional(), Length(max=255)])
     description = TextAreaField("Описание", validators=[Optional(), Length(max=2000)])
-    google_sheet_id = StringField("Google Sheet ID", validators=[Optional(), Length(max=255)])
     has_apartments = BooleanField("Квартиры", default=True)
     has_commercial = BooleanField("Коммерции", default=True)
     has_storerooms = BooleanField("Кладовки", default=False)

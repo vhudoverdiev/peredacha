@@ -220,7 +220,7 @@ def _is_orange_unsold_fill(cell: Any) -> bool:
     if not rgb:
         return False
     r, g, b = rgb
-    # Google Sheets / Excel orange used for "не продано" is close to #FBBC04.
+    # Excel orange used for "не продано" is close to #FBBC04.
     # Yellow section headers are skipped before this check, so they are not counted.
     return r >= 210 and 95 <= g <= 215 and b <= 120
 

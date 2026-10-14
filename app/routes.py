@@ -110,7 +110,6 @@ from app.services.avr_document import (
 from app.services.excel_export import _excel_premise_label, _safe_filename_part, auto_adjust_row_heights, build_export_path, export_glass_measurements_excel, export_remark_tasks_excel, export_report_tasks_excel, export_simple_tasks_excel, export_source_excel_reconstructed, export_source_excel_with_strikes, export_tasks_to_excel, resolve_source_excel_with_strikes_path
 from app.services.pdf_export import export_assignment_worker_pdf, export_table_pdf, export_tasks_pdf
 from app.services.excel_import import inspect_remarks_workbook, mark_stale_running_sync_logs, preview_excel, save_upload, sync_excel_file
-from app.services.google_sheets_sync import sync_google_sheets, update_task_strike_in_google_sheet
 from app.services.mapping_service import ensure_default_categories, update_category_points
 from app.services.pdf_recognition import is_no_remark_text, recognize_pdf_act
 from app.services.transfer_import import _is_app_mode, _parse_app_date, inspect_transfer_workbook, sync_transfer_statistics
@@ -317,7 +316,7 @@ SECTION_LOCK_CHOICES = [
         "label": "Импорт, синхронизация и распределение",
         "icon": "bi-sliders",
         "endpoints": {
-            "main.upload_excel", "main.sync_google", "main.sync_logs", "main.sync_log_details", "main.delete_sync_log",
+            "main.upload_excel", "main.sync_logs", "main.sync_log_details", "main.delete_sync_log",
             "main.rollback_sync_log", "main.sync_conflicts", "main.resolve_conflict",
             "main.resolve_conflicts_bulk", "main.mapping_settings",
         },
@@ -1984,27 +1983,6 @@ def dashboard_legacy():
     if current_user.role == ROLE_VERIFIER:
         return redirect(url_for("main.work_report"))
     return dashboard()
-
-
-@bp.route("/sync/google", methods=["POST"])
-@login_required
-def sync_google():
-    if not can_manage_sync(current_user):
-        abort(403)
-    project = selected_project()
-    if project is None:
-        return redirect(url_for("main.objects"))
-    try:
-        result = sync_google_sheets(project_name=project.name, spreadsheet_id_override=project.google_sheet_id)
-        pending_conflicts = _project_pending_conflicts_query(project.id).count()
-        flash(
-            f"Добавлено новых - {result.get('created_count', 0)} , несостыковок - {pending_conflicts}",
-            "success",
-        )
-    except Exception as exc:
-        current_app.logger.exception("Google Sheets sync failed")
-        flash(f"Ошибка синхронизации Google Sheets: {exc}", "danger")
-    return redirect(url_for("main.dashboard"))
 
 
 @bp.route("/report-error", methods=["POST"])
@@ -9717,14 +9695,6 @@ def quick_status(task_id: int, status: str):
         if problem_comment:
             task.comment = problem_comment
     change_task_status(task, status, user_id=current_user.id)
-    if request.form.get("sync_google_format") == "1":
-        try:
-            update_task_strike_in_google_sheet(task)
-        except Exception as exc:
-            if wants_json:
-                return jsonify({"ok": False, "message": f"Статус сохранён, но зачёркивание в Google Sheets не применилось: {exc}"}), 500
-            flash(f"Статус сохранён, но зачёркивание в Google Sheets не применилось: {exc}", "warning")
-            return redirect(request.referrer or url_for("main.task_list"))
     if wants_json:
         history_change = (
             ChangeLog.query
@@ -10419,7 +10389,7 @@ def sync_log_details(log_id: int):
         task_id for (task_id,) in db.session.query(Task.id).filter(Task.project_id == project.id).all()
     }
 
-    if log.source_type in {"excel", "google_sheets"}:
+    if log.source_type == "excel":
         task_rows = [
             item for item in (after_payload.get("tasks") or [])
             if isinstance(item, dict) and item.get("is_missing_in_latest_sync")

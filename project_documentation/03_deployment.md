@@ -6,7 +6,7 @@ Production deployment target:
 - Nginx as public HTTPS reverse proxy;
 - Gunicorn as Python WSGI server;
 - Flask application under `/opt/peredacha`;
-- systemd service/socket for Gunicorn;
+- user-level systemd service for Gunicorn;
 - Let's Encrypt certificates for HTTPS.
 
 Recommended deployment flow:
@@ -24,13 +24,13 @@ sudo ln -sf /etc/nginx/sites-available/peredacha.conf /etc/nginx/sites-enabled/p
 sudo nginx -t
 sudo systemctl reload nginx
 
-sudo cp deploy/gunicorn.service /etc/systemd/system/gunicorn.service
-sudo cp deploy/gunicorn.socket /etc/systemd/system/gunicorn.socket
-sudo systemctl daemon-reload
-sudo systemctl restart gunicorn.socket gunicorn.service
+mkdir -p ~/.config/systemd/user
+cp deploy/gunicorn.service ~/.config/systemd/user/gunicorn.service
+systemctl --user daemon-reload
+systemctl --user enable --now gunicorn.service
 ```
 
-Gunicorn should run as an unprivileged user, currently `nginx` in the deployment config.
+Gunicorn runs as the ordinary user who installed the user-level service. It listens only on `127.0.0.1:8000`.
 
 Nginx should be the only public entry point for the Flask application. Direct Flask/Gunicorn ports such as `5000` or `8080` should not be exposed to the internet.
 

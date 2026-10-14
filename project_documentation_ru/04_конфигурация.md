@@ -13,9 +13,6 @@ FLASK_DEBUG=0
 SECRET_KEY=replace-with-a-strong-random-secret
 DATABASE_URL=mysql+pymysql://peredacha_app:replace-password@127.0.0.1:3306/peredacha?charset=utf8mb4
 
-GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id
-GOOGLE_SERVICE_ACCOUNT_JSON=/path/to/service-account.json
-GOOGLE_SHEETS_MAIN_RANGE=Таблица!A1:ZZ10000
 
 SYNC_ON_STARTUP=false
 SYNC_INTERVAL_MINUTES=30

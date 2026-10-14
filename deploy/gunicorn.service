@@ -1,17 +1,14 @@
 [Unit]
 Description=Gunicorn instance for crm_flask
-Requires=gunicorn.socket
 After=network.target
 
 [Service]
-User=nginx
-Group=nginx
 WorkingDirectory=/opt/peredacha
 Environment="PATH=/opt/peredacha/venv/bin"
 EnvironmentFile=/opt/peredacha/.env
 # A full remarks workbook can contain several thousand rows.  Keep the worker
 # alive long enough to finish the transaction and its rollback snapshot.
-ExecStart=/opt/peredacha/venv/bin/gunicorn --workers 3 --timeout 180 --graceful-timeout 180 --bind unix:/run/gunicorn-crm_flask.sock wsgi:app
+ExecStart=/opt/peredacha/venv/bin/gunicorn --workers 3 --timeout 180 --graceful-timeout 180 --bind 127.0.0.1:8000 wsgi:app
 Restart=always
 RestartSec=5
 NoNewPrivileges=true
@@ -25,4 +22,4 @@ MemoryMax=768M
 CPUQuota=200%
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

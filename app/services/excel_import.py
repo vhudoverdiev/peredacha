@@ -106,7 +106,7 @@ def _is_orange_unsold_fill(cell: Any) -> bool:
     if not rgb:
         return False
     r, g, b = rgb
-    # Orange/yellow fills used in Excel/Google Sheets for unsold premises.
+    # Orange/yellow fills used in Excel for unsold premises.
     return r >= 210 and 95 <= g <= 215 and b <= 120
 
 

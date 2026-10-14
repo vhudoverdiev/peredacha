@@ -8,8 +8,8 @@ deploy/gunicorn.service
 
 Важные требования для продакшена:
 
-- запуск от пользователя `nginx`, не от root;
-- использование приватного Unix socket;
+- запуск от обычного пользователя через `systemctl --user`, без `User=nginx` и `Group=nginx`;
+- использование локального TCP-адреса `127.0.0.1:8000`;
 - автоматический restart;
 - чтение переменных окружения из `/opt/peredacha/.env`;
 - включение systemd hardening:

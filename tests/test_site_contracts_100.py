@@ -20,7 +20,6 @@ CONTRACTS = [
     ("object_delete_confirm_route", "app/routes.py", ["/objects/<int:project_id>/delete/confirm", "def object_delete_confirm("]),
     ("object_open_route", "app/routes.py", ["/objects/<int:project_id>/open", "def object_open("]),
     ("dashboard_home_route", "app/routes.py", ['@bp.route("/")', "def dashboard("]),
-    ("google_sync_route", "app/routes.py", ["/sync/google", "def sync_google("]),
     ("user_error_report_route", "app/routes.py", ["/report-error", "def report_error("]),
     ("tab_analytics_route", "app/routes.py", ["/analytics/tab-open", "def analytics_tab_open("]),
     ("site_errors_route", "app/routes.py", ["/site-errors", "def site_errors("]),

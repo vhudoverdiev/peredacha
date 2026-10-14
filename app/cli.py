@@ -7,7 +7,6 @@ import click
 
 from app import db
 from app.models import ROLE_ADMIN, User
-from app.services.google_sheets_sync import sync_google_sheets
 from app.services.mapping_service import ensure_default_categories
 
 
@@ -21,16 +20,6 @@ def register_cli(app):
             text=True,
             capture_output=True,
         )
-
-    @app.cli.command("sync-sheets")
-    def sync_sheets_command():
-        """Synchronize tasks from Google Sheets into the configured database."""
-        with app.app_context():
-            result = sync_google_sheets()
-            click.echo(
-                f"Google Sheets sync: created={result.get('created_count', 0)}, "
-                f"updated={result.get('updated_count', 0)}, missing={result.get('missing_count', 0)}"
-            )
 
     @app.cli.command("seed-defaults")
     def seed_defaults_command():

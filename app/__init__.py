@@ -240,8 +240,6 @@ def create_app(config_class=Config):
             inspector = inspect(db.engine)
             if "projects" in inspector.get_table_names():
                 project_columns = {column["name"] for column in inspector.get_columns("projects")}
-                if "google_sheet_id" not in project_columns:
-                    db.session.execute(text("ALTER TABLE projects ADD COLUMN google_sheet_id VARCHAR(255)"))
                 if "has_apartments" not in project_columns:
                     db.session.execute(text("ALTER TABLE projects ADD COLUMN has_apartments BOOLEAN NOT NULL DEFAULT 1"))
                 if "has_commercial" not in project_columns:
