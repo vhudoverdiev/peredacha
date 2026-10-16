@@ -1,21 +1,17 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+
 PROJECT_DIR="${PROJECT_DIR:-/opt/peredacha}"
 SERVICE_NAME="${SERVICE_NAME:-gunicorn}"
 BRANCH="${1:-main}"
-BACKUP_DIR="${BACKUP_DIR:-$PROJECT_DIR/.backups}"
+BACKUP_DIR="${BACKUP_DIR:-$HOME/backups/peredacha}"
+LOCAL_BIN="${LOCAL_BIN:-$HOME/.local/bin}"
 DATE_TAG="$(date +%F_%H-%M-%S)"
 
 echo "=== Peredacha deploy started: ${DATE_TAG} ==="
 
-if [ ! -d "$PROJECT_DIR/.git" ]; then
-  echo "Ошибка: $PROJECT_DIR не является Git-репозиторием."
-  echo "Сначала установи проект через git clone."
-  exit 1
-fi
-
-mkdir -p "$BACKUP_DIR"
+mkdir -p "$BACKUP_DIR" "$LOCAL_BIN"
 cd "$PROJECT_DIR"
 
 echo "=== Добавляю safe.directory для Git ==="
@@ -44,7 +40,14 @@ REMOTE_COMMIT="$(git rev-parse "origin/$BRANCH")"
 echo "Локальная версия: $LOCAL_COMMIT"
 echo "Версия GitHub:    $REMOTE_COMMIT"
 
-echo "=== Делаю бэкап важных файлов приложения ==="
+echo "=== Делаю бэкап важных данных ==="
+if [ -f "$PROJECT_DIR/instance/crm.sqlite" ]; then
+  cp "$PROJECT_DIR/instance/crm.sqlite" "$BACKUP_DIR/crm_${DATE_TAG}.sqlite"
+  echo "Бэкап базы: $BACKUP_DIR/crm_${DATE_TAG}.sqlite"
+else
+  echo "База crm.sqlite пока не найдена, пропускаю бэкап базы."
+fi
+
 if [ -f "$PROJECT_DIR/.env" ]; then
   cp "$PROJECT_DIR/.env" "$BACKUP_DIR/env_${DATE_TAG}.bak"
   echo "Бэкап .env: $BACKUP_DIR/env_${DATE_TAG}.bak"
@@ -53,26 +56,34 @@ fi
 echo "=== Останавливаю сайт ==="
 systemctl --user stop "$SERVICE_NAME" || true
 
+echo "=== Удаляю временные SQLite-файлы после остановки сайта ==="
+find "$PROJECT_DIR/instance" -maxdepth 1 -type f \( -name '*.sqlite-shm' -o -name '*.sqlite-wal' \) -delete 2>/dev/null || true
+
 echo "=== Загружаю новую версию с GitHub ==="
 git reset --hard "origin/$BRANCH"
 
-echo "=== Удаляю мусор, но сохраняю .env, instance, uploads, exports и venv ==="
+echo "=== Удаляю мусор, но сохраняю .env, базу, uploads, exports и venv ==="
 git clean -fd \
   -e .env \
   -e instance/ \
   -e uploads/ \
   -e exports/ \
   -e venv/ \
-  -e .venv/
+  -e .venv/ \
+  -e .pycache/
 
 echo "=== Cleaning local temporary files ==="
 find "$PROJECT_DIR" -maxdepth 1 \( -name '.tmp-*' -o -name '.co?ex' -o -name 'outputs' \) -exec rm -rf {} + 2>/dev/null || true
 
-echo "=== Обновляю системные команды ==="
+echo "=== Обновляю пользовательские команды (~/.local/bin) ==="
 if [ -f "$PROJECT_DIR/deploy/server-audit.sh" ]; then
   chmod +x "$PROJECT_DIR/deploy/server-audit.sh"
-  ln -sf "$PROJECT_DIR/deploy/server-audit.sh" /usr/local/bin/audit-peredacha
+  ln -sf "$PROJECT_DIR/deploy/server-audit.sh" "$LOCAL_BIN/audit-peredacha"
   echo "audit-peredacha -> $PROJECT_DIR/deploy/server-audit.sh"
+  case ":$PATH:" in
+    *":$LOCAL_BIN:"*) ;;
+    *) echo "Подсказка: добавь $LOCAL_BIN в PATH (в ~/.bashrc или ~/.profile), иначе команда audit-peredacha не найдётся." ;;
+  esac
 fi
 if [ -f "$PROJECT_DIR/audit-peredacha.sh" ]; then
   chmod +x "$PROJECT_DIR/audit-peredacha.sh"
@@ -99,6 +110,8 @@ pip install -r requirements.txt
 pip install gunicorn
 
 echo "=== Проверяю Python-файлы ==="
+export PYTHONPYCACHEPREFIX="$PROJECT_DIR/.pycache"
+mkdir -p "$PYTHONPYCACHEPREFIX"
 python -m compileall -q app
 
 echo "=== Проверяю Flask-приложение и базу ==="
@@ -110,11 +123,11 @@ with app.app_context():
 print("Flask app OK, database OK")
 PY
 
-echo "=== Проверяю каталоги приложения ==="
+echo "=== Выставляю права (без chown, всё уже принадлежит текущему пользователю) ==="
 mkdir -p "$PROJECT_DIR/instance" "$PROJECT_DIR/uploads" "$PROJECT_DIR/exports"
-chmod -R 775 "$PROJECT_DIR/instance" "$PROJECT_DIR/uploads" "$PROJECT_DIR/exports"
+chmod -R u+rwX "$PROJECT_DIR/instance" "$PROJECT_DIR/uploads" "$PROJECT_DIR/exports"
 
-echo "=== Запускаю сайт ==="
+echo "=== Запускаю сайт (user systemd unit) ==="
 systemctl --user start "$SERVICE_NAME"
 sleep 2
 

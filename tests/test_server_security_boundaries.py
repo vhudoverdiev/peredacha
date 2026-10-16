@@ -217,16 +217,14 @@ class ProductionConfigurationSecurityTests(unittest.TestCase):
         self.assertNotIn("app.run(debug=True)", app_entry)
         self.assertRegex(gitignore, r"(?m)^\.env$")
 
-    def test_gunicorn_runs_as_unprivileged_user_over_private_unix_socket(self):
+    def test_gunicorn_runs_as_user_service_over_local_tcp(self):
         service = (ROOT / "deploy" / "gunicorn.service").read_text(encoding="utf-8")
-        socket = (ROOT / "deploy" / "gunicorn.socket").read_text(encoding="utf-8")
-        self.assertIn("User=nginx", service)
-        self.assertIn("Group=nginx", service)
+        self.assertNotIn("User=", service)
+        self.assertNotIn("Group=", service)
         self.assertIn("EnvironmentFile=/opt/peredacha/.env", service)
         self.assertNotIn("User=root", service)
         self.assertNotIn("--reload", service)
-        self.assertIn("ListenStream=/run/gunicorn-crm_flask.sock", socket)
-        self.assertIn("SocketMode=0660", socket)
+        self.assertIn("--bind 127.0.0.1:8000", service)
         self.assertIn("NoNewPrivileges=true", service)
         self.assertIn("PrivateTmp=true", service)
         self.assertIn("ProtectSystem=full", service)
