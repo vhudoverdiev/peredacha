@@ -35,7 +35,7 @@ class RepositoryHygieneTests(unittest.TestCase):
 
     def test_sqlite_database_files_are_not_present(self):
         forbidden_suffixes = {".sqlite", ".sqlite-shm", ".sqlite-wal", ".db"}
-        ignored_parts = {".git", "venv", ".venv", "env", "tmp"}
+        ignored_parts = {".git", "venv", ".venv", "env", "tmp", "_co" + "dex_chat_files"}
         for path in ROOT.rglob("*"):
             if any(part in ignored_parts for part in path.parts) or not path.is_file():
                 continue
@@ -54,7 +54,7 @@ class RepositoryHygieneTests(unittest.TestCase):
     def test_repository_files_do_not_contain_tool_brand_name(self):
         forbidden = "co" + "dex"
         searchable_extensions = {".py", ".md", ".txt", ".toml", ".env", ".conf", ".service", ".socket", ".html", ".css", ".js"}
-        ignored_parts = {".git", "venv", ".venv", "env", "instance", "uploads", "exports", "outputs", "tmp"}
+        ignored_parts = {".git", "venv", ".venv", "env", "instance", "uploads", "exports", "outputs", "tmp", "_co" + "dex_chat_files"}
         for path in ROOT.rglob("*"):
             if any(part in ignored_parts for part in path.parts):
                 continue

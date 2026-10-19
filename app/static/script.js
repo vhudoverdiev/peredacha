@@ -87,6 +87,22 @@ const escapeHtml = value => String(value ?? '')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#039;');
 
+const appendTimelineEntry = (list, emptyNode, entry) => {
+  if (!list || !entry) return;
+  const item = document.createElement('div');
+  item.className = 'timeline-item';
+  const meta = document.createElement('div');
+  meta.className = 'small text-muted';
+  meta.textContent = [entry.timestamp, entry.actor, entry.point_label].filter(Boolean).join(' · ');
+  const summary = document.createElement('div');
+  summary.textContent = entry.summary || '';
+  if (entry.summary_class) summary.className = entry.summary_class;
+  item.append(meta, summary);
+  list.prepend(item);
+  list.hidden = false;
+  if (emptyNode) emptyNode.hidden = true;
+};
+
 // Table rows are opened programmatically in several sections. On desktop that
 // makes them look clickable, but the browser cannot offer its native "open in
 // new tab" actions because there is no real link under the pointer. Add a
@@ -2701,22 +2717,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
-
-  const appendTimelineEntry = (list, emptyNode, entry) => {
-    if (!list || !entry) return;
-    const item = document.createElement('div');
-    item.className = 'timeline-item';
-    const meta = document.createElement('div');
-    meta.className = 'small text-muted';
-    meta.textContent = [entry.timestamp, entry.actor, entry.point_label].filter(Boolean).join(' · ');
-    const summary = document.createElement('div');
-    summary.textContent = entry.summary || '';
-    if (entry.summary_class) summary.className = entry.summary_class;
-    item.append(meta, summary);
-    list.prepend(item);
-    list.hidden = false;
-    if (emptyNode) emptyNode.hidden = true;
-  };
 
   const syncBinaryStatusToggle = (form, isDone) => {
     if (!form?.matches?.('[data-binary-status-toggle]')) return;
@@ -8740,6 +8740,10 @@ document.addEventListener('DOMContentLoaded', () => {
     form.dataset.taskCommentBound = '1';
     form.addEventListener('submit', async event => {
       event.preventDefault();
+      if (form.dataset.saving === '1') return;
+      form.dataset.saving = '1';
+      const resetButton = form.querySelector('button[type="reset"]');
+      if (resetButton) resetButton.disabled = true;
       const button = event.submitter || form.querySelector('button[type="submit"], input[type="submit"]');
       const previousText = button?.tagName === 'INPUT' ? button.value : (button?.innerHTML || '');
       if (button) button.disabled = true;
@@ -8754,7 +8758,7 @@ document.addEventListener('DOMContentLoaded', () => {
           },
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось добавить комментарий');
+        if (!response.ok || data.ok !== true || !data.comment) throw new Error(data.message || 'Не удалось добавить комментарий');
         const commentsCard = form.closest('.card-body');
         const emptyComment = commentsCard?.querySelector('.text-muted');
         if (emptyComment && !commentsCard.querySelector('.comment-item')) emptyComment.remove();
@@ -8762,6 +8766,20 @@ document.addEventListener('DOMContentLoaded', () => {
           const item = document.createElement('div');
           item.className = 'comment-item mb-2';
           item.innerHTML = '<div class="comment-meta">' + escapeHtml(data.comment.author || '') + ' · ' + escapeHtml(data.comment.timestamp || '') + '</div><div class="comment-body">' + escapeHtml(data.comment.body || '') + '</div>';
+          if (data.comment.delete_url) {
+            const deleteForm = document.createElement('form');
+            deleteForm.method = 'post';
+            deleteForm.action = data.comment.delete_url;
+            deleteForm.dataset.confirm = 'Удалить этот комментарий?';
+            const token = form.querySelector('input[name="csrf_token"]')?.cloneNode(true);
+            if (token) deleteForm.append(token);
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'submit';
+            deleteButton.className = 'btn btn-sm btn-outline-danger';
+            deleteButton.textContent = 'Удалить комментарий';
+            deleteForm.append(deleteButton);
+            item.append(deleteForm);
+          }
           form.before(item);
         }
         const textarea = form.querySelector('textarea');
@@ -8771,6 +8789,8 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (error) {
         showCrmNotice(error.message || 'Не удалось добавить комментарий', 'danger');
       } finally {
+        delete form.dataset.saving;
+        if (resetButton) resetButton.disabled = false;
         if (button) {
           button.disabled = false;
           if (button.tagName === 'INPUT') button.value = previousText;

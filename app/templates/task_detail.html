@@ -79,6 +79,12 @@
         <div class="comment-item mb-2">
           <div class="comment-meta">{{ comment.user.full_name or comment.user.username }} · {{ comment.created_at|ru_datetime }}</div>
           <div class="comment-body">{{ comment.body }}</div>
+          {% if can_manage_comments and (comment.user_id == current_user.id or current_user.role == 'admin') %}
+          <form method="post" action="{{ url_for('main.delete_task_comment', task_id=task.id, comment_id=comment.id) }}" data-confirm="Удалить этот комментарий?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-danger" type="submit">Удалить комментарий</button>
+          </form>
+          {% endif %}
         </div>
         {% else %}
         <div class="text-muted">Комментариев пока нет</div>
@@ -87,7 +93,10 @@
         <form method="post" action="{{ url_for('main.add_task_comment', task_id=task.id) }}" class="mt-3" data-task-comment-async="1">
           {{ comment_form.hidden_tag() }}
           {{ comment_form.body(class="form-control mb-2", rows=3, placeholder="Комментарий") }}
-          {{ comment_form.submit(class="btn btn-outline-primary") }}
+          <div class="d-flex flex-wrap gap-2">
+            {{ comment_form.submit(class="btn btn-outline-primary") }}
+            <button class="btn btn-outline-secondary" type="reset">Очистить черновик</button>
+          </div>
         </form>
         {% endif %}
       </div>
