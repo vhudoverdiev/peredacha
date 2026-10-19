@@ -4,11 +4,12 @@ import unittest
 from unittest.mock import patch
 
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill
+from openpyxl.styles import Color, Font, PatternFill
 
 from config import Config
 from app import create_app, db
 from app.models import Apartment, Project, SyncLog, Task, WorkPoint
+from app.services.task_service import dashboard_stats, sync_rows
 from app.services.excel_import import (
     inspect_remarks_workbook,
     mark_missing_tasks,
@@ -146,6 +147,82 @@ class ExcelImportContractsTests(unittest.TestCase):
         self.assertEqual(info["sheet_count"], 3)
         self.assertEqual(preview["active_sheet"], "Remarks")
         self.assertEqual(len(preview["rows"]), 1)
+
+    def test_workbook_sheet_detection_keeps_parking_and_commercial_registry_sheets(self):
+        workbook = Workbook()
+        apartments = workbook.active
+        apartments.title = "Квартиры"
+        apartments.append(["№ кв", "Ф.И.О. Дольщиков", "Телефон"])
+        apartments.append([1, "Apartment Owner", "+7999"])
+        parking = workbook.create_sheet("Паркинг")
+        parking.append(["№ паркинга", "Ф.И.О. Дольщиков", "Телефон"])
+        parking.append([1, "Parking Owner", "+7998"])
+        commercial = workbook.create_sheet("Коммерция")
+        commercial.append(["№ ком.\nпомещения", "Ф.И.О. Дольщиков", "Телефон"])
+        commercial.append([1, "Commercial Owner", "+7997"])
+        path = self._save_workbook("premise-detection.xlsx", workbook)
+
+        sheets = workbook_sheets_to_rows_with_strikes(path)
+        info = inspect_remarks_workbook(path)
+
+        self.assertEqual([sheet[0] for sheet in sheets], ["Квартиры", "Паркинг", "Коммерция"])
+        self.assertEqual(info["matched_sheets"], ["Квартиры", "Паркинг", "Коммерция"])
+
+    def test_new_project_workbook_imports_storerooms_and_theme_marked_unsold_commercial(self):
+        workbook = Workbook()
+        storerooms = workbook.active
+        storerooms.title = "Кладовые"
+        storerooms.append(["Журнал замечаний по объекту строительства"])
+        storerooms.append([])
+        storerooms.append(["Объект:", "Neo 2 queue test"])
+        storerooms.append(["№ кл.", "Собственник", "Номер телефона"])
+        storerooms.append([None, None, None, "Дата осмотра", "АПП", "Срок устранения замечаний по АПП", "Стены и потолки"])
+        storerooms.append([1, 3, 4, 6, 7, 8, 10])
+        storerooms.append([1, "Owner 1", "+79990000001", None, datetime(2026, 10, 1), datetime(2026, 11, 1), "Замечание по кладовке"])
+        storerooms.append([2, None, None, None, None, None, None])
+
+        commercial = workbook.create_sheet("Коммерция")
+        commercial.append(["Журнал замечаний по объекту строительства"])
+        commercial.append([])
+        commercial.append(["Объект:", "Neo 2 queue test"])
+        commercial.append(["№ кв. проект", "Собственник", "Номер телефона"])
+        commercial.append([None, None, None, "Дата осмотра", "АПП", "Срок устранения замечаний по АПП", "Стены и потолки"])
+        commercial.append([1, 3, 4, 6, 7, 8, 10])
+        commercial.append([1, "Commercial owner", "+79990000002", None, None, None, None])
+        commercial.append([2, None, None, None, None, None, None])
+        commercial["A8"].fill = PatternFill(fill_type="solid", fgColor=Color(theme=6))
+        workbook.loaded_theme = (
+            b'<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+            b'<a:themeElements><a:clrScheme name="Test">'
+            b'<a:accent3><a:srgbClr val="FBBC04"/></a:accent3>'
+            b'</a:clrScheme></a:themeElements></a:theme>'
+        )
+        path = self._save_workbook("neo-2-registers.xlsx", workbook)
+
+        sheets = workbook_sheets_to_rows_with_strikes(path)
+        self.assertIn("Кладовые", [sheet[0] for sheet in sheets])
+        self.assertIn("Коммерция", [sheet[0] for sheet in sheets])
+
+        project = Project(name="Neo 2 queue test", has_apartments=True, has_commercial=True, has_storerooms=True)
+        db.session.add(project)
+        db.session.commit()
+        for sheet_name, rows, struck, orange in sheets:
+            sync_rows(
+                rows,
+                sheet_name,
+                project_name=project.name,
+                struck_cells=struck,
+                unsold_color_cells=orange,
+                mark_missing=False,
+            )
+        db.session.commit()
+
+        stats = dashboard_stats(project.id)
+        self.assertEqual(stats["storeroom_count"], 2)
+        self.assertEqual(stats["accepted_with_remarks_storeroom"], 1)
+        self.assertEqual(stats["not_accepted_storeroom_count"], 1)
+        self.assertEqual(stats["unsold_commercial_count"], 1)
+        self.assertTrue(Apartment.query.filter_by(project_id=project.id, premise_type="commercial", apartment_number="2").one().is_unsold)
 
 
 if __name__ == "__main__":

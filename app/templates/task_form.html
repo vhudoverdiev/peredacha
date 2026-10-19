@@ -53,7 +53,7 @@
   <div class="card-body">
     <div class="row g-3">
       <div class="col-12">
-        <label class="form-label">Квартира / коммерция</label>
+        <label class="form-label">Помещение</label>
         <select class="form-select" name="apartment_id" required>
           <option value="">Выберите квартиру / коммерцию</option>
           {% for apartment in apartments %}
@@ -64,8 +64,39 @@
         </select>
       </div>
       <div class="col-12">
+        <label class="form-label">Пункт</label>
+        <select class="form-select" name="point_number" required>
+          <option value="">Выберите пункт</option>
+          {% for point in points %}
+          <option value="{{ point.number }}" {% if request.form.get('point_number', '') == point.number %}selected{% endif %}>
+            {{ point.number }}. {{ point.label }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12">
         <label class="form-label">Описание замечания</label>
         <textarea class="form-control" name="description" rows="4" required placeholder="Например: отрегулировать входную дверь">{{ request.form.get('description', '') }}</textarea>
+      </div>
+      <div class="col-12 d-none" data-concession-single-block>
+        <div class="task-concession-panel">
+          <h3 class="h6 mb-2">За какие замечания выданы отступные</h3>
+          <p class="text-muted small mb-3">Отметьте существующие замечания квартиры. После сохранения они автоматически перейдут в статус “Отступные”.</p>
+          <div class="task-concession-empty text-muted small" data-concession-empty>Выберите квартиру, чтобы увидеть замечания.</div>
+          <div class="task-concession-task-list">
+            {% for apartment_id, concession_tasks in (concession_candidates_by_apartment or {}).items() %}
+              {% for task in concession_tasks %}
+              <label class="task-concession-task-option d-none" data-concession-apartment-id="{{ apartment_id }}">
+                <input type="checkbox" name="concession_task_ids" value="{{ task.id }}" {% if task.id|string in request.form.getlist('concession_task_ids') %}checked{% endif %}>
+                <span>
+                  <b>{{ task.work_point.point_number if task.work_point else '—' }}.</b>
+                  {{ task.description }}
+                </span>
+              </label>
+              {% endfor %}
+            {% endfor %}
+          </div>
+        </div>
       </div>
     </div>
     <div class="material-form-footer mt-4">
@@ -82,7 +113,7 @@
   <div class="card-body">
     <div class="row g-3">
       <div class="col-12 col-lg-8">
-        <label class="form-label">Квартира / коммерция</label>
+        <label class="form-label">Помещение</label>
         <select class="form-select" name="apartment_id" required>
           <option value="">Выберите квартиру / коммерцию</option>
           {% for apartment in apartments %}
@@ -108,6 +139,28 @@
         </div>
         {% endfor %}
       </div>
+    </div>
+
+    <div class="task-concession-panel mt-4 d-none" data-concession-act-block>
+      <h3 class="h6 mb-2">Пункты, за которые выданы отступные</h3>
+      <p class="text-muted small mb-3">Отметьте пункты, которые добавляются в этом акте. Замечания по этим пунктам в выбранной квартире перейдут в статус “Отступные”.</p>
+      <div class="task-concession-point-grid">
+        {% for point in points %}
+          {% if point.number != '26' %}
+          <label class="task-concession-point-option d-none" data-concession-act-point-option="{{ point.number }}">
+            <input type="checkbox" name="concession_point_numbers" value="{{ point.number }}" {% if point.number in request.form.getlist('concession_point_numbers') %}checked{% endif %}>
+            <span>{{ point.number }}</span>
+          </label>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <div class="task-concession-empty text-muted small d-none" data-concession-act-empty>Нет других заполненных пунктов в этом акте.</div>
+    </div>
+
+    <div class="task-manual-po-mode mt-4">
+      <input class="btn-check" type="checkbox" value="1" id="manualActPoMode" name="po_mode" {% if request.form.get('po_mode') == '1' %}checked{% endif %}>
+      <label class="btn btn-outline-success task-manual-po-toggle" for="manualActPoMode">ПО</label>
+      <span class="text-muted small">При включении старые невыполненные замечания по выбранным пунктам переводятся в выполнено, новые строки добавляются, а идентичные замечания остаются невыполненными.</span>
     </div>
 
     <div class="material-form-footer mt-4">
@@ -207,5 +260,140 @@
   color: #111827 !important;
   -webkit-text-fill-color: #111827 !important;
 }
+
+.task-manual-po-mode {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+.task-manual-po-mode .task-manual-po-toggle {
+  min-width: 4rem;
+  min-height: 3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.task-manual-po-mode .btn-check:checked + .task-manual-po-toggle,
+.task-manual-po-mode .btn-check:checked + .task-manual-po-toggle:hover,
+.task-manual-po-mode .btn-check:checked + .task-manual-po-toggle:focus {
+  background: #5fb315 !important;
+  border-color: #5fb315 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 12px 26px rgba(95, 179, 21, .22) !important;
+}
+
+.task-concession-panel {
+  padding: 1rem;
+  border: 1px solid rgba(245, 158, 11, .32);
+  border-radius: 1rem;
+  background: #fffbeb;
+}
+
+.task-concession-task-list {
+  display: grid;
+  gap: .55rem;
+}
+
+.task-concession-task-option {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  padding: .7rem .8rem;
+  border: 1px solid rgba(17, 24, 39, .08);
+  border-radius: .8rem;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.task-concession-task-option input,
+.task-concession-point-option input {
+  accent-color: #79bf25;
+}
+
+.task-concession-point-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5rem, 1fr));
+  gap: .55rem;
+}
+
+.task-concession-point-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  min-height: 2.65rem;
+  padding: .45rem .65rem;
+  border: 1px solid rgba(95, 179, 21, .28);
+  border-radius: .75rem;
+  background: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.task-concession-point-option:has(input:checked),
+.task-concession-task-option:has(input:checked) {
+  border-color: #5fb315;
+  background: #f2fde5;
+}
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const singleForm = document.querySelector('.task-single-form');
+  if (singleForm) {
+    const apartmentSelect = singleForm.querySelector('select[name="apartment_id"]');
+    const pointSelect = singleForm.querySelector('select[name="point_number"]');
+    const block = singleForm.querySelector('[data-concession-single-block]');
+    const empty = singleForm.querySelector('[data-concession-empty]');
+    const options = [...singleForm.querySelectorAll('[data-concession-apartment-id]')];
+    const syncSingleConcession = () => {
+      const isConcession = pointSelect?.value === '26';
+      block?.classList.toggle('d-none', !isConcession);
+      if (!isConcession) return;
+      const apartmentId = apartmentSelect?.value || '';
+      let visibleCount = 0;
+      options.forEach(option => {
+        const visible = apartmentId && option.dataset.concessionApartmentId === apartmentId;
+        option.classList.toggle('d-none', !visible);
+        if (visible) visibleCount += 1;
+      });
+      if (empty) {
+        empty.textContent = apartmentId ? 'По этой квартире нет замечаний для отступных.' : 'Выберите квартиру, чтобы увидеть замечания.';
+        empty.classList.toggle('d-none', visibleCount > 0);
+      }
+    };
+    apartmentSelect?.addEventListener('change', syncSingleConcession);
+    pointSelect?.addEventListener('change', syncSingleConcession);
+    syncSingleConcession();
+  }
+
+  const actBlock = document.querySelector('[data-concession-act-block]');
+  const tmcTextarea = document.querySelector('textarea[name="description_26"]');
+  if (actBlock && tmcTextarea) {
+    const syncActConcession = () => {
+      const showBlock = Boolean(tmcTextarea.value.trim());
+      actBlock.classList.toggle('d-none', !showBlock);
+      let visibleCount = 0;
+      actBlock.querySelectorAll('[data-concession-act-point-option]').forEach(option => {
+        const pointNumber = option.dataset.concessionActPointOption;
+        const textarea = document.querySelector(`textarea[name="description_${pointNumber}"]`);
+        const visible = showBlock && Boolean(textarea?.value.trim());
+        option.classList.toggle('d-none', !visible);
+        const checkbox = option.querySelector('input[type="checkbox"]');
+        if (!visible && checkbox) checkbox.checked = false;
+        if (visible) visibleCount += 1;
+      });
+      actBlock.querySelector('[data-concession-act-empty]')?.classList.toggle('d-none', visibleCount > 0);
+    };
+    document.querySelectorAll('textarea[name^="description_"]').forEach(textarea => {
+      textarea.addEventListener('input', syncActConcession);
+    });
+    syncActConcession();
+  }
+});
+</script>
 {% endblock %}

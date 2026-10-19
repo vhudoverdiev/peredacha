@@ -48,7 +48,7 @@
       </button>
       {% endif %}
     {% else %}
-      {% if current_user.role in ['admin', 'manager'] %}
+      {% if current_user.role in ['admin', 'manager', 'supervisor', 'office'] %}
       <a class="btn btn-success remarks-page-primary-btn contractor-directory-btn" href="{{ url_for('main.contractor_directory') }}">
         <i class="bi bi-people me-2"></i>Список подрядчиков
       </a>
@@ -58,6 +58,9 @@
       </a>
       <button class="btn btn-outline-success remarks-page-secondary-btn js-remark-export-submit" type="submit" form="{{ export_form_id }}">
         <i class="bi bi-file-earmark-excel me-2"></i>Скачать Excel
+      </button>
+      <button class="btn btn-outline-success remarks-page-secondary-btn js-remark-export-submit" type="submit" form="{{ export_form_id }}" name="format" value="docx">
+        <i class="bi bi-file-earmark-word me-2"></i>Претензия Word
       </button>
     {% endif %}
   </div>
@@ -73,7 +76,7 @@
   <ul class="nav crm-tabs justify-content-end">
   {% for category in categories if category.name != 'Все' %}
     {% set category_icon = 'bi-brush' if category.name == 'Маляры' else ('bi-tools' if category.name == 'Разнорабочие' else ('bi-window' if category.name == 'Витражники' else ('bi-file-earmark-text' if category.name == 'Доп.Соглашение' else 'bi-tag'))) %}
-    {% set category_label = 'Доп соглашение' if category.name == 'Доп.Соглашение' else category.name %}
+    {% set category_label = 'Отступное (ТМЦ)' if category.name == 'Доп.Соглашение' else category.name %}
     <li class="nav-item"><a class="nav-link remarks-tab-link remarks-tab-link-category {% if category.id == active_category_id %}active{% endif %}" href="{{ url_for(list_endpoint, category_id=category.id, **category_filter_args) }}" data-category-label="{{ category_label }}" aria-label="{{ category_label }}"><i class="bi {{ category_icon }} remarks-tab-icon"></i><span class="remarks-tab-text">{{ category_label }}</span></a></li>
   {% endfor %}
   </ul>
@@ -325,13 +328,6 @@
                 <button class="btn btn-sm btn-outline-info task-stage-action-btn" title="Чистовики" aria-label="Чистовики">
                   <i class="bi bi-brush remarks-status-icon" aria-hidden="true"></i>
                   <span class="remarks-status-text">Ч</span>
-                </button>
-              </form>
-              <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" class="status-action-form {% if task.status == 'contractor' %}d-none{% endif %}" data-status-action="contractor">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-warning" title="Подрядчик" aria-label="Подрядчик">
-                  <i class="bi bi-person-gear remarks-status-icon" aria-hidden="true"></i>
-                  <span class="remarks-status-text">П</span>
                 </button>
               </form>
               <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" class="status-action-form {% if task.status == 'guarantee' %}d-none{% endif %}" data-status-action="guarantee">

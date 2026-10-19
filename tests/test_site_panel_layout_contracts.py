@@ -8,6 +8,11 @@ BASE_TEMPLATE = ROOT / "app" / "templates" / "base.html"
 STYLE_CSS = ROOT / "app" / "static" / "style.css"
 MOBILE_CSS = ROOT / "app" / "static" / "mobile-only.css"
 DESKTOP_CSS = ROOT / "app" / "static" / "desktop-only.css"
+SCRIPT_JS = ROOT / "app" / "static" / "script.js"
+FAVICON_FILES = (
+    "favicon-32x32.png",
+    "favicon.ico",
+)
 
 
 PRIMARY_MOBILE_ENDPOINTS = {
@@ -58,6 +63,15 @@ class SitePanelLayoutContractsTests(unittest.TestCase):
         cls.style_css = STYLE_CSS.read_text(encoding="utf-8")
         cls.mobile_css = MOBILE_CSS.read_text(encoding="utf-8")
         cls.desktop_css = DESKTOP_CSS.read_text(encoding="utf-8")
+        cls.script_js = SCRIPT_JS.read_text(encoding="utf-8")
+
+    def test_favicon_links_point_to_existing_non_empty_assets(self):
+        for filename in FAVICON_FILES:
+            with self.subTest(filename=filename):
+                self.assertIn(f"filename='{filename}'", self.base)
+                path = ROOT / "app" / "static" / filename
+                self.assertTrue(path.is_file())
+                self.assertGreater(path.stat().st_size, 0)
 
     def test_every_authenticated_layout_renders_mobile_topbar_and_bottom_dock(self):
         authenticated_layouts = (
@@ -88,7 +102,7 @@ class SitePanelLayoutContractsTests(unittest.TestCase):
 
         self.assertIn("mobile-nav-item-home", primary_nav)
         self.assertIn("active == 'dashboard'", primary_nav)
-        self.assertIn("4 if current_user.role in ['admin', 'manager'] else 3", self.base)
+        self.assertIn("4 if current_user.role in ['admin', 'manager', 'supervisor'] else 3", self.base)
 
     def test_mobile_active_tab_map_covers_all_site_sections_including_home(self):
         endpoint_to_active_tab = {
@@ -147,6 +161,70 @@ class SitePanelLayoutContractsTests(unittest.TestCase):
         self.assertIn("body.app-body:has(.dashboard-page.dashboard-redesign) .app-main", self.style_css)
         self.assertIn("padding-top: var(--ref-mobile-topbar-height", self.style_css)
         self.assertIn("body.app-body:has(.dashboard-page.dashboard-redesign) .app-content", self.style_css)
+
+    def test_contractors_filter_has_intermediate_desktop_layout(self):
+        marker = "/* Contractors: when a desktop browser window is dragged narrower"
+        self.assertIn(marker, self.desktop_css)
+        block_start = self.desktop_css.index(marker)
+        block = self.desktop_css[block_start:block_start + 2200]
+        self.assertIn("@media (min-width: 768px) and (max-width: 1199.98px)", block)
+        self.assertIn('"search contractor"', block)
+        self.assertIn('"mode status"', block)
+        self.assertIn('"finishing finishing"', block)
+        self.assertIn('"actions actions"', block)
+        self.assertIn("justify-content: flex-end !important", block)
+        self.assertIn("max-width: min(26rem, calc(100vw - 2rem)) !important", self.desktop_css)
+
+    def test_contractors_filter_portal_select_keeps_trigger_width(self):
+        place_menu_start = self.script_js.index("function placeMenu()")
+        place_menu = self.script_js[place_menu_start:place_menu_start + 2600]
+
+        self.assertIn("select.closest('.contractor-filter-form')", place_menu)
+        self.assertIn("isContractorFilterSelect", place_menu)
+        self.assertIn("? Math.max(1, rect.width)", place_menu)
+        self.assertIn("menu.style.width = `${menuWidth}px`", place_menu)
+        self.assertIn("window.innerWidth - menuWidth - viewportGap", place_menu)
+        self.assertIn("is-contractor-filter-menu", place_menu)
+
+    def test_apartments_filter_actions_share_finishing_row_on_desktop(self):
+        marker = "/* Apartments filter: keep finishing and apply/reset on one row on desktop. */"
+        self.assertIn(marker, self.desktop_css)
+        block_start = self.desktop_css.index(marker)
+        block = self.desktop_css[block_start:block_start + 3600]
+
+        self.assertIn('"finishing actions"', block)
+        self.assertIn('"search inspection app avr po finishing actions"', block)
+        self.assertNotIn("inspection-sort", block)
+        self.assertIn("flex-wrap: nowrap !important", block)
+        self.assertIn("> .apartments-filter-actions", block)
+        self.assertIn("justify-content: flex-end !important", block)
+
+        template = (ROOT / "app" / "templates" / "apartments.html").read_text(encoding="utf-8")
+        self.assertNotIn("Сортировка осмотра", template)
+        self.assertNotIn('name="inspection_order"', template)
+        finishing_start = template.index('class="col-12 col-lg-auto remarks-filter-finishing-col apartments-filter-finishing-col"')
+        finishing_end = template.index('</div>\n      <div class="col-12 col-lg-auto filter-actions apartments-filter-actions">', finishing_start)
+        actions_start = template.index('class="col-12 col-lg-auto filter-actions apartments-filter-actions"', finishing_end)
+        self.assertGreater(actions_start, finishing_end)
+
+    def test_mobile_apartments_finishing_checkboxes_stay_aligned_with_labels(self):
+        marker = "/* Keep finishing filter labels and checkboxes aligned on the mobile Apartments page. */"
+        self.assertIn(marker, self.style_css)
+        block_start = self.style_css.index(marker)
+        block = self.style_css[block_start:block_start + 3200]
+
+        self.assertIn("body.app-body:has(.apartments-page) .apartments-filter-finishing-col .remarks-filter-checks", block)
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr)) !important", block)
+        self.assertIn(".remarks-filter-check:last-child", block)
+        self.assertIn("grid-column: 1 / -1 !important", block)
+        self.assertIn("inset: 50% auto auto .82rem !important", block)
+        self.assertIn("float: none !important", block)
+        self.assertIn("transform: translateY(-50%) !important", block)
+
+        template = (ROOT / "app" / "templates" / "apartments.html").read_text(encoding="utf-8")
+        for label in ("Белая", "Чистовые", "Без отделки"):
+            with self.subTest(label=label):
+                self.assertIn(f"<span class=\"form-check-label\">{label}</span>", template)
 
     def test_desktop_sidebar_has_home_and_all_web_tabs_with_fixed_shell_geometry(self):
         sidebar_start = self.base.index("<nav class=\"sidebar-nav\">")

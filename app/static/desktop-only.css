@@ -705,6 +705,17 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     white-space: nowrap !important;
   }
 
+  html.desktop-like-pointer body.app-body .contractor-filter-form .developer-custom-select,
+  html.desktop-like-pointer body.app-body .contractor-filter-form .global-custom-select {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form .developer-select-menu {
+    min-width: 100% !important;
+    max-width: min(26rem, calc(100vw - 2rem)) !important;
+  }
+
   /* Contractor wizard: keep desktop step accents aligned with its green buttons. */
   html.desktop-like-pointer body.app-body
     .contractor-wizard-tab.active .contractor-wizard-tab-number {
@@ -1530,6 +1541,126 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
   }
 }
 
+/* Apartments filter: keep finishing and apply/reset on one row on desktop. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .apartments-page .apartments-filter-form {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-areas:
+      "search inspection"
+      "app avr"
+      "po po"
+      "finishing actions" !important;
+    align-items: end !important;
+    gap: .75rem !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page .apartments-filter-form > [class*="col-"] {
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: none !important;
+    padding: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page .apartments-filter-form > div:has(input[name="q"]) {
+    grid-area: search !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page .apartments-filter-form > div:has(select[name="inspection_status"]) {
+    grid-area: inspection !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page .apartments-filter-form > div:has(select[name="app_status"]) {
+    grid-area: app !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page .apartments-filter-form > div:has(select[name="avr_status"]) {
+    grid-area: avr !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page .apartments-filter-form > div:has(select[name="po_status"]) {
+    grid-area: po !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page .apartments-filter-form > .apartments-filter-finishing-col {
+    grid-area: finishing !important;
+    justify-self: stretch !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page .apartments-filter-form > .apartments-filter-actions {
+    grid-area: actions !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-end !important;
+    align-items: flex-end !important;
+    gap: .55rem !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  html.desktop-like-pointer body.app-body .apartments-page .apartments-filter-form {
+    grid-template-columns:
+      minmax(220px, 1.35fr)
+      minmax(150px, .88fr)
+      minmax(150px, .82fr)
+      minmax(130px, .72fr)
+      minmax(180px, 1fr)
+      minmax(310px, 1.3fr)
+      max-content !important;
+    grid-template-areas:
+      "search inspection app avr po finishing actions" !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-page
+    .apartments-filter-finishing-col .remarks-filter-checks {
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* Contractors: when a desktop browser window is dragged narrower, switch to a
+   fixed intermediate layout instead of squeezing the full toolbar into one row. */
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  html.desktop-like-pointer body.app-body .contractor-filter-form {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-areas:
+      "search contractor"
+      "mode status"
+      "finishing finishing"
+      "actions actions" !important;
+    gap: .75rem !important;
+    align-items: end !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .remarks-filter-finishing-col {
+    grid-area: finishing !important;
+    width: 100% !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form .remarks-filter-checks {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    min-height: 0 !important;
+    gap: .45rem .7rem !important;
+    white-space: normal !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form .remarks-filter-check {
+    white-space: normal !important;
+  }
+
+  html.desktop-like-pointer body.app-body .contractor-filter-form > .contractor-filter-actions {
+    grid-area: actions !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    white-space: normal !important;
+  }
+}
+
 /* Cross-browser desktop shell. The shared stylesheet ends with legacy
    relative/sticky overrides; explicit fixed positioning here wins after it
    in Chrome, Firefox, Safari and Edge. Content offsets reserve the same space,
@@ -1877,4 +2008,92 @@ html.desktop-like-pointer body.app-body:has(.developer-statistics-page)
     pointer-events: auto !important;
   }
 
+}
+
+/* v73: final desktop guard loaded after style.css. */
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn:hover,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn:focus,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn:focus-visible,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn:active,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn.active,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn.show {
+  --bs-btn-color: #ffffff !important;
+  --bs-btn-hover-color: #ffffff !important;
+  --bs-btn-active-color: #ffffff !important;
+  --bs-btn-bg: var(--peredacha-action-green) !important;
+  --bs-btn-hover-bg: var(--peredacha-action-green-hover) !important;
+  --bs-btn-active-bg: var(--peredacha-action-green-hover) !important;
+  --bs-btn-border-color: var(--peredacha-action-green) !important;
+  --bs-btn-hover-border-color: var(--peredacha-action-green-hover) !important;
+  --bs-btn-active-border-color: var(--peredacha-action-green-hover) !important;
+  background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn *,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn *::before,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn:hover *,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn:hover *::before,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn:focus *,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn:focus *::before,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn:focus-visible *,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn:focus-visible *::before,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn:active *,
+html.desktop-like-pointer body.app-body .btn.btn-outline-primary.password-generate-btn:active *::before {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold:hover,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold:active,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold:focus,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold:focus-within {
+  background: rgba(255, 214, 102, 0.12) !important;
+  background-color: rgba(255, 214, 102, 0.12) !important;
+}
+
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:hover,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-info,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-info span,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-info i,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active .apartment-card-info,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active .apartment-card-info span,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active .apartment-card-info i,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus .apartment-card-info,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus .apartment-card-info span,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus .apartment-card-info i,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible .apartment-card-info,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible .apartment-card-info span,
+html.desktop-like-pointer body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible .apartment-card-info i {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* v78: object selection cards keep three columns without nested page scrolling. */
+html.desktop-like-pointer body.app-body:has(.objects-page) .objects-page {
+  overflow-x: visible !important;
+  scrollbar-gutter: stable both-edges;
+}
+
+html.desktop-like-pointer body.app-body:has(.objects-page) .objects-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  min-width: 0 !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  gap: 1.25rem !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.objects-page) .object-card {
+  width: 100% !important;
+  min-width: 0 !important;
 }

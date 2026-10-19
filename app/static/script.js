@@ -570,6 +570,195 @@ const syncDesktopViewportLock = (options = {}) => {
   }
 })();
 
+(() => {
+  const panel = document.querySelector('[data-messenger-panel]');
+  const openButton = document.querySelector('[data-messenger-open]');
+  if (!panel || !openButton) return;
+
+  const closeButton = panel.querySelector('[data-messenger-close]');
+  const backdrop = document.querySelector('[data-messenger-backdrop]');
+  const messagesBox = panel.querySelector('[data-messenger-messages]');
+  const appealsBox = panel.querySelector('[data-messenger-appeals]');
+  const form = panel.querySelector('[data-messenger-form]');
+  const input = panel.querySelector('[data-messenger-input]');
+  const userSelect = panel.querySelector('[data-messenger-user-select]');
+  const unreadBadge = document.querySelector('[data-messenger-unread-count]');
+  let currentUserId = '';
+  let loading = false;
+
+  const escape = value => String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+  const csrfToken = () => form?.querySelector('input[name="csrf_token"]')?.value
+    || document.querySelector('input[name="csrf_token"]')?.value
+    || '';
+
+  const parseMessengerResponse = async response => {
+    const text = await response.text();
+    try {
+      return JSON.parse(text || '{}');
+    } catch (error) {
+      const plain = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      return {
+        ok: false,
+        message: plain || `Сервер вернул ошибку ${response.status}. Обновите страницу и попробуйте еще раз.`,
+      };
+    }
+  };
+
+  const setUnread = count => {
+    const value = Number(count || 0);
+    openButton.classList.toggle('has-unread', value > 0);
+    if (!unreadBadge) return;
+    unreadBadge.textContent = String(value);
+    unreadBadge.hidden = value <= 0;
+  };
+
+  const renderMessages = messages => {
+    if (!messagesBox) return;
+    if (!messages?.length) {
+      messagesBox.innerHTML = '<div class="crm-messenger-empty">Сообщений пока нет. Напишите первым.</div>';
+      return;
+    }
+    messagesBox.innerHTML = messages.map(message => `
+      <div class="crm-messenger-message ${message.own ? 'is-own' : 'is-incoming'}">
+        <div class="crm-messenger-bubble">
+          <div class="crm-messenger-message-meta">${escape(message.sender)} · ${escape(message.created_at)}</div>
+          <div class="crm-messenger-message-body">${escape(message.body)}</div>
+        </div>
+      </div>
+    `).join('');
+    messagesBox.scrollTop = messagesBox.scrollHeight;
+  };
+
+  const renderAppeals = appeals => {
+    if (!appealsBox) return;
+    if (!appeals?.length) {
+      appealsBox.innerHTML = '<div class="crm-messenger-empty">Ответов пока нет.</div>';
+      return;
+    }
+    appealsBox.innerHTML = appeals.map(item => `
+      <article class="crm-messenger-appeal ${item.read ? '' : 'is-unread'}">
+        <div class="crm-messenger-appeal-title">
+          <span>Обращение от ${escape(item.created_at)}</span>
+          ${item.read ? '' : '<b>новый ответ</b>'}
+        </div>
+        <p class="crm-messenger-appeal-question">${escape(item.message)}</p>
+        <div class="crm-messenger-appeal-reply">
+          <small>Ответ разработчика · ${escape(item.replied_at)}</small>
+          <div>${escape(item.reply)}</div>
+        </div>
+      </article>
+    `).join('');
+  };
+
+  const loadThread = async () => {
+    if (loading) return;
+    loading = true;
+    const query = currentUserId ? `?user_id=${encodeURIComponent(currentUserId)}` : '';
+    try {
+      const response = await fetch(`/messenger/thread${query}`, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      if (!response.ok) throw new Error('Не удалось загрузить чат.');
+      const data = await response.json();
+      if (userSelect && data.users) {
+        const selected = currentUserId || userSelect.value;
+        userSelect.innerHTML = '<option value="">Выберите пользователя</option>'
+          + data.users.map(user => `<option value="${user.id}" ${String(user.id) === String(selected) ? 'selected' : ''}>${escape(user.name)}${user.unread ? ` · ${user.unread} новых` : ''}</option>`).join('');
+      }
+      if (data.developer?.name) {
+        const developerName = panel.querySelector('[data-messenger-developer-name]');
+        if (developerName) developerName.textContent = data.developer.name;
+      }
+      renderMessages(data.messages || []);
+      renderAppeals(data.error_replies || []);
+      setUnread(data.unread_count);
+    } catch (error) {
+      if (messagesBox) messagesBox.innerHTML = `<div class="crm-messenger-empty crm-messenger-error">${escape(error.message)}</div>`;
+    } finally {
+      loading = false;
+    }
+  };
+
+  const openPanel = () => {
+    panel.classList.add('is-open');
+    panel.setAttribute('aria-hidden', 'false');
+    if (backdrop) backdrop.hidden = false;
+    document.documentElement.classList.add('crm-messenger-open');
+    loadThread();
+    setTimeout(() => input?.focus({ preventScroll: true }), 120);
+  };
+
+  const closePanel = () => {
+    panel.classList.remove('is-open');
+    panel.setAttribute('aria-hidden', 'true');
+    if (backdrop) backdrop.hidden = true;
+    document.documentElement.classList.remove('crm-messenger-open');
+  };
+
+  openButton.addEventListener('click', openPanel);
+  closeButton?.addEventListener('click', closePanel);
+  backdrop?.addEventListener('click', closePanel);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && panel.classList.contains('is-open')) closePanel();
+  });
+
+  userSelect?.addEventListener('change', () => {
+    currentUserId = userSelect.value;
+    loadThread();
+  });
+
+  panel.querySelectorAll('[data-messenger-tab]').forEach(tab => {
+    tab.addEventListener('click', async () => {
+      const target = tab.dataset.messengerTab;
+      panel.querySelectorAll('[data-messenger-tab]').forEach(item => item.classList.toggle('active', item === tab));
+      panel.querySelectorAll('[data-messenger-view]').forEach(view => view.classList.toggle('active', view.dataset.messengerView === target));
+      if (target === 'appeals') {
+        await fetch('/messenger/error-replies/read', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrfToken(), 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        }).catch(() => {});
+        loadThread();
+      }
+    });
+  });
+
+  form?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const body = (input?.value || '').trim();
+    if (!body) return;
+    const payload = new URLSearchParams();
+    payload.set('csrf_token', csrfToken());
+    payload.set('body', body);
+    if (currentUserId) payload.set('user_id', currentUserId);
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton?.setAttribute('disabled', 'disabled');
+    try {
+      const response = await fetch('/messenger/send', {
+        method: 'POST',
+        body: payload,
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+      });
+      const data = await parseMessengerResponse(response);
+      if (!response.ok || !data.ok) throw new Error(data.message || 'Не удалось отправить сообщение.');
+      input.value = '';
+      await loadThread();
+    } catch (error) {
+      if (messagesBox) {
+        messagesBox.insertAdjacentHTML('beforeend', `<div class="crm-messenger-empty crm-messenger-error">${escape(error.message)}</div>`);
+      }
+    } finally {
+      submitButton?.removeAttribute('disabled');
+      input?.focus();
+    }
+  });
+})();
+
 window.addEventListener('load', () => {
   desktopViewportSyncUnlocked = true;
   syncDesktopViewportLock({ force: true });
@@ -690,7 +879,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.crm-search-btn').forEach(button => {
     const lockButtonSize = () => {
-      const rect = button.getBoundingClientRect();
+      const rect = { width: button.offsetWidth, height: button.offsetHeight };
       if (!rect.width || !rect.height) return;
       button.style.width = `${Math.ceil(rect.width)}px`;
       button.style.minWidth = `${Math.ceil(rect.width)}px`;
@@ -1185,13 +1374,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selectShell.classList.contains('is-open')) return;
         const rect = button.getBoundingClientRect();
         const mobileLikeSelectUi = document.documentElement.matches('.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device');
+        const isContractorFilterSelect = Boolean(select.closest('.contractor-filter-form'));
         const viewportGap = mobileLikeSelectUi ? 10 : 12;
         const mobileBottomNav = mobileLikeSelectUi ? document.querySelector('.mobile-bottom-nav') : null;
         const bottomNavRect = mobileBottomNav?.getBoundingClientRect?.();
         const bottomNavInset = bottomNavRect
           ? Math.max(0, window.innerHeight - Math.max(0, bottomNavRect.top))
           : 0;
-        const minWidth = Math.max(rect.width, mobileLikeSelectUi ? 220 : 180);
+        const menuWidth = isContractorFilterSelect
+          ? Math.max(1, rect.width)
+          : Math.max(rect.width, mobileLikeSelectUi ? 220 : 180);
         const availableBelow = Math.max(0, window.innerHeight - bottomNavInset - rect.bottom - viewportGap);
         const availableAbove = Math.max(0, rect.top - viewportGap);
         const estimatedHeight = Math.min(300, Math.max(46, options.length * 42 + 18));
@@ -1204,16 +1396,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const menuHeight = Math.min(measuredHeight, maxHeight);
         const left = Math.min(
           Math.max(viewportGap, rect.left),
-          Math.max(viewportGap, window.innerWidth - minWidth - viewportGap),
+          Math.max(viewportGap, window.innerWidth - menuWidth - viewportGap),
         );
         const top = openAbove
           ? Math.max(viewportGap, rect.top - menuHeight - 8)
           : Math.max(viewportGap, Math.min(window.innerHeight - bottomNavInset - viewportGap - menuHeight, rect.bottom + 8));
         menu.style.left = `${left}px`;
         menu.style.top = `${top}px`;
-        menu.style.width = `${minWidth}px`;
+        menu.style.width = `${menuWidth}px`;
         menu.style.maxHeight = `${maxHeight}px`;
         menu.style.setProperty('--developer-select-mobile-bottom-gap', `${bottomNavInset}px`);
+        menu.classList.toggle('is-contractor-filter-menu', isContractorFilterSelect);
         menu.classList.toggle('is-above', openAbove);
       }
 
@@ -1471,6 +1664,15 @@ document.addEventListener('DOMContentLoaded', () => {
       syncSectionLockState(control);
       window.clearTimeout(saveTimer);
       saveTimer = window.setTimeout(save, 120);
+    });
+    form.querySelectorAll('.settings-switch-row').forEach(row => {
+      row.addEventListener('click', event => {
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        if (!checkbox || event.target === checkbox) return;
+        event.preventDefault();
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+      });
     });
   });
 
@@ -2807,7 +3009,7 @@ document.addEventListener('DOMContentLoaded', () => {
       event.preventDefault();
       if (!form.checkValidity()) return;
 
-      const submitter = event.submitter || form.querySelector('button[type="submit"], button:not([type])');
+      const submitter = event.submitter || null;
       const previousHtml = submitter?.innerHTML || '';
       if (submitter) submitter.disabled = true;
 
@@ -2815,6 +3017,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(form);
         if (submitter?.name) {
           formData.set(submitter.name, submitter.value ?? '');
+        }
+        if (!formData.has('avr_status') && form.classList.contains('apartment-avr-form')) {
+          const activeAvrButton = form.querySelector('button[name="avr_status"].btn-primary');
+          if (activeAvrButton) formData.set('avr_status', activeAvrButton.value || '');
+        }
+        if (!formData.has('addendum_status') && form.classList.contains('apartment-addendum-form')) {
+          const activeAddendumButton = form.querySelector('button[name="addendum_status"].btn-success, button[name="addendum_status"].btn-primary');
+          if (activeAddendumButton) formData.set('addendum_status', activeAddendumButton.value || '');
         }
         const response = await fetch(form.action, {
           method: 'POST',
@@ -2831,43 +3041,173 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const inspectionDisplay = document.querySelector('[data-apartment-inspection-display]');
-        if (inspectionDisplay && Object.prototype.hasOwnProperty.call(data, 'inspection_date_label')) {
+        if (inspectionDisplay && Object.prototype.hasOwnProperty.call(data, 'inspection_date_label') && form.classList.contains('apartment-inspection-date-form')) {
+          const statusText = data.inspection_status || '';
+          const statusClass = ['status-pill-success', 'status-pill-warning', 'status-pill-muted', 'status-pill-danger'].includes(data.inspection_status_class)
+            ? data.inspection_status_class
+            : 'status-pill-muted';
+          const fragments = [];
+          if (statusText) {
+            const status = document.createElement('span');
+            status.className = `status-pill ${statusClass}`;
+            status.textContent = statusText;
+            fragments.push(status);
+          }
+          const inspectionItems = Array.isArray(data.inspection_items) ? data.inspection_items : [];
+          if (inspectionItems.length) {
+            const dateStack = document.createElement('span');
+            dateStack.className = `apartment-inspection-date-stack${inspectionItems.length === 1 ? ' is-single' : ''}`;
+            inspectionItems.forEach(item => {
+              if (!item || !item.value || !item.label) return;
+              const dateItem = document.createElement('span');
+              dateItem.className = 'apartment-inspection-date-item';
+              const label = document.createElement('span');
+              label.textContent = item.label;
+              dateItem.append(label);
+
+              const deleteForm = document.createElement('form');
+              deleteForm.method = 'post';
+              deleteForm.action = data.inspection_delete_url || '';
+              deleteForm.className = 'apartment-inspection-date-delete-form';
+              const csrf = document.createElement('input');
+              csrf.type = 'hidden';
+              csrf.name = 'csrf_token';
+              csrf.value = form.querySelector('input[name="csrf_token"]')?.value || '';
+              const dateValue = document.createElement('input');
+              dateValue.type = 'hidden';
+              dateValue.name = 'inspection_date';
+              dateValue.value = item.value;
+              const removeButton = document.createElement('button');
+              removeButton.type = 'submit';
+              removeButton.className = 'btn btn-sm btn-outline-danger apartment-inspection-date-delete-btn';
+              removeButton.title = 'Удалить дату осмотра';
+              removeButton.setAttribute('aria-label', `Удалить дату осмотра ${item.label}`);
+              const icon = document.createElement('i');
+              icon.className = 'bi bi-trash';
+              icon.setAttribute('aria-hidden', 'true');
+              removeButton.append(icon);
+              deleteForm.append(csrf, dateValue, removeButton);
+              dateItem.append(deleteForm);
+              dateStack.append(dateItem);
+            });
+            fragments.push(dateStack);
+          }
+          inspectionDisplay.replaceChildren(...fragments);
+
+          const maxInspections = Number(data.inspection_max) || 5;
+          const dateForm = form;
+          const previousLimitNote = dateForm.parentElement?.querySelector('.apartment-inspection-limit-note');
+          if (inspectionItems.length >= maxInspections) {
+            dateForm.style.setProperty('display', 'none', 'important');
+            if (!previousLimitNote) {
+              const limitNote = document.createElement('span');
+              limitNote.className = 'text-muted small apartment-inspection-limit-note';
+              limitNote.textContent = `Добавлено ${maxInspections} из ${maxInspections} осмотров`;
+              dateForm.after(limitNote);
+            }
+          }
+          const dateInput = dateForm.querySelector('input[name="inspection_date"]');
+          if (dateInput) dateInput.value = '';
+        } else if (inspectionDisplay && Object.prototype.hasOwnProperty.call(data, 'inspection_date_label')) {
           const status = escapeHtml(data.inspection_status || '');
           const statusClass = escapeHtml(data.inspection_status_class || 'status-pill-muted');
-          const label = escapeHtml(data.inspection_date_label || '—');
+          const labels = Array.isArray(data.inspection_date_labels) && data.inspection_date_labels.length
+            ? data.inspection_date_labels.map(label => escapeHtml(label || '—'))
+            : [escapeHtml(data.inspection_date_label || '—')];
+          const dateStackClass = labels.length === 1 ? 'apartment-inspection-date-stack is-single' : 'apartment-inspection-date-stack';
+          const dateStack = `<span class="${dateStackClass}">${labels.map(label => `<span>${label}</span>`).join('')}</span>`;
           inspectionDisplay.innerHTML = status
-            ? `<span class="status-pill ${statusClass}">${status}</span><span>${label}</span>`
-            : label;
+            ? `<span class="status-pill ${statusClass}">${status}</span>${dateStack}`
+            : dateStack;
         }
+
+        const syncApartmentNoteClearButton = (selector, value) => {
+          const display = document.querySelector(selector);
+          const noteCard = display?.closest('.apartment-data-note');
+          const clearButton = noteCard?.querySelector('[data-clear-note-button]');
+          const normalizedValue = (value || '').trim();
+          if (clearButton) clearButton.hidden = !normalizedValue || normalizedValue === '-' || normalizedValue === '—';
+        };
 
         const commentDisplay = document.querySelector('[data-apartment-comment-display]');
         if (commentDisplay && Object.prototype.hasOwnProperty.call(data, 'comment')) {
           commentDisplay.textContent = data.comment || '—';
+          syncApartmentNoteClearButton('[data-apartment-comment-display]', data.comment || '');
         }
 
         const inspectionNoteDisplay = document.querySelector('[data-apartment-inspection-note-display]');
         if (inspectionNoteDisplay && Object.prototype.hasOwnProperty.call(data, 'inspection_note')) {
           inspectionNoteDisplay.textContent = data.inspection_note || '—';
+          syncApartmentNoteClearButton('[data-apartment-inspection-note-display]', data.inspection_note || '');
         }
 
-        const avrDisplay = document.querySelector('[data-apartment-avr-display]');
-        if (avrDisplay && Object.prototype.hasOwnProperty.call(data, 'avr_status')) {
-          avrDisplay.innerHTML = data.avr_status === 'signed'
-            ? `<span class="badge-avr-signed">Подписан${data.avr_signed_date_label ? ` от ${escapeHtml(data.avr_signed_date_label)}` : ''}</span>`
-            : '<span class="badge-avr-needed">Нужен</span>';
+        if (Object.prototype.hasOwnProperty.call(data, 'avr_status')) {
+          document.querySelectorAll('[data-apartment-avr-display]').forEach(avrDisplay => {
+            avrDisplay.innerHTML = data.avr_status === 'signed'
+              ? `<span class="badge-avr-signed">${escapeHtml(data.avr_signed_date_label || 'Подписан')}</span>`
+              : '<span class="badge-avr-needed">Нужен</span>';
+          });
         }
         if (form.classList.contains('apartment-avr-form') && Object.prototype.hasOwnProperty.call(data, 'avr_status')) {
           form.querySelectorAll('button[name="avr_status"]').forEach(statusButton => {
             const isActive = statusButton.value === data.avr_status;
             statusButton.classList.remove('btn-primary', 'btn-outline-primary', 'btn-success', 'btn-outline-success');
+            statusButton.classList.add(isActive ? 'btn-primary' : 'btn-outline-primary');
+          });
+          const signedDateInput = form.querySelector('input[name="avr_signed_date"]');
+          if (signedDateInput && Object.prototype.hasOwnProperty.call(data, 'avr_signed_date')) {
+            signedDateInput.value = data.avr_signed_date || '';
+          }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(data, 'addendum_status')) {
+          document.querySelectorAll('[data-apartment-addendum-display]').forEach(addendumDisplay => {
+            addendumDisplay.innerHTML = data.addendum_status === 'signed'
+              ? `<span class="badge-avr-signed">${escapeHtml(data.addendum_signed_date_label || 'Подписано')}</span>`
+              : '<span class="badge-avr-needed">Не подписано</span>';
+          });
+        }
+        if (form.classList.contains('apartment-addendum-form') && Object.prototype.hasOwnProperty.call(data, 'addendum_status')) {
+          form.querySelectorAll('button[name="addendum_status"]').forEach(statusButton => {
+            const isActive = statusButton.value === 'signed'
+              ? data.addendum_status === 'signed'
+              : data.addendum_status !== 'signed';
+            statusButton.classList.remove('btn-secondary', 'btn-outline-secondary', 'btn-primary', 'btn-outline-primary', 'btn-success', 'btn-outline-success');
             if (statusButton.value === 'signed') {
               statusButton.classList.add(isActive ? 'btn-success' : 'btn-outline-success');
             } else {
               statusButton.classList.add(isActive ? 'btn-primary' : 'btn-outline-primary');
             }
           });
-          const signedDateInput = form.querySelector('input[name="avr_signed_date"]');
-          if (signedDateInput && data.avr_signed_date) signedDateInput.value = data.avr_signed_date;
+          const signedDateInput = form.querySelector('input[name="addendum_signed_date"]');
+          if (signedDateInput && Object.prototype.hasOwnProperty.call(data, 'addendum_signed_date')) {
+            signedDateInput.value = data.addendum_signed_date || '';
+          }
+        }
+
+        const appStatusDisplay = document.querySelector('[data-apartment-app-status-display]');
+        if (appStatusDisplay && Object.prototype.hasOwnProperty.call(data, 'app_status')) {
+          appStatusDisplay.innerHTML = data.app_status === 'no_remarks'
+            ? '<span class="status-pill status-pill-success">Без замечаний</span>'
+            : '<span class="status-pill status-pill-warning">Есть замечания</span>';
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'app_signed_date_label')) {
+          document.querySelectorAll('[data-apartment-app-signed-display]').forEach(appSignedDisplay => {
+            appSignedDisplay.textContent = data.app_signed_date_label || '—';
+          });
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'app_deadline_date_label')) {
+          document.querySelectorAll('[data-apartment-app-deadline-display]').forEach(appDeadlineDisplay => {
+            appDeadlineDisplay.textContent = data.app_deadline_date_label || 'Нет срока';
+          });
+        }
+        const appDeadlineDateControl = document.querySelector('[data-app-deadline-date-control]');
+        if (appDeadlineDateControl && Object.prototype.hasOwnProperty.call(data, 'app_deadline_date')) {
+          appDeadlineDateControl.hidden = !data.app_deadline_date;
+        }
+        const appDeadlineInput = form.querySelector('[data-app-deadline-date]');
+        if (appDeadlineInput && Object.prototype.hasOwnProperty.call(data, 'app_deadline_date')) {
+          appDeadlineInput.value = data.app_deadline_date || '';
         }
 
         if (data.history_entry) {
@@ -2905,6 +3245,105 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  document.querySelectorAll('[data-app-deadline-auto-form]').forEach(form => {
+    const signedInput = form.querySelector('[data-app-signed-date]');
+    const deadlineInput = form.querySelector('[data-app-deadline-date]');
+    const manualInput = form.querySelector('[data-app-deadline-manual]');
+    if (!signedInput || !deadlineInput || !manualInput) return;
+    const ruDateMonths = [
+      'января',
+      'февраля',
+      'марта',
+      'апреля',
+      'мая',
+      'июня',
+      'июля',
+      'августа',
+      'сентября',
+      'октября',
+      'ноября',
+      'декабря',
+    ];
+
+    const addCalendarDays = (dateValue, days) => {
+      if (!dateValue) return '';
+      const parsed = new Date(`${dateValue}T00:00:00`);
+      if (Number.isNaN(parsed.getTime())) return '';
+      parsed.setDate(parsed.getDate() + days);
+      return parsed.toISOString().slice(0, 10);
+    };
+    const formatRuDateValue = (dateValue) => {
+      if (!dateValue) return '';
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
+      if (!match) return '';
+      const year = Number(match[1]);
+      const month = Number(match[2]);
+      const day = Number(match[3]);
+      if (!year || month < 1 || month > 12 || day < 1 || day > 31) return '';
+      return `${day} ${ruDateMonths[month - 1]} ${year}`;
+    };
+    const updateTextDisplays = (selector, value) => {
+      document.querySelectorAll(selector).forEach(display => {
+        display.textContent = value;
+      });
+    };
+    const syncAppDateDisplays = () => {
+      updateTextDisplays('[data-apartment-app-signed-display]', formatRuDateValue(signedInput.value) || '—');
+      updateTextDisplays('[data-apartment-app-deadline-display]', formatRuDateValue(deadlineInput.value) || 'Нет срока');
+    };
+
+    deadlineInput.addEventListener('input', () => {
+      manualInput.value = '1';
+      syncAppDateDisplays();
+    });
+    deadlineInput.addEventListener('change', () => {
+      manualInput.value = '1';
+      syncAppDateDisplays();
+    });
+    signedInput.addEventListener('change', () => {
+      if (manualInput.value === '1') return;
+      deadlineInput.value = addCalendarDays(signedInput.value, 60);
+      syncAppDateDisplays();
+    });
+  });
+
+  document.querySelectorAll('form[data-apartment-async="1"], form[data-app-deadline-auto-form]').forEach(form => {
+    let saveTimer = null;
+    const submitSoon = (delay = 120) => {
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(() => {
+        if (typeof form.requestSubmit === 'function') {
+          form.requestSubmit();
+        } else {
+          form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        }
+      }, delay);
+    };
+
+    form.querySelectorAll('input[type="date"], select').forEach(field => {
+      field.addEventListener('change', () => submitSoon());
+    });
+
+    form.querySelectorAll('textarea').forEach(field => {
+      field.addEventListener('blur', () => submitSoon(40));
+    });
+  });
+
+  document.querySelectorAll('[data-clear-note-button]').forEach(button => {
+    button.addEventListener('click', () => {
+      const formId = button.getAttribute('data-clear-note-form');
+      const form = formId ? document.getElementById(formId) : button.closest('form');
+      const textarea = form ? form.querySelector('textarea') : null;
+      if (!form || !textarea) return;
+      textarea.value = '';
+      if (typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+      } else {
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      }
+    });
+  });
+
   document.querySelectorAll('.password-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
       const field = btn.closest('.password-field')?.querySelector('input');
@@ -2926,6 +3365,34 @@ document.addEventListener('DOMContentLoaded', () => {
       wrapper.dataset.state = show ? 'visible' : 'hidden';
       text.textContent = show ? wrapper.dataset.visible : wrapper.dataset.hidden;
       if (icon) icon.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+    });
+  });
+
+  const generatePassword = (length = 14) => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*';
+    const values = new Uint32Array(length);
+    if (window.crypto?.getRandomValues) {
+      window.crypto.getRandomValues(values);
+    } else {
+      for (let index = 0; index < values.length; index += 1) {
+        values[index] = Math.floor(Math.random() * chars.length);
+      }
+    }
+    return Array.from(values, value => chars[value % chars.length]).join('');
+  };
+
+  document.querySelectorAll('[data-generate-password]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetName = btn.dataset.generatePassword;
+      const field = Array.from(document.querySelectorAll('[data-generated-password-target]'))
+        .find(item => item.dataset.generatedPasswordTarget === targetName);
+      if (!field) return;
+      field.value = generatePassword();
+      field.type = 'text';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+      field.focus();
+      field.select();
     });
   });
 
@@ -8381,9 +8848,10 @@ document.addEventListener('crm:ajax-pagination-updated', event => {
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-project-access-control]').forEach(control => {
     const projectInputs = [...control.querySelectorAll('input[name="project_ids"]')];
+    const allProjectsInput = control.querySelector('[data-project-access-all]');
     const label = control.querySelector('[data-project-access-label]');
     const autosaveForm = control.querySelector('.users-project-autosave');
-    if (!projectInputs.length) return;
+    if (!projectInputs.length && !allProjectsInput) return;
 
     const projectCountLabel = count => {
       if (count === 1) return '1 объект';
@@ -8392,22 +8860,33 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const syncAccessControl = () => {
+      const allProjects = Boolean(allProjectsInput?.checked);
+      projectInputs.forEach(input => {
+        input.disabled = allProjects || control.classList.contains('is-saving');
+        input.closest('.users-access-project-option')?.classList.toggle('is-disabled', allProjects);
+      });
       if (label) {
+        if (allProjects) {
+          label.textContent = 'Все объекты';
+          return;
+        }
         const selectedCount = projectInputs.filter(input => input.checked).length;
         label.textContent = projectCountLabel(selectedCount);
       }
     };
 
     let savedIds = new Set(projectInputs.filter(input => input.checked).map(input => input.value));
+    let savedAllProjects = Boolean(allProjectsInput?.checked);
     const restoreSavedProjects = () => {
+      if (allProjectsInput) allProjectsInput.checked = savedAllProjects;
       projectInputs.forEach(input => { input.checked = savedIds.has(input.value); });
       syncAccessControl();
     };
 
-    projectInputs.forEach(input => input.addEventListener('change', async () => {
+    const submitAccessUpdate = async () => {
       syncAccessControl();
       if (!autosaveForm) return;
-      if (!projectInputs.some(projectInput => projectInput.checked)) {
+      if (!allProjectsInput?.checked && !projectInputs.some(projectInput => projectInput.checked)) {
         restoreSavedProjects();
         window.showCrmNotice?.('Выберите хотя бы один объект.', 'warning');
         return;
@@ -8415,6 +8894,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const formData = new FormData(autosaveForm);
       projectInputs.forEach(projectInput => { projectInput.disabled = true; });
+      if (allProjectsInput) allProjectsInput.disabled = true;
       control.classList.add('is-saving');
       try {
         const response = await fetch(autosaveForm.action, {
@@ -8429,6 +8909,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось сохранить доступ');
         savedIds = new Set((data.project_ids || []).map(String));
+        savedAllProjects = Boolean(data.all_projects_access);
         restoreSavedProjects();
         if (label && data.label) label.textContent = data.label;
         control.classList.add('is-saved');
@@ -8437,10 +8918,14 @@ document.addEventListener('DOMContentLoaded', () => {
         restoreSavedProjects();
         window.showCrmNotice?.(error.message || 'Не удалось сохранить доступ к объектам', 'danger');
       } finally {
-        projectInputs.forEach(projectInput => { projectInput.disabled = false; });
         control.classList.remove('is-saving');
+        syncAccessControl();
+        if (allProjectsInput) allProjectsInput.disabled = false;
       }
-    }));
+    };
+
+    projectInputs.forEach(input => input.addEventListener('change', submitAccessUpdate));
+    allProjectsInput?.addEventListener('change', submitAccessUpdate);
     syncAccessControl();
   });
 
@@ -8503,9 +8988,127 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+
+  document.querySelectorAll('.users-role-autosave').forEach(form => {
+    const select = form.querySelector('.users-role-select');
+    if (!select) return;
+    let savedValue = form.dataset.savedValue || select.value;
+    let saving = false;
+    let savingValue = null;
+
+    const saveRole = async () => {
+      const requestedValue = select.value;
+      if (requestedValue === savedValue) return;
+      if (saving) {
+        if (requestedValue === savingValue) return;
+        return;
+      }
+      saving = true;
+      savingValue = requestedValue;
+      select.setAttribute('aria-busy', 'true');
+      form.classList.add('is-saving');
+      try {
+        const formData = new FormData(form);
+        formData.set('role', requestedValue);
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось сохранить роль');
+        const currentValue = select.value;
+        savedValue = data.role || requestedValue;
+        form.dataset.savedValue = savedValue;
+        select.value = currentValue === requestedValue ? savedValue : currentValue;
+        form.classList.add('is-saved');
+        window.setTimeout(() => form.classList.remove('is-saved'), 900);
+        window.showCrmNotice?.(data.message || 'Роль пользователя сохранена.', 'success');
+      } catch (error) {
+        if (select.value === requestedValue) select.value = savedValue;
+        window.showCrmNotice?.(error.message || 'Не удалось сохранить роль', 'danger');
+      } finally {
+        saving = false;
+        savingValue = null;
+        select.removeAttribute('aria-busy');
+        form.classList.remove('is-saving');
+        if (select.value !== savedValue) saveRole();
+      }
+    };
+
+    select.addEventListener('change', saveRole);
+    select.addEventListener('input', saveRole);
+    select.addEventListener('blur', saveRole);
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      saveRole();
+    });
+  });
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-task-detail-point-autosave]').forEach(form => {
+    const select = form.querySelector('.task-detail-point-select');
+    if (!select) return;
+    let savedValue = select.value;
+    let saving = false;
+    let savingValue = null;
+
+    const savePoint = async () => {
+      const requestedValue = select.value;
+      if (requestedValue === savedValue) return;
+      if (saving) {
+        if (requestedValue === savingValue) return;
+        return;
+      }
+      saving = true;
+      savingValue = requestedValue;
+      select.setAttribute('aria-busy', 'true');
+      form.classList.add('is-saving');
+      try {
+        const formData = new FormData(form);
+        formData.set('point_number', requestedValue);
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось сохранить пункт');
+        savedValue = data.point_number || requestedValue;
+        select.value = savedValue;
+        form.classList.add('is-saved');
+        window.setTimeout(() => form.classList.remove('is-saved'), 900);
+        window.showCrmNotice?.(data.message || 'Пункт замечания обновлен.', 'success');
+      } catch (error) {
+        select.value = savedValue;
+        window.showCrmNotice?.(error.message || 'Не удалось сохранить пункт', 'danger');
+      } finally {
+        saving = false;
+        savingValue = null;
+        select.removeAttribute('aria-busy');
+        form.classList.remove('is-saving');
+        if (select.value !== savedValue) savePoint();
+      }
+    };
+
+    select.addEventListener('change', savePoint);
+    select.addEventListener('input', savePoint);
+    select.addEventListener('blur', savePoint);
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      savePoint();
+    });
+  });
+
   const isDesktopWeb = window.matchMedia?.('(hover: hover) and (pointer: fine)').matches
     && !window.matchMedia?.('(display-mode: standalone)').matches
     && !window.navigator.standalone;

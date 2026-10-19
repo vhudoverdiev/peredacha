@@ -53,7 +53,7 @@
       <input type="hidden" name="act_{{ act_idx }}_project_prefix" value="{{ act.project_prefix }}">
       <input type="hidden" name="act_{{ act_idx }}_used_ocr" value="{{ 1 if act.used_ocr else 0 }}">
       <input type="hidden" name="act_{{ act_idx }}_apartment_number" value="{{ act.apartment_number }}">
-      <input type="hidden" name="act_{{ act_idx }}_row_count" value="{{ act.remarks|length }}">
+      <input type="hidden" name="act_{{ act_idx }}_row_count" value="{{ act.remarks|length }}" data-task-recognition-row-count="{{ act_idx }}">
       <input type="hidden" name="act_{{ act_idx }}_warnings" value="{{ (act.warnings or [])|join('\n') }}">
 
       <div class="border rounded-4 p-3 mb-3 task-recognition-act-card">
@@ -88,9 +88,29 @@
         </div>
         {% endif %}
 
+        {% if not act.project_ok %}
+        <div class="task-recognition-project-override mb-3">
+          <div class="task-recognition-project-override-inner">
+            <input
+              class="btn-check"
+              type="checkbox"
+              value="1"
+              id="act{{ act_idx }}ProjectOverride"
+              name="act_{{ act_idx }}_project_override"
+              {% if act.project_override or request.form.get('act_' ~ act_idx ~ '_project_override') == '1' %}checked{% endif %}
+            >
+            <label class="btn btn-outline-success task-recognition-project-toggle" for="act{{ act_idx }}ProjectOverride">
+              <i class="bi bi-check2-circle me-2" aria-hidden="true"></i>
+              ЖК совпадает
+            </label>
+            <span class="task-recognition-project-override-hint">Подтвердите после сверки ЖК в акте и выбранного объекта.</span>
+          </div>
+        </div>
+        {% endif %}
+
         <div class="row g-3 mb-3">
           <div class="col-12 col-lg-7">
-            <label class="form-label">Квартира / коммерция</label>
+            <label class="form-label">Помещение</label>
             <select class="form-select" name="act_{{ act_idx }}_apartment_id" required>
               <option value="">Выберите квартиру / коммерцию</option>
               {% for apartment in apartments %}
@@ -106,7 +126,6 @@
           </div>
         </div>
 
-        {% if act.remarks %}
         <div class="table-responsive task-recognition-table-wrap">
           <table class="table align-middle mb-0">
             <thead>
@@ -116,10 +135,15 @@
                 <th>Замечание</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody data-task-recognition-rows="{{ act_idx }}">
+              {% if not act.remarks %}
+              <tr class="task-recognition-empty-row" data-task-recognition-empty="{{ act_idx }}">
+                <td colspan="3" class="text-muted">Распознанных замечаний по пунктам нет. Добавьте строку вручную кнопкой ниже.</td>
+              </tr>
+              {% endif %}
               {% for remark in act.remarks %}
               {% set row_idx = loop.index0 %}
-              <tr>
+              <tr data-recognition-remark-row>
                 <td>
                   <input class="form-check-input" type="checkbox" name="act_{{ act_idx }}_row_{{ row_idx }}_active" value="1" {% if remark.active %}checked{% endif %}>
                 </td>
@@ -134,15 +158,80 @@
                   <textarea class="form-control form-control-sm task-recognition-description-field" name="act_{{ act_idx }}_row_{{ row_idx }}_description" rows="2">{{ remark.description }}</textarea>
                 </td>
               </tr>
+              <tr class="task-recognition-concession-row d-none" data-recognition-concession-row>
+                <td></td>
+                <td colspan="2">
+                  <div class="task-recognition-concession-panel">
+                    <h4 class="h6 mb-2">Пункты, за которые выданы отступные</h4>
+                    <p class="text-muted small mb-3">Отметьте пункты из добавляемых строк. Замечания по этим пунктам в выбранной квартире перейдут в статус “Отступные”.</p>
+                    <div class="task-recognition-concession-grid">
+                      {% for point in points %}
+                        {% if point.number != '26' %}
+                        <label class="task-recognition-concession-option d-none" data-recognition-concession-option="{{ point.number }}">
+                          <input type="checkbox" name="act_{{ act_idx }}_concession_point_numbers" value="{{ point.number }}" {% if point.number in request.form.getlist('act_' ~ act_idx ~ '_concession_point_numbers') %}checked{% endif %}>
+                          <span>{{ point.number }}</span>
+                        </label>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                    <div class="task-recognition-concession-empty text-muted small d-none" data-recognition-concession-empty>Нет других добавляемых пунктов в этом акте.</div>
+                  </div>
+                </td>
+              </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
-        {% else %}
-        <div class="text-muted">Распознанных замечаний по пунктам нет.</div>
-        {% endif %}
+        <template data-task-recognition-row-template="{{ act_idx }}">
+          <tr data-recognition-remark-row>
+            <td>
+              <input class="form-check-input" type="checkbox" name="act_{{ act_idx }}_row___ROW___active" value="1" checked>
+            </td>
+            <td>
+              <select class="form-select form-select-sm" name="act_{{ act_idx }}_row___ROW___point">
+                {% for point in points %}
+                <option value="{{ point.number }}">{{ point.number }}. {{ point.label }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <textarea class="form-control form-control-sm task-recognition-description-field" name="act_{{ act_idx }}_row___ROW___description" rows="2"></textarea>
+            </td>
+          </tr>
+          <tr class="task-recognition-concession-row d-none" data-recognition-concession-row>
+            <td></td>
+            <td colspan="2">
+              <div class="task-recognition-concession-panel">
+                <h4 class="h6 mb-2">Пункты, за которые выданы отступные</h4>
+                <p class="text-muted small mb-3">Отметьте пункты из добавляемых строк. Замечания по этим пунктам в выбранной квартире перейдут в статус “Отступные”.</p>
+                <div class="task-recognition-concession-grid">
+                  {% for point in points %}
+                    {% if point.number != '26' %}
+                    <label class="task-recognition-concession-option d-none" data-recognition-concession-option="{{ point.number }}">
+                      <input type="checkbox" name="act_{{ act_idx }}_concession_point_numbers" value="{{ point.number }}">
+                      <span>{{ point.number }}</span>
+                    </label>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+                <div class="task-recognition-concession-empty text-muted small d-none" data-recognition-concession-empty>Нет других добавляемых пунктов в этом акте.</div>
+              </div>
+            </td>
+          </tr>
+        </template>
+        <div class="mt-2">
+          <button class="btn btn-sm btn-success task-recognition-add-row-btn" type="button" data-task-recognition-add-row="{{ act_idx }}">
+            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Добавить замечание
+          </button>
+        </div>
       </div>
       {% endfor %}
+
+      <div class="task-recognition-po-mode mb-3">
+        <input class="btn-check" type="checkbox" value="1" id="taskRecognitionPoMode" name="po_mode">
+        <label class="btn btn-outline-success task-recognition-po-toggle" for="taskRecognitionPoMode">ПО</label>
+        <span class="text-muted small">При включении старые невыполненные замечания по выбранным пунктам переводятся в выполнено, новые строки добавляются, а идентичные замечания остаются невыполненными.</span>
+      </div>
 
       <div class="form-check mb-3">
         <input class="form-check-input" type="checkbox" value="1" id="confirmImportRemarks" name="confirm_import" required>
@@ -237,6 +326,113 @@
     resize: vertical;
     scrollbar-gutter: stable;
   }
+
+  .task-recognition-page .task-recognition-project-override {
+    padding: .8rem .9rem;
+    border: 1px solid rgba(245, 158, 11, .28);
+    border-radius: .9rem;
+    background: #fffbeb;
+    color: #111827;
+  }
+
+  .task-recognition-page .task-recognition-project-override-inner {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+  }
+
+  .task-recognition-page .task-recognition-project-toggle,
+  .task-recognition-page .task-recognition-project-toggle:visited {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: .65rem 1.1rem;
+    border-radius: .85rem;
+    border-color: rgba(95, 179, 21, .42) !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    font-weight: 800;
+    box-shadow: 0 10px 22px rgba(17, 24, 39, .06) !important;
+  }
+
+  .task-recognition-page .task-recognition-project-toggle:hover,
+  .task-recognition-page .task-recognition-project-toggle:focus {
+    border-color: #5fb315 !important;
+    background: #f6fde9 !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+
+  .task-recognition-page .btn-check:checked + .task-recognition-project-toggle,
+  .task-recognition-page .btn-check:checked + .task-recognition-project-toggle:hover,
+  .task-recognition-page .btn-check:checked + .task-recognition-project-toggle:focus {
+    background: #5fb315 !important;
+    border-color: #5fb315 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 12px 26px rgba(95, 179, 21, .24) !important;
+  }
+
+  .task-recognition-page .task-recognition-project-override-hint {
+    color: #6b7280;
+    font-size: .92rem;
+  }
+
+  .task-recognition-page .task-recognition-po-mode {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+  }
+
+  .task-recognition-page .task-recognition-concession-panel {
+    padding: 1rem;
+    border: 1px solid rgba(245, 158, 11, .32);
+    border-radius: 1rem;
+    background: #fffbeb;
+  }
+
+  .task-recognition-page .task-recognition-concession-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(5rem, 1fr));
+    gap: .55rem;
+  }
+
+  .task-recognition-page .task-recognition-concession-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    min-height: 2.65rem;
+    padding: .45rem .65rem;
+    border: 1px solid rgba(95, 179, 21, .28);
+    border-radius: .75rem;
+    background: #ffffff;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .task-recognition-page .task-recognition-concession-option input {
+    accent-color: #79bf25;
+  }
+
+  .task-recognition-page .task-recognition-concession-option:has(input:checked) {
+    border-color: #5fb315;
+    background: #f2fde5;
+  }
+
+  .task-recognition-page .btn-check:checked + .task-recognition-po-toggle,
+  .task-recognition-page .btn-check:checked + .task-recognition-po-toggle:hover,
+  .task-recognition-page .btn-check:checked + .task-recognition-po-toggle:focus {
+    background: #5fb315 !important;
+    border-color: #5fb315 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 12px 26px rgba(95, 179, 21, .22) !important;
+  }
   </style>
 
   <script>
@@ -255,7 +451,70 @@
       });
     };
 
+    document.querySelectorAll('[data-task-recognition-add-row]').forEach(button => {
+      button.addEventListener('click', () => {
+        const actIndex = button.dataset.taskRecognitionAddRow;
+        const tableBody = document.querySelector(`[data-task-recognition-rows="${actIndex}"]`);
+        const template = document.querySelector(`[data-task-recognition-row-template="${actIndex}"]`);
+        const counter = document.querySelector(`[data-task-recognition-row-count="${actIndex}"]`);
+        if (!tableBody || !template || !counter) return;
+        const rowIndex = Number.parseInt(counter.value || '0', 10) || 0;
+        const fragment = template.content.cloneNode(true);
+        fragment.querySelectorAll('[name]').forEach(field => {
+          field.name = field.name.replace('__ROW__', String(rowIndex));
+        });
+        tableBody.querySelector(`[data-task-recognition-empty="${actIndex}"]`)?.remove();
+        tableBody.appendChild(fragment);
+        counter.value = String(rowIndex + 1);
+        const addedRow = [...tableBody.querySelectorAll('[data-recognition-remark-row]')].at(-1);
+        addedRow?.querySelector('textarea')?.focus();
+        document.dispatchEvent(new CustomEvent('crm:ajax-pagination-updated', { detail: { content: addedRow || tableBody } }));
+        syncRecognitionConcessionBlocks();
+      });
+    });
+
+    const syncRecognitionConcessionBlocks = () => {
+      document.querySelectorAll('[data-task-recognition-rows]').forEach(tableBody => {
+        const activePointNumbers = new Set();
+        const remarkRows = [...tableBody.querySelectorAll('[data-recognition-remark-row]')];
+        remarkRows.forEach(row => {
+          const activeInput = row.querySelector('input[name$="_active"]');
+          const pointSelect = row.querySelector('select[name$="_point"]');
+          if ((!activeInput || activeInput.checked) && pointSelect?.value && pointSelect.value !== '26') {
+            activePointNumbers.add(pointSelect.value);
+          }
+        });
+        remarkRows.forEach(row => {
+          const activeInput = row.querySelector('input[name$="_active"]');
+          const pointSelect = row.querySelector('select[name$="_point"]');
+          const concessionRow = row.nextElementSibling?.matches('[data-recognition-concession-row]') ? row.nextElementSibling : null;
+          if (!concessionRow) return;
+          const showBlock = (!activeInput || activeInput.checked) && pointSelect?.value === '26';
+          concessionRow.classList.toggle('d-none', !showBlock);
+          let visibleCount = 0;
+          concessionRow.querySelectorAll('[data-recognition-concession-option]').forEach(option => {
+            const pointNumber = option.dataset.recognitionConcessionOption;
+            const visible = showBlock && activePointNumbers.has(pointNumber);
+            option.classList.toggle('d-none', !visible);
+            const checkbox = option.querySelector('input[type="checkbox"]');
+            if (!visible && checkbox) checkbox.checked = false;
+            if (visible) visibleCount += 1;
+          });
+          concessionRow.querySelector('[data-recognition-concession-empty]')?.classList.toggle('d-none', visibleCount > 0);
+        });
+      });
+    };
+
+    document.querySelectorAll('[data-task-recognition-rows]').forEach(tableBody => {
+      tableBody.addEventListener('change', event => {
+        if (event.target?.matches('select[name$="_point"], input[name$="_active"]')) {
+          syncRecognitionConcessionBlocks();
+        }
+      });
+    });
+
     syncRecognitionTextareasToTop();
+    syncRecognitionConcessionBlocks();
     window.requestAnimationFrame(syncRecognitionTextareasToTop);
     window.setTimeout(syncRecognitionTextareasToTop, 120);
     window.addEventListener('pageshow', syncRecognitionTextareasToTop, { once: true });

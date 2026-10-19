@@ -52,8 +52,8 @@ class GlassAllWorkPointsSplitTests(unittest.TestCase):
             original_column_name="Пункт 16",
             source_sheet_name="qa-point-16",
         )
-        self.point_twenty_two = WorkPoint(
-            point_number="22",
+        self.point_twenty_five = WorkPoint(
+            point_number="25",
             original_column_name="Прочее",
             source_sheet_name="manual",
         )
@@ -64,7 +64,7 @@ class GlassAllWorkPointsSplitTests(unittest.TestCase):
                 self.apartment,
                 self.point_one,
                 self.point_sixteen,
-                self.point_twenty_two,
+                self.point_twenty_five,
             ]
         )
         db.session.flush()
@@ -103,7 +103,7 @@ class GlassAllWorkPointsSplitTests(unittest.TestCase):
             source_uid="glass-manual-before-split",
             project=self.project,
             apartment=self.apartment,
-            work_point=self.point_twenty_two,
+            work_point=self.point_twenty_five,
             description="Большое замечание для разделения",
             source_cell_value="Большое замечание для разделения",
             source_sheet_name="manual_glass",
@@ -253,7 +253,7 @@ class GlassAllWorkPointsSplitTests(unittest.TestCase):
         self.assertTrue(split_payload["ok"])
         split_task = db.session.get(Task, split_payload["new_task_id"])
         self.assertEqual(split_task.source_sheet_name, "manual_split")
-        self.assertEqual(split_task.work_point.point_number, "22")
+        self.assertEqual(split_task.work_point.point_number, "25")
 
         all_response = self._desktop_get("?tab=all")
         all_page = all_response.get_data(as_text=True)

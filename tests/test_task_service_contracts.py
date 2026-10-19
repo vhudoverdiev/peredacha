@@ -11,6 +11,7 @@ from app.models import (
     STATUS_DONE,
     STATUS_FINISHERS,
     STATUS_NOT_STARTED,
+    STATUS_PROBLEM,
     Task,
     WorkPoint,
 )
@@ -23,6 +24,7 @@ from app.services.task_service import (
     apartment_number_from_construction,
     build_task_query,
     change_task_status,
+    contract_number_from_premise_identity,
     detect_search_mode,
     detect_status_marker,
     get_multi_param_values,
@@ -31,10 +33,16 @@ from app.services.task_service import (
     looks_like_apartment_identifier,
     normalize_apartment_number_cell,
     normalize_finishing_type,
+    normalize_parking_number,
+    normalize_storeroom_number,
     parse_date,
     parse_multi_premise_search,
     premise_matches_search,
+    repair_completed_source_marker_statuses,
     select_primary_work_point_columns,
+    sync_rows,
+    upsert_task_from_cell,
+    dashboard_stats,
 )
 from app.time_utils import utc_now
 
@@ -73,6 +81,10 @@ class TaskServicePureContractsTests(unittest.TestCase):
         self.assertEqual(detect_search_mode("кв 15"), ("premise_number", "15"))
         self.assertEqual(detect_search_mode("к15/к2"), ("commercial_pair", "15|2"))
         self.assertEqual(detect_search_mode("к 2"), ("premise_number_or_building", "2"))
+        self.assertEqual(detect_search_mode("кл"), ("premise_type", "storeroom"))
+        self.assertEqual(detect_search_mode("кл1"), ("typed_premise_number", "storeroom|1"))
+        self.assertEqual(detect_search_mode("п"), ("premise_type", "parking"))
+        self.assertEqual(detect_search_mode("п 1"), ("typed_premise_number", "parking|1"))
         self.assertEqual(detect_search_mode("owner text"), ("text", "owner text"))
 
     def test_multi_premise_search_preserves_order_deduplicates_and_returns_tail(self):
@@ -156,6 +168,25 @@ class TaskServicePureContractsTests(unittest.TestCase):
         self.assertEqual(apartment_number_from_construction("1-2-345"), "345")
         self.assertIsNone(apartment_number_from_construction("1-2-A"))
 
+    def test_storeroom_numbers_are_prefixed_with_kl(self):
+        self.assertEqual(normalize_storeroom_number("1"), "КЛ1")
+        self.assertEqual(normalize_storeroom_number("КЛ2"), "КЛ2")
+        self.assertEqual(normalize_storeroom_number("1.0"), "КЛ1")
+        self.assertEqual(normalize_storeroom_number("КЛ2.0"), "КЛ2")
+
+    def test_parking_numbers_are_prefixed_with_p(self):
+        self.assertEqual(normalize_parking_number("1"), "П1")
+        self.assertEqual(normalize_parking_number("П2"), "П2")
+        self.assertEqual(normalize_parking_number("2.0"), "П2")
+        self.assertEqual(normalize_parking_number("П2.0"), "П2")
+
+    def test_contract_number_prefers_parentheses_or_slash_and_falls_back_to_plain_number(self):
+        self.assertEqual(contract_number_from_premise_identity("1(10)"), "10")
+        self.assertEqual(contract_number_from_premise_identity("10/1"), "1")
+        self.assertEqual(contract_number_from_premise_identity("330", "330/1"), "1")
+        self.assertEqual(contract_number_from_premise_identity("330"), "330")
+        self.assertEqual(contract_number_from_premise_identity("1.0"), "1")
+
 
 class TaskServiceDatabaseContractsTests(unittest.TestCase):
     def setUp(self):
@@ -213,6 +244,178 @@ class TaskServiceDatabaseContractsTests(unittest.TestCase):
         self.assertFalse(premise_matches_search(self.apartment, "commercial_pair", "12|2"))
         self.assertTrue(premise_matches_search(self.commercial, "commercial_pair", "15|2"))
         self.assertTrue(premise_matches_search(self.commercial, "premise_number_or_building", "2"))
+        storeroom = Apartment(project=self.project, apartment_number="КЛ1", premise_type="storeroom")
+        parking = Apartment(project=self.project, apartment_number="П1", premise_type="parking")
+        self.assertTrue(premise_matches_search(storeroom, "premise_type", "storeroom"))
+        self.assertTrue(premise_matches_search(storeroom, "typed_premise_number", "storeroom|1"))
+        self.assertFalse(premise_matches_search(self.apartment, "premise_type", "storeroom"))
+        self.assertTrue(premise_matches_search(parking, "premise_type", "parking"))
+        self.assertTrue(premise_matches_search(parking, "typed_premise_number", "parking|1"))
+        self.assertFalse(premise_matches_search(storeroom, "premise_type", "parking"))
+
+    def test_sync_rows_imports_storeroom_sheet_when_enabled(self):
+        self.project.has_storerooms = True
+        db.session.commit()
+        rows = [
+            ["Кв/№ пом", "Ф.И.О. собственника", "Телефон", "Отделка", "Пункт 10"],
+            ["1 корпус", None, None, None, None],
+            [1, "Иванов Иван", "7 900 000-00-01", None, "Замечание по кладовке"],
+        ]
+
+        result = sync_rows(rows, "Кладовки", project_name=self.project.name)
+
+        self.assertEqual(result["created_count"], 1)
+        storeroom = Apartment.query.filter_by(project_id=self.project.id, premise_type="storeroom").one()
+        self.assertEqual(storeroom.apartment_number, "КЛ1")
+        self.assertEqual(storeroom.construction_number, "КЛ1")
+        self.assertEqual(storeroom.label(), "кл 1")
+        self.assertEqual(storeroom.detail_label(), "Кладовка 1")
+        self.assertEqual(storeroom.tasks[0].description, "Замечание по кладовке")
+
+    def test_sync_rows_imports_storeroom_registry_without_remarks(self):
+        self.project.has_storerooms = True
+        db.session.commit()
+        rows = [
+            ["Факт/№ ДДУ", "Ф.И.О. Дольщиков", "Телефон", "Дата первичного осмотра"],
+            ["1 корпус", None, None, None],
+            [1, "Петров Пётр", "7 900 000-00-02", None],
+        ]
+
+        result = sync_rows(rows, "Кладовые", project_name=self.project.name)
+
+        self.assertEqual(result["created_count"], 0)
+        storeroom = Apartment.query.filter_by(project_id=self.project.id, premise_type="storeroom").one()
+        self.assertEqual(storeroom.apartment_number, "КЛ1")
+        self.assertEqual(storeroom.owner_name, "Петров Пётр")
+        self.assertEqual(storeroom.phone, "7 900 000-00-02")
+        self.assertEqual(storeroom.tasks, [])
+
+    def test_sync_rows_skips_storeroom_sheet_when_disabled(self):
+        self.project.has_storerooms = False
+        db.session.commit()
+        rows = [
+            ["Кв/№ пом", "Ф.И.О. собственника", "Телефон", "Отделка", "Пункт 10"],
+            [1, "Иванов Иван", "7 900 000-00-01", None, "Замечание по кладовке"],
+        ]
+
+        result = sync_rows(rows, "Кладовки", project_name=self.project.name)
+
+        self.assertEqual(result["created_count"], 0)
+        self.assertEqual(Apartment.query.filter_by(project_id=self.project.id, premise_type="storeroom").count(), 0)
+
+    def test_sync_rows_imports_parking_sheet_when_enabled(self):
+        self.project.has_parking = True
+        db.session.commit()
+        rows = [
+            ["№ паркинг", "Ф.И.О. Дольщиков", "Телефон", "Дата первичного осмотра"],
+            [1, "Сидоров Семён", "7 900 000-00-03", None],
+        ]
+
+        result = sync_rows(rows, "Паркинг", project_name=self.project.name)
+
+        self.assertEqual(result["created_count"], 0)
+        parking = Apartment.query.filter_by(project_id=self.project.id, premise_type="parking").one()
+        self.assertEqual(parking.apartment_number, "П1")
+        self.assertEqual(parking.construction_number, "П1")
+        self.assertEqual(parking.label(), "П1")
+        self.assertEqual(parking.detail_label(), "Парковка П1")
+        self.assertEqual(parking.owner_name, "Сидоров Семён")
+        self.assertEqual(parking.phone, "7 900 000-00-03")
+        self.assertEqual(parking.tasks, [])
+
+    def test_sync_rows_skips_parking_sheet_when_disabled(self):
+        self.project.has_parking = False
+        db.session.commit()
+        rows = [
+            ["№ паркинг", "Ф.И.О. Дольщиков", "Телефон"],
+            [1, "Сидоров Семён", "7 900 000-00-03"],
+        ]
+
+        result = sync_rows(rows, "Паркинг", project_name=self.project.name)
+
+        self.assertEqual(result["created_count"], 0)
+        self.assertEqual(Apartment.query.filter_by(project_id=self.project.id, premise_type="parking").count(), 0)
+
+    def test_dashboard_stats_counts_storerooms_with_apartment_flow(self):
+        storeroom = Apartment(
+            project=self.project,
+            apartment_number="КЛ1",
+            construction_number="КЛ1",
+            premise_type="storeroom",
+            is_app_mode=True,
+            first_inspection_present=True,
+        )
+        unsold_storeroom = Apartment(
+            project=self.project,
+            apartment_number="КЛ2",
+            construction_number="КЛ2",
+            premise_type="storeroom",
+            owner_name="не продано",
+            is_unsold=True,
+        )
+        db.session.add_all([storeroom, unsold_storeroom])
+        db.session.commit()
+
+        stats = dashboard_stats(self.project.id)
+
+        self.assertEqual(stats["storeroom_count"], 2)
+        self.assertEqual(stats["accepted"], 1)
+        self.assertEqual(stats["unsold_storeroom_count"], 1)
+        self.assertGreaterEqual(stats["apartments"], 4)
+
+    def test_dashboard_stats_counts_parking_with_apartment_flow(self):
+        parking = Apartment(
+            project=self.project,
+            apartment_number="П1",
+            construction_number="П1",
+            premise_type="parking",
+            is_app_mode=True,
+            first_inspection_present=True,
+        )
+        unsold_parking = Apartment(
+            project=self.project,
+            apartment_number="П2",
+            construction_number="П2",
+            premise_type="parking",
+            owner_name="не продано",
+            is_unsold=True,
+        )
+        db.session.add_all([parking, unsold_parking])
+        db.session.commit()
+
+        stats = dashboard_stats(self.project.id)
+
+        self.assertEqual(stats["parking_count"], 2)
+        self.assertEqual(stats["accepted"], 1)
+        self.assertEqual(stats["unsold_parking_count"], 1)
+        self.assertGreaterEqual(stats["apartments"], 4)
+
+    def test_dashboard_accepted_remark_split_is_separate_for_each_premise_type(self):
+        rows = [
+            Apartment(project=self.project, apartment_number="101", premise_type="apartment", is_app_mode=True, app_deadline_status=APP_DEADLINE_NORMAL),
+            Apartment(project=self.project, apartment_number="102", premise_type="apartment", is_app_mode=True, app_deadline_status=APP_DEADLINE_NO_REMARKS),
+            Apartment(project=self.project, apartment_number="КЛ1", premise_type="storeroom", is_app_mode=True, app_deadline_status=APP_DEADLINE_NORMAL),
+            Apartment(project=self.project, apartment_number="КЛ2", premise_type="storeroom", is_app_mode=True, app_deadline_status=APP_DEADLINE_NO_REMARKS),
+            Apartment(project=self.project, apartment_number="П1", premise_type="parking", is_app_mode=True, app_deadline_status=APP_DEADLINE_NORMAL),
+            Apartment(project=self.project, apartment_number="П2", premise_type="parking", is_app_mode=True, app_deadline_status=APP_DEADLINE_NO_REMARKS),
+            Apartment(project=self.project, apartment_number="К1", premise_type="commercial", is_app_mode=True, app_deadline_status=APP_DEADLINE_NORMAL),
+            Apartment(project=self.project, apartment_number="К2", premise_type="commercial", is_app_mode=True, app_deadline_status=APP_DEADLINE_NO_REMARKS),
+        ]
+        db.session.add_all(rows)
+        db.session.commit()
+
+        stats = dashboard_stats(self.project.id)
+
+        self.assertEqual(stats["accepted_with_remarks"], 1)
+        self.assertEqual(stats["accepted_no_remarks"], 1)
+        self.assertEqual(stats["accepted_with_remarks_apartment"], 1)
+        self.assertEqual(stats["accepted_no_remarks_apartment"], 1)
+        self.assertEqual(stats["accepted_with_remarks_storeroom"], 1)
+        self.assertEqual(stats["accepted_no_remarks_storeroom"], 1)
+        self.assertEqual(stats["accepted_with_remarks_parking"], 1)
+        self.assertEqual(stats["accepted_no_remarks_parking"], 1)
+        self.assertEqual(stats["accepted_with_remarks_commercial"], 1)
+        self.assertEqual(stats["accepted_no_remarks_commercial"], 1)
 
     def test_change_task_status_sets_and_clears_completed_date_contract(self):
         task = Task(
@@ -239,14 +442,189 @@ class TaskServiceDatabaseContractsTests(unittest.TestCase):
         self.assertFalse(task.is_done)
         self.assertIsNone(task.completed_date)
 
-    def test_build_task_query_filters_multiple_premises_and_keeps_user_order(self):
+    def test_repair_marks_legacy_struck_remark_text_as_done(self):
+        task = Task(
+            source_uid="legacy-struck-open",
+            project=self.project,
+            apartment=self.apartment,
+            work_point=self.work_point,
+            description='"Требуется восстановить стяжку пола."',
+            source_cell_value='"Требуется восстановить стяжку пола."',
+            status=STATUS_NOT_STARTED,
+            is_done=False,
+        )
+        db.session.add(task)
+        db.session.commit()
+
+        changed = repair_completed_source_marker_statuses(project_id=self.project.id)
+
+        db.session.refresh(task)
+        self.assertEqual(changed, 1)
+        self.assertEqual(task.status, STATUS_DONE)
+        self.assertTrue(task.is_done)
+        self.assertIsNotNone(task.completed_date)
+
+    def test_repair_marks_legacy_struck_non_done_status_as_done(self):
+        task = Task(
+            source_uid="legacy-struck-problem",
+            project=self.project,
+            apartment=self.apartment,
+            work_point=self.work_point,
+            description='"Требуется очистка от строительных смесей."',
+            status=STATUS_PROBLEM,
+            is_done=False,
+        )
+        db.session.add(task)
+        db.session.commit()
+
+        changed = repair_completed_source_marker_statuses(project_id=self.project.id)
+
+        db.session.refresh(task)
+        self.assertEqual(changed, 1)
+        self.assertEqual(task.status, STATUS_DONE)
+        self.assertTrue(task.is_done)
+
+    def test_upsert_marks_fully_quoted_excel_remark_as_done(self):
+        task, created = upsert_task_from_cell(
+            project=self.project,
+            apartment=self.apartment,
+            legacy_construction_number="",
+            legacy_apartment_number="",
+            work_point=self.work_point,
+            remark_text='"Требуется восстановить стяжку пола."',
+            source_cell_value='"Требуется восстановить стяжку пола."',
+            sheet_name="Таблица",
+            row_index=12,
+            column_index=10,
+            source_cell_address="J12",
+            sync_time=utc_now(),
+        )
+        db.session.commit()
+
+        self.assertTrue(created)
+        self.assertEqual(task.status, STATUS_DONE)
+        self.assertTrue(task.is_done)
+        self.assertIsNotNone(task.completed_date)
+
+    def test_upsert_keeps_partial_quoted_remark_open(self):
+        task, created = upsert_task_from_cell(
+            project=self.project,
+            apartment=self.apartment,
+            legacy_construction_number="",
+            legacy_apartment_number="",
+            work_point=self.work_point,
+            remark_text='Заменить "ручку"',
+            source_cell_value='Заменить "ручку"',
+            sheet_name="Таблица",
+            row_index=13,
+            column_index=10,
+            source_cell_address="J13",
+            sync_time=utc_now(),
+        )
+        db.session.commit()
+
+        self.assertTrue(created)
+        self.assertEqual(task.status, STATUS_NOT_STARTED)
+        self.assertFalse(task.is_done)
+
+    def test_build_task_query_filters_multiple_premises_and_uses_project_premise_order(self):
         tasks = build_task_query({"q": "к15/к2, кв 12"}, project_id=self.project.id).all()
 
         self.assertEqual([task.source_uid for task in tasks], [
-            "query-commercial-open",
             "query-apartment-open",
             "query-apartment-done",
+            "query-commercial-open",
         ])
+
+    def test_build_task_query_places_each_premise_type_in_the_shared_order(self):
+        storeroom = Apartment(project=self.project, apartment_number="КЛ1", premise_type="storeroom")
+        parking = Apartment(project=self.project, apartment_number="П1", premise_type="parking")
+        db.session.add_all([storeroom, parking])
+        db.session.flush()
+        for uid, apartment in (("query-storeroom", storeroom), ("query-parking", parking)):
+            db.session.add(Task(
+                source_uid=uid,
+                project=self.project,
+                apartment=apartment,
+                work_point=self.work_point,
+                description=uid,
+                status=STATUS_NOT_STARTED,
+                is_done=False,
+            ))
+        db.session.commit()
+
+        tasks = build_task_query({"sort": "priority"}, project_id=self.project.id).all()
+
+        self.assertEqual(
+            list(dict.fromkeys((task.apartment.premise_type or "apartment") for task in tasks)),
+            ["apartment", "commercial", "storeroom", "parking"],
+        )
+
+    def test_build_task_query_text_search_filters_individual_remark_rows(self):
+        matching = Task(
+            source_uid="query-apartment-scratch",
+            project=self.project,
+            apartment=self.apartment,
+            work_point=self.work_point,
+            description="Царапины на стеклопакете оконной створки.",
+            source_cell_value="Царапины на стеклопакете оконной створки.",
+            status=STATUS_NOT_STARTED,
+            is_done=False,
+        )
+        same_premise_non_matching = Task(
+            source_uid="query-apartment-adjustment",
+            project=self.project,
+            apartment=self.apartment,
+            work_point=self.second_point,
+            description="Требуется регулировка и очистка от строительных смесей ПВХ конструкций.",
+            source_cell_value="Царапины в другой строке этой квартиры.",
+            status=STATUS_NOT_STARTED,
+            is_done=False,
+        )
+        other_premise_matching = Task(
+            source_uid="query-commercial-scratch",
+            project=self.project,
+            apartment=self.commercial,
+            work_point=self.work_point,
+            description="Царапины на витражном остеклении.",
+            status=STATUS_NOT_STARTED,
+            is_done=False,
+        )
+        db.session.add_all([matching, same_premise_non_matching, other_premise_matching])
+        db.session.commit()
+
+        tasks = build_task_query({"q": "царапины"}, project_id=self.project.id).all()
+
+        self.assertEqual({task.source_uid for task in tasks}, {
+            "query-apartment-scratch",
+            "query-commercial-scratch",
+        })
+
+    def test_build_task_query_premise_tail_search_filters_individual_remark_rows(self):
+        matching = Task(
+            source_uid="query-tail-scratch",
+            project=self.project,
+            apartment=self.apartment,
+            work_point=self.work_point,
+            description="Царапины на стеклопакете оконной створки.",
+            status=STATUS_NOT_STARTED,
+            is_done=False,
+        )
+        same_premise_non_matching = Task(
+            source_uid="query-tail-adjustment",
+            project=self.project,
+            apartment=self.apartment,
+            work_point=self.second_point,
+            description="Требуется регулировка и очистка от строительных смесей ПВХ конструкций.",
+            status=STATUS_NOT_STARTED,
+            is_done=False,
+        )
+        db.session.add_all([matching, same_premise_non_matching])
+        db.session.commit()
+
+        tasks = build_task_query({"q": "кв 12 царапины"}, project_id=self.project.id).all()
+
+        self.assertEqual([task.source_uid for task in tasks], ["query-tail-scratch"])
 
     def test_build_task_query_status_filters_default_exclude_archived_and_missing(self):
         archived = Task(

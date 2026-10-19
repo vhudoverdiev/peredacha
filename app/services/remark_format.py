@@ -43,6 +43,13 @@ def has_quoted_remark_text(value: object) -> bool:
     return bool(text and _quoted_ranges(text))
 
 
+def is_fully_quoted_remark_text(value: object) -> bool:
+    text = str(value or '').strip()
+    if not text:
+        return False
+    return any(start == 0 and end == len(text) for start, end in _quoted_ranges(text))
+
+
 def _escaped_text_range_html(
     text: str,
     start: int,

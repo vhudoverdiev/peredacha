@@ -1,10 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Квартиры{% endblock %}
+{% block title %}Помещения{% endblock %}
 {% block content %}
+{% set selected_finishing_groups = args.getlist('finishing_group') %}
 <div class="apartments-page" data-ajax-pagination-page="apartments">
 <div class="page-head apartments-page-head">
   <div>
-    <h1 class="page-title">Квартиры</h1>
+    <h1 class="page-title">Помещения</h1>
     <p class="page-subtitle">Данные, замечания, комментарии и история изменений.</p>
   </div>
   <a class="btn btn-success" href="{{ url_for('main.apartments_export', **export_args) }}" data-ajax-pagination-sync="apartments-export"><i class="bi bi-file-earmark-excel me-2"></i>Скачать Excel</a>
@@ -26,14 +27,6 @@
         </select>
       </div>
       <div class="col-12 col-sm-6 col-lg-2">
-        <label class="form-label">Сортировка осмотра</label>
-        <select class="form-select" name="inspection_order" data-force-custom-select>
-          <option value="">По номеру</option>
-          <option value="was_first" {% if args.get('inspection_order') == 'was_first' %}selected{% endif %}>Сначала был</option>
-          <option value="not_was_first" {% if args.get('inspection_order') == 'not_was_first' %}selected{% endif %}>Сначала не был</option>
-        </select>
-      </div>
-      <div class="col-12 col-sm-6 col-lg-2">
         <label class="form-label">АПП</label>
         <select class="form-select" name="app_status" data-force-custom-select>
           <option value="">Все</option>
@@ -42,13 +35,19 @@
         </select>
       </div>
       <div class="col-12 col-sm-6 col-lg-1">
-        <label class="form-label">АВР</label>
+        <label class="form-label">Фильтр</label>
         <select class="form-select" name="avr_status" data-force-custom-select>
           <option value="">Все</option>
-          <option value="{{ avr_status_needed }}" {% if args.get('avr_status') == avr_status_needed %}selected{% endif %}>Нужен</option>
-          <option value="{{ avr_status_signed }}" {% if args.get('avr_status') == avr_status_signed %}selected{% endif %}>Подписан</option>
+          <option value="with_remarks" {% if args.get('avr_status') == 'with_remarks' %}selected{% endif %}>С замечаниями</option>
+          <option value="{{ app_deadline_no_remarks }}" {% if args.get('avr_status') == app_deadline_no_remarks %}selected{% endif %}>Без замечаний</option>
+          <option value="{{ avr_status_needed }}" {% if args.get('avr_status') == avr_status_needed %}selected{% endif %}>Нужен АВР</option>
+          <option value="{{ avr_status_signed }}" {% if args.get('avr_status') == avr_status_signed %}selected{% endif %}>Подписан АВР</option>
+          <option value="addendum" {% if args.get('avr_status') == 'addendum' %}selected{% endif %}>Соглашение</option>
+          <option value="addendum_signed" {% if args.get('avr_status') == 'addendum_signed' %}selected{% endif %}>Соглашение подписано</option>
+          <option value="addendum_not_signed" {% if args.get('avr_status') == 'addendum_not_signed' %}selected{% endif %}>Соглашение не подписано</option>
         </select>
       </div>
+      {% if current_user.role != 'office' %}
       <div class="col-12 col-sm-6 col-lg-1">
         <label class="form-label">Внутренний статус</label>
         <select class="form-select" name="po_status" data-force-custom-select>
@@ -58,7 +57,25 @@
           {% endfor %}
         </select>
       </div>
-      <div class="col-12 col-lg-2 filter-actions">
+      {% endif %}
+      <div class="col-12 col-lg-auto remarks-filter-finishing-col apartments-filter-finishing-col">
+        <label class="form-label d-block">Отделка</label>
+        <div class="remarks-filter-checks">
+          <label class="form-check remarks-filter-check">
+            <input class="form-check-input" type="checkbox" name="finishing_group" value="white" {% if 'white' in selected_finishing_groups %}checked{% endif %}>
+            <span class="form-check-label">Белая</span>
+          </label>
+          <label class="form-check remarks-filter-check">
+            <input class="form-check-input" type="checkbox" name="finishing_group" value="clean" {% if 'clean' in selected_finishing_groups %}checked{% endif %}>
+            <span class="form-check-label">Чистовые</span>
+          </label>
+          <label class="form-check remarks-filter-check">
+            <input class="form-check-input" type="checkbox" name="finishing_group" value="none" {% if 'none' in selected_finishing_groups %}checked{% endif %}>
+            <span class="form-check-label">Без отделки</span>
+          </label>
+        </div>
+      </div>
+      <div class="col-12 col-lg-auto filter-actions apartments-filter-actions">
         <button class="btn btn-primary" type="submit">Применить</button>
         <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.apartments') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
       </div>
@@ -67,7 +84,7 @@
 </div>
 
 <div class="d-flex align-items-center justify-content-between mb-3 apartments-page-summary">
-  <div class="text-muted">Найдено квартир / помещений: <b>{{ total_count }}</b></div>
+  <div class="text-muted">Найдено помещений: <b>{{ total_count }}</b></div>
 </div>
 
 {% if mobile_total_pages > 1 %}
@@ -87,11 +104,11 @@
 <div class="apartments-grid" data-ajax-pagination-content data-ajax-items-selector=".apartment-card">
   {% for row in rows %}
   {% set apartment = row.apartment %}
-  <article class="apartment-card">
+  <article class="apartment-card{% if row.mode == 'не продана' %} apartment-card-unsold{% endif %}">
     <a class="apartment-card-link" href="{{ url_for('main.apartment_detail', apartment_id=apartment.id, back=request.full_path) }}">
     <div class="apartment-card-top">
       <div>
-        <div class="apartment-card-label apartment-card-full-label">{{ apartment.label() }}</div>
+        <div class="apartment-card-label apartment-card-full-label">{{ apartment.label()|replace('КЛ', 'КЛ ', 1) if apartment.premise_type == 'storeroom' else apartment.label() }}</div>
       </div>
       {% if row.mode == 'АПП' %}
         <span class="status-pill status-pill-success">АПП</span>
@@ -100,7 +117,7 @@
       {% else %}
         <span class="status-pill status-pill-warning">не принята</span>
       {% endif %}
-      {% if row.inspection_status %}
+      {% if row.inspection_status and row.mode != 'не продана' %}
         <span class="status-pill {{ row.inspection_status_class }}">Осмотр: {{ row.inspection_status }}</span>
       {% endif %}
       {% if row.has_replaced_glass %}<span class="glass-ordered-badge glass-replaced-badge" title="{{ row.glass_status_label }}">{{ row.glass_status_label }}</span>{% elif row.has_ordered_glass %}<span class="glass-ordered-badge" title="{{ row.glass_status_label }}">{{ row.glass_status_label }}</span>{% endif %}
@@ -126,28 +143,25 @@
         <i class="bi bi-file-earmark-check"></i>
         АВР:
         {% if row.avr_status == avr_status_signed %}
-          <b class="badge-avr-signed">Подписан{% if row.avr_signed_date %} от {{ row.avr_signed_date|ru_date }}{% endif %}</b>
+          <b class="badge-avr-signed">{{ row.avr_signed_date|ru_date if row.avr_signed_date else 'Подписан' }}</b>
         {% else %}
           <b class="badge-avr-needed">Нужен</b>
         {% endif %}
       </span>
       {% endif %}
       <span><i class="bi bi-list-check"></i>Замечаний: {{ row.total }}</span>
-      {% if row.mode == 'АПП' %}
-        <span><i class="bi bi-chat-left-text"></i>Комментарий: {{ row.manual_comment or '—' }}</span>
-      {% elif row.mode == 'не принята' %}
-        <span><i class="bi bi-chat-left-text"></i>Комментарий: {{ row.inspection_comment or '—' }}</span>
-      {% endif %}
+      <span><i class="bi bi-chat-left-text"></i>Комментарий(передача): {{ row.manual_comment or '—' }}</span>
+      <span><i class="bi bi-chat-left-text"></i>Комментарий(устранение замечаний): {{ row.inspection_comment or '—' }}</span>
     </div>
     </a>
 
 
-    {% if row.po_status %}
+    {% if row.po_status and current_user.role != 'office' %}
     <form method="post" action="{{ url_for('main.update_apartment_po_status', apartment_id=apartment.id) }}" class="apartment-po-form" data-apartment-async="1">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label class="form-label">Внутренний статус</label>
       <div class="apartment-po-row apartment-po-options">
-        {% if current_user.role != 'viewer' %}
+        {% if current_user.role not in ['viewer', 'office'] %}
           {% for value, label in po_status_labels.items() %}
           {% if value != 'po' %}<input class="btn-check" type="radio" name="po_status" id="po-{{ apartment.id }}-{{ value }}" value="{{ value }}" {% if row.po_status == value %}checked{% endif %} onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
           <label class="po-option po-option-{{ value }}" for="po-{{ apartment.id }}-{{ value }}">{{ label }}</label>{% endif %}
@@ -176,7 +190,7 @@
     </div>
   </article>
   {% else %}
-  <div class="card content-card"><div class="card-body text-muted">{% if args.get('q') %}По поиску "{{ args.get('q') }}" ничего не найдено{% else %}Квартир по этому фильтру нет.{% endif %}</div></div>
+  <div class="card content-card"><div class="card-body text-muted">{% if args.get('q') %}По поиску "{{ args.get('q') }}" ничего не найдено{% else %}Помещений по этому фильтру нет.{% endif %}</div></div>
   {% endfor %}
 </div>
 
@@ -198,8 +212,10 @@
 {% endblock %}
 
 {% block floating_content %}
+{% if current_user.role in ['admin', 'manager'] %}
 <a class="po-notification-widget" href="{{ url_for('main.apartments', po='1') }}">
   <span>ПО</span>
   <b>{{ po_alert_count }}</b>
 </a>
+{% endif %}
 {% endblock %}

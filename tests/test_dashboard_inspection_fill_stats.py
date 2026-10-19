@@ -136,7 +136,50 @@ class DashboardInspectionFillStatsTests(unittest.TestCase):
         workbook.save(path)
         return path
 
-    def test_red_and_yellow_cells_are_the_only_not_inspected_rows(self):
+    def _workbook_with_extra_premise_sheets(self) -> Path:
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Квартиры"
+        sheet.append([
+            "Факт/№ ДДУ",
+            "Ф.И.О. Дольщиков",
+            "Телефон",
+            "Вид отделки",
+            "Запись",
+            "Дата первичного осмотра",
+            "Дата подписания АПП",
+        ])
+        sheet.append(["310/1", "Owner 310", "+7999", "Белая", None, None, None])
+
+        parking = workbook.create_sheet("Паркинг")
+        parking.append([
+            "№ паркинга",
+            "Ф.И.О. Дольщиков",
+            "Телефон",
+            "Вид отделки",
+            "Запись",
+            "Дата первичного осмотра",
+            "Дата подписания АПП",
+        ])
+        parking.append([1, "Parking Owner", "+7998", "Без отделки", None, None, None])
+
+        storerooms = workbook.create_sheet("Кладовки")
+        storerooms.append([
+            "№ кладовки",
+            "Ф.И.О. Дольщиков",
+            "Телефон",
+            "Вид отделки",
+            "Запись",
+            "Дата первичного осмотра",
+            "Дата подписания АПП",
+        ])
+        storerooms.append([2, "Storeroom Owner", "+7997", "Без отделки", None, None, None])
+
+        path = Path(self.tempdir.name) / "transfer-with-extra-premises.xlsx"
+        workbook.save(path)
+        return path
+
+    def test_only_date_in_inspection_column_marks_apartment_as_inspected(self):
         path = self._statistics_workbook()
         self.assertTrue(inspect_transfer_workbook(path)["ok"])
 
@@ -153,11 +196,37 @@ class DashboardInspectionFillStatsTests(unittest.TestCase):
         }
         self.assertEqual(
             flags,
-            {"1": False, "2": False, "3": True, "4": True, "5": True},
+            {"1": True, "2": True, "3": True, "4": False, "5": False},
         )
         stats = dashboard_stats(self.project.id)
         self.assertEqual(stats["inspected"], 3)
         self.assertEqual(stats["not_inspected"], 2)
+
+    def test_transfer_sync_does_not_mark_free_form_record_text_as_inspected(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Статистика"
+        sheet.append([
+            "№ кв",
+            "Ф.И.О. дольщиков",
+            "Телефон",
+            "Вид отделки",
+            "Запись",
+            "Дата первичного осмотра",
+            "Дата подписания АПП",
+        ])
+        sheet.append(["10", "Owner 10", "+10", "Белая", "позвонить позже", None, None])
+        sheet.append(["11", "Owner 11", "+11", "Белая", "25.09.2026", None, None])
+        path = Path(self.tempdir.name) / "transfer-record-text.xlsx"
+        workbook.save(path)
+
+        sync_transfer_statistics(path, project_name=self.project.name)
+
+        flags = {
+            apartment.apartment_number: apartment.first_inspection_present
+            for apartment in Apartment.query.order_by(Apartment.apartment_number.asc()).all()
+        }
+        self.assertEqual(flags, {"10": False, "11": True})
 
     def test_desktop_and_mobile_dashboard_render_the_same_fill_based_counts(self):
         sync_transfer_statistics(self._statistics_workbook(), project_name=self.project.name)
@@ -172,7 +241,7 @@ class DashboardInspectionFillStatsTests(unittest.TestCase):
                 html = response.get_data(as_text=True)
                 inspection_card = re.search(
                     r'<article class="dashboard-info-card">\s*'
-                    r'<div class="dashboard-info-title"><i class="bi bi-eye"></i>.*?</article>',
+                    r'<div class="dashboard-info-title[^"]*"><i class="bi bi-eye"></i>.*?</article>',
                     html,
                     re.DOTALL,
                 )
@@ -199,6 +268,44 @@ class DashboardInspectionFillStatsTests(unittest.TestCase):
         html = response.get_data(as_text=True)
         self.assertIn("принято - 1, ждёт - 1, не продано - 1", html)
         self.assertNotIn("принято - 2, ждёт - 2, не продано - 2", html)
+
+    def test_dashboard_hides_disabled_extra_premise_type_blocks(self):
+        self.project.has_storerooms = False
+        self.project.has_parking = False
+        db.session.commit()
+
+        response = self.client.get("/", headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn("Не принятых всего", html)
+        self.assertNotIn("Кладовок", html)
+        self.assertNotIn("Кладовки не продано", html)
+        self.assertNotIn("Парковок", html)
+        self.assertNotIn("Парковки не продано", html)
+
+    def test_transfer_sync_imports_parking_storerooms_and_uses_first_slash_number(self):
+        self.project.has_parking = True
+        self.project.has_storerooms = True
+        db.session.commit()
+
+        result = sync_transfer_statistics(self._workbook_with_extra_premise_sheets(), project_name=self.project.name)
+
+        self.assertEqual(result["created_count"], 3)
+        apartment = Apartment.query.filter_by(premise_type="apartment").one()
+        self.assertEqual(apartment.apartment_number, "310")
+        parking = Apartment.query.filter_by(premise_type="parking").one()
+        self.assertEqual(parking.apartment_number, "П1")
+        self.assertEqual(parking.construction_number, "П1")
+        self.assertEqual(parking.owner_name, "Parking Owner")
+        storeroom = Apartment.query.filter_by(premise_type="storeroom").one()
+        self.assertEqual(storeroom.apartment_number, "КЛ2")
+        self.assertEqual(storeroom.construction_number, "КЛ2")
+        self.assertEqual(storeroom.owner_name, "Storeroom Owner")
+        stats = dashboard_stats(self.project.id)
+        self.assertEqual(stats["apartment_count"], 1)
+        self.assertEqual(stats["parking_count"], 1)
+        self.assertEqual(stats["storeroom_count"], 1)
 
 
 if __name__ == "__main__":

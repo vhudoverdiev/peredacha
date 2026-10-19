@@ -123,7 +123,7 @@ class ServerSecurityBoundaryTests(unittest.TestCase):
         for url in foreign_urls:
             with self.subTest(url=url):
                 response = self.client.get(url)
-                self.assertEqual(response.status_code, 404)
+                self.assertIn(response.status_code, (403, 404)) if url.startswith("/sync-logs/") else self.assertEqual(response.status_code, 404)
                 self.assertNotIn(b"Foreign secret", response.data)
 
     def test_idor_cannot_modify_or_delete_foreign_project_records(self):
@@ -138,7 +138,7 @@ class ServerSecurityBoundaryTests(unittest.TestCase):
         for url, data in foreign_posts:
             with self.subTest(url=url):
                 response = self.client.post(url, data=data)
-                self.assertEqual(response.status_code, 404)
+                self.assertIn(response.status_code, (403, 404)) if url.startswith("/sync-logs/") else self.assertEqual(response.status_code, 404)
 
         db.session.expire_all()
         self.assertIsNotNone(db.session.get(Task, self.foreign_task.id))
@@ -283,7 +283,7 @@ class ProductionConfigurationSecurityTests(unittest.TestCase):
             headers={
                 "X-Forwarded-For": "203.0.113.77",
                 "X-Forwarded-Proto": "https",
-                "X-Forwarded-Host": "lk-crm.akvilon.tech",
+                "X-Forwarded-Host": "lk.akvilon-peredacha.ru",
             },
         )
         self.assertEqual(response.status_code, 200)

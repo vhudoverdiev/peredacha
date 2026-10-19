@@ -7,7 +7,7 @@ from app import db
 from app.models import Apartment, Task, WorkPoint
 from app.services.task_service import is_apartment_unsold
 
-MAIN_POINT_NUMBERS = {str(n) for n in range(10, 23)}
+MAIN_POINT_NUMBERS = {str(n) for n in range(10, 26)}
 WALL_POINT_NUMBERS = {"11"}
 PRIMARY_STATUS_NOT_READY = "not_ready"
 PRIMARY_STATUS_THROWN = "thrown"
@@ -67,12 +67,19 @@ def primary_status_class(apartment: Apartment) -> str:
     return PRIMARY_STATUS_CLASSES.get(primary_status(apartment), "secondary")
 
 
-def apartment_sort_key(apartment: Apartment) -> tuple[int, int, str]:
+def apartment_sort_key(apartment: Apartment) -> tuple[int, int, int, str]:
+    premise_type = (getattr(apartment, "premise_type", None) or "apartment").strip()
+    type_rank = {
+        "apartment": 0,
+        "commercial": 1,
+        "storeroom": 2,
+        "parking": 3,
+    }.get(premise_type, 4)
     number = (apartment.apartment_number or apartment.construction_number or "").strip()
     digits = "".join(ch for ch in number if ch.isdigit())
     if digits:
-        return (0, int(digits), number)
-    return (1, 0, number.lower())
+        return (type_rank, 0, int(digits), number)
+    return (type_rank, 1, 0, number.lower())
 
 
 def task_sort_key(task: Task) -> tuple[int, int, int, str]:

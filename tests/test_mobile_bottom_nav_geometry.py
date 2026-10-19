@@ -93,6 +93,40 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             self.mobile_css,
         )
 
+    def test_mobile_apartment_card_text_cannot_expand_page_width(self):
+        info_selector = (
+            "html.mobile-viewport body.app-body .apartment-card-info,\n"
+            "  html.adaptive-mobile-viewport body.app-body .apartment-card-info {"
+        )
+        info_start = self.style_css.index(info_selector)
+        info_end = self.style_css.index("}", info_start)
+        info_rule = self.style_css[info_start:info_end]
+        self.assertIn("min-width: 0 !important;", info_rule)
+        self.assertIn("max-width: 100% !important;", info_rule)
+
+        span_selector = (
+            "html.mobile-viewport body.app-body .apartment-card-info span,\n"
+            "  html.adaptive-mobile-viewport body.app-body .apartment-card-info span {"
+        )
+        span_start = self.style_css.index(span_selector)
+        span_end = self.style_css.index("}", span_start)
+        span_rule = self.style_css[span_start:span_end]
+        self.assertIn("min-width: 0 !important;", span_rule)
+        self.assertIn("max-width: 100% !important;", span_rule)
+        self.assertIn("overflow-wrap: anywhere !important;", span_rule)
+
+    def test_mobile_viewport_overrides_desktop_pointer_shell_width(self):
+        selector = (
+            "body.app-body.desktop-like-pointer:has(.apartments-page)\n"
+            "    :is(.app-layout, .app-main, .app-content, .crm-mobile-page-shell) {"
+        )
+        rule_start = self.mobile_css.index(selector)
+        rule_end = self.mobile_css.index("}", rule_start)
+        rule = self.mobile_css[rule_start:rule_end]
+        self.assertIn("width: 100% !important;", rule)
+        self.assertIn("min-width: 0 !important;", rule)
+        self.assertIn("max-width: 100vw !important;", rule)
+
     def test_only_empty_ordered_measurements_use_shared_short_page_geometry(self):
         self.assertIn(
             "{% if tab == 'ordered' and not ordered_rows %} glass-ordered-empty-page mobile-short-page-marker{% endif %}",
@@ -428,6 +462,21 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
                 dock_rule,
             )
             self.assertIn("bottom: auto !important;", dock_rule)
+
+    def test_objects_page_keeps_the_shared_fixed_bottom_dock(self):
+        body_selector = "body.app-body.app-body.app-body:has(.objects-page) {"
+        dock_selector = re.compile(
+            r"body\.app-body\.app-body\.app-body:has\(\.objects-page\)"
+            r"\s*>\s*nav\.mobile-bottom-nav\.mobile-bottom-nav-root"
+        )
+        for stylesheet in (self.base, self.mobile_css, self.style_css):
+            body_start = stylesheet.index(body_selector)
+            body_end = stylesheet.index("}", body_start)
+            body_rule = stylesheet[body_start:body_end]
+            self.assertIn("height: auto !important;", body_rule)
+            self.assertIn("max-height: none !important;", body_rule)
+            self.assertIn("background: #f6f8fb !important;", body_rule)
+            self.assertIsNone(dock_selector.search(stylesheet))
 
     def test_pwa_cache_uses_the_same_mobile_stylesheet_version(self):
         version_pattern = r"mobile-only\.css[^\n]*\?v=(v[\w-]+)"

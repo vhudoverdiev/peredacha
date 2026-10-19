@@ -31,6 +31,14 @@
       {% endfor %}
       {% endfor %}
     </form>
+    {% if export_endpoint == 'main.contractors_export' %}
+    <button class="btn btn-outline-success remarks-page-secondary-btn js-contractor-export-submit" type="submit" form="{{ form_id }}">
+      <i class="bi bi-file-earmark-excel me-2"></i>Скачать Excel
+    </button>
+    <button class="btn btn-outline-success remarks-page-secondary-btn js-contractor-export-submit" type="submit" form="{{ form_id }}" name="format" value="docx">
+      <i class="bi bi-file-earmark-word me-2"></i>Претензия Word
+    </button>
+    {% endif %}
   </div>
 </div>
 

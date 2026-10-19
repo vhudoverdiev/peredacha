@@ -11,7 +11,7 @@ from flask_wtf.csrf import CSRFError
 from flask_compress import Compress
 from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
-from sqlalchemy import event, inspect, text
+from sqlalchemy import inspect, text
 from datetime import date, datetime, timedelta
 
 from app.time_utils import to_moscow_datetime
@@ -70,27 +70,25 @@ def _is_flask_push_cli_invocation() -> bool:
     return executable.startswith("flask") and "push" in argv[1:]
 
 
-def _configure_sqlite_connection_pragmas(app) -> None:
-    uri = (app.config.get("SQLALCHEMY_DATABASE_URI") or "").lower()
-    if not uri.startswith("sqlite:"):
+def _is_mysql_database_uri(uri: str) -> bool:
+    return uri.startswith("mysql:") or uri.startswith("mysql+")
+
+
+def _is_sqlite_database_uri(uri: str) -> bool:
+    return uri.startswith("sqlite:")
+
+
+def _ensure_mysql_utf8mb4() -> None:
+    bind = db.engine
+    if bind.dialect.name not in {"mysql", "mariadb"}:
         return
 
-    timeout_seconds = int(app.config.get("SQLITE_BUSY_TIMEOUT_SECONDS", 30) or 30)
-    busy_timeout_ms = max(1, timeout_seconds) * 1000
-    is_memory_database = uri in {"sqlite://", "sqlite:///:memory:"} or ":memory:" in uri
-
-    @event.listens_for(db.engine, "connect")
-    def _set_sqlite_pragmas(dbapi_connection, _connection_record):
-        cursor = dbapi_connection.cursor()
-        try:
-            cursor.execute(f"PRAGMA busy_timeout={busy_timeout_ms}")
-            if not is_memory_database:
-                cursor.execute("PRAGMA journal_mode=WAL")
-                cursor.execute("PRAGMA synchronous=NORMAL")
-        except Exception:
-            pass
-        finally:
-            cursor.close()
+    inspector = inspect(bind)
+    db.session.execute(text("ALTER DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
+    for table_name in inspector.get_table_names():
+        quoted_table = bind.dialect.identifier_preparer.quote(table_name)
+        db.session.execute(text(f"ALTER TABLE {quoted_table} CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
+    db.session.commit()
 
 
 def create_app(config_class=Config):
@@ -116,6 +114,16 @@ def create_app(config_class=Config):
         raise RuntimeError(
             "SECRET_KEY must be set to a strong, unique value in the environment."
         )
+
+    uri = (app.config.get("SQLALCHEMY_DATABASE_URI") or "").lower()
+    allow_sqlite_runtime = bool(app.config.get("ALLOW_SQLITE_RUNTIME"))
+    if not app.config.get("TESTING") and not _is_flask_push_cli_invocation():
+        if not uri:
+            raise RuntimeError("DATABASE_URL must be set to a MariaDB connection string.")
+        if _is_sqlite_database_uri(uri) and not allow_sqlite_runtime:
+            raise RuntimeError("SQLite DATABASE_URL is not supported. Use a MariaDB DATABASE_URL.")
+        if not _is_sqlite_database_uri(uri) and not _is_mysql_database_uri(uri):
+            raise RuntimeError("Only MariaDB DATABASE_URL values are supported.")
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -199,6 +207,8 @@ def create_app(config_class=Config):
         if request.endpoint == "auth.login" or request.path == "/login":
             session.pop("csrf_token", None)
             return redirect(url_for("auth.login"), code=303)
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in (request.headers.get("Accept") or ""):
+            return {"ok": False, "message": "Сессия устарела. Обновите страницу и отправьте сообщение еще раз."}, 400
         return error.get_response()
 
     @app.template_filter("msk_datetime")
@@ -233,25 +243,58 @@ def create_app(config_class=Config):
 
     with app.app_context():
         uri = (app.config.get("SQLALCHEMY_DATABASE_URI") or "").lower()
-        if uri.startswith("sqlite:"):
-            _configure_sqlite_connection_pragmas(app)
-            # create_all is idempotent for SQLite and ensures new tables appear.
+        if _is_sqlite_database_uri(uri):
             db.create_all()
+            project_columns = {column["name"] for column in inspect(db.engine).get_columns("projects")}
+            if "signature_image" not in project_columns:
+                db.session.execute(text("ALTER TABLE projects ADD COLUMN signature_image TEXT"))
+                db.session.commit()
+        elif _is_mysql_database_uri(uri):
+            db.create_all()
+            _ensure_mysql_utf8mb4()
+
+        if _is_mysql_database_uri(uri):
             inspector = inspect(db.engine)
             if "projects" in inspector.get_table_names():
                 project_columns = {column["name"] for column in inspector.get_columns("projects")}
+                if "signature_image" not in project_columns:
+                    db.session.execute(text("ALTER TABLE projects ADD COLUMN signature_image LONGTEXT"))
+                if "technical_customer" not in project_columns:
+                    db.session.execute(text("ALTER TABLE projects ADD COLUMN technical_customer VARCHAR(255)"))
+                if "developer_name" not in project_columns:
+                    db.session.execute(text("ALTER TABLE projects ADD COLUMN developer_name VARCHAR(255)"))
+                if "inn_kpp" not in project_columns:
+                    db.session.execute(text("ALTER TABLE projects ADD COLUMN inn_kpp VARCHAR(80)"))
+                if "ogrn" not in project_columns:
+                    db.session.execute(text("ALTER TABLE projects ADD COLUMN ogrn VARCHAR(80)"))
+                if "legal_address" not in project_columns:
+                    db.session.execute(text("ALTER TABLE projects ADD COLUMN legal_address VARCHAR(255)"))
+                if "developer_director" not in project_columns:
+                    db.session.execute(text("ALTER TABLE projects ADD COLUMN developer_director VARCHAR(255)"))
+                if "developer_representative" not in project_columns:
+                    db.session.execute(text("ALTER TABLE projects ADD COLUMN developer_representative VARCHAR(255)"))
+                if "developer_representative_phone" not in project_columns:
+                    db.session.execute(text("ALTER TABLE projects ADD COLUMN developer_representative_phone VARCHAR(80)"))
                 if "has_apartments" not in project_columns:
                     db.session.execute(text("ALTER TABLE projects ADD COLUMN has_apartments BOOLEAN NOT NULL DEFAULT 1"))
                 if "has_commercial" not in project_columns:
                     db.session.execute(text("ALTER TABLE projects ADD COLUMN has_commercial BOOLEAN NOT NULL DEFAULT 1"))
                 if "has_storerooms" not in project_columns:
                     db.session.execute(text("ALTER TABLE projects ADD COLUMN has_storerooms BOOLEAN NOT NULL DEFAULT 0"))
+                if "has_parking" not in project_columns:
+                    db.session.execute(text("ALTER TABLE projects ADD COLUMN has_parking BOOLEAN NOT NULL DEFAULT 0"))
+                if "created_by_id" not in project_columns:
+                    db.session.execute(text("ALTER TABLE projects ADD COLUMN created_by_id INTEGER"))
                 db.session.commit()
             if "users" in inspector.get_table_names():
                 user_columns = {column["name"] for column in inspector.get_columns("users")}
                 added_project_access_mode = False
                 if "password_plain" not in user_columns:
                     db.session.execute(text("ALTER TABLE users ADD COLUMN password_plain VARCHAR(255)"))
+                if "email" not in user_columns:
+                    db.session.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(180)"))
+                if "phone" not in user_columns:
+                    db.session.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(80)"))
                 if "project_id" not in user_columns:
                     db.session.execute(text("ALTER TABLE users ADD COLUMN project_id INTEGER"))
                 if "all_projects_access" not in user_columns:
@@ -278,7 +321,8 @@ def create_app(config_class=Config):
                 if "two_factor_confirmed_at" not in user_columns:
                     db.session.execute(text("ALTER TABLE users ADD COLUMN two_factor_confirmed_at DATETIME"))
                 if added_project_access_mode:
-                    db.session.execute(text("UPDATE users SET all_projects_access = 1 WHERE project_id IS NULL OR role IN ('admin', 'manager', 'verifier')"))
+                    db.session.execute(text("UPDATE users SET all_projects_access = 1 WHERE project_id IS NULL OR role IN ('admin', 'manager')"))
+                db.session.execute(text("UPDATE users SET role = 'viewer', all_projects_access = 0 WHERE role = 'verifier'"))
                 # Больше не держим пароли в открытом виде в БД.
                 db.session.execute(text("UPDATE users SET password_plain = NULL WHERE password_plain IS NOT NULL"))
                 db.session.commit()
@@ -289,6 +333,8 @@ def create_app(config_class=Config):
                 if "inspection_note" not in apartment_columns:
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN inspection_note TEXT"))
                     db.session.execute(text("UPDATE apartments SET inspection_note = comment WHERE comment IS NOT NULL AND comment != ''"))
+                if "correction_comment" not in apartment_columns:
+                    db.session.execute(text("ALTER TABLE apartments ADD COLUMN correction_comment TEXT"))
                 if "is_unsold" not in apartment_columns:
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN is_unsold BOOLEAN NOT NULL DEFAULT 0"))
                     # В старых версиях строка «не продано» сохранялась как пустой собственник.
@@ -314,18 +360,114 @@ def create_app(config_class=Config):
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN po_status_manual BOOLEAN NOT NULL DEFAULT 0"))
                 if "premise_type" not in apartment_columns:
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN premise_type VARCHAR(30) NOT NULL DEFAULT 'apartment'"))
+                if "contract_number" not in apartment_columns:
+                    db.session.execute(text("ALTER TABLE apartments ADD COLUMN contract_number VARCHAR(80)"))
                 if "building" not in apartment_columns:
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN building VARCHAR(50)"))
                 if "avr_status" not in apartment_columns:
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN avr_status VARCHAR(30) NOT NULL DEFAULT 'needed'"))
                 if "avr_signed_date" not in apartment_columns:
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN avr_signed_date DATE"))
+                if "addendum_status" not in apartment_columns:
+                    db.session.execute(text("ALTER TABLE apartments ADD COLUMN addendum_status VARCHAR(30) NOT NULL DEFAULT 'none'"))
+                if "addendum_signed_date" not in apartment_columns:
+                    db.session.execute(text("ALTER TABLE apartments ADD COLUMN addendum_signed_date DATE"))
+                if "addendum_status_manual" not in apartment_columns:
+                    db.session.execute(text("ALTER TABLE apartments ADD COLUMN addendum_status_manual BOOLEAN NOT NULL DEFAULT 0"))
                 if "app_deadline_date" not in apartment_columns:
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN app_deadline_date DATE"))
                 if "app_deadline_raw" not in apartment_columns:
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN app_deadline_raw VARCHAR(255)"))
                 if "app_deadline_status" not in apartment_columns:
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN app_deadline_status VARCHAR(30) NOT NULL DEFAULT 'normal'"))
+                db.session.commit()
+
+            if "site_error_reports" in inspector.get_table_names():
+                site_error_columns = {column["name"] for column in inspector.get_columns("site_error_reports")}
+                if "developer_reply" not in site_error_columns:
+                    db.session.execute(text("ALTER TABLE site_error_reports ADD COLUMN developer_reply TEXT"))
+                if "developer_replied_at" not in site_error_columns:
+                    db.session.execute(text("ALTER TABLE site_error_reports ADD COLUMN developer_replied_at DATETIME"))
+                if "developer_reply_user_id" not in site_error_columns:
+                    db.session.execute(text("ALTER TABLE site_error_reports ADD COLUMN developer_reply_user_id INTEGER"))
+                if "user_reply_read_at" not in site_error_columns:
+                    db.session.execute(text("ALTER TABLE site_error_reports ADD COLUMN user_reply_read_at DATETIME"))
+                db.session.commit()
+
+            if "chat_messages" not in inspector.get_table_names():
+                db.session.execute(text(
+                    "CREATE TABLE chat_messages ("
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "project_id INTEGER, "
+                    "sender_id INTEGER NOT NULL, "
+                    "recipient_id INTEGER NOT NULL, "
+                    "body TEXT NOT NULL, "
+                    "read_at DATETIME, "
+                    "created_at DATETIME NOT NULL, "
+                    "updated_at DATETIME NOT NULL)"
+                ))
+                db.session.execute(text("CREATE INDEX ix_chat_messages_project_id ON chat_messages (project_id)"))
+                db.session.execute(text("CREATE INDEX ix_chat_messages_sender_id ON chat_messages (sender_id)"))
+                db.session.execute(text("CREATE INDEX ix_chat_messages_recipient_id ON chat_messages (recipient_id)"))
+                db.session.execute(text("CREATE INDEX ix_chat_messages_read_at ON chat_messages (read_at)"))
+                db.session.commit()
+
+            if "work_points" in inspector.get_table_names():
+                from app.work_points import WORK_POINT_LABELS
+
+                split_21_done = db.session.execute(
+                    text(
+                        "SELECT COUNT(*) FROM work_points "
+                        "WHERE point_number = '22' "
+                        "AND (short_name IN (:canalization, :old_canalization) "
+                        "OR original_column_name IN (:canalization, :old_canalization))"
+                    ),
+                    {
+                        "canalization": WORK_POINT_LABELS["22"],
+                        "old_canalization": "Работы по монтажу канализации",
+                    },
+                ).scalar()
+                if not split_21_done:
+                    all_point_rows = db.session.execute(
+                        text("SELECT id, point_number FROM work_points")
+                    ).mappings().all()
+                    rows_to_shift = [
+                        row
+                        for row in all_point_rows
+                        if str(row["point_number"] or "").isdigit() and int(row["point_number"]) >= 22
+                    ]
+                    for row in rows_to_shift:
+                        db.session.execute(
+                            text("UPDATE work_points SET point_number = :temporary_number WHERE id = :id"),
+                            {"id": row["id"], "temporary_number": f"__split21_{row['id']}"},
+                        )
+                    for row in sorted(rows_to_shift, key=lambda item: int(item["point_number"]), reverse=True):
+                        new_number = str(int(row["point_number"]) + 1)
+                        label = WORK_POINT_LABELS.get(new_number)
+                        if label:
+                            db.session.execute(
+                                text(
+                                    "UPDATE work_points "
+                                    "SET point_number = :new_number, short_name = :label, original_column_name = :label "
+                                    "WHERE id = :id"
+                                ),
+                                {"id": row["id"], "new_number": new_number, "label": label},
+                            )
+                        else:
+                            db.session.execute(
+                                text("UPDATE work_points SET point_number = :new_number WHERE id = :id"),
+                                {"id": row["id"], "new_number": new_number},
+                            )
+
+                for number, label in WORK_POINT_LABELS.items():
+                    db.session.execute(
+                        text(
+                            "UPDATE work_points "
+                            "SET short_name = :label, original_column_name = :label "
+                            "WHERE point_number = :number"
+                        ),
+                        {"number": number, "label": label},
+                    )
                 db.session.commit()
 
             if "tasks" in inspector.get_table_names():
@@ -397,6 +539,20 @@ def create_app(config_class=Config):
                     db.session.execute(text("ALTER TABLE sync_conflicts ADD COLUMN field_label VARCHAR(160)"))
                 db.session.commit()
 
+            if "contractors" in inspector.get_table_names():
+                contractor_columns = {column["name"] for column in inspector.get_columns("contractors")}
+                if "legal_address" not in contractor_columns:
+                    db.session.execute(text("ALTER TABLE contractors ADD COLUMN legal_address VARCHAR(255)"))
+                if "contract_number" not in contractor_columns:
+                    db.session.execute(text("ALTER TABLE contractors ADD COLUMN contract_number VARCHAR(255)"))
+                if "contract_date" not in contractor_columns:
+                    db.session.execute(text("ALTER TABLE contractors ADD COLUMN contract_date VARCHAR(50)"))
+                if "director_full_name" not in contractor_columns:
+                    db.session.execute(text("ALTER TABLE contractors ADD COLUMN director_full_name VARCHAR(255)"))
+                if "email" not in contractor_columns:
+                    db.session.execute(text("ALTER TABLE contractors ADD COLUMN email VARCHAR(255)"))
+                db.session.commit()
+
             if "sync_logs" in inspector.get_table_names():
                 sync_log_columns = {column["name"] for column in inspector.get_columns("sync_logs")}
                 if "project_id" not in sync_log_columns:
@@ -406,7 +562,10 @@ def create_app(config_class=Config):
                 if "rollback_note" not in sync_log_columns:
                     db.session.execute(text("ALTER TABLE sync_logs ADD COLUMN rollback_note TEXT"))
                 if "rollback_data" not in sync_log_columns:
-                    db.session.execute(text("ALTER TABLE sync_logs ADD COLUMN rollback_data TEXT"))
+                    rollback_data_type = "LONGTEXT" if _is_mysql_database_uri(uri) else "TEXT"
+                    db.session.execute(text(f"ALTER TABLE sync_logs ADD COLUMN rollback_data {rollback_data_type}"))
+                elif _is_mysql_database_uri(uri):
+                    db.session.execute(text("ALTER TABLE sync_logs MODIFY COLUMN rollback_data LONGTEXT"))
                 db.session.commit()
                 # Для старых баз: если объект один, привязываем прежние записи журнала к нему.
                 first_project_id = db.session.execute(text("SELECT id FROM projects ORDER BY id ASC LIMIT 1")).scalar()

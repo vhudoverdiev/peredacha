@@ -2,6 +2,7 @@ import unittest
 
 from app.services.remark_format import (
     has_quoted_remark_text,
+    is_fully_quoted_remark_text,
     remark_plain_text_html,
     remark_sentence_lines_html,
     remark_text_html,
@@ -34,6 +35,12 @@ class RemarkFormatContractsTests(unittest.TestCase):
         self.assertTrue(has_quoted_remark_text('Needs "replacement"'))
         self.assertFalse(has_quoted_remark_text('Needs "replacement'))
         self.assertFalse(has_quoted_remark_text(None))
+
+    def test_full_quote_detection_distinguishes_whole_remark_from_fragment(self):
+        self.assertTrue(is_fully_quoted_remark_text('"Требуется восстановить стяжку пола."'))
+        self.assertTrue(is_fully_quoted_remark_text('«Требуется восстановить стяжку пола.»'))
+        self.assertFalse(is_fully_quoted_remark_text('Заменить "ручку"'))
+        self.assertFalse(is_fully_quoted_remark_text('"Незакрытая кавычка'))
 
 
 if __name__ == "__main__":

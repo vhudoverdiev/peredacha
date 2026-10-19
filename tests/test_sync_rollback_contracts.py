@@ -2,6 +2,8 @@ from datetime import datetime, timedelta
 import json
 import unittest
 
+from sqlalchemy.dialects import mysql
+
 from config import Config
 from app import create_app, db
 from app.models import Apartment, ChangeLog, Project, SyncConflict, SyncLog, Task, WorkPoint
@@ -53,6 +55,23 @@ class SyncRollbackContractsTests(unittest.TestCase):
 
         self.assertIn("created_at_utc", payload)
         self.assertIsNone(datetime.fromisoformat(payload["created_at_utc"]).tzinfo)
+
+    def test_build_project_rollback_data_is_ascii_safe_for_mysql_text_columns(self):
+        self.apartment.owner_name = "Владимир Худовердиев"
+        self.task.description = "Русское замечание"
+        db.session.commit()
+
+        raw_payload = build_project_rollback_data(self.project.id)
+        payload = json.loads(raw_payload)
+
+        raw_payload.encode("ascii")
+        self.assertEqual(payload["apartments"][0]["owner_name"], "Владимир Худовердиев")
+        self.assertEqual(payload["tasks"][0]["description"], "Русское замечание")
+
+    def test_sync_log_rollback_data_uses_longtext_on_mysql(self):
+        column_type = SyncLog.__table__.c.rollback_data.type.compile(dialect=mysql.dialect())
+
+        self.assertEqual(column_type.upper(), "LONGTEXT")
 
     def test_deserialize_value_restores_dates_datetimes_and_handles_bad_values_safely(self):
         self.assertEqual(_deserialize_value("deadline_date", "2026-07-29"), datetime(2026, 7, 29).date())

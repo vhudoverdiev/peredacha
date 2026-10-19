@@ -20,37 +20,18 @@ def _csv_env(name: str) -> set[str]:
 
 def _normalize_database_url(raw_url: str | None) -> str:
     """
-    Make sqlite URLs stable regardless of the current working directory.
+    Read DATABASE_URL from the environment.
 
-    If DATABASE_URL is like `sqlite:///instance/crm.sqlite`, SQLAlchemy treats it
-    as a relative path. When the app is started from another folder (e.g. via a
-    service), this breaks with "unable to open database file".
+    The project runs on MariaDB.  Do not silently fall back to a local SQLite
+    file because that can hide a broken deployment configuration.  SQLite URLs
+    are still returned here so test configs can import this module safely; the
+    runtime guard lives in create_app, where TESTING is available.
     """
     if not raw_url:
-        db_path = (BASE_DIR / "instance" / "crm.sqlite").resolve()
-        return f"sqlite:///{db_path.as_posix()}"
+        return ""
 
     url = raw_url.strip()
-
-    sqlite_prefix = "sqlite:///"
-    if not url.lower().startswith(sqlite_prefix):
-        return url
-
-    path_part = url[len(sqlite_prefix) :]
-    # Absolute examples:
-    # - /var/app/instance/db.sqlite
-    # - C:/project/instance/db.sqlite
-    # - C:\project\instance\db.sqlite (rare but possible in env)
-    looks_absolute = (
-        path_part.startswith("/")
-        or (len(path_part) >= 3 and path_part[1:3] == ":/")
-        or (len(path_part) >= 3 and path_part[1:3] == ":\\")
-    )
-    if looks_absolute:
-        return url
-
-    abs_path = (BASE_DIR / path_part).resolve()
-    return f"sqlite:///{abs_path.as_posix()}"
+    return url
 
 
 def _normalize_fs_path(raw_path: str | None, default_relative: str) -> str:
@@ -66,18 +47,10 @@ def _normalize_fs_path(raw_path: str | None, default_relative: str) -> str:
     return str((BASE_DIR / path).resolve())
 
 
-def _sqlite_engine_options(database_uri: str) -> dict:
-    if not (database_uri or "").lower().startswith("sqlite:"):
-        return {}
-    timeout_seconds = int(os.getenv("SQLITE_BUSY_TIMEOUT_SECONDS", "30"))
-    return {"connect_args": {"timeout": timeout_seconds}}
-
-
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY")
     SQLALCHEMY_DATABASE_URI = _normalize_database_url(os.getenv("DATABASE_URL"))
-    SQLITE_BUSY_TIMEOUT_SECONDS = int(os.getenv("SQLITE_BUSY_TIMEOUT_SECONDS", "30"))
-    SQLALCHEMY_ENGINE_OPTIONS = _sqlite_engine_options(SQLALCHEMY_DATABASE_URI)
+    SQLALCHEMY_ENGINE_OPTIONS = {}
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     COMPRESS_MIMETYPES = [
         "text/html",
@@ -90,7 +63,6 @@ class Config:
     COMPRESS_LEVEL = 6
     COMPRESS_BR_LEVEL = 8
     COMPRESS_MIN_SIZE = 500
-
 
     SYNC_ON_STARTUP = _bool_env("SYNC_ON_STARTUP", False)
     SYNC_INTERVAL_MINUTES = int(os.getenv("SYNC_INTERVAL_MINUTES", "30"))

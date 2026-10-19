@@ -4,6 +4,7 @@ from datetime import date, timedelta
 import json
 import re
 from flask_login import UserMixin
+from sqlalchemy.dialects import mysql
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import db
 from app.time_utils import utc_now
@@ -11,32 +12,35 @@ from app.time_utils import utc_now
 
 ROLE_ADMIN = "admin"
 ROLE_MANAGER = "manager"
+ROLE_SUPERVISOR = "supervisor"
+ROLE_OFFICE = "office"
 ROLE_EXECUTOR = "executor"
 ROLE_PAINTER = "painter"
 ROLE_HANDYMAN = "handyman"
 ROLE_GLAZIER = "glazier"
-ROLE_VERIFIER = "verifier"
 ROLE_VIEWER = "viewer"
 WORKER_ROLES = {ROLE_EXECUTOR, ROLE_PAINTER, ROLE_HANDYMAN, ROLE_GLAZIER}
 ALL_PROJECTS_ROLES = {ROLE_ADMIN}
 ROLE_LABELS = {
     ROLE_ADMIN: "Разработчик",
     ROLE_MANAGER: "Инженер",
+    ROLE_SUPERVISOR: "Руководитель",
+    ROLE_OFFICE: "Передача(Офис)",
     ROLE_EXECUTOR: "Маляр",
     ROLE_PAINTER: "Маляр",
     ROLE_HANDYMAN: "Разнорабочий",
     ROLE_GLAZIER: "Витражник",
-    ROLE_VERIFIER: "Сверщик",
     ROLE_VIEWER: "Просмотр",
 }
 USER_ROLE_CHOICES = [
     (ROLE_MANAGER, "Инженер"),
+    (ROLE_SUPERVISOR, "Руководитель"),
+    (ROLE_OFFICE, "Передача(Офис)"),
     (ROLE_PAINTER, "Маляр"),
     (ROLE_HANDYMAN, "Разнорабочий"),
     (ROLE_GLAZIER, "Витражник"),
-    (ROLE_VERIFIER, "Сверщик"),
 ]
-ROLES = [ROLE_ADMIN, ROLE_MANAGER, ROLE_EXECUTOR, ROLE_PAINTER, ROLE_HANDYMAN, ROLE_GLAZIER, ROLE_VERIFIER, ROLE_VIEWER]
+ROLES = [ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_OFFICE, ROLE_EXECUTOR, ROLE_PAINTER, ROLE_HANDYMAN, ROLE_GLAZIER, ROLE_VIEWER]
 
 STATUS_NOT_STARTED = "not_started"
 STATUS_IN_PROGRESS = "in_progress"
@@ -104,6 +108,8 @@ class User(UserMixin, TimestampMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     password_plain = db.Column(db.String(255), nullable=True)
     full_name = db.Column(db.String(160), nullable=True)
+    email = db.Column(db.String(180), nullable=True)
+    phone = db.Column(db.String(80), nullable=True)
     role = db.Column(db.String(30), default=ROLE_VIEWER, nullable=False, index=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=True, index=True)
@@ -120,8 +126,8 @@ class User(UserMixin, TimestampMixin, db.Model):
     two_factor_confirmed_at = db.Column(db.DateTime, nullable=True)
 
     assigned_tasks = db.relationship("Task", back_populates="responsible", foreign_keys="Task.responsible_id")
-    project = db.relationship("Project")
-    site_error_reports = db.relationship("SiteErrorReport", back_populates="user")
+    project = db.relationship("Project", foreign_keys=[project_id])
+    site_error_reports = db.relationship("SiteErrorReport", back_populates="user", foreign_keys="SiteErrorReport.user_id")
 
     @property
     def projects(self):
@@ -182,7 +188,7 @@ class User(UserMixin, TimestampMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
     def can(self, *roles: str) -> bool:
-        return self.role in roles or self.role == ROLE_ADMIN
+        return self.role in roles or self.role == ROLE_ADMIN or (ROLE_MANAGER in roles and self.role in {ROLE_OFFICE, ROLE_SUPERVISOR})
 
     def __repr__(self):
         return f"<User {self.username}>"
@@ -197,11 +203,28 @@ class Project(TimestampMixin, db.Model):
     building = db.Column(db.String(120), nullable=True)
     section = db.Column(db.String(120), nullable=True)
     address = db.Column(db.String(255), nullable=True)
+    technical_customer = db.Column(db.String(255), nullable=True)
+    developer_name = db.Column(db.String(255), nullable=True)
+    inn_kpp = db.Column(db.String(80), nullable=True)
+    ogrn = db.Column(db.String(80), nullable=True)
+    legal_address = db.Column(db.String(255), nullable=True)
+    signature_image = db.Column(db.Text().with_variant(mysql.LONGTEXT(), "mysql"), nullable=True)
+    developer_director = db.Column(db.String(255), nullable=True)
+    developer_representative = db.Column(db.String(255), nullable=True)
+    developer_representative_phone = db.Column(db.String(80), nullable=True)
     description = db.Column(db.Text, nullable=True)
     has_apartments = db.Column(db.Boolean, default=True, nullable=False)
     has_commercial = db.Column(db.Boolean, default=True, nullable=False)
     has_storerooms = db.Column(db.Boolean, default=False, nullable=False)
+    has_parking = db.Column(db.Boolean, default=False, nullable=False)
+    created_by_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", name="fk_projects_created_by_id_users", use_alter=True),
+        nullable=True,
+        index=True,
+    )
 
+    created_by = db.relationship("User", foreign_keys=[created_by_id])
     apartments = db.relationship("Apartment", back_populates="project", cascade="all, delete-orphan")
     tasks = db.relationship("Task", back_populates="project", cascade="all, delete-orphan")
     material_requests = db.relationship("MaterialRequest", back_populates="project", cascade="all, delete-orphan")
@@ -220,6 +243,11 @@ class Contractor(TimestampMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False, index=True)
     name = db.Column(db.String(180), nullable=False, index=True)
+    legal_address = db.Column(db.String(255), nullable=True)
+    contract_number = db.Column(db.String(255), nullable=True)
+    contract_date = db.Column(db.String(50), nullable=True)
+    director_full_name = db.Column(db.String(255), nullable=True)
+    email = db.Column(db.String(255), nullable=True)
 
     project = db.relationship("Project", back_populates="contractors")
     work_points = db.relationship("WorkPoint", secondary=contractor_work_points, back_populates="contractors")
@@ -240,6 +268,7 @@ class Apartment(TimestampMixin, db.Model):
     project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False, index=True)
     apartment_number = db.Column(db.String(80), nullable=True, index=True)
     construction_number = db.Column(db.String(80), nullable=True, index=True)
+    contract_number = db.Column(db.String(80), nullable=True)
     owner_name = db.Column(db.String(180), nullable=True, index=True)
     is_unsold = db.Column(db.Boolean, default=False, nullable=False, index=True)
     phone = db.Column(db.String(100), nullable=True, index=True)
@@ -256,12 +285,16 @@ class Apartment(TimestampMixin, db.Model):
     deadline_date = db.Column(db.Date, nullable=True)
     remark_deadline_date = db.Column(db.Date, nullable=True)
     inspection_note = db.Column(db.Text, nullable=True)
+    correction_comment = db.Column(db.Text, nullable=True)
     is_app_mode = db.Column(db.Boolean, default=False, nullable=False, index=True)
     po_status = db.Column(db.String(30), default="not_ready", nullable=False, index=True)
     po_status_manual = db.Column(db.Boolean, default=False, nullable=False, index=True)
     avr_archived_at = db.Column(db.DateTime, nullable=True)
     avr_status = db.Column(db.String(30), default="needed", nullable=False, index=True)
     avr_signed_date = db.Column(db.Date, nullable=True)
+    addendum_status = db.Column(db.String(30), default="none", nullable=False, index=True)
+    addendum_signed_date = db.Column(db.Date, nullable=True)
+    addendum_status_manual = db.Column(db.Boolean, default=False, nullable=False, index=True)
     app_deadline_date = db.Column(db.Date, nullable=True)
     app_deadline_raw = db.Column(db.String(255), nullable=True)
     app_deadline_status = db.Column(db.String(30), default="normal", nullable=False, index=True)
@@ -320,10 +353,21 @@ class Apartment(TimestampMixin, db.Model):
                 return text
         return f"ID {self.id}" if fallback_to_id else ""
 
+    @staticmethod
+    def _number_without_prefix(number: str, prefix: str) -> str:
+        text = str(number or "").strip()
+        pattern = rf"^{re.escape(prefix)}\s*"
+        cleaned = re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
+        return cleaned or text
+
     def label(self) -> str:
         number = self.display_number()
         if self.premise_type == "commercial":
             return self._commercial_label(number)
+        if self.premise_type == "storeroom":
+            return f"кл {self._number_without_prefix(number, 'КЛ')}"
+        if self.premise_type == "parking":
+            return number if number.upper().startswith("П") else f"П{number}"
         return f"кв {number}"
 
     def full_label(self) -> str:
@@ -335,12 +379,20 @@ class Apartment(TimestampMixin, db.Model):
             if commercial_number:
                 return f"Коммерция {commercial_number}"
             return f"Коммерция {fallback}".strip()
+        if self.premise_type == "storeroom":
+            return f"кл {self._number_without_prefix(number, 'КЛ')}"
+        if self.premise_type == "parking":
+            return number if number.upper().startswith("П") else f"П{number}"
         return f"кв {number}"
 
     def detail_label(self) -> str:
         number = self.display_number()
         if self.premise_type == "commercial":
             return self.full_label()
+        if self.premise_type == "storeroom":
+            return f"Кладовка {self._number_without_prefix(number, 'КЛ')}"
+        if self.premise_type == "parking":
+            return f"Парковка {number if number.upper().startswith('П') else f'П{number}'}"
         return f"Квартира {number}"
 
     def _commercial_parts(self, number: str | None) -> tuple[str, str, str]:
@@ -388,7 +440,7 @@ class Apartment(TimestampMixin, db.Model):
             return self.app_deadline_date
         if not self.is_app_mode:
             return None
-        base_date = self.inspection_date or self.first_inspection_date
+        base_date = self.deadline_date
         if not base_date:
             return None
         return base_date + timedelta(days=60)
@@ -734,7 +786,7 @@ class SyncLog(db.Model):
     error_message = db.Column(db.Text, nullable=True)
     rolled_back_at = db.Column(db.DateTime, nullable=True)
     rollback_note = db.Column(db.Text, nullable=True)
-    rollback_data = db.Column(db.Text, nullable=True)
+    rollback_data = db.Column(db.Text().with_variant(mysql.LONGTEXT(), "mysql", "mariadb"), nullable=True)
 
     project = db.relationship("Project")
 
@@ -756,9 +808,29 @@ class SiteErrorReport(TimestampMixin, db.Model):
     ip_address = db.Column(db.String(80), nullable=True, index=True)
     traceback_text = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(30), default="new", nullable=False, index=True)
+    developer_reply = db.Column(db.Text, nullable=True)
+    developer_replied_at = db.Column(db.DateTime, nullable=True)
+    developer_reply_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    user_reply_read_at = db.Column(db.DateTime, nullable=True)
 
     project = db.relationship("Project", back_populates="site_error_reports")
-    user = db.relationship("User", back_populates="site_error_reports")
+    user = db.relationship("User", back_populates="site_error_reports", foreign_keys=[user_id])
+    developer_reply_user = db.relationship("User", foreign_keys=[developer_reply_user_id])
+
+
+class ChatMessage(TimestampMixin, db.Model):
+    __tablename__ = "chat_messages"
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=True, index=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    body = db.Column(db.Text, nullable=False)
+    read_at = db.Column(db.DateTime, nullable=True, index=True)
+
+    project = db.relationship("Project")
+    sender = db.relationship("User", foreign_keys=[sender_id])
+    recipient = db.relationship("User", foreign_keys=[recipient_id])
 
 
 class DeletionActionLog(TimestampMixin, db.Model):

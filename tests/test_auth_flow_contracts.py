@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from config import Config
 from app import create_app, db, login_manager
-from app.models import ROLE_ADMIN, ROLE_GLAZIER, ROLE_MANAGER, ROLE_VERIFIER, AppSetting, Project, SecurityEvent, SiteErrorReport, User
+from app.models import ROLE_ADMIN, ROLE_GLAZIER, ROLE_MANAGER, AppSetting, Project, SecurityEvent, SiteErrorReport, User
 from app.time_utils import utc_now
 from app.security import _BUCKETS, login_ip_password_limit_reached
 
@@ -89,23 +89,6 @@ class AuthFlowContractsTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/my-tasks?status=open")
-
-    def test_verifier_login_respects_current_project_session_when_redirecting(self):
-        verifier = self._user(username="verifier", role=ROLE_VERIFIER)
-        project = Project(name="Verifier project")
-        db.session.add(project)
-        db.session.commit()
-        with self.client.session_transaction() as session:
-            session["current_project_id"] = project.id
-
-        response = self.client.post(
-            "/login",
-            data={"username": verifier.username, "password": "correct-password"},
-            follow_redirects=False,
-        )
-
-        self.assertEqual(response.status_code, 302)
-        self.assertIn("/report", response.headers["Location"])
 
     def test_invalid_password_increments_failure_count_without_creating_pending_login(self):
         user = self._user()

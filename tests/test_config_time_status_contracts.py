@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 import config
+from app import create_app
 from app.models import STATUS_DONE, STATUS_NOT_STARTED, STATUS_PROBLEM
 from app.routes import format_ru_date, format_ru_day_month, format_ru_weekday
 from app.services.status_rules import is_problem_details_required
@@ -10,20 +11,50 @@ from app.time_utils import MOSCOW_TIMEZONE, to_moscow_datetime, utc_now
 
 
 class ConfigTimeStatusContractsTests(unittest.TestCase):
-    def test_database_url_normalization_resolves_relative_sqlite_against_project_root(self):
-        normalized = config._normalize_database_url("sqlite:///instance/test.sqlite")
+    def test_database_url_normalization_requires_explicit_database_url(self):
+        self.assertEqual(config._normalize_database_url(None), "")
+        self.assertEqual(config._normalize_database_url("   "), "")
 
-        self.assertTrue(normalized.startswith("sqlite:///"))
-        self.assertIn("Peredacha/instance/test.sqlite", normalized.replace("\\", "/"))
+    def test_database_url_normalization_keeps_explicit_sqlite_url_for_test_configs(self):
+        self.assertEqual(
+            config._normalize_database_url("sqlite:///instance/test.sqlite"),
+            "sqlite:///instance/test.sqlite",
+        )
 
-    def test_database_url_normalization_preserves_absolute_sqlite_and_non_sqlite_urls(self):
-        self.assertEqual(config._normalize_database_url("sqlite:///C:/data/crm.sqlite"), "sqlite:///C:/data/crm.sqlite")
-        self.assertEqual(config._normalize_database_url("postgresql://user:pass@example/db"), "postgresql://user:pass@example/db")
+    def test_non_testing_app_rejects_sqlite_database_url(self):
+        class SQLiteRuntimeConfig(config.Config):
+            TESTING = False
+            SECRET_KEY = "strong-test-secret"
+            SQLALCHEMY_DATABASE_URI = "sqlite://"
+
+        with self.assertRaisesRegex(RuntimeError, "SQLite DATABASE_URL is not supported"):
+            create_app(SQLiteRuntimeConfig)
+
+    def test_non_testing_app_requires_mariadb_database_url(self):
+        class EmptyRuntimeConfig(config.Config):
+            TESTING = False
+            SECRET_KEY = "strong-test-secret"
+            SQLALCHEMY_DATABASE_URI = ""
+
+        class PostgresRuntimeConfig(config.Config):
+            TESTING = False
+            SECRET_KEY = "strong-test-secret"
+            SQLALCHEMY_DATABASE_URI = "postgresql://user:pass@example/db"
+
+        with self.assertRaisesRegex(RuntimeError, "DATABASE_URL must be set"):
+            create_app(EmptyRuntimeConfig)
+        with self.assertRaisesRegex(RuntimeError, "Only MariaDB DATABASE_URL"):
+            create_app(PostgresRuntimeConfig)
+
+    def test_database_url_normalization_preserves_mariadb_url(self):
+        url = "mysql+pymysql://user:pass@127.0.0.1:3306/peredacha?charset=utf8mb4"
+
+        self.assertEqual(config._normalize_database_url(url), url)
 
     def test_filesystem_path_normalization_uses_base_dir_for_relative_values(self):
         normalized = config._normalize_fs_path("uploads/custom", "fallback")
 
-        self.assertTrue(normalized.replace("\\", "/").endswith("/Peredacha/uploads/custom"))
+        self.assertTrue(normalized.replace("\\", "/").endswith("/uploads/custom"))
 
     def test_bool_and_csv_env_parsing_accept_common_forms_and_normalize_case(self):
         with patch.dict("os.environ", {"FLAG": "YeS", "NAMES": " Admin, manager ,, ADMIN "}, clear=False):

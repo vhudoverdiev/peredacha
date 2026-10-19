@@ -84,7 +84,15 @@
       <div class="dashboard-big-number">{{ stats.apartments }}</div>
       <div class="dashboard-mini-stats dashboard-mini-stats-two">
         <div><span>Квартиры</span><b>{{ stats.apartment_count }}</b></div>
+        {% if project.has_commercial %}
         <div><span>Коммерции</span><b>{{ stats.commercial_count }}</b></div>
+        {% endif %}
+        {% if project.has_storerooms %}
+        <div><span>Кладовки</span><b>{{ stats.storeroom_count }}</b></div>
+        {% endif %}
+        {% if project.has_parking %}
+        <div><span>Парковки</span><b>{{ stats.parking_count }}</b></div>
+        {% endif %}
         <div><span>Чистовые</span><b>{{ stats.clean_apartments }}</b></div>
         <div><span>Белые</span><b>{{ stats.white_apartments }}</b></div>
       </div>
@@ -93,35 +101,100 @@
 
   <div class="dashboard-info-columns">
     <article class="dashboard-info-card">
-      <div class="dashboard-info-title"><i class="bi bi-clipboard-check"></i> Приемка</div>
+      <div class="dashboard-info-title dashboard-soft-section-title"><i class="bi bi-clipboard-check"></i> Приемка</div>
       <div class="dashboard-line-list">
         <div><span>Принятых</span><b>{{ stats.accepted }}</b></div>
         <div><span>Не проданных всего</span><b>{{ stats.unsold }}</b></div>
         <div><span>Квартир не продано</span><b>{{ stats.unsold_apartment_count }}</b></div>
+        {% if project.has_commercial %}
         <div><span>Коммерции не продано</span><b>{{ stats.unsold_commercial_count }}</b></div>
-        <div><span>Не принятых</span><b>{{ stats.not_accepted }}</b></div>
+        {% endif %}
+        {% if project.has_storerooms %}
+        <div><span>Кладовки не продано</span><b>{{ stats.unsold_storeroom_count }}</b></div>
+        <div><span>Кладовок не принято</span><b>{{ stats.not_accepted_storeroom_count }}</b></div>
+        {% endif %}
+        {% if project.has_parking %}
+        <div><span>Парковки не продано</span><b>{{ stats.unsold_parking_count }}</b></div>
+        {% endif %}
+        <div><span>Не принятых всего</span><b>{{ stats.not_accepted }}</b></div>
       </div>
     </article>
 
     <article class="dashboard-info-card">
-      <div class="dashboard-info-title"><i class="bi bi-eye"></i> Осмотры</div>
-      <div class="dashboard-line-list">
-        <div><span>Были на осмотре</span><b>{{ stats.inspected }}</b></div>
-        <div><span>Не были на осмотре</span><b>{{ stats.not_inspected }}</b></div>
+      <div class="dashboard-info-title dashboard-soft-section-title"><i class="bi bi-eye"></i> Осмотры</div>
+      <div class="dashboard-accepted-types">
+        <section class="dashboard-accepted-type">
+          <div class="dashboard-accepted-summary-grid">
+            <div><span>Квартир были на осмотре</span><b>{{ stats.inspection_by_type.apartment.inspected }}</b></div>
+            <div><span>Квартир не были на осмотре</span><b>{{ stats.inspection_by_type.apartment.not_inspected }}</b></div>
+          </div>
+        </section>
+        {% if project.has_storerooms %}
+        <section class="dashboard-accepted-type">
+          <div class="dashboard-accepted-summary-grid">
+            <div><span>Кладовок были на осмотре</span><b>{{ stats.inspection_by_type.storeroom.inspected }}</b></div>
+            <div><span>Кладовок не были на осмотре</span><b>{{ stats.inspection_by_type.storeroom.not_inspected }}</b></div>
+          </div>
+        </section>
+        {% endif %}
+        {% if project.has_parking %}
+        <section class="dashboard-accepted-type">
+          <div class="dashboard-accepted-summary-grid">
+            <div><span>Парковок были на осмотре</span><b>{{ stats.inspection_by_type.parking.inspected }}</b></div>
+            <div><span>Парковок не были на осмотре</span><b>{{ stats.inspection_by_type.parking.not_inspected }}</b></div>
+          </div>
+        </section>
+        {% endif %}
+        {% if project.has_commercial %}
+        <section class="dashboard-accepted-type">
+          <div class="dashboard-accepted-summary-grid">
+            <div><span>Коммерций были на осмотре</span><b>{{ stats.inspection_by_type.commercial.inspected }}</b></div>
+            <div><span>Коммерций не были на осмотре</span><b>{{ stats.inspection_by_type.commercial.not_inspected }}</b></div>
+          </div>
+        </section>
+        {% endif %}
       </div>
     </article>
 
-    <article class="dashboard-info-card dashboard-roadmap-mini-card" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#dashboardRoadmapModal" aria-label="Открыть планы развития CRM">
-      <div class="dashboard-roadmap-mini-glow" aria-hidden="true"></div>
-      <div class="dashboard-info-title dashboard-roadmap-mini-title"><i class="bi bi-stars"></i> Что скоро станет доступно?</div>
-      <p class="dashboard-roadmap-mini-text">Каждый день я развиваю CRM для удобного пользования</p>
-      <div class="dashboard-roadmap-mini-list">
-        <span><i class="bi bi-file-earmark-text"></i>Быстрое редактирование и генерация документов</span>
-        <span><i class="bi bi-house-add"></i>Добавление объектов с кладовками</span>
-        <span><i class="bi bi-box-seam"></i>Учёт затраченного материала</span>
+    <article class="dashboard-info-card">
+      <div class="dashboard-info-title dashboard-soft-section-title">
+        <i class="bi bi-check2-circle"></i>
+        Принято
       </div>
-      <div class="dashboard-roadmap-mini-more">Прочитать полностью <i class="bi bi-arrow-right"></i></div>
+      <div class="dashboard-accepted-types">
+        <section class="dashboard-accepted-type">
+          <div class="dashboard-accepted-summary-grid">
+            <div><span>Квартир с замечаниями</span><b>{{ stats.accepted_with_remarks_apartment }}</b></div>
+            <div><span>Квартир без замечаний</span><b>{{ stats.accepted_no_remarks_apartment }}</b></div>
+          </div>
+        </section>
+        {% if project.has_storerooms %}
+        <section class="dashboard-accepted-type">
+          <div class="dashboard-accepted-summary-grid">
+            <div><span>Кладовок с замечаниями</span><b>{{ stats.accepted_with_remarks_storeroom }}</b></div>
+            <div><span>Кладовок без замечаний</span><b>{{ stats.accepted_no_remarks_storeroom }}</b></div>
+          </div>
+        </section>
+        {% endif %}
+        {% if project.has_parking %}
+        <section class="dashboard-accepted-type">
+          <div class="dashboard-accepted-summary-grid">
+            <div><span>Парковок с замечаниями</span><b>{{ stats.accepted_with_remarks_parking }}</b></div>
+            <div><span>Парковок без замечаний</span><b>{{ stats.accepted_no_remarks_parking }}</b></div>
+          </div>
+        </section>
+        {% endif %}
+        {% if project.has_commercial %}
+        <section class="dashboard-accepted-type">
+          <div class="dashboard-accepted-summary-grid">
+            <div><span>Коммерций с замечаниями</span><b>{{ stats.accepted_with_remarks_commercial }}</b></div>
+            <div><span>Коммерций без замечаний</span><b>{{ stats.accepted_no_remarks_commercial }}</b></div>
+          </div>
+        </section>
+        {% endif %}
+      </div>
     </article>
+
   </div>
   <div class="dashboard-section dashboard-section-redesign">Статистика по специалистам</div>
   <div class="dashboard-specialists-grid">
@@ -144,24 +217,4 @@
   </div>
 </section>
 
-<div class="modal fade dashboard-roadmap-modal" id="dashboardRoadmapModal" tabindex="-1" aria-labelledby="dashboardRoadmapModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content dashboard-roadmap-modal-content">
-      <div class="modal-header dashboard-roadmap-modal-head">
-        <div>
-          <h2 class="modal-title" id="dashboardRoadmapModalLabel">Что скоро станет доступно?</h2>
-        </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-      </div>
-      <div class="modal-body">
-        <p class="dashboard-roadmap-subtitle mb-3">Мы развиваем CRM дальше, чтобы она стала ещё удобнее для руководителя, сотрудников и работы с объектами. Ниже — ключевые функции, которые планируются к запуску в следующих обновлениях.</p>
-        <div class="dashboard-roadmap-grid dashboard-roadmap-modal-grid">
-          <div class="dashboard-roadmap-item"><i class="bi bi-file-earmark-text"></i><div><h3>Быстрое редактирование и генерация документов</h3><p>Появится возможность оперативно подготавливать документы для подписания: АПП, дополнительные соглашения и другие рабочие формы.</p></div></div>
-          <div class="dashboard-roadmap-item"><i class="bi bi-house-add"></i><div><h3>Добавление объектов с кладовками</h3><p>Система будет поддерживать расширенную структуру объектов, включая кладовые помещения, чтобы учёт стал полнее и точнее.</p></div></div>
-          <div class="dashboard-roadmap-item"><i class="bi bi-box-seam"></i><div><h3>Учёт затраченного материала</h3><p>Сотрудники смогут фиксировать, какие материалы и в каком объёме были использованы по конкретной задаче — для удобной отчётности и прозрачного контроля.</p></div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 {% endblock %}

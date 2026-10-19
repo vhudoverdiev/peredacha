@@ -25,25 +25,43 @@
     {% for item in project_cards %}
     {% set project = item.project %}
     {% set stats = item.stats %}
+    {% set has_object_details = project.technical_customer or project.developer_name or project.developer_representative or project.developer_representative_phone %}
     <article class="object-card" role="link" tabindex="0" data-href="{{ url_for('main.object_open', project_id=project.id) }}">
-      {% if current_user.role in ['admin', 'manager'] and not is_mobile_phone_request %}
+      {% if current_user.role in ['admin', 'manager', 'supervisor', 'office'] and not is_mobile_phone_request %}
       <div class="object-card-actions">
         <a class="object-action" href="{{ url_for('main.object_edit', project_id=project.id) }}" title="Редактировать объект">
           <i class="bi bi-pencil"></i>
         </a>
+        {% if current_user.role == 'admin' %}
         <a class="object-action object-action-danger" href="{{ url_for('main.object_delete_confirm', project_id=project.id) }}" title="Удалить объект">
           <i class="bi bi-trash"></i>
         </a>
+        {% endif %}
       </div>
       {% endif %}
       <div class="object-icon"><i class="bi bi-buildings"></i></div>
       <h2 class="object-title">{{ project.name }}</h2>
       <div class="object-address"><i class="bi bi-geo-alt"></i>{{ project.address or 'Адрес не указан' }}</div>
-      <div class="object-description object-description-spacer" aria-hidden="true"></div>
-      <div class="object-meta object-meta-stats">
+      <div class="object-description{% if not has_object_details %} object-description-empty{% endif %}">
+        {% if has_object_details %}
+        {% if project.technical_customer %}<div><strong>Тех.заказчик:</strong> {{ project.technical_customer }}</div>{% endif %}
+        {% if project.developer_name %}<div><strong>СЗ:</strong> {{ project.developer_name }}</div>{% endif %}
+        {% if project.developer_representative %}<div><strong>Представитель Застройщика:</strong> {{ project.developer_representative }}</div>{% endif %}
+        {% if project.developer_representative_phone %}<div><strong>Телефон представителя:</strong> {{ project.developer_representative_phone }}</div>{% endif %}
+        {% endif %}
+      </div>
+      <div class="object-meta object-meta-stats{% if not project.has_commercial %} object-meta-stats-no-commercial{% endif %}">
         <div class="object-stat-row"><span>Всего помещений:</span><b class="stat-badge stat-badge-white">{{ stats.premises }}</b></div>
         <div class="object-stat-row"><span>Квартир:</span><b class="stat-badge stat-badge-white">{{ stats.apartments }}</b></div>
+        {% if project.has_commercial %}
         <div class="object-stat-row"><span>Коммерций:</span><b class="stat-badge stat-badge-white">{{ stats.commercial_count }}</b></div>
+        {% endif %}
+        {% if project.has_storerooms %}
+        <div class="object-stat-row"><span>Кладовок:</span><b class="stat-badge stat-badge-white">{{ stats.storeroom_count }}</b></div>
+        {% endif %}
+        {% if project.has_parking %}
+        <div class="object-stat-row"><span>Парковок:</span><b class="stat-badge stat-badge-white">{{ stats.parking_count }}</b></div>
+        {% endif %}
         <div class="object-stat-row"><span>Принятых — АПП:</span><b class="stat-badge stat-badge-success">{{ stats.transferred }}</b></div>
         <div class="object-stat-row"><span>Не принятых:</span><b class="stat-badge stat-badge-danger">{{ stats.not_transferred }}</b></div>
       </div>

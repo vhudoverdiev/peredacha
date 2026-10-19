@@ -11,8 +11,6 @@ class RepositoryHygieneTests(unittest.TestCase):
         required_patterns = [
             "venv/",
             ".env",
-            "instance/*.sqlite",
-            "instance/*.db",
             "uploads/*",
             "exports/*",
             "*.zip",
@@ -35,6 +33,15 @@ class RepositoryHygieneTests(unittest.TestCase):
             with self.subTest(obsolete_pattern=pattern):
                 self.assertNotIn(pattern, gitignore_lines)
 
+    def test_sqlite_database_files_are_not_present(self):
+        forbidden_suffixes = {".sqlite", ".sqlite-shm", ".sqlite-wal", ".db"}
+        ignored_parts = {".git", "venv", ".venv", "env", "tmp"}
+        for path in ROOT.rglob("*"):
+            if any(part in ignored_parts for part in path.parts) or not path.is_file():
+                continue
+            with self.subTest(path=str(path.relative_to(ROOT))):
+                self.assertNotIn(path.suffix.lower(), forbidden_suffixes)
+
     def test_obsolete_root_documents_are_not_present(self):
         obsolete_files = [
             "CHANGELOG_LOCAL.md",
@@ -47,7 +54,7 @@ class RepositoryHygieneTests(unittest.TestCase):
     def test_repository_files_do_not_contain_tool_brand_name(self):
         forbidden = "co" + "dex"
         searchable_extensions = {".py", ".md", ".txt", ".toml", ".env", ".conf", ".service", ".socket", ".html", ".css", ".js"}
-        ignored_parts = {".git", "venv", ".venv", "env", "instance", "uploads", "exports", "outputs"}
+        ignored_parts = {".git", "venv", ".venv", "env", "instance", "uploads", "exports", "outputs", "tmp"}
         for path in ROOT.rglob("*"):
             if any(part in ignored_parts for part in path.parts):
                 continue

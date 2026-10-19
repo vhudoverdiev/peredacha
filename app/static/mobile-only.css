@@ -1476,61 +1476,6 @@
     background-color: #f6f8fb !important;
   }
 
-  /* The verifier header is fixed. Old report rules reserved the same header
-     height on app-layout once more, producing the thick white strip. */
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body.verifier-layout:has(.work-report-page) .app-layout {
-    min-height: calc(var(--mobile-layout-height, 100dvh) - 72px) !important;
-    margin-top: 0 !important;
-    padding-top: var(--ref-mobile-topbar-height, calc(4.18rem + var(--ios-safe-top, 0px))) !important;
-    box-sizing: border-box !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body.verifier-layout:has(.work-report-page) .app-layout > .app-main {
-    min-height: 0 !important;
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body.verifier-layout:has(.work-report-page) .app-layout > .app-main > .app-content {
-    padding-top: .65rem !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body.verifier-layout:has(.work-report-page) .work-report-page {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head {
-    display: block !important;
-    min-height: 0 !important;
-    margin: 0 0 .42rem !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head > div:first-child {
-    display: none !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body.verifier-layout:has(.work-report-page) .work-report-page > .page-head > div:last-child {
-    display: flex !important;
-    width: 100% !important;
-    gap: 0 !important;
-  }
-
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device, .standalone-app)
-    body.app-body.verifier-layout:has(.work-report-page) .work-report-export-all-btn {
-    width: 100% !important;
-    margin: 0 !important;
-  }
-
   html body.app-body.app-body.app-body .crm-mobile-page-shell,
   html body.app-body.app-body.app-body .crm-mobile-page-shell
     > :last-child:not(.crm-toast-stack):not(.account-page) {
@@ -1617,6 +1562,17 @@
     transform: none !important;
     translate: none !important;
     scale: none !important;
+  }
+
+  body.app-body.desktop-like-pointer:has(.apartments-page)
+    :is(.app-layout, .app-main, .app-content, .crm-mobile-page-shell) {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100vw !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    transform: none !important;
+    translate: none !important;
   }
 
   /* Remove the two legacy mobile shell conflicts. The launch cover owns the
@@ -2220,6 +2176,24 @@
     bottom: auto !important;
     left: 0 !important;
     inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
+  }
+
+  /* Objects can be a short manager/admin standalone page too. Keep its light
+     canvas and 72px dock anchored to the same physical iOS height as Account. */
+  html.standalone-app
+    body.app-body.app-body.app-body:has(.objects-page) {
+    min-height: 100dvh !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.account-page) .account-password-panel {
+    display: none !important;
   }
 
   html.standalone-app body.app-body.app-body.app-body:has(.assignment-issued-layout-empty)

@@ -1,7 +1,7 @@
 import re
 
 from app import db
-from app.models import AppSetting, WorkCategory, WorkPoint
+from app.models import AppSetting, Task, WorkCategory, WorkPoint
 
 DEFAULT_CATEGORIES = [
     ("Все", "#212529", 0),
@@ -13,15 +13,15 @@ DEFAULT_CATEGORIES = [
 
 DEFAULT_POINT_MAPPING = {
     "Маляры": ["10", "11", "12"],
-    "Разнорабочие": ["13", "14", "15"],
-    "Витражники": ["18"],
-    # В разных объектах столбец доп. соглашения сдвигается, поэтому определяем
-    # его по названию заголовка, а не по фиксированному номеру пункта.
-    "Доп.Соглашение": [],
+    "Разнорабочие": ["13", "14", "15", "16"],
+    "Витражники": ["17", "18", "20"],
+    "Доп.Соглашение": ["26"],
 }
 
-MAIN_POINT_NUMBERS = {str(number) for number in range(10, 23)}
-DOP_AGREEMENT_POINT_NUMBERS = set()
+MAIN_POINT_NUMBERS = {str(number) for number in range(10, 26)}
+DOP_AGREEMENT_POINT_NUMBER = "26"
+DOP_AGREEMENT_LABEL = "Отступное (ТМЦ)"
+DOP_AGREEMENT_POINT_NUMBERS = {DOP_AGREEMENT_POINT_NUMBER}
 VISIBLE_POINT_NUMBERS = MAIN_POINT_NUMBERS | DOP_AGREEMENT_POINT_NUMBERS
 HIDDEN_POINT_NUMBERS = {str(number) for number in range(1, 101)} - VISIBLE_POINT_NUMBERS
 
@@ -71,6 +71,8 @@ def is_dop_agreement_header(header: str | None) -> bool:
 def is_dop_agreement_point(point: WorkPoint | None) -> bool:
     if point is None:
         return False
+    if str(point.point_number or "").strip() in DOP_AGREEMENT_POINT_NUMBERS:
+        return True
     return is_dop_agreement_header(
         " ".join(
             str(part or "")
@@ -81,6 +83,50 @@ def is_dop_agreement_point(point: WorkPoint | None) -> bool:
             )
         )
     )
+
+
+def ensure_dop_agreement_work_point() -> WorkPoint:
+    point = (
+        WorkPoint.query.filter_by(point_number=DOP_AGREEMENT_POINT_NUMBER)
+        .order_by(WorkPoint.id.asc())
+        .first()
+    )
+    if point is None:
+        point = WorkPoint(
+            point_number=DOP_AGREEMENT_POINT_NUMBER,
+            short_name=DOP_AGREEMENT_LABEL,
+            original_column_name=DOP_AGREEMENT_LABEL,
+            source_sheet_name="manual",
+            is_active=True,
+        )
+        db.session.add(point)
+        db.session.flush()
+    else:
+        point.short_name = DOP_AGREEMENT_LABEL
+        point.original_column_name = DOP_AGREEMENT_LABEL
+        point.is_active = True
+    return point
+
+
+def canonicalize_dop_agreement_work_points() -> WorkPoint:
+    canonical = ensure_dop_agreement_work_point()
+    legacy_points = [
+        point
+        for point in WorkPoint.query.filter(WorkPoint.id != canonical.id).all()
+        if is_dop_agreement_point(point)
+    ]
+    for point in legacy_points:
+        Task.query.filter_by(work_point_id=point.id).update(
+            {"work_point_id": canonical.id},
+            synchronize_session=False,
+        )
+        for category in list(point.categories):
+            if canonical not in category.work_points:
+                category.work_points.append(canonical)
+            if point in category.work_points:
+                category.work_points.remove(point)
+        point.is_active = False
+    return canonical
 
 
 def ensure_default_categories():
@@ -102,11 +148,13 @@ def ensure_default_categories():
             category.is_active = False
 
     db.session.flush()
+    canonicalize_dop_agreement_work_points()
+    db.session.flush()
     for category in WorkCategory.query.all():
         category.work_points = [
             point
             for point in category.work_points
-            if point.point_number not in HIDDEN_POINT_NUMBERS or is_dop_agreement_point(point)
+            if point.point_number not in HIDDEN_POINT_NUMBERS or str(point.point_number or "").strip() in DOP_AGREEMENT_POINT_NUMBERS
         ]
     apply_default_point_mapping(commit=False)
 
@@ -120,12 +168,6 @@ def apply_default_point_mapping(commit: bool = True):
             continue
         visible_numbers = [point_number for point_number in point_numbers if point_number not in HIDDEN_POINT_NUMBERS]
         points = WorkPoint.query.filter(WorkPoint.point_number.in_(visible_numbers)).all()
-        if category_name == "Доп.Соглашение":
-            points_by_id = {point.id: point for point in points}
-            for point in WorkPoint.query.filter_by(is_active=True).all():
-                if is_dop_agreement_point(point):
-                    points_by_id[point.id] = point
-            points = list(points_by_id.values())
         for point in points:
             if point not in category.work_points:
                 category.work_points.append(point)

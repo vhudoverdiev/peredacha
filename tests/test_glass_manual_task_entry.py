@@ -4,7 +4,7 @@ from pathlib import Path
 
 from config import Config
 from app import create_app, db, login_manager
-from app.models import Apartment, GlassMeasurement, Project, ROLE_ADMIN, Task, User, WorkPoint
+from app.models import Apartment, GlassMeasurement, Project, ROLE_ADMIN, STATUS_DONE, STATUS_NOT_STARTED, Task, User, WorkPoint
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -93,7 +93,7 @@ class GlassManualTaskEntryTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.get_json()["ok"])
         manual_task = Task.query.filter_by(source_sheet_name="manual_glass").one()
-        self.assertEqual(manual_task.work_point.point_number, "22")
+        self.assertEqual(manual_task.work_point.point_number, "25")
         self.assertIsNotNone(manual_task.glass_measurement)
         self.assertEqual(manual_task.glass_measurement.status, "none")
 
@@ -103,6 +103,41 @@ class GlassManualTaskEntryTests(unittest.TestCase):
         )
         self.assertEqual(page_response.status_code, 200)
         self.assertIn("Новый ручной замер", page_response.get_data(as_text=True))
+
+    def test_all_tab_places_unfinished_tasks_before_done_tasks(self):
+        done_apartment = Apartment(project=self.project, apartment_number="1")
+        active_apartment = Apartment(project=self.project, apartment_number="2")
+        done_task = Task(
+            source_uid="glass-sort-done",
+            project=self.project,
+            apartment=done_apartment,
+            work_point=self.glass_point,
+            description="Выполненный замер должен быть внизу",
+            status=STATUS_DONE,
+            is_done=True,
+        )
+        active_task = Task(
+            source_uid="glass-sort-active",
+            project=self.project,
+            apartment=active_apartment,
+            work_point=self.glass_point,
+            description="Невыполненный замер должен быть сверху",
+            status=STATUS_NOT_STARTED,
+            is_done=False,
+        )
+        db.session.add_all([done_apartment, active_apartment, done_task, active_task])
+        db.session.commit()
+
+        response = self.client.get(
+            "/glass-measurements?tab=all",
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        active_index = html.index("Невыполненный замер должен быть сверху")
+        done_index = html.index("Выполненный замер должен быть внизу")
+        self.assertLess(active_index, done_index)
 
     def test_duplicate_manual_task_returns_russian_message_without_copy(self):
         payload = {"apartment_id": self.apartment.id, "description": "Повторный ручной замер"}

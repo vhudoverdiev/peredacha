@@ -18,7 +18,7 @@ NO_REMARK_MARKERS = (
     "без замечаний",
 )
 
-PDF_POINT_NUMBER_RE = r"(?:[1-9]|1[0-9]|2[0-4])"
+PDF_POINT_NUMBER_RE = r"(?:[1-9]|1[0-9]|2[0-5])"
 POINT_LINE_RE = re.compile(rf"^\s*(?:п\.?|пункт)?\s*({PDF_POINT_NUMBER_RE})(?:[\).:\-]|\s+)(?!\d)(.*)$", re.IGNORECASE)
 APARTMENT_RE = re.compile(r"(?:квартира|кв\.?|помещение)\s*(?:№|N|No|номер)?\s*([0-9]+[A-Za-zА-Яа-яЁё/-]*)", re.IGNORECASE)
 DATE_RE = re.compile(r"\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b")
@@ -76,27 +76,28 @@ PDF_POINT_TO_WORK_POINT = {
     "8": "18",
     "9": "19",
     "10": "11",
-    "11": "22",
-    "12": "22",
+    "11": "25",
+    "12": "25",
 }
 PDF_POINT_TITLE_ALIASES = (
     ("вентиляц", "10"),
     ("стен", "11"),
     ("потолк", "11"),
     ("пол", "13"),
-    ("входн", "20"),
-    ("двер", "20"),
-    ("электрик", "21"),
-    ("радиатор", "19"),
-    ("отоплен", "19"),
-    ("гви", "19"),
-    ("хв", "19"),
-    ("окн", "16"),
-    ("пвх", "16"),
-    ("балкон", "18"),
-    ("лоджи", "18"),
-    ("тепловиз", "22"),
-    ("проч", "22"),
+    ("входн", "23"),
+    ("двер", "23"),
+    ("электрик", "24"),
+    ("канализац", "22"),
+    ("радиатор", "21"),
+    ("отоплен", "21"),
+    ("гви", "21"),
+    ("хв", "21"),
+    ("окн", "17"),
+    ("пвх", "17"),
+    ("балкон", "20"),
+    ("лоджи", "20"),
+    ("тепловиз", "25"),
+    ("проч", "25"),
 )
 
 
@@ -270,6 +271,12 @@ def _get_ocr_engine():
             "Установите rapidocr-onnxruntime и pypdfium2 из requirements.txt."
         )
         return None, _OCR_ENGINE_ERROR
+    except (ImportError, OSError) as exc:
+        _OCR_ENGINE_ERROR = (
+            "OCR-распознавание сканов сейчас недоступно: не хватает системной библиотеки "
+            f"или бинарной зависимости ({exc}). Текстовые PDF можно распознавать без OCR."
+        )
+        return None, _OCR_ENGINE_ERROR
     try:
         _OCR_ENGINE = RapidOCR()
     except Exception as exc:
@@ -359,7 +366,7 @@ def _map_pdf_point_to_work_point(pdf_point_number: str, section_title: str | Non
         return mapped
     if str(pdf_point_number).strip() in VISIBLE_WORK_POINT_NUMBERS:
         return str(pdf_point_number).strip()
-    return "22"
+    return "25"
 
 
 def _split_point_heading(description: str) -> tuple[str, str]:

@@ -50,6 +50,7 @@ class TaskDetailDopAgreementStyleTests(unittest.TestCase):
             apartment=apartment,
             work_point=work_point,
             description="Проверка оформления дополнительного соглашения",
+            status="concession",
         )
         db.session.add_all([project, user, apartment, work_point, task])
         db.session.commit()
@@ -86,6 +87,17 @@ class TaskDetailDopAgreementStyleTests(unittest.TestCase):
             page,
             r'class="section-outline-badge"[^>]*>Разнорабочие</span>',
         )
+
+    def test_task_detail_data_block_shows_current_status(self):
+        response = self.client.get(
+            f"/tasks/{self.task_id}",
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+        )
+        page = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('<dt class="col-sm-3">Статус</dt>', page)
+        self.assertIn("отступные", page)
 
     def test_new_rules_are_strictly_desktop_scoped(self):
         desktop_css = DESKTOP_CSS.read_text(encoding="utf-8")

@@ -17,8 +17,8 @@ from werkzeug.exceptions import HTTPException
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, session, url_for, jsonify
 from flask_login import current_user, login_required
-from sqlalchemy import Integer, cast, distinct, func
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import Integer, case, cast, distinct, func
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import selectinload
 from openpyxl import Workbook
 from openpyxl.cell.cell import MergedCell
@@ -26,6 +26,8 @@ from openpyxl.styles import Border, Font, PatternFill, Alignment, Side
 from openpyxl.utils import get_column_letter
 
 EXCEL_HEADER_FILL_COLOR = "FFE2F0D9"
+MAX_APARTMENT_INSPECTIONS = 5
+INSPECTION_DATES_BACKUP_PREFIX = "__inspection_dates_backup__:"
 EXCEL_DOWNLOAD_BORDER = Border(
     left=Side(style="thin", color="000000"),
     right=Side(style="thin", color="000000"),
@@ -39,6 +41,7 @@ from app import csrf, db
 from app.forms import CommentForm, ProjectForm, TaskEditForm, UploadExcelForm, UserForm, UserPasswordForm
 from app.models import (
     Apartment,
+    ChatMessage,
     Contractor,
     MaterialRequest,
     MaterialRequestItem,
@@ -53,6 +56,7 @@ from app.models import (
     SiteErrorReport,
     SiteVisit,
     DeletionActionLog,
+    SecurityEvent,
     ChangeLog,
     Task,
     TaskComment,
@@ -62,13 +66,15 @@ from app.models import (
     WorkPoint,
     ROLE_ADMIN,
     ROLE_MANAGER,
+    ROLE_SUPERVISOR,
+    ROLE_OFFICE,
     ROLE_EXECUTOR,
     ROLE_PAINTER,
     ROLE_HANDYMAN,
     ROLE_GLAZIER,
-    ROLE_VERIFIER,
     ROLE_VIEWER,
     ROLE_LABELS,
+    USER_ROLE_CHOICES,
     WORKER_ROLES,
     STATUS_DONE,
     STATUS_NOT_STARTED,
@@ -79,7 +85,7 @@ from app.models import (
     DONE_STATUSES,
     task_guarantee_contractor_setting_key,
 )
-from app.permissions import can_change_task, can_export, can_manage_mapping, can_manage_sync, role_required
+from app.permissions import OFFICE_MANAGER_ROLES, can_change_task, can_export, can_manage_mapping, can_manage_sync, role_required
 from app.security import (
     client_ip,
     hit_rate_limit,
@@ -107,10 +113,11 @@ from app.services.avr_document import (
     format_input_date,
     safe_avr_filename,
 )
+from app.services.contractor_claim_docx import build_contractor_claim_docx
 from app.services.excel_export import _excel_premise_label, _safe_filename_part, auto_adjust_row_heights, build_export_path, export_glass_measurements_excel, export_remark_tasks_excel, export_report_tasks_excel, export_simple_tasks_excel, export_source_excel_reconstructed, export_source_excel_with_strikes, export_tasks_to_excel, resolve_source_excel_with_strikes_path
 from app.services.pdf_export import export_assignment_worker_pdf, export_table_pdf, export_tasks_pdf
 from app.services.excel_import import inspect_remarks_workbook, mark_stale_running_sync_logs, preview_excel, save_upload, sync_excel_file
-from app.services.mapping_service import ensure_default_categories, update_category_points
+from app.services.mapping_service import ensure_default_categories, is_dop_agreement_point, update_category_points
 from app.services.pdf_recognition import is_no_remark_text, recognize_pdf_act
 from app.services.transfer_import import _is_app_mode, _parse_app_date, inspect_transfer_workbook, sync_transfer_statistics
 from app.services.task_service import (
@@ -121,16 +128,21 @@ from app.services.task_service import (
     change_task_status,
     dashboard_stats,
     detect_search_mode,
+    get_multi_param_values,
     get_setting,
     is_apartment_unsold,
+    is_unsold_owner_name,
     looks_like_apartment_identifier,
+    normalize_number_cell,
     parse_multi_premise_search,
     parse_date,
     premise_matches_search,
     premise_matches_selector,
+    repair_completed_source_marker_statuses,
     set_setting,
     AVR_STATUS_NEEDED,
     AVR_STATUS_SIGNED,
+    APP_DEADLINE_NORMAL,
     APP_DEADLINE_EXPIRING,
     APP_DEADLINE_EXPIRED,
     APP_DEADLINE_NO_REMARKS,
@@ -140,6 +152,7 @@ from app.services.task_service import (
 from app.services.status_rules import is_problem_details_required
 from app.services.sync_rollback import apply_sync_rollback, build_project_rollback_data
 from app.time_utils import to_moscow_datetime, utc_now
+from app.work_points import CONTRACTOR_POINT_LABELS
 from app.services.user_agent import (
     is_mobile_phone_user_agent,
     visit_browser_label,
@@ -152,6 +165,25 @@ from app.services.remark_format import remark_plain_text_html, remark_sentence_l
 from app.two_factor import generate_totp_secret, provisioning_uri, qr_svg_data_uri, verify_totp
 
 bp = Blueprint("main", __name__)
+
+ADDENDUM_STATUS_NONE = "none"
+ADDENDUM_STATUS_NEEDED = "needed"
+ADDENDUM_STATUS_SIGNED = "signed"
+ADDENDUM_STATUS_LABELS = {
+    ADDENDUM_STATUS_NONE: "Нет",
+    ADDENDUM_STATUS_NEEDED: "Не подписано",
+    ADDENDUM_STATUS_SIGNED: "Подписано",
+}
+MESSENGER_ENDPOINTS = {
+    "main.messenger_thread",
+    "main.messenger_send",
+    "main.messenger_read",
+    "main.messenger_error_replies_read",
+}
+
+
+def _asc_nulls_last(column):
+    return column.is_(None).asc(), column.asc()
 
 
 @bp.route("/service-worker.js")
@@ -174,7 +206,7 @@ def service_worker_reset():
         window.location.replace('/?worker=v40');
       };
       navigator.serviceWorker?.addEventListener('controllerchange', openCrm, { once: true });
-      navigator.serviceWorker?.register('/service-worker.js?v=v40-stable-mobile-shell', { scope: '/', updateViaCache: 'none' })
+      navigator.serviceWorker?.register('/service-worker.js?v=v41-filter-and-favicon', { scope: '/', updateViaCache: 'none' })
         .then(registration => registration.update())
         .catch(() => {})
         .finally(() => window.setTimeout(openCrm, 1200));
@@ -240,12 +272,12 @@ SECTION_LOCK_CHOICES = [
     },
     {
         "key": "apartments",
-        "label": "Квартиры",
+        "label": "Помещения",
         "icon": "bi-building",
         "endpoints": {
             "main.apartments", "main.apartments_export", "main.apartment_detail", "main.update_apartment_po_status",
             "main.update_apartment_inspection_status", "main.update_apartment_inspection_date", "main.update_apartment_inspection_note",
-            "main.update_apartment_comment", "main.update_apartment_avr_status",
+            "main.update_apartment_comment", "main.update_apartment_avr_status", "main.update_apartment_app_status", "main.update_apartment_addendum_status", "main.update_apartment_details",
         },
     },
     {"key": "avr", "label": "АВР", "icon": "bi-file-earmark-check", "endpoints": {"main.avr"}},
@@ -317,7 +349,8 @@ SECTION_LOCK_CHOICES = [
         "icon": "bi-sliders",
         "endpoints": {
             "main.upload_excel", "main.sync_logs", "main.sync_log_details", "main.delete_sync_log",
-            "main.rollback_sync_log", "main.sync_conflicts", "main.resolve_conflict",
+            "main.rollback_sync_log",
+            "main.sync_conflicts", "main.resolve_conflict",
             "main.resolve_conflicts_bulk", "main.mapping_settings",
         },
     },
@@ -332,6 +365,8 @@ SECTION_LOCK_CHOICES = [
             "main.developer_delete_logs",
             "main.developer_delete_log_undo",
             "main.developer_statistics",
+            "main.developer_statistics_visits",
+            "main.developer_statistics_sources",
         },
     },
     {
@@ -350,26 +385,6 @@ def _section_lock_choice_for_endpoint(endpoint: str | None):
         if endpoint in choice["endpoints"]:
             return choice
     return None
-
-
-def _future_features():
-    return [
-        {
-            "icon": "bi-file-earmark-text",
-            "title": "Быстрое редактирование и генерация документов",
-            "text": "АПП, дополнительные соглашения и другие формы можно будет быстро подготовить, отредактировать и отправить на подписание.",
-        },
-        {
-            "icon": "bi-house-add",
-            "title": "Добавление объектов с кладовками",
-            "text": "Структура объектов станет шире: можно будет добавлять и вести кладовые помещения вместе с квартирами и коммерцией.",
-        },
-        {
-            "icon": "bi-box-seam",
-            "title": "Учёт затраченного материала",
-            "text": "По каждой задаче появится понятная отчётность: какие материалы были использованы, в каком объёме и кем.",
-        },
-    ]
 
 
 def _documents_under_development_response():
@@ -396,7 +411,6 @@ def _maintenance_response(
         message=message,
         subtitle=subtitle,
         hint=hint,
-        future_features=_future_features(),
     ), 503
 
 
@@ -537,9 +551,15 @@ def _history_field_value(field_name: str | None, value: object, users_cache: dic
         return TASK_STATUSES.get(text, {}).get("label", text or "не задан")
     if field_name == "avr_status":
         return "Подписан" if text == AVR_STATUS_SIGNED else ("Нужен" if text == AVR_STATUS_NEEDED else (text or "не задан"))
-    if field_name == "avr_signed_date":
+    if field_name == "addendum_status":
+        return ADDENDUM_STATUS_LABELS.get(text, text or "не задано")
+    if field_name == "app_deadline_status":
+        return _app_status_label(text) if text else "не задано"
+    if field_name in {"apartment_mode", "mode"}:
+        return {"app": "АПП", "accepted": "АПП", "not_accepted": "не принята", "unsold": "не продана"}.get(text, text or "не задано")
+    if field_name in {"avr_signed_date", "addendum_signed_date", "deadline_date", "app_deadline_date", "remark_deadline_date", "apartment_inspection_date"}:
         parsed = _parse_history_date_value(value)
-        return format_ru_date(parsed) if parsed else "не задана"
+        return format_ru_date(parsed) if parsed else (text or "не задана")
     if field_name == "responsible_id":
         return _history_responsible_label(value, users_cache)
     if field_name in {"planned_date", "completed_date"}:
@@ -681,36 +701,121 @@ def _build_change_history_entry(change: ChangeLog, task: Task | None = None, use
                 else f"{field_label} изменён: было «{old_value}», стало «{new_value}»."
             )
     elif change.action == "apartment_field_update":
-        if field_name == "apartment_inspection_note":
-            summary = (
-                f"Синхронизация изменила комментарий осмотра помещения: было «{old_value}», стало «{new_value}»."
-                if not change.user
-                else f"Комментарий осмотра помещения изменён: было «{old_value}», стало «{new_value}»."
-            )
-        elif field_name == "po_status":
-            summary = (
-                f"Синхронизация изменила внутренний статус помещения: было «{old_value}», стало «{new_value}»."
-                if not change.user
-                else f"Внутренний статус помещения изменён: было «{old_value}», стало «{new_value}»."
-            )
-        else:
-            summary = (
-                f"Синхронизация изменила комментарий помещения: было «{old_value}», стало «{new_value}»."
-                if not change.user
-                else f"Комментарий помещения изменён: было «{old_value}», стало «{new_value}»."
-            )
-        if field_name == "avr_status":
-            summary = (
-                f"Статус АВР помещения изменён: было «{old_value}», стало «{new_value}»."
-                if change.user
-                else f"Синхронизация изменила статус АВР помещения: было «{old_value}», стало «{new_value}»."
-            )
-        elif field_name == "avr_signed_date":
-            summary = (
-                f"Дата подписания АВР изменена: была «{old_value}», стала «{new_value}»."
-                if change.user
-                else f"Синхронизация изменила дату подписания АВР: была «{old_value}», стала «{new_value}»."
-            )
+        apartment_field_summaries = {
+            "owner_name": (
+                "Синхронизация изменила ФИО собственника",
+                "ФИО собственника изменено",
+                "было",
+                "стало",
+            ),
+            "phone": (
+                "Синхронизация изменила номер телефона",
+                "Номер телефона изменён",
+                "был",
+                "стал",
+            ),
+            "finishing_type": (
+                "Синхронизация изменила отделку",
+                "Отделка изменена",
+                "была",
+                "стала",
+            ),
+            "apartment_mode": (
+                "Синхронизация изменила режим помещения",
+                "Режим помещения изменён",
+                "был",
+                "стал",
+            ),
+            "apartment_inspection_status": (
+                "Синхронизация изменила статус осмотра помещения",
+                "Статус осмотра помещения изменён",
+                "был",
+                "стал",
+            ),
+            "apartment_inspection_date": (
+                "Синхронизация изменила дату осмотра помещения",
+                "Дата осмотра помещения изменена",
+                "была",
+                "стала",
+            ),
+            "apartment_inspection_note": (
+                "Синхронизация изменила комментарий устранения замечаний",
+                "Комментарий устранения замечаний изменён",
+                "было",
+                "стало",
+            ),
+            "apartment_comment": (
+                "Синхронизация изменила комментарий помещения",
+                "Комментарий помещения изменён",
+                "было",
+                "стало",
+            ),
+            "po_status": (
+                "Синхронизация изменила внутренний статус помещения",
+                "Внутренний статус помещения изменён",
+                "было",
+                "стало",
+            ),
+            "avr_status": (
+                "Синхронизация изменила статус АВР помещения",
+                "Статус АВР помещения изменён",
+                "было",
+                "стало",
+            ),
+            "avr_signed_date": (
+                "Синхронизация изменила дату подписания АВР",
+                "Дата подписания АВР изменена",
+                "была",
+                "стала",
+            ),
+            "deadline_date": (
+                "Синхронизация изменила дату подписания АПП",
+                "Дата подписания АПП изменена",
+                "была",
+                "стала",
+            ),
+            "app_deadline_date": (
+                "Синхронизация изменила срок устранения замечаний",
+                "Срок устранения замечаний изменён",
+                "был",
+                "стал",
+            ),
+            "remark_deadline_date": (
+                "Синхронизация изменила срок устранения замечаний",
+                "Срок устранения замечаний изменён",
+                "был",
+                "стал",
+            ),
+            "app_deadline_status": (
+                "Синхронизация изменила статус АПП",
+                "Статус АПП изменён",
+                "был",
+                "стал",
+            ),
+            "addendum_status": (
+                "Синхронизация изменила статус доп. соглашения",
+                "Статус доп. соглашения изменён",
+                "был",
+                "стал",
+            ),
+            "addendum_signed_date": (
+                "Синхронизация изменила дату подписания доп. соглашения",
+                "Дата подписания доп. соглашения изменена",
+                "была",
+                "стала",
+            ),
+        }
+        sync_prefix, user_prefix, old_word, new_word = apartment_field_summaries.get(
+            field_name,
+            (
+                f"Синхронизация изменила поле помещения «{field_name or 'Поле'}»",
+                f"Поле помещения «{field_name or 'Поле'}» изменено",
+                "было",
+                "стало",
+            ),
+        )
+        prefix = sync_prefix if not change.user else user_prefix
+        summary = f"{prefix}: {old_word} «{old_value}», {new_word} «{new_value}»."
         point_label = "Помещение"
     elif change.action == "manual_created":
         summary = f"Замечание добавлено вручную: «{str(change.new_value or '').strip() or 'без текста'}»."
@@ -961,22 +1066,90 @@ PO_STATUS_CLASSES = {
 }
 WALL_POINT_NUMBERS = {"11"}
 
-CONTRACTOR_POINT_LABELS = {
-    "10": "Вентиляция",
-    "11": "Стены. Потолки (штукатурка/шпаклёвка)",
-    "12": "Возведение коробки здания",
-    "13": "Работы по устройству подстилающего слоя",
-    "14": "Работы по возведению блочных перегородок",
-    "15": "Разнорабочие",
-    "16": "Работы по монтажу ПВХ блоков",
-    "17": "Работы по монтажу откосов и подоконников",
-    "18": "Работы по монтажу холодного витражного остекления балконов",
-    "19": "Работы по монтажу системы отопления, в/с, канализации",
-    "20": "Работы по монтажу входных дверей",
-    "21": "Электрика",
-    "22": "Прочее",
-}
 
+def _object_creation_day_bounds() -> tuple[datetime, datetime]:
+    day_start = datetime.combine(date.today(), time.min)
+    return day_start, day_start + timedelta(days=1)
+
+
+def _objects_created_today_by_user(user_id: int | None) -> int:
+    if not user_id:
+        return 0
+    day_start, next_day = _object_creation_day_bounds()
+    return Project.query.filter(
+        Project.created_by_id == user_id,
+        Project.created_at >= day_start,
+        Project.created_at < next_day,
+    ).count()
+
+
+def can_open_object_creation(user: User | None = None) -> bool:
+    user = user or current_user
+    return bool(
+        getattr(user, "is_authenticated", False)
+        and (user.role == ROLE_ADMIN or user.role in OFFICE_MANAGER_ROLES)
+    )
+
+
+def object_creation_daily_limit(user: User | None = None) -> int | None:
+    user = user or current_user
+    if not can_open_object_creation(user):
+        return 0
+    if user.role == ROLE_ADMIN:
+        return None
+    if user.role == ROLE_OFFICE:
+        return 3
+    return 1
+
+
+def can_create_object_today(user: User | None = None) -> bool:
+    user = user or current_user
+    limit = object_creation_daily_limit(user)
+    if limit is None:
+        return True
+    if not limit:
+        return False
+    return _objects_created_today_by_user(user.id) < limit
+
+
+def object_creation_limit_message(user: User | None = None) -> str:
+    limit = object_creation_daily_limit(user)
+    if limit == 3:
+        return "Можно добавить только 3 объекта в сутки."
+    return "Можно добавить только 1 объект в сутки."
+
+
+def _messenger_is_available(user: User | None = None) -> bool:
+    return False
+
+
+def _developer_user() -> User | None:
+    candidates = User.query.filter(User.role == ROLE_ADMIN).order_by(User.id.asc()).all()
+    if not candidates:
+        return None
+    for user in candidates:
+        identity = f"{user.full_name or ''} {user.username or ''}".lower()
+        if "владимир" in identity and "худовердиев" in identity:
+            return user
+    return candidates[0]
+
+
+def _messenger_unread_count(user: User | None = None) -> int:
+    user = user or current_user
+    if not _messenger_is_available(user):
+        return 0
+    unread_messages = ChatMessage.query.filter(
+        ChatMessage.recipient_id == user.id,
+        ChatMessage.read_at.is_(None),
+    ).count()
+    if user.role == ROLE_ADMIN:
+        return unread_messages
+    unread_replies = SiteErrorReport.query.filter(
+        SiteErrorReport.user_id == user.id,
+        SiteErrorReport.developer_reply.isnot(None),
+        SiteErrorReport.user_reply_read_at.is_(None),
+    ).count()
+    return unread_messages + unread_replies
 
 @bp.app_context_processor
 def inject_globals():
@@ -994,7 +1167,8 @@ def inject_globals():
     new_site_errors_count = 0
     if current_user.is_authenticated and current_user.role == ROLE_ADMIN:
         error_query = SiteErrorReport.query.filter(SiteErrorReport.status == "new")
-        if current_project:
+        developer_endpoint = (request.endpoint or "").startswith("main.developer_") or (request.endpoint or "").startswith("main.site_error")
+        if current_project and not developer_endpoint:
             error_query = error_query.filter(or_(SiteErrorReport.project_id == current_project.id, SiteErrorReport.project_id.is_(None)))
         new_site_errors_count = error_query.count()
     return {
@@ -1002,9 +1176,12 @@ def inject_globals():
         "STATUS_DONE": STATUS_DONE,
         "DONE_STATUSES": DONE_STATUSES,
         "ROLE_LABELS": ROLE_LABELS,
+        "ROLE_ADMIN": ROLE_ADMIN,
         "current_project": current_project,
         "mobile_switch_projects": mobile_switch_projects,
         "new_site_errors_count": new_site_errors_count,
+        "messenger_available": _messenger_is_available(),
+        "messenger_unread_count": _messenger_unread_count(),
         "hide_documents_section": _setting_bool("hide_documents_section"),
         "mobile_version_under_development": _setting_bool("mobile_version_under_development"),
         "site_maintenance_mode": _setting_bool("site_maintenance_mode"),
@@ -1021,7 +1198,24 @@ def inject_globals():
         "remark_text": remark_sentence_lines_html,
         "remark_plain_text": remark_plain_text_html,
         "glass_measurement_action_label": glass_measurement_action_label,
+        "short_user_display_name": short_user_display_name,
+        "can_create_object_today": can_create_object_today,
+        "can_open_object_creation": can_open_object_creation,
     }
+
+
+def short_user_display_name(user: User | None) -> str:
+    if not user:
+        return ""
+    full_name = str(user.full_name or "").strip()
+    if full_name:
+        parts = full_name.split()
+        if len(parts) >= 3:
+            return f"{parts[0]} {parts[1][0]}.{parts[2][0]}."
+        if len(parts) >= 2:
+            return f"{parts[0]} {parts[1][0]}."
+        return parts[0]
+    return str(user.username or "").strip()
 
 
 def selected_project() -> Project | None:
@@ -1107,8 +1301,6 @@ def _task_for_current_project(task_id: int, project: Project | None = None) -> T
 def _role_home_endpoint() -> str:
     if current_user.role in WORKER_ROLES:
         return "main.my_tasks"
-    if current_user.role == ROLE_VERIFIER:
-        return "main.work_report"
     if current_user.role == ROLE_VIEWER:
         return "main.dashboard"
     return "main.dashboard"
@@ -1126,21 +1318,9 @@ WORKER_ALLOWED_ENDPOINTS = {
     "main.my_task_done",
     "main.my_task_return",
     "main.account",
+    "main.account_password",
     "main.report_error",
-}
-
-VERIFIER_ALLOWED_ENDPOINTS = {
-    "main.dashboard_legacy",
-    "main.objects",
-    "main.object_open",
-    "main.work_report",
-    "main.work_report_export",
-    "main.documents",
-    "main.documents_addendum",
-    "main.documents_download",
-    "main.account",
-    "main.report_error",
-}
+} | MESSENGER_ENDPOINTS
 
 VIEWER_ALLOWED_GET_ENDPOINTS = {
     "main.objects",
@@ -1160,6 +1340,52 @@ VIEWER_ALLOWED_GET_ENDPOINTS = {
     "main.documents",
     "main.documents_download",
     "main.account",
+    "main.account_password",
+}
+
+OFFICE_FORBIDDEN_ENDPOINTS = {
+    "main.assignments",
+    "main.assignment_unassign",
+    "main.assignment_delete_from_employee",
+    "main.assignment_manual_task_new",
+    "main.assignment_issued_employee_export",
+    "main.add_task_comment",
+    "main.update_apartment_po_status",
+    "main.update_apartment_comment",
+    "main.update_apartment_inspection_note",
+    "main.glass_measurements",
+    "main.glass_need_measure",
+    "main.glass_measurement_add",
+    "main.glass_measurement_save",
+    "main.glass_measurement_return_to_all",
+    "main.glass_status_update",
+    "main.glass_order_export",
+    "main.glass_create_material_request",
+    "main.glass_measurements_delete",
+    "main.glass_order",
+    "main.glass_manual_task_new",
+    "main.materials",
+    "main.material_balance_delete",
+    "main.material_request_detail",
+    "main.material_request_rename",
+    "main.material_request_update",
+    "main.material_request_delete",
+    "main.material_requests_bulk_delete",
+    "main.material_request_export",
+    "main.material_writeoff_edit",
+    "main.material_writeoff_delete",
+    "main.material_writeoffs_bulk_delete",
+    "main.material_expense_export",
+    "main.material_request_new",
+    "main.material_writeoff_new",
+    "main.material_writeoff_submit",
+    "main.material_manual_task_new",
+}
+
+SUPERVISOR_FORBIDDEN_SECTION_KEYS = {"users", "service", "site_errors"}
+SUPERVISOR_FORBIDDEN_ENDPOINTS = {
+    "main.site_settings",
+    "main.export_source_with_strikes",
 }
 
 
@@ -1183,25 +1409,52 @@ def enforce_role_access():
     if locked_section and locked_section["key"] in _setting_csv("blocked_site_sections"):
         return _blocked_section_response(locked_section["label"])
 
-    if _setting_bool("site_maintenance_mode") and current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role == ROLE_SUPERVISOR and (
+        endpoint in SUPERVISOR_FORBIDDEN_ENDPOINTS
+        or (locked_section and locked_section["key"] in SUPERVISOR_FORBIDDEN_SECTION_KEYS)
+    ):
+        return _deny_or_redirect()
+
+    if (
+        current_user.role in OFFICE_MANAGER_ROLES
+        and locked_section
+        and locked_section["key"] == "service"
+    ):
+        abort(403)
+
+    if _setting_bool("site_maintenance_mode") and current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         return _maintenance_response()
 
-    if _is_mobile_phone_request():
+    if current_user.role == ROLE_OFFICE and endpoint in OFFICE_FORBIDDEN_ENDPOINTS:
+        return _deny_or_redirect()
+
+    is_mobile_phone = _is_mobile_phone_request()
+    if (
+        is_mobile_phone
+        and _setting_bool("mobile_version_under_development")
+        and current_user.role != ROLE_ADMIN
+        and endpoint not in _mobile_under_development_allowed_endpoints()
+    ):
+        if request.method in {"GET", "HEAD", "OPTIONS"}:
+            return _maintenance_response(
+                title="Мобильная версия в разработке",
+                message="Мобильная версия временно в разработке",
+                subtitle="Мы обновляем мобильный интерфейс. Пожалуйста, откройте сайт с компьютера или попробуйте позже.",
+                hint="Доступ к настройкам и аккаунту остаётся открытым для администратора.",
+            )
+        abort(403)
+
+    if is_mobile_phone:
         if endpoint not in _mobile_phone_allowed_endpoints():
             if request.method in {"GET", "HEAD", "OPTIONS"}:
                 return redirect(url_for(_mobile_phone_home_endpoint()))
             abort(403)
 
-    if current_user.role in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role == ROLE_ADMIN or current_user.role in OFFICE_MANAGER_ROLES:
         return None
 
     if current_user.role in WORKER_ROLES:
         if endpoint in WORKER_ALLOWED_ENDPOINTS:
-            return None
-        return _deny_or_redirect()
-
-    if current_user.role == ROLE_VERIFIER:
-        if endpoint in VERIFIER_ALLOWED_ENDPOINTS:
             return None
         return _deny_or_redirect()
 
@@ -1825,6 +2078,8 @@ def project_stats(project: Project) -> dict[str, int]:
         "done": int(stats.get("done") or 0),
         "apartments": int(stats.get("apartment_count") or 0),
         "commercial_count": int(stats.get("commercial_count") or 0),
+        "storeroom_count": int(stats.get("storeroom_count") or 0),
+        "parking_count": int(stats.get("parking_count") or 0),
         "premises": int(stats.get("apartments") or 0),
         "transferred": int(stats.get("accepted") or 0),
         "not_transferred": int(stats.get("not_accepted") or 0),
@@ -1852,22 +2107,36 @@ def objects():
 @bp.route("/objects/new", methods=["GET", "POST"])
 @login_required
 def object_new():
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         abort(403)
+    if not can_create_object_today(current_user):
+        flash(object_creation_limit_message(current_user), "warning")
+        return redirect(url_for("main.objects"))
     form = ProjectForm()
     if form.validate_on_submit():
-        if form.has_storerooms.data:
-            flash("Кладовки пока нельзя добавить: раздел находится в разработке.", "warning")
-            return render_template("object_form.html", form=form, form_title="Добавить объект", submit_label="Создать объект")
-        if not (form.has_apartments.data or form.has_commercial.data):
-            flash("Выберите хотя бы один тип помещений: квартиры или коммерции.", "warning")
+        if not can_create_object_today(current_user):
+            flash(object_creation_limit_message(current_user), "warning")
+            return redirect(url_for("main.objects"))
+        if not (form.has_apartments.data or form.has_commercial.data or form.has_storerooms.data or form.has_parking.data):
+            flash("Выберите хотя бы один тип помещений: квартиры, коммерции, кладовки или парковки.", "warning")
             return render_template("object_form.html", form=form, form_title="Добавить объект", submit_label="Создать объект")
         project = Project(
             name=form.name.data.strip(),
             address=form.address.data.strip() if form.address.data else None,
+            technical_customer=form.technical_customer.data.strip() if form.technical_customer.data else None,
+            developer_name=form.developer_name.data.strip() if form.developer_name.data else None,
+            inn_kpp=form.inn_kpp.data.strip() if form.inn_kpp.data else None,
+            ogrn=form.ogrn.data.strip() if form.ogrn.data else None,
+            legal_address=form.legal_address.data.strip() if form.legal_address.data else None,
+            developer_director=form.developer_director.data.strip() if form.developer_director.data else None,
+            developer_representative=form.developer_representative.data.strip() if form.developer_representative.data else None,
+            developer_representative_phone=form.developer_representative_phone.data.strip() if form.developer_representative_phone.data else None,
             has_apartments=bool(form.has_apartments.data),
             has_commercial=bool(form.has_commercial.data),
-            has_storerooms=False,
+            has_storerooms=bool(form.has_storerooms.data),
+            has_parking=bool(form.has_parking.data),
+            created_by_id=current_user.id,
+            signature_image=getattr(form, "signature_image_data", None),
         )
         db.session.add(project)
         db.session.commit()
@@ -1880,32 +2149,42 @@ def object_new():
 @bp.route("/objects/<int:project_id>/edit", methods=["GET", "POST"])
 @login_required
 def object_edit(project_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         abort(403)
     project = _abort_if_project_forbidden(db.session.get(Project, project_id) or abort(404))
     form = ProjectForm(obj=project)
     if form.validate_on_submit():
-        if form.has_storerooms.data:
-            flash("Кладовки пока нельзя добавить: раздел находится в разработке.", "warning")
-            return render_template("object_form.html", form=form, form_title="Редактировать объект", submit_label="Сохранить")
-        if not (form.has_apartments.data or form.has_commercial.data):
-            flash("Выберите хотя бы один тип помещений: квартиры или коммерции.", "warning")
-            return render_template("object_form.html", form=form, form_title="Редактировать объект", submit_label="Сохранить")
+        if not (form.has_apartments.data or form.has_commercial.data or form.has_storerooms.data or form.has_parking.data):
+            flash("Выберите хотя бы один тип помещений: квартиры, коммерции, кладовки или парковки.", "warning")
+            return render_template("object_form.html", form=form, project=project, form_title="Редактировать объект", submit_label="Сохранить")
+        if getattr(form, "signature_image_data", None):
+            project.signature_image = form.signature_image_data
+        elif form.remove_signature.data:
+            project.signature_image = None
         project.name = form.name.data.strip()
         project.address = form.address.data.strip() if form.address.data else None
+        project.technical_customer = form.technical_customer.data.strip() if form.technical_customer.data else None
+        project.developer_name = form.developer_name.data.strip() if form.developer_name.data else None
+        project.inn_kpp = form.inn_kpp.data.strip() if form.inn_kpp.data else None
+        project.ogrn = form.ogrn.data.strip() if form.ogrn.data else None
+        project.legal_address = form.legal_address.data.strip() if form.legal_address.data else None
+        project.developer_director = form.developer_director.data.strip() if form.developer_director.data else None
+        project.developer_representative = form.developer_representative.data.strip() if form.developer_representative.data else None
+        project.developer_representative_phone = form.developer_representative_phone.data.strip() if form.developer_representative_phone.data else None
         project.has_apartments = bool(form.has_apartments.data)
         project.has_commercial = bool(form.has_commercial.data)
-        project.has_storerooms = False
+        project.has_storerooms = bool(form.has_storerooms.data)
+        project.has_parking = bool(form.has_parking.data)
         db.session.commit()
         flash("Объект обновлён", "success")
         return redirect(url_for("main.objects"))
-    return render_template("object_form.html", form=form, form_title="Редактировать объект", submit_label="Сохранить")
+    return render_template("object_form.html", form=form, project=project, form_title="Редактировать объект", submit_label="Сохранить")
 
 
 @bp.route("/objects/<int:project_id>/delete", methods=["POST"])
 @login_required
 def object_delete(project_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN:
         abort(403)
     project = _abort_if_project_forbidden(db.session.get(Project, project_id) or abort(404))
     _record_simple_deletion(
@@ -1934,7 +2213,7 @@ def object_delete(project_id: int):
 @bp.route("/objects/<int:project_id>/delete/confirm", methods=["GET"])
 @login_required
 def object_delete_confirm(project_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN:
         abort(403)
     project = _abort_if_project_forbidden(db.session.get(Project, project_id) or abort(404))
     return render_template("object_delete_confirm.html", project=project)
@@ -1945,10 +2224,7 @@ def object_delete_confirm(project_id: int):
 def object_open(project_id: int):
     project = _abort_if_project_forbidden(db.session.get(Project, project_id) or abort(404))
     session["current_project_id"] = project.id
-    if current_user.role == ROLE_VERIFIER:
-        response = redirect(url_for("main.work_report"))
-    else:
-        response = redirect(url_for("main.dashboard"))
+    response = redirect(url_for("main.dashboard"))
     response.headers["Cache-Control"] = "no-store, max-age=0"
     return response
 
@@ -1980,8 +2256,6 @@ def dashboard():
 @login_required
 def dashboard_legacy():
     """Keep the legacy CRM entry URL usable for bookmarks and offline copies."""
-    if current_user.role == ROLE_VERIFIER:
-        return redirect(url_for("main.work_report"))
     return dashboard()
 
 
@@ -2025,8 +2299,6 @@ def _wants_json_response() -> bool:
 def _mobile_phone_home_endpoint() -> str:
     if current_user.role in WORKER_ROLES:
         return "main.my_tasks"
-    if current_user.role == ROLE_VERIFIER:
-        return "main.work_report"
     project_id = session.get("current_project_id") if current_user.can_access_all_projects else (
         current_user.project_id if current_user.is_authenticated and current_user.project_id else session.get("current_project_id")
     )
@@ -2036,16 +2308,19 @@ def _mobile_phone_home_endpoint() -> str:
 def _mobile_phone_allowed_endpoints() -> set[str]:
     if current_user.role in WORKER_ROLES:
         return set(WORKER_ALLOWED_ENDPOINTS)
-    if current_user.role == ROLE_VERIFIER:
-        return set(VERIFIER_ALLOWED_ENDPOINTS)
 
     allowed = {
         "main.report_error",
+        "main.messenger_thread",
+        "main.messenger_send",
+        "main.messenger_read",
+        "main.messenger_error_replies_read",
         "main.objects",
         "main.object_open",
         "main.dashboard",
         "main.dashboard_legacy",
         "main.account",
+        "main.account_password",
         "main.task_list",
         "main.task_detail",
         "main.task_new",
@@ -2079,8 +2354,11 @@ def _mobile_phone_allowed_endpoints() -> set[str]:
         "main.update_apartment_inspection_note",
         "main.update_apartment_comment",
         "main.update_apartment_avr_status",
+        "main.update_apartment_app_status",
+        "main.update_apartment_addendum_status",
+        "main.update_apartment_details",
     }
-    if current_user.role in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role in {ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR}:
         allowed.update({
             "main.assignments",
             "main.assignment_unassign",
@@ -2088,7 +2366,20 @@ def _mobile_phone_allowed_endpoints() -> set[str]:
             "main.assignment_manual_task_new",
             "main.assignment_issued_employee_export",
         })
+    if current_user.role == ROLE_ADMIN:
+        allowed.add("main.site_settings")
     return allowed
+
+
+def _mobile_under_development_allowed_endpoints() -> set[str]:
+    return {
+        "main.account",
+        "main.account_password",
+        "main.report_error",
+        "main.service_worker",
+        "main.service_worker_reset",
+        "main.site_settings",
+    } | MESSENGER_ENDPOINTS
 
 
 def _visit_status_tone(status_code: int | None) -> str:
@@ -2258,20 +2549,26 @@ def _build_site_visit_ip_summary(base_query, ip_address: str | None) -> dict | N
     }
 
 
-def _build_site_visit_visitor_groups(visits: list[SiteVisit]) -> list[dict]:
+ACTIVE_VISITOR_WINDOW = timedelta(minutes=15)
+
+
+def _build_site_visit_visitor_groups(visits: list[SiteVisit], *, visits_per_group_limit: int = 30, now: datetime | None = None) -> list[dict]:
     groups: dict[tuple[str, str], dict] = {}
     ordered_groups: list[dict] = []
+    now = now or utc_now()
 
     for visit in visits:
         if visit.user_id:
             key = ("user", str(visit.user_id))
             label = _visit_user_label(visit.user)
-            kind_label = "Авторизован"
-            kind_class = "is-auth"
+            is_account = True
+            kind_label = "Не авторизован"
+            kind_class = "is-guest"
         else:
             guest_ip = (visit.ip_address or "").strip()
             key = ("guest", guest_ip or f"guest-{visit.id}")
             label = f"Гость • {guest_ip}" if guest_ip else "Гость"
+            is_account = False
             kind_label = "Гость"
             kind_class = "is-guest"
 
@@ -2282,6 +2579,7 @@ def _build_site_visit_visitor_groups(visits: list[SiteVisit]) -> list[dict]:
                 "label": label,
                 "kind_label": kind_label,
                 "kind_class": kind_class,
+                "is_account": is_account,
                 "hits": 0,
                 "ip_set": set(),
                 "last_seen": visit.created_at,
@@ -2291,15 +2589,23 @@ def _build_site_visit_visitor_groups(visits: list[SiteVisit]) -> list[dict]:
             ordered_groups.append(group)
 
         group["hits"] += 1
+        if visit.created_at and (group["last_seen"] is None or visit.created_at > group["last_seen"]):
+            group["last_seen"] = visit.created_at
         if visit.ip_address:
             group["ip_set"].add(visit.ip_address)
-        group["visits"].append(visit)
+        if len(group["visits"]) < visits_per_group_limit:
+            group["visits"].append(visit)
 
     for group in ordered_groups:
+        if group.get("is_account"):
+            is_current = bool(group["last_seen"] and group["last_seen"] >= now - ACTIVE_VISITOR_WINDOW)
+            group["kind_label"] = "Авторизован" if is_current else "Не авторизован"
+            group["kind_class"] = "is-auth" if is_current else "is-guest"
         group["ip_count"] = len(group["ip_set"])
         group.pop("ip_set", None)
+        group.pop("is_account", None)
 
-    return ordered_groups
+    return sorted(ordered_groups, key=lambda item: (item["last_seen"] or datetime.min, item["hits"]), reverse=True)
 
 
 def _build_site_visit_agent_stats(base_query) -> tuple[list[dict], list[dict], list[dict]]:
@@ -2346,11 +2652,11 @@ def _developer_statistics_filters() -> dict:
     allowed_days = [7, 14, 30]
     max_period_days = max(allowed_days)
     try:
-        days = int(request.args.get("days") or 7)
+        days = int(request.args.get("days") or 30)
     except (TypeError, ValueError):
-        days = 7
+        days = 30
     if days not in allowed_days:
-        days = 7
+        days = 30
     today = date.today()
     period_end_date = parse_date(request.args.get("end_date")) or parse_date(request.args.get("date")) or today
     period_start_date = parse_date(request.args.get("start_date"))
@@ -2416,7 +2722,7 @@ def _apply_site_visit_filters(query, *, project, range_start, range_end, scope, 
 
 
 def _build_developer_statistics_context() -> dict:
-    project = selected_project()
+    project = None
     filters = _developer_statistics_filters()
     period_start_date = filters["period_start_date"]
     period_end_date = filters["period_end_date"]
@@ -2473,7 +2779,7 @@ def _build_developer_statistics_context() -> dict:
         )
         .filter(SiteVisit.ip_address.isnot(None))
         .group_by(SiteVisit.ip_address)
-        .order_by(func.count(SiteVisit.id).desc(), func.max(SiteVisit.created_at).desc())
+        .order_by(func.max(SiteVisit.created_at).desc(), func.count(SiteVisit.id).desc())
         .limit(10)
         .all()
     )
@@ -2520,7 +2826,14 @@ def _build_developer_statistics_context() -> dict:
         .limit(240)
         .all()
     )
-    visitor_groups = _build_site_visit_visitor_groups(recent_visits)
+    visitor_group_visits = (
+        statistics_query
+        .options(selectinload(SiteVisit.user), selectinload(SiteVisit.project))
+        .order_by(SiteVisit.created_at.desc(), SiteVisit.id.desc())
+        .limit(10000)
+        .all()
+    )
+    visitor_groups = _build_site_visit_visitor_groups(visitor_group_visits)
 
     focused_ip_summary = None
     if ip_filter and total_visits:
@@ -2704,10 +3017,12 @@ def analytics_tab_open():
 def site_errors():
     if current_user.role != ROLE_ADMIN:
         abort(403)
-    project = selected_project()
-    query = SiteErrorReport.query.options(selectinload(SiteErrorReport.user), selectinload(SiteErrorReport.project))
-    if project:
-        query = query.filter(or_(SiteErrorReport.project_id == project.id, SiteErrorReport.project_id.is_(None)))
+    project = None
+    query = SiteErrorReport.query.options(
+        selectinload(SiteErrorReport.user),
+        selectinload(SiteErrorReport.project),
+        selectinload(SiteErrorReport.developer_reply_user),
+    )
     status = request.args.get("status") or ""
     kind = request.args.get("kind") or ""
     if status:
@@ -2724,9 +3039,6 @@ def site_error_close(report_id: int):
     if current_user.role != ROLE_ADMIN:
         abort(403)
     report = db.session.get(SiteErrorReport, report_id) or abort(404)
-    project = selected_project()
-    if project and report.project_id not in {None, project.id}:
-        abort(404)
     report.status = "closed" if report.status != "closed" else "new"
     db.session.commit()
     if _wants_json_response():
@@ -2741,9 +3053,6 @@ def site_error_delete(report_id: int):
     if current_user.role != ROLE_ADMIN:
         abort(403)
     report = db.session.get(SiteErrorReport, report_id) or abort(404)
-    project = selected_project()
-    if project and report.project_id not in {None, project.id}:
-        abort(404)
     snapshot = {
         "kind": report.kind,
         "message": report.message,
@@ -2769,19 +3078,193 @@ def site_error_delete(report_id: int):
     return redirect(url_for("main.site_errors"))
 
 
+@bp.route("/site-errors/<int:report_id>/reply", methods=["POST"])
+@login_required
+def site_error_reply(report_id: int):
+    abort(404)
+
+
+def _messenger_thread_partner() -> User | None:
+    if current_user.role == ROLE_ADMIN:
+        partner_id = request.args.get("user_id", type=int) or request.form.get("user_id", type=int)
+        if partner_id:
+            partner = db.session.get(User, partner_id)
+            if partner and partner.role != ROLE_ADMIN and partner.id != current_user.id and bool(partner.is_active):
+                return partner
+        return None
+    return _developer_user()
+
+
+def _messenger_message_payload(message: ChatMessage) -> dict:
+    return {
+        "id": message.id,
+        "body": message.body,
+        "created_at": format_ru_datetime(message.created_at),
+        "own": message.sender_id == current_user.id,
+        "sender": short_user_display_name(message.sender),
+        "read": bool(message.read_at),
+    }
+
+
+def _messenger_error_reply_payload(report: SiteErrorReport) -> dict:
+    return {
+        "id": report.id,
+        "message": report.message,
+        "reply": report.developer_reply,
+        "created_at": format_ru_datetime(report.created_at),
+        "replied_at": format_ru_datetime(report.developer_replied_at),
+        "page_url": report.page_url or "",
+        "read": bool(report.user_reply_read_at),
+    }
+
+
+@bp.route("/messenger/thread")
+@login_required
+def messenger_thread():
+    if not _messenger_is_available():
+        abort(403)
+    partner = _messenger_thread_partner()
+    project = selected_project()
+    if current_user.role == ROLE_ADMIN:
+        user_rows = (
+            User.query.filter(
+                User.id != current_user.id,
+                User.role != ROLE_ADMIN,
+                User.is_active.is_(True),
+            )
+            .order_by(User.full_name.asc(), User.username.asc())
+            .all()
+        )
+        users = [
+            {
+                "id": user.id,
+                "name": short_user_display_name(user),
+                "role": ROLE_LABELS.get(user.role, user.role),
+                "unread": ChatMessage.query.filter(
+                    ChatMessage.sender_id == user.id,
+                    ChatMessage.recipient_id == current_user.id,
+                    ChatMessage.read_at.is_(None),
+                ).count(),
+            }
+            for user in user_rows
+        ]
+    else:
+        users = []
+
+    messages = []
+    if partner:
+        ChatMessage.query.filter(
+            ChatMessage.sender_id == partner.id,
+            ChatMessage.recipient_id == current_user.id,
+            ChatMessage.read_at.is_(None),
+        ).update({"read_at": utc_now()}, synchronize_session=False)
+        db.session.commit()
+        messages = (
+            ChatMessage.query.options(selectinload(ChatMessage.sender))
+            .filter(
+                or_(
+                    and_(ChatMessage.sender_id == current_user.id, ChatMessage.recipient_id == partner.id),
+                    and_(ChatMessage.sender_id == partner.id, ChatMessage.recipient_id == current_user.id),
+                )
+            )
+            .order_by(ChatMessage.created_at.asc(), ChatMessage.id.asc())
+            .limit(200)
+            .all()
+        )
+
+    error_replies = []
+    if current_user.role != ROLE_ADMIN:
+        error_replies = (
+            SiteErrorReport.query.filter(
+                SiteErrorReport.user_id == current_user.id,
+                SiteErrorReport.developer_reply.isnot(None),
+            )
+            .order_by(SiteErrorReport.developer_replied_at.desc(), SiteErrorReport.id.desc())
+            .limit(50)
+            .all()
+        )
+
+    return jsonify({
+        "ok": True,
+        "current_user": {"id": current_user.id, "role": current_user.role},
+        "developer": {"id": partner.id, "name": short_user_display_name(partner)} if partner else None,
+        "users": users,
+        "messages": [_messenger_message_payload(message) for message in messages],
+        "error_replies": [_messenger_error_reply_payload(report) for report in error_replies],
+        "unread_count": _messenger_unread_count(),
+        "project": project.name if project else "",
+    })
+
+
+@bp.route("/messenger/send", methods=["POST"])
+@login_required
+def messenger_send():
+    if not _messenger_is_available():
+        abort(403)
+    partner = _messenger_thread_partner()
+    if not partner:
+        return jsonify(ok=False, message="Выберите пользователя для сообщения."), 400
+    body = (request.form.get("body") or "").strip()
+    if not body:
+        return jsonify(ok=False, message="Напишите сообщение."), 400
+    project = selected_project()
+    message = ChatMessage(
+        project_id=project.id if project else None,
+        sender_id=current_user.id,
+        recipient_id=partner.id,
+        body=body[:5000],
+    )
+    db.session.add(message)
+    try:
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Failed to send messenger message")
+        return jsonify(ok=False, message="Не удалось отправить сообщение. Обновите страницу; если ошибка повторится, перезапустите приложение на сервере."), 500
+    return jsonify(ok=True, message=_messenger_message_payload(message), unread_count=_messenger_unread_count())
+
+
+@bp.route("/messenger/read", methods=["POST"])
+@login_required
+def messenger_read():
+    if not _messenger_is_available():
+        abort(403)
+    partner = _messenger_thread_partner()
+    if partner:
+        ChatMessage.query.filter(
+            ChatMessage.sender_id == partner.id,
+            ChatMessage.recipient_id == current_user.id,
+            ChatMessage.read_at.is_(None),
+        ).update({"read_at": utc_now()}, synchronize_session=False)
+        db.session.commit()
+    return jsonify(ok=True, unread_count=_messenger_unread_count())
+
+
+@bp.route("/messenger/error-replies/read", methods=["POST"])
+@login_required
+def messenger_error_replies_read():
+    if not _messenger_is_available() or current_user.role == ROLE_ADMIN:
+        abort(403)
+    SiteErrorReport.query.filter(
+        SiteErrorReport.user_id == current_user.id,
+        SiteErrorReport.developer_reply.isnot(None),
+        SiteErrorReport.user_reply_read_at.is_(None),
+    ).update({"user_reply_read_at": utc_now()}, synchronize_session=False)
+    db.session.commit()
+    return jsonify(ok=True, unread_count=_messenger_unread_count())
+
+
 @bp.route("/developer/delete-logs")
 @login_required
 def developer_delete_logs():
     if current_user.role != ROLE_ADMIN:
         abort(403)
-    project = selected_project()
+    project = None
     query = DeletionActionLog.query.options(
         selectinload(DeletionActionLog.user),
         selectinload(DeletionActionLog.project),
         selectinload(DeletionActionLog.undone_by),
     )
-    if project:
-        query = query.filter(or_(DeletionActionLog.project_id == project.id, DeletionActionLog.project_id.is_(None)))
     logs = query.order_by(DeletionActionLog.created_at.desc(), DeletionActionLog.id.desc()).limit(300).all()
     return render_template("developer_delete_logs.html", logs=logs, project=project)
 
@@ -2959,9 +3442,6 @@ def developer_delete_log_undo(log_id: int):
     if current_user.role != ROLE_ADMIN:
         abort(403)
     log = db.session.get(DeletionActionLog, log_id) or abort(404)
-    project = selected_project()
-    if project and log.project_id not in {None, project.id}:
-        abort(404)
     if log.is_undone:
         flash("Это действие уже отменено.", "info")
         return redirect(request.referrer or url_for("main.developer_delete_logs"))
@@ -3133,10 +3613,70 @@ def contractor_directory():
     )
 
 
+@bp.route("/contractors/points")
+@login_required
+def contractor_points():
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+
+    sort = str(request.args.get("sort") or "point_asc").strip()
+    sort_desc = sort == "point_desc"
+    point_options = _remark_point_options(min_number=10)
+    point_filter = str(request.args.get("point") or "").strip()
+    page = max(request.args.get("page", 1, type=int) or 1, 1)
+    per_page = 20
+
+    tasks_query = (
+        Task.query
+        .join(Apartment)
+        .join(WorkPoint)
+        .options(selectinload(Task.apartment), selectinload(Task.work_point))
+        .filter(Task.project_id == project.id, Task.is_archived.is_(False))
+    )
+    if point_filter:
+        allowed_point_numbers = {option["number"] for option in point_options}
+        if point_filter in allowed_point_numbers:
+            tasks_query = tasks_query.filter(WorkPoint.point_number == point_filter)
+        else:
+            point_filter = ""
+
+    point_order = cast(WorkPoint.point_number, Integer).desc() if sort_desc else cast(WorkPoint.point_number, Integer).asc()
+    pagination = (
+        tasks_query
+        .order_by(
+            Task.is_done.asc(),
+            point_order,
+            WorkPoint.point_number.desc() if sort_desc else WorkPoint.point_number.asc(),
+            cast(Apartment.apartment_number, Integer).asc(),
+            Apartment.apartment_number.asc(),
+            Task.id.asc(),
+        )
+        .paginate(page=page, per_page=per_page, error_out=False)
+    )
+    page_args = request.args.to_dict(flat=True)
+    page_args.pop("page", None)
+    page_args.pop("q", None)
+    prev_args = {**page_args, "page": pagination.prev_num} if pagination.has_prev else page_args
+    next_args = {**page_args, "page": pagination.next_num} if pagination.has_next else page_args
+    return render_template(
+        "contractor_points.html",
+        project=project,
+        tasks=pagination.items,
+        pagination=pagination,
+        prev_args=prev_args,
+        next_args=next_args,
+        points=point_options,
+        point_filter=point_filter,
+        sort=sort,
+        sort_desc=sort_desc,
+    )
+
+
 @bp.route("/contractors/statuses", methods=["GET", "POST"])
 @login_required
 def contractor_response_statuses():
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         abort(403)
     project = selected_project()
     if project is None:
@@ -3206,7 +3746,7 @@ def contractor_edit(contractor_id: int):
 @bp.route("/contractors/<int:contractor_id>/delete", methods=["POST"])
 @login_required
 def contractor_delete(contractor_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         abort(403)
     project = selected_project()
     if project is None:
@@ -3222,7 +3762,7 @@ def contractor_delete(contractor_id: int):
 
 
 def _contractor_form_response(contractor: Contractor | None = None):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         abort(403)
     project = selected_project()
     if project is None:
@@ -3235,6 +3775,11 @@ def _contractor_form_response(contractor: Contractor | None = None):
     apartment_options = _contractor_apartment_options(project.id)
     if request.method == "POST":
         name = str(request.form.get("name") or "").strip()
+        legal_address = str(request.form.get("legal_address") or "").strip()
+        contract_number = str(request.form.get("contract_number") or "").strip()
+        contract_date = str(request.form.get("contract_date") or "").strip()
+        director_full_name = str(request.form.get("director_full_name") or "").strip()
+        email = str(request.form.get("email") or "").strip()
         selected_point_numbers = {
             str(value).strip()
             for value in request.form.getlist("work_points")
@@ -3247,6 +3792,11 @@ def _contractor_form_response(contractor: Contractor | None = None):
         }
     else:
         name = contractor.name if contractor else ""
+        legal_address = contractor.legal_address if contractor and contractor.legal_address else ""
+        contract_number = contractor.contract_number if contractor and contractor.contract_number else ""
+        contract_date = contractor.contract_date if contractor and contractor.contract_date else ""
+        director_full_name = contractor.director_full_name if contractor and contractor.director_full_name else ""
+        email = contractor.email if contractor and contractor.email else ""
         selected_point_numbers = {
             str(point.point_number).strip()
             for point in (contractor.work_points if contractor else [])
@@ -3271,6 +3821,16 @@ def _contractor_form_response(contractor: Contractor | None = None):
             errors.append("Укажите наименование подрядчика.")
         elif len(name) > 180:
             errors.append("Наименование подрядчика не должно превышать 180 символов.")
+        contractor_detail_lengths = (
+            ("Юридический адрес", legal_address),
+            ("№ Договор подряда", contract_number),
+            ("Дата договора", contract_date),
+            ("ФИО директора", director_full_name),
+            ("Эл.почта", email),
+        )
+        for label, value in contractor_detail_lengths:
+            if len(value) > 255:
+                errors.append(f"{label} не должно превышать 255 символов.")
         duplicate_query = Contractor.query.filter(
             Contractor.project_id == project.id,
             func.lower(Contractor.name) == name.lower(),
@@ -3285,11 +3845,13 @@ def _contractor_form_response(contractor: Contractor | None = None):
             errors.append("Выберите хотя бы одну квартиру.")
 
         if not errors:
-            work_points = (
-                WorkPoint.query.filter(WorkPoint.point_number.in_(selected_point_numbers))
-                .order_by(WorkPoint.point_number.asc(), WorkPoint.id.asc())
-                .all()
-            )
+            work_points = [
+                _get_or_create_manual_work_point(number)
+                for number in sorted(
+                    selected_point_numbers,
+                    key=lambda value: (0, int(value)) if str(value).isdigit() else (1, str(value)),
+                )
+            ]
             apartment_ids = {
                 apartment_id
                 for group_id in selected_apartment_group_ids
@@ -3307,6 +3869,11 @@ def _contractor_form_response(contractor: Contractor | None = None):
                 contractor = Contractor(project=project)
                 db.session.add(contractor)
             contractor.name = name
+            contractor.legal_address = legal_address or None
+            contractor.contract_number = contract_number or None
+            contractor.contract_date = contract_date or None
+            contractor.director_full_name = director_full_name or None
+            contractor.email = email or None
             contractor.work_points = work_points
             contractor.apartments = apartments
             db.session.commit()
@@ -3325,6 +3892,11 @@ def _contractor_form_response(contractor: Contractor | None = None):
         point_options=point_options,
         apartment_options=apartment_options,
         contractor_name=name,
+        contractor_legal_address=legal_address,
+        contractor_contract_number=contract_number,
+        contractor_contract_date=contract_date,
+        contractor_director_full_name=director_full_name,
+        contractor_email=email,
         selected_point_numbers=selected_point_numbers,
         selected_apartment_group_ids=selected_apartment_group_ids,
         contractor=contractor,
@@ -3345,7 +3917,7 @@ def _premise_options_from_apartments(apartments: list[Apartment]) -> list[dict]:
             "label": apartment.label(),
             "finish": apartment.finishing_type or "",
             "_sort_key": (
-                0 if (apartment.premise_type or "apartment") == "commercial" else 1,
+                _premise_type_sort_rank(apartment),
                 _apartment_number_sort_value(apartment.apartment_number or apartment.construction_number),
                 str(apartment.building or "").strip().lower(),
                 str(apartment.label() or "").strip().lower(),
@@ -3419,6 +3991,7 @@ def contractors_excel_selection():
         export_args=export_args,
         back_url=back_url,
         premise_options=_premise_options_from_tasks(tasks),
+        can_export_contractor_claim=selected_contractor is not None,
         today=date.today(),
     )
 
@@ -3480,16 +4053,50 @@ def contractors_export():
     if project is None:
         return redirect(url_for("main.objects"))
     query_args = request.args.copy()
+    export_format = str(query_args.pop("format", "excel") or "excel").strip().lower()
     query_args["sort"] = "apartment"
     selected_contractor = _project_contractor(project.id, request.args.get("contractor_id", type=int))
+    if export_format == "docx" and selected_contractor is None:
+        flash("Прежде чем скачать, выберите подрядчика.", "warning")
+        return redirect(url_for("main.contractors_list", **query_args))
     tasks = _filter_tasks_for_contractor(_export_tasks_from_request(query_args, project.id), selected_contractor).all()
     contractor_label = selected_contractor.name if selected_contractor else "Все подрядчики"
     filename_prefix = f"{project.name}_Подрядчики"
     if selected_contractor:
         filename_prefix = f"{filename_prefix}_{selected_contractor.name}"
+    if export_format == "docx":
+        path = build_contractor_claim_docx(
+            tasks,
+            project=project,
+            contractor=selected_contractor,
+            author=_contractor_claim_author(project),
+        )
+        return send_file(path, as_attachment=True, download_name=Path(path).name)
     title = f"Подрядчик: {contractor_label}" if selected_contractor else contractor_label
     path = export_remark_tasks_excel(tasks, filename_prefix, title=title)
     return send_file(path, as_attachment=True, download_name=Path(path).name)
+
+
+def _contractor_claim_author(project: Project | None) -> User:
+    if current_user.role == ROLE_OFFICE:
+        return current_user
+    office_users = (
+        User.query
+        .filter(User.role == ROLE_OFFICE, User.is_active.is_(True))
+        .order_by(User.full_name.is_(None), User.full_name.asc(), User.username.asc())
+        .all()
+    )
+    if project:
+        project_office_users = [user for user in office_users if user.can_access_project(project)]
+        for user in project_office_users:
+            if (user.email or "").strip() or (user.phone or "").strip():
+                return user
+        if project_office_users:
+            return project_office_users[0]
+    for user in office_users:
+        if (user.email or "").strip() or (user.phone or "").strip():
+            return user
+    return office_users[0] if office_users else current_user
 
 
 def _unique_int_list(values) -> list[int]:
@@ -3548,7 +4155,7 @@ def _export_tasks_from_request(query_args: dict, project_id: int, category_id: i
             .join(Apartment)
             .join(WorkPoint)
             .filter(Task.project_id == project_id, Task.id.in_(task_ids))
-            .order_by(Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc(), Task.id.asc())
+            .order_by(_premise_type_sort_expression(), Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc(), Task.id.asc())
         )
     desktop_premise_ids = _desktop_excel_selection_premise_ids(
         request.args,
@@ -3570,7 +4177,7 @@ def _active_users_for_project(project_id: int | None = None, roles=None) -> list
     query = User.query.filter(User.is_active.is_(True))
     if roles:
         query = query.filter(User.role.in_(roles))
-    users = query.order_by(User.full_name.asc().nullslast(), User.username.asc()).all()
+    users = query.order_by(*_asc_nulls_last(User.full_name), User.username.asc()).all()
     if project_id is None:
         return users
     return [user for user in users if user.can_access_project(project_id)]
@@ -3735,11 +4342,12 @@ def _assignment_issued_filter_label(issued_filter: str, issued_filter_date: date
 @bp.route("/assignments", methods=["GET", "POST"])
 @login_required
 def assignments():
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         abort(403)
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
+    repair_completed_source_marker_statuses(project_id=project.id)
     users = _executor_users(project.id)
     wants_json = _wants_json_response()
     view_mode = (request.args.get("view") or "issue").strip()
@@ -4041,11 +4649,11 @@ def assignments():
     overdue_total = issued_query_builder.filter(*overdue_filter).count()
     if issued_filter == "overdue":
         issued_query_builder = issued_query_builder.filter(*overdue_filter)
-        issued_order = (Task.planned_date.asc().nullslast(), Task.responsible_id.asc(), Task.id.asc())
+        issued_order = (*_asc_nulls_last(Task.planned_date), Task.responsible_id.asc(), Task.id.asc())
     else:
         if issued_filter_date is not None:
             issued_query_builder = issued_query_builder.filter(Task.planned_date == issued_filter_date)
-        issued_order = (Task.responsible_id.asc(), Task.is_done.asc(), Task.planned_date.asc().nullslast(), Task.id.asc())
+        issued_order = (Task.responsible_id.asc(), Task.is_done.asc(), *_asc_nulls_last(Task.planned_date), Task.id.asc())
     issued_query = (
         issued_query_builder
         .order_by(*issued_order)
@@ -4137,7 +4745,7 @@ def assignments():
 @bp.route("/assignments/<int:task_id>/unassign", methods=["POST"])
 @login_required
 def assignment_unassign(task_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         abort(403)
     project = selected_project()
     if project is None:
@@ -4180,7 +4788,7 @@ def assignment_unassign(task_id: int):
 @login_required
 def assignment_delete_from_employee(task_id: int):
     wants_json = _wants_json_response()
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         abort(403)
     project = selected_project()
     if project is None:
@@ -4265,7 +4873,7 @@ def assignment_delete_from_employee(task_id: int):
 @bp.route("/assignments/issued/<int:user_id>/export")
 @login_required
 def assignment_issued_employee_export(user_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         abort(403)
     project = selected_project()
     if project is None:
@@ -4294,11 +4902,11 @@ def assignment_issued_employee_export(user_id: int):
             Task.status != STATUS_DONE,
             Task.is_done.is_(False),
         )
-        order_by = (Task.planned_date.asc().nullslast(), Task.id.asc())
+        order_by = (*_asc_nulls_last(Task.planned_date), Task.id.asc())
     else:
         if issued_filter_date is not None:
             query = query.filter(Task.planned_date == issued_filter_date)
-        order_by = (Task.is_done.asc(), Task.planned_date.asc().nullslast(), Task.id.asc())
+        order_by = (Task.is_done.asc(), *_asc_nulls_last(Task.planned_date), Task.id.asc())
 
     tasks = (
         query.order_by(*order_by)
@@ -4389,7 +4997,7 @@ def _manual_assignment_work_point() -> WorkPoint:
 @bp.route("/assignments/manual/new", methods=["GET", "POST"])
 @login_required
 def assignment_manual_task_new():
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         abort(403)
     project = selected_project()
     if project is None:
@@ -4444,7 +5052,7 @@ def assignment_manual_task_new():
 @bp.route("/assignments/report")
 @login_required
 def assignments_report():
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         abort(403)
     project = selected_project()
     if project is None:
@@ -4472,7 +5080,7 @@ def assignments_report():
     )
     if user_id:
         query = query.filter(Task.responsible_id == user_id)
-    tasks = query.order_by(User.full_name.asc(), Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()).all()
+    tasks = query.order_by(User.full_name.asc(), _premise_type_sort_expression(), Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()).all()
     grouped = []
     for user in users:
         user_tasks = [task for task in tasks if task.responsible_id == user.id]
@@ -4504,7 +5112,7 @@ def assignments_report():
 @bp.route("/assignments/report/<int:user_id>/excel")
 @login_required
 def assignments_report_worker_pdf(user_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         abort(403)
     project = selected_project()
     if project is None:
@@ -4527,7 +5135,7 @@ def assignments_report_worker_pdf(user_id: int):
             )
         )
         .join(Apartment)
-        .order_by(Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), Task.id.asc())
+        .order_by(_premise_type_sort_expression(), Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), Task.id.asc())
         .all()
     )
     worker_name = user.full_name or user.username or f"worker_{user.id}"
@@ -4540,7 +5148,7 @@ def assignments_report_worker_pdf(user_id: int):
 @bp.route("/my-tasks")
 @login_required
 def my_tasks():
-    if current_user.role in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role == ROLE_ADMIN or current_user.role in OFFICE_MANAGER_ROLES:
         return redirect(url_for("main.dashboard"))
     project = selected_project()
     today_value = date.today()
@@ -4555,7 +5163,7 @@ def my_tasks():
             and_(Task.status == STATUS_DONE, func.date(Task.completed_date) == today_value.isoformat()),
         )
     )
-    tasks = query.outerjoin(Apartment).order_by(Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), Task.updated_at.desc()).all()
+    tasks = query.outerjoin(Apartment).order_by(_premise_type_sort_expression(), Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), Task.updated_at.desc()).all()
     counters = {
         "done": sum(1 for task in tasks if task.status == STATUS_DONE),
         "left": sum(1 for task in tasks if task.status != STATUS_DONE),
@@ -4581,7 +5189,7 @@ def _worker_status_payload(task: Task):
 def my_task_done(task_id: int):
     task = db.session.get(Task, task_id) or abort(404)
     project = selected_project()
-    if current_user.role in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role == ROLE_ADMIN or current_user.role in OFFICE_MANAGER_ROLES:
         if project is None or task.project_id != project.id:
             abort(404)
     elif task.responsible_id != current_user.id:
@@ -4598,7 +5206,7 @@ def my_task_done(task_id: int):
 def my_task_return(task_id: int):
     task = db.session.get(Task, task_id) or abort(404)
     project = selected_project()
-    if current_user.role in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role == ROLE_ADMIN or current_user.role in OFFICE_MANAGER_ROLES:
         if project is None or task.project_id != project.id:
             abort(404)
     elif task.responsible_id != current_user.id:
@@ -4737,18 +5345,13 @@ def _glass_item_rows(measurement: GlassMeasurement | None) -> list[dict[str, obj
 
 
 def _task_search_blob(task: Task) -> str:
-    apartment = task.apartment
     categories = []
     if task.work_point:
         categories = [category.name for category in task.work_point.categories]
+    description = str(task.description or "").strip()
     parts = [
-        apartment.label() if apartment else "",
-        apartment.apartment_number if apartment else "",
-        apartment.construction_number if apartment else "",
-        apartment.building if apartment else "",
-        "коммерция" if apartment and apartment.premise_type == "commercial" else "квартира",
-        task.description or "",
-        task.source_cell_value or "",
+        description,
+        (task.source_cell_value or "") if not description else "",
         task.title or "",
         task.comment or "",
         task.status_label(),
@@ -4788,7 +5391,7 @@ def _all_project_tasks(
     if filters:
         query = query.filter(or_(*filters))
     return (
-        query.order_by(Apartment.premise_type.asc(), Apartment.building.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc(), Task.id.asc())
+        query.order_by(_premise_type_sort_expression(), Apartment.building.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc(), Task.id.asc())
         .limit(3000)
         .all()
     )
@@ -4967,7 +5570,7 @@ def _filter_glass_rows(tasks: list[Task], q: str = "", status: str = "", point: 
         if premise_selectors and not any(premise_matches_selector(task.apartment, selector) for selector in premise_selectors):
             continue
         if needle:
-            if search_mode in {"premise_number", "premise_number_or_building", "commercial_pair", "construction_number"}:
+            if search_mode in {"premise_number", "premise_number_or_building", "commercial_pair", "construction_number", "premise_type", "typed_premise_number"}:
                 if premise_selectors:
                     pass
                 elif not premise_matches_search(task.apartment, search_mode, search_value):
@@ -5040,6 +5643,21 @@ def _group_glass_all_rows(rows: list[dict[str, object]]) -> list[dict[str, objec
     return result
 
 
+def _glass_all_row_sort_key(row: dict[str, object]):
+    related_rows = row.get("related_rows") or [row]
+    related_tasks = [
+        related_row.get("task")
+        for related_row in related_rows
+        if isinstance(related_row.get("task"), Task)
+    ]
+    done_rank = 1 if related_tasks and all(getattr(task, "is_done", False) for task in related_tasks) else 0
+    task = row.get("task")
+    return (
+        done_rank,
+        *_task_apartment_sort_value_no_done(task if isinstance(task, Task) else None),
+    )
+
+
 @bp.route("/glass")
 @bp.route("/glass-measurements")
 @login_required
@@ -5086,6 +5704,7 @@ def glass_measurements():
         )
         if not is_mobile_phone:
             rows = _group_glass_all_rows(rows)
+        rows.sort(key=_glass_all_row_sort_key)
     elif tab == "order":
         order_rows = _filter_glass_rows(available_tasks, q=q, status=GLASS_STATUS_MEASURE_NEEDED)
         order_rows.sort(key=lambda row: _task_apartment_sort_value_no_done(row["task"]))
@@ -5720,9 +6339,9 @@ def glass_manual_task_new():
     apartment_id = request.form.get("apartment_id", type=int)
     text = (request.form.get("description") or "").strip()
     apartment = db.session.get(Apartment, apartment_id) if apartment_id else None
-    default_point = WorkPoint.query.filter_by(point_number="22").order_by(WorkPoint.id.asc()).first()
+    default_point = WorkPoint.query.filter_by(point_number="25").order_by(WorkPoint.id.asc()).first()
     if default_point is None:
-        default_point = WorkPoint(point_number="22", short_name="Прочее", original_column_name="Прочее", source_sheet_name="manual", is_active=True)
+        default_point = WorkPoint(point_number="25", short_name="Прочее", original_column_name="Прочее", source_sheet_name="manual", is_active=True)
         db.session.add(default_point)
         db.session.flush()
 
@@ -6709,14 +7328,7 @@ def _project_apartment_options(project_id: int) -> list[Apartment]:
         if _is_visible_apartment_row(apartment):
             grouped.setdefault(_apartment_group_key(apartment), []).append(apartment)
     apartments = [_pick_apartment_representative(group) for group in grouped.values()]
-    return sorted(
-        apartments,
-        key=lambda apartment: (
-            apartment.premise_type == "commercial",
-            _apartment_number_sort_value(apartment.display_number(fallback_to_id=False)),
-            apartment.building or "",
-        ),
-    )
+    return sorted(apartments, key=_apartment_sort_value)
 
 
 def _project_work_point_options() -> list[WorkPoint]:
@@ -6727,12 +7339,23 @@ def _project_work_point_options() -> list[WorkPoint]:
     )
 
 
-def _remark_point_options() -> list[dict[str, str]]:
-    return [{"number": number, "label": label} for number, label in CONTRACTOR_POINT_LABELS.items()]
+def _remark_point_options(min_number: int = 1) -> list[dict[str, str]]:
+    options = []
+    for number, label in CONTRACTOR_POINT_LABELS.items():
+        if str(number).isdigit() and int(number) < min_number:
+            continue
+        options.append({"number": number, "label": label})
+    return options
+
+
+def _resolve_remark_work_point(point_number: str) -> WorkPoint | None:
+    if point_number in CONTRACTOR_POINT_LABELS:
+        return _get_or_create_manual_work_point(point_number)
+    return None
 
 
 def _get_or_create_manual_work_point(point_number: str | None = None) -> WorkPoint:
-    number = str(point_number or "22").strip() or "22"
+    number = str(point_number or "25").strip() or "25"
     label = CONTRACTOR_POINT_LABELS.get(number, "Прочее")
     point = WorkPoint.query.filter_by(point_number=number).order_by(WorkPoint.id.asc()).first()
     if point is None:
@@ -6745,6 +7368,9 @@ def _get_or_create_manual_work_point(point_number: str | None = None) -> WorkPoi
         )
         db.session.add(point)
         db.session.flush()
+    else:
+        point.short_name = label
+        point.original_column_name = label
     return point
 
 
@@ -6758,33 +7384,162 @@ def _apartment_group_for_project(apartment: Apartment, project_id: int) -> list[
     return group or [apartment]
 
 
-def _apply_inspection_date_to_group(apartments: list[Apartment], inspection_date: date | None) -> None:
-    if not inspection_date:
-        return
-    formatted = inspection_date.strftime("%d.%m.%Y")
+def _apply_inspection_date_to_group(apartments: list[Apartment], inspection_date: date | None) -> bool:
+    if not inspection_date or not apartments:
+        return False
+    existing_dates = {
+        value.date() if isinstance(value, datetime) else value
+        for item in apartments
+        for value in (
+            _apartment_inspection_values(item)
+            + ([] if item.first_inspection_present else _inspection_dates_from_backup(item.inspection_note))
+        )
+    }
+    if inspection_date in existing_dates:
+        for item in apartments:
+            item.first_inspection_present = True
+        return False
+    if len(existing_dates) >= MAX_APARTMENT_INSPECTIONS:
+        return False
+    changed = False
     for item in apartments:
-        existing_dates = {value for value in (item.inspection_date, item.first_inspection_date, item.reinspection_date) if value}
-        if inspection_date in existing_dates:
-            item.first_inspection_present = True
-            continue
-        if not item.inspection_date and not item.first_inspection_date:
-            item.inspection_date = inspection_date
-            item.first_inspection_date = inspection_date
-            item.first_inspection_present = True
-            continue
-        if not item.first_inspection_date:
-            item.first_inspection_date = inspection_date
-            item.first_inspection_present = True
-            continue
-        if not item.reinspection_date:
-            item.reinspection_date = inspection_date
-            item.first_inspection_present = True
-            continue
-        note = str(item.inspection_note or "").strip()
-        extra_line = f"Дополнительный осмотр: {formatted}"
-        if extra_line not in note:
-            item.inspection_note = f"{note}\n{extra_line}".strip()
-        item.first_inspection_present = True
+        changed = _add_apartment_inspection_date(item, inspection_date) or changed
+    return changed
+
+
+def _complete_previous_po_tasks_for_apartment_group(
+    *,
+    project: Project,
+    apartment: Apartment,
+    exclude_task_ids: set[int] | None = None,
+) -> int:
+    excluded_ids = {int(task_id) for task_id in (exclude_task_ids or set()) if task_id}
+    apartment_ids = [item.id for item in _apartment_group_for_project(apartment, project.id) if item.id]
+    if not apartment_ids:
+        apartment_ids = [apartment.id]
+    tasks_query = (
+        Task.query.filter(
+            Task.project_id == project.id,
+            Task.apartment_id.in_(apartment_ids),
+            Task.is_archived.is_(False),
+            Task.status.notin_(list(DONE_STATUSES)),
+        )
+    )
+    if excluded_ids:
+        tasks_query = tasks_query.filter(Task.id.notin_(excluded_ids))
+    tasks = tasks_query.all()
+    for task in tasks:
+        change_task_status(task, STATUS_DONE, user_id=current_user.id, commit=False)
+    return len(tasks)
+
+
+def _open_remark_count_for_apartment_group(*, project: Project, apartment: Apartment) -> int:
+    apartment_ids = [item.id for item in _apartment_group_for_project(apartment, project.id) if item.id]
+    if not apartment_ids:
+        apartment_ids = [apartment.id]
+    return (
+        Task.query.filter(
+            Task.project_id == project.id,
+            Task.apartment_id.in_(apartment_ids),
+            Task.is_archived.is_(False),
+            Task.status.notin_(list(DONE_STATUSES)),
+        )
+        .count()
+    )
+
+
+def _open_concession_candidate_tasks(*, project: Project, apartment: Apartment) -> list[Task]:
+    apartment_ids = [item.id for item in _apartment_group_for_project(apartment, project.id) if item.id]
+    if not apartment_ids:
+        apartment_ids = [apartment.id]
+    return (
+        Task.query.join(WorkPoint, Task.work_point_id == WorkPoint.id)
+        .filter(
+            Task.project_id == project.id,
+            Task.apartment_id.in_(apartment_ids),
+            Task.is_archived.is_(False),
+            WorkPoint.point_number != "26",
+        )
+        .order_by(
+            cast(WorkPoint.point_number, Integer).asc(),
+            Task.created_at.asc(),
+            Task.id.asc(),
+        )
+        .all()
+    )
+
+
+def _project_concession_candidates(*, project: Project, apartments: list[Apartment]) -> dict[int, list[Task]]:
+    """Load candidates once, preserving duplicate-premise grouping and project isolation."""
+    representatives = {_apartment_group_key(item): item.id for item in apartments}
+    result = {item.id: [] for item in apartments}
+    if not representatives:
+        return result
+    representative_by_id = {
+        item.id: representatives[_apartment_group_key(item)]
+        for item in Apartment.query.filter_by(project_id=project.id).all()
+        if _is_visible_apartment_row(item) and _apartment_group_key(item) in representatives
+    }
+    tasks = (
+        Task.query.join(WorkPoint, Task.work_point_id == WorkPoint.id)
+        .options(selectinload(Task.work_point))
+        .filter(
+            Task.project_id == project.id,
+            Task.apartment_id.in_(representative_by_id),
+            Task.is_archived.is_(False),
+            WorkPoint.point_number != "26",
+        )
+        .order_by(cast(WorkPoint.point_number, Integer).asc(), Task.created_at.asc(), Task.id.asc())
+        .all()
+    )
+    for task in tasks:
+        result[representative_by_id[task.apartment_id]].append(task)
+    return result
+
+
+def _apply_concession_to_tasks_by_ids(*, project: Project, apartment: Apartment, task_ids: set[int]) -> int:
+    normalized_ids = {int(task_id) for task_id in (task_ids or set()) if task_id}
+    if not normalized_ids:
+        return 0
+    allowed_ids = {task.id for task in _open_concession_candidate_tasks(project=project, apartment=apartment) if task.id}
+    changed = 0
+    for task in Task.query.filter(Task.id.in_(normalized_ids & allowed_ids)).all():
+        if task.status != STATUS_CONCESSION:
+            change_task_status(task, STATUS_CONCESSION, user_id=current_user.id, commit=False)
+            changed += 1
+    return changed
+
+
+def _apply_concession_to_tasks_by_point_numbers(
+    *,
+    project: Project,
+    apartment: Apartment,
+    point_numbers: set[str],
+) -> int:
+    normalized_numbers = {str(number).strip() for number in (point_numbers or set()) if str(number).strip()}
+    normalized_numbers.discard("26")
+    if not normalized_numbers:
+        return 0
+    changed = 0
+    for task in _open_concession_candidate_tasks(project=project, apartment=apartment):
+        if task.work_point and task.work_point.point_number in normalized_numbers and task.status != STATUS_CONCESSION:
+            change_task_status(task, STATUS_CONCESSION, user_id=current_user.id, commit=False)
+            changed += 1
+    return changed
+
+
+def _remark_count_for_apartment_group(*, project: Project, apartment: Apartment) -> int:
+    apartment_ids = [item.id for item in _apartment_group_for_project(apartment, project.id) if item.id]
+    if not apartment_ids:
+        apartment_ids = [apartment.id]
+    return (
+        Task.query.filter(
+            Task.project_id == project.id,
+            Task.apartment_id.in_(apartment_ids),
+            Task.is_archived.is_(False),
+        )
+        .count()
+    )
 
 
 def _create_manual_remark_tasks(
@@ -6995,6 +7750,12 @@ def _work_point_conflict_label(work_point: WorkPoint | None) -> str:
     return display_name or "Замечание"
 
 
+def _history_change_visible_to_current_user(change: ChangeLog) -> bool:
+    if current_user.role == ROLE_ADMIN:
+        return True
+    return change.user_id == current_user.id
+
+
 def _save_remark_with_sync_fallback(
     *,
     project: Project,
@@ -7112,6 +7873,7 @@ def _pdf_previews_from_form(form) -> list[dict]:
             "filename": (form.get(f"act_{act_idx}_filename") or f"Акт {act_idx + 1}").strip(),
             "template_ok": form.get(f"act_{act_idx}_template_ok") == "1",
             "project_ok": form.get(f"act_{act_idx}_project_ok") == "1",
+            "project_override": form.get(f"act_{act_idx}_project_override") == "1",
             "project_name": (form.get(f"act_{act_idx}_project_name") or "").strip(),
             "project_prefix": (form.get(f"act_{act_idx}_project_prefix") or "").strip(),
             "used_ocr": form.get(f"act_{act_idx}_used_ocr") == "1",
@@ -7145,10 +7907,15 @@ def task_new():
     if current_user.role == "viewer":
         abort(403)
 
-    apartments = _project_apartment_options(project.id)
-    points = _remark_point_options()
     add_mode = (request.form.get("add_mode") or request.args.get("mode") or "").strip()
     manual_kind = (request.form.get("manual_kind") or request.args.get("kind") or "").strip()
+    needs_form_data = add_mode == "manual" and manual_kind in {"single", "act"}
+    apartments = _project_apartment_options(project.id) if needs_form_data else []
+    points = _remark_point_options(min_number=10)
+    concession_candidates_by_apartment = (
+        _project_concession_candidates(project=project, apartments=apartments)
+        if add_mode == "manual" and manual_kind == "single" else {}
+    )
 
     if request.method == "POST":
         if add_mode != "manual":
@@ -7159,10 +7926,14 @@ def task_new():
         if not apartment or apartment.project_id != project.id:
             flash("Выберите квартиру / коммерцию", "warning")
         elif manual_kind == "act":
+            po_mode = request.form.get("po_mode") == "1"
             inspection_date = parse_date(request.form.get("inspection_date"))
             created_count = 0
             conflict_count = 0
             duplicate_count = 0
+            completed_previous_count = 0
+            concession_updated_count = 0
+            inspection_date_updated = False
             prepared_entries: list[tuple[str, str]] = []
             for point in points:
                 point_number = point["number"]
@@ -7171,8 +7942,59 @@ def task_new():
                     continue
                 prepared_entries.append((point_number, text))
             if not prepared_entries:
+                if not po_mode:
+                    db.session.rollback()
+                    flash(
+                        "Вероятнее всего вам нужно нажать кнопку ПО, чтобы добавить акт без замечаний.",
+                        "warning",
+                    )
+                else:
+                    apartment_label = apartment.full_label() if apartment.premise_type == "commercial" else apartment.label()
+                    sync_log = _start_snapshot_sync_log(
+                        project=project,
+                        source_type="manual_act",
+                        source_name=f"Ручной акт / {apartment_label}",
+                    )
+                    try:
+                        target_group = _apartment_group_for_project(apartment, project.id)
+                        inspection_date_updated = _apply_inspection_date_to_group(target_group, inspection_date)
+                        completed_previous_count = _complete_previous_po_tasks_for_apartment_group(
+                            project=project,
+                            apartment=apartment,
+                        )
+                        for item in target_group:
+                            item.is_app_mode = True
+                            item.is_unsold = False
+                            item.app_deadline_status = APP_DEADLINE_NO_REMARKS
+                            item.app_deadline_date = None
+                            item.remark_deadline_date = None
+                            item.app_deadline_raw = "без замечаний"
+                            item.avr_status = AVR_STATUS_NEEDED
+                            item.avr_signed_date = None
+                        db.session.commit()
+                        _finish_snapshot_sync_log(sync_log, created_count=0, missing_count=0)
+                        message = "Акт без замечаний обработан"
+                        if completed_previous_count:
+                            message += f". Переведено в выполнено: {completed_previous_count}"
+                        flash(message, "success")
+                        return redirect(url_for("main.apartment_detail", apartment_id=apartment.id))
+                    except Exception as exc:
+                        db.session.rollback()
+                        _finish_snapshot_sync_log(
+                            sync_log,
+                            created_count=0,
+                            missing_count=0,
+                            status="error",
+                            error_message=str(exc),
+                        )
+                        raise
+            elif (
+                not po_mode
+                and len(prepared_entries) >= 3
+                and _remark_count_for_apartment_group(project=project, apartment=apartment) > 0
+            ):
                 db.session.rollback()
-                flash("Заполните хотя бы одно замечание по пункту", "warning")
+                flash("Поставьте кнопку ПО. Вероятнее всего вы пытаетесь загрузить акт с повторного осмотра.", "warning")
             else:
                 apartment_label = apartment.full_label() if apartment.premise_type == "commercial" else apartment.label()
                 sync_log = _start_snapshot_sync_log(
@@ -7192,7 +8014,7 @@ def task_new():
                         if duplicate_task is None:
                             all_entries_are_duplicates = False
                             break
-                    if all_entries_are_duplicates:
+                    if all_entries_are_duplicates and not po_mode:
                         db.session.rollback()
                         _finish_snapshot_sync_log(sync_log)
                         flash("Точно такой же акт уже подгружен", "danger")
@@ -7201,32 +8023,75 @@ def task_new():
                             project=project,
                             apartments=apartments,
                             points=points,
+                            concession_candidates_by_apartment=concession_candidates_by_apartment,
                             add_mode=add_mode,
                             manual_kind=manual_kind,
                         )
 
                     target_group = _apartment_group_for_project(apartment, project.id)
-                    _apply_inspection_date_to_group(target_group, inspection_date)
-                    for point_number, text in prepared_entries:
-                        outcome = _save_remark_with_sync_fallback(
+                    inspection_date_updated = _apply_inspection_date_to_group(target_group, inspection_date)
+                    if po_mode:
+                        duplicate_task_ids: set[int] = set()
+                        entries_to_create: list[tuple[str, str]] = []
+                        for point_number, text in prepared_entries:
+                            _, duplicate_task, _ = _find_existing_remark_duplicate_or_conflict(
+                                project=project,
+                                apartment=apartment,
+                                point_number=point_number,
+                                text=text,
+                            )
+                            if duplicate_task is not None:
+                                if duplicate_task.id:
+                                    duplicate_task_ids.add(duplicate_task.id)
+                                duplicate_count += 1
+                                continue
+                            entries_to_create.append((point_number, text))
+                        completed_previous_count += _complete_previous_po_tasks_for_apartment_group(
                             project=project,
                             apartment=apartment,
-                            point_number=point_number,
-                            text=text,
-                            created_source_sheet_name="manual_act",
-                            created_action="manual_act_created",
-                            conflict_source_type="manual_act",
-                            conflict_source_name="Ручной акт",
-                            conflict_sheet_name="Ручной акт",
+                            exclude_task_ids=duplicate_task_ids,
                         )
-                        if outcome == "created":
-                            created_count += 1
-                        elif outcome == "conflict":
-                            conflict_count += 1
-                        else:
-                            duplicate_count += 1
+                        for point_number, text in entries_to_create:
+                            created_count += len(_create_manual_remark_tasks(
+                                project=project,
+                                apartment=apartment,
+                                point_number=point_number,
+                                text=text,
+                                source_sheet_name="manual_act",
+                                action="manual_act_created",
+                            ))
+                    else:
+                        for point_number, text in prepared_entries:
+                            outcome = _save_remark_with_sync_fallback(
+                                project=project,
+                                apartment=apartment,
+                                point_number=point_number,
+                                text=text,
+                                created_source_sheet_name="manual_act",
+                                created_action="manual_act_created",
+                                conflict_source_type="manual_act",
+                                conflict_source_name="Ручной акт",
+                                conflict_sheet_name="Ручной акт",
+                            )
+                            if outcome == "created":
+                                created_count += 1
+                            elif outcome == "conflict":
+                                conflict_count += 1
+                            else:
+                                duplicate_count += 1
+                    if any(point_number == "26" for point_number, _ in prepared_entries):
+                        selected_concession_points = {
+                            value
+                            for value in request.form.getlist("concession_point_numbers")
+                            if str(value).strip()
+                        }
+                        concession_updated_count += _apply_concession_to_tasks_by_point_numbers(
+                            project=project,
+                            apartment=apartment,
+                            point_numbers=selected_concession_points,
+                        )
 
-                    if created_count or conflict_count:
+                    if created_count or conflict_count or completed_previous_count or concession_updated_count or inspection_date_updated:
                         db.session.commit()
                         _finish_snapshot_sync_log(
                             sync_log,
@@ -7241,11 +8106,15 @@ def task_new():
                                 message += f". Уже были в базе: {duplicate_count}"
                             flash(message, "warning")
                             return redirect(url_for("main.sync_conflicts"))
-                        message = f"Добавлено замечаний из акта: {created_count}"
+                        message = f"Добавлено замечаний из акта: {created_count}" if created_count else "Акт ПО обработан"
+                        if completed_previous_count:
+                            message += f". Переведено в выполнено: {completed_previous_count}"
+                        if concession_updated_count:
+                            message += f". Переведено в отступные: {concession_updated_count}"
                         if duplicate_count:
-                            message += f". Уже были в базе: {duplicate_count}"
+                            message += f". Идентичные оставлены невыполненными: {duplicate_count}"
                         flash(message, "success")
-                        return redirect(url_for("main.task_list", status=STATUS_NOT_STARTED))
+                        return redirect(url_for("main.apartment_detail", apartment_id=apartment.id))
 
                     db.session.rollback()
                     _finish_snapshot_sync_log(sync_log)
@@ -7263,13 +8132,17 @@ def task_new():
         else:
             manual_kind = "single"
             text = (request.form.get("description") or "").strip()
+            point_number = (request.form.get("point_number") or "").strip()
+            allowed_point_numbers = {point["number"] for point in points}
             if not text:
                 flash("Введите описание работы", "warning")
+            elif point_number not in allowed_point_numbers:
+                flash("Выберите пункт", "warning")
             else:
                 outcome = _save_remark_with_sync_fallback(
                     project=project,
                     apartment=apartment,
-                    point_number="22",
+                    point_number=point_number,
                     text=text,
                     created_source_sheet_name="manual",
                     created_action="manual_created",
@@ -7299,18 +8172,35 @@ def task_new():
                         project=project,
                         apartments=apartments,
                         points=points,
+                        concession_candidates_by_apartment=concession_candidates_by_apartment,
                         add_mode=add_mode,
                         manual_kind=manual_kind,
                     )
+                concession_updated_count = 0
+                if point_number == "26":
+                    selected_concession_task_ids = {
+                        int(value)
+                        for value in request.form.getlist("concession_task_ids")
+                        if str(value).isdigit()
+                    }
+                    concession_updated_count = _apply_concession_to_tasks_by_ids(
+                        project=project,
+                        apartment=apartment,
+                        task_ids=selected_concession_task_ids,
+                    )
                 db.session.commit()
-                flash("Замечание добавлено со статусом не выполнено", "success")
-                return redirect(url_for("main.task_list", status=STATUS_NOT_STARTED))
+                message = "Замечание добавлено со статусом не выполнено"
+                if concession_updated_count:
+                    message += f". Переведено в отступные: {concession_updated_count}"
+                flash(message, "success")
+                return redirect(url_for("main.apartment_detail", apartment_id=apartment.id))
 
     return render_template(
         "task_form.html",
         project=project,
         apartments=apartments,
         points=points,
+        concession_candidates_by_apartment=concession_candidates_by_apartment,
         add_mode=add_mode,
         manual_kind=manual_kind,
     )
@@ -7326,7 +8216,8 @@ def task_recognition():
         abort(403)
 
     apartments = _project_apartment_options(project.id)
-    points = _remark_point_options()
+    points = _remark_point_options(min_number=10)
+    allowed_point_numbers = {point["number"] for point in points}
     previews: list[dict] = []
 
     if request.method == "POST":
@@ -7363,15 +8254,36 @@ def task_recognition():
                 flash("Перед занесением нужно подтвердить сохранение распознанных замечаний", "warning")
             else:
                 act_count = request.form.get("act_count", type=int) or 0
+                po_mode = request.form.get("po_mode") == "1"
                 created_count = 0
                 conflict_count = 0
                 blocked_count = 0
+                completed_previous_count = 0
+                concession_updated_count = 0
+                inspection_date_updated = False
+                inspection_date_limit_count = 0
+                target_apartment_id: int | None = None
                 duplicate_act_names: list[str] = []
                 sync_log_source_names: list[str] = []
                 for act_idx in range(act_count):
                     act_filename = (request.form.get(f"act_{act_idx}_filename") or f"PDF-акт {act_idx + 1}").strip()
                     if act_filename and act_filename not in sync_log_source_names:
                         sync_log_source_names.append(act_filename)
+                    row_count = request.form.get(f"act_{act_idx}_row_count", type=int) or 0
+                    for row_idx in range(row_count):
+                        if request.form.get(f"act_{act_idx}_row_{row_idx}_active") != "1":
+                            continue
+                        point_number = (request.form.get(f"act_{act_idx}_row_{row_idx}_point") or "22").strip()
+                        text = (request.form.get(f"act_{act_idx}_row_{row_idx}_description") or "").strip()
+                        if point_number == "26" and not text:
+                            flash("Заполните поле Отступное (ТМЦ)", "warning")
+                            return render_template(
+                                "task_recognition.html",
+                                project=project,
+                                apartments=apartments,
+                                points=points,
+                                previews=previews,
+                            )
                 sync_log = _start_snapshot_sync_log(
                     project=project,
                     source_type="pdf_recognition",
@@ -7382,7 +8294,12 @@ def task_recognition():
                         if request.form.get(f"act_{act_idx}_template_ok") != "1":
                             blocked_count += 1
                             continue
-                        if request.form.get(f"act_{act_idx}_project_ok") != "1":
+                        project_verified = (
+                            request.form.get(f"act_{act_idx}_project_ok") == "1"
+                            or request.form.get(f"act_{act_idx}_project_override") == "1"
+                        )
+                        if not project_verified:
+                            flash("Сверьте ЖК", "warning")
                             blocked_count += 1
                             continue
                         apartment_id = request.form.get(f"act_{act_idx}_apartment_id", type=int)
@@ -7394,6 +8311,8 @@ def task_recognition():
                         inspection_date = parse_date(request.form.get(f"act_{act_idx}_inspection_date"))
                         row_count = request.form.get(f"act_{act_idx}_row_count", type=int) or 0
                         prepared_rows: list[tuple[str, str]] = []
+                        rows_to_create: list[tuple[str, str]] = []
+                        duplicate_task_ids: set[int] = set()
                         duplicate_row_count = 0
                         for row_idx in range(row_count):
                             if request.form.get(f"act_{act_idx}_row_{row_idx}_active") != "1":
@@ -7401,6 +8320,8 @@ def task_recognition():
                             text = (request.form.get(f"act_{act_idx}_row_{row_idx}_description") or "").strip()
                             point_number = (request.form.get(f"act_{act_idx}_row_{row_idx}_point") or "22").strip()
                             if not text or is_no_remark_text(text):
+                                continue
+                            if point_number not in allowed_point_numbers:
                                 continue
                             prepared_rows.append((point_number, text))
                             _, duplicate_task, _ = _find_existing_remark_duplicate_or_conflict(
@@ -7411,27 +8332,86 @@ def task_recognition():
                             )
                             if duplicate_task is not None:
                                 duplicate_row_count += 1
-                        if prepared_rows and duplicate_row_count == len(prepared_rows):
+                                if duplicate_task.id:
+                                    duplicate_task_ids.add(duplicate_task.id)
+                                continue
+                            rows_to_create.append((point_number, text))
+                        if prepared_rows and duplicate_row_count == len(prepared_rows) and not po_mode:
                             duplicate_act_names.append(act_filename)
                             continue
+                        if prepared_rows and not po_mode and _open_remark_count_for_apartment_group(project=project, apartment=apartment) > 4:
+                            db.session.rollback()
+                            _finish_snapshot_sync_log(sync_log)
+                            flash("Поставьте кнопку ПО. Вероятнее всего вы пытаетесь загрузить акт с повторного осмотра.", "warning")
+                            return render_template(
+                                "task_recognition.html",
+                                project=project,
+                                apartments=apartments,
+                                points=points,
+                                previews=previews,
+                            )
+                        if inspection_date:
+                            target_group = _apartment_group_for_project(apartment, project.id)
+                            group_dates = {
+                                value.date() if isinstance(value, datetime) else value
+                                for item in target_group
+                                for value in (
+                                    _apartment_inspection_values(item)
+                                    + ([] if item.first_inspection_present else _inspection_dates_from_backup(item.inspection_note))
+                                )
+                            }
+                            date_already_present = inspection_date in group_dates
+                            was_added = _apply_inspection_date_to_group(target_group, inspection_date)
+                            inspection_date_updated = was_added or date_already_present or inspection_date_updated
+                            if not was_added and not date_already_present and len(group_dates) >= MAX_APARTMENT_INSPECTIONS:
+                                inspection_date_limit_count += 1
+                            if was_added or date_already_present:
+                                target_apartment_id = apartment.id
                         if prepared_rows:
-                            _apply_inspection_date_to_group(_apartment_group_for_project(apartment, project.id), inspection_date)
-                        for point_number, text in prepared_rows:
-                            outcome = _save_remark_with_sync_fallback(
+                            target_apartment_id = apartment.id
+                            if po_mode:
+                                completed_previous_count += _complete_previous_po_tasks_for_apartment_group(
+                                    project=project,
+                                    apartment=apartment,
+                                    exclude_task_ids=duplicate_task_ids,
+                                )
+                        for point_number, text in (rows_to_create if po_mode else prepared_rows):
+                            if po_mode:
+                                created_count += len(_create_manual_remark_tasks(
+                                    project=project,
+                                    apartment=apartment,
+                                    point_number=point_number,
+                                    text=text,
+                                    source_sheet_name="pdf_recognition",
+                                    action="pdf_recognition_created",
+                                ))
+                            else:
+                                outcome = _save_remark_with_sync_fallback(
+                                    project=project,
+                                    apartment=apartment,
+                                    point_number=point_number,
+                                    text=text,
+                                    created_source_sheet_name="pdf_recognition",
+                                    created_action="pdf_recognition_created",
+                                    conflict_source_type="pdf_recognition",
+                                    conflict_source_name=act_filename,
+                                    conflict_sheet_name=act_filename,
+                                )
+                                if outcome == "created":
+                                    created_count += 1
+                                elif outcome == "conflict":
+                                    conflict_count += 1
+                        if any(point_number == "26" for point_number, _ in prepared_rows):
+                            selected_concession_points = {
+                                value
+                                for value in request.form.getlist(f"act_{act_idx}_concession_point_numbers")
+                                if str(value).strip()
+                            }
+                            concession_updated_count += _apply_concession_to_tasks_by_point_numbers(
                                 project=project,
                                 apartment=apartment,
-                                point_number=point_number,
-                                text=text,
-                                created_source_sheet_name="pdf_recognition",
-                                created_action="pdf_recognition_created",
-                                conflict_source_type="pdf_recognition",
-                                conflict_source_name=act_filename,
-                                conflict_sheet_name=act_filename,
+                                point_numbers=selected_concession_points,
                             )
-                            if outcome == "created":
-                                created_count += 1
-                            elif outcome == "conflict":
-                                conflict_count += 1
                     if conflict_count:
                         db.session.commit()
                         _finish_snapshot_sync_log(
@@ -7448,7 +8428,7 @@ def task_recognition():
                             message += f". Актов пропущено: {blocked_count}"
                         flash(message, "warning")
                         return redirect(url_for("main.sync_conflicts"))
-                    if created_count or conflict_count:
+                    if created_count or conflict_count or completed_previous_count or concession_updated_count or inspection_date_updated:
                         db.session.commit()
                         _finish_snapshot_sync_log(
                             sync_log,
@@ -7458,10 +8438,23 @@ def task_recognition():
                         if duplicate_act_names:
                             flash("Точно такой же акт уже подгружен", "danger")
                         message = f"Сохранено замечаний: {created_count}"
+                        if completed_previous_count:
+                            message += f". Переведено в выполнено: {completed_previous_count}"
+                        if concession_updated_count:
+                            message += f". Переведено в отступные: {concession_updated_count}"
                         if blocked_count:
                             message += f". Актов пропущено: {blocked_count}"
+                        if inspection_date_limit_count:
+                            message += f". Не добавлена дата осмотра: достигнут лимит {MAX_APARTMENT_INSPECTIONS} дат"
                         flash(message, "success")
+                        if target_apartment_id:
+                            return redirect(url_for("main.apartment_detail", apartment_id=target_apartment_id))
                         return redirect(url_for("main.task_recognition"))
+                    if inspection_date_limit_count:
+                        db.session.commit()
+                        _finish_snapshot_sync_log(sync_log, created_count=0, missing_count=0)
+                        flash(f"Замечания не добавлены: достигнут лимит {MAX_APARTMENT_INSPECTIONS} дат осмотра", "warning")
+                        return redirect(url_for("main.apartment_detail", apartment_id=apartment.id))
                     if duplicate_act_names:
                         db.session.rollback()
                         _finish_snapshot_sync_log(sync_log)
@@ -7554,6 +8547,7 @@ def _task_list_response(contractor_page: bool = False):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
+    repair_completed_source_marker_statuses(project_id=project.id)
     ensure_default_categories()
     category_id = request.args.get("category_id", type=int)
     categories = WorkCategory.query.filter_by(is_active=True).order_by(WorkCategory.sort_order.asc()).all()
@@ -7570,7 +8564,7 @@ def _task_list_response(contractor_page: bool = False):
     contractor_options = []
     selected_contractor = None
     if contractor_page:
-        # В разделе "Подрядчики" показываем ту же таблицу замечаний, но группируем/фильтруем по пунктам 10-22.
+        # В разделе "Подрядчики" показываем ту же таблицу замечаний, но группируем/фильтруем по рабочим пунктам.
         # Не принудительно фильтруем по статусу "Подрядчик", иначе вкладка пустая до ручной разметки задач.
         query_args["sort"] = "apartment"
         contractor_options = (
@@ -7683,6 +8677,39 @@ def _apartment_number_sort_value(value: str | None):
     return (1, 0, text.lower())
 
 
+def _premise_type_sort_rank(apartment: Apartment | None) -> int:
+    premise_type = (getattr(apartment, "premise_type", None) or "apartment").strip()
+    return {
+        "apartment": 0,
+        "commercial": 1,
+        "storeroom": 2,
+        "parking": 3,
+    }.get(premise_type, 4)
+
+
+def _premise_type_sort_expression():
+    return case(
+        (Apartment.premise_type.is_(None), 0),
+        (Apartment.premise_type == "apartment", 0),
+        (Apartment.premise_type == "commercial", 1),
+        (Apartment.premise_type == "storeroom", 2),
+        (Apartment.premise_type == "parking", 3),
+        else_=4,
+    )
+
+
+def _apartment_sort_value(apartment: Apartment | None):
+    if apartment is None:
+        return (9, (1, 0, ""), "", "")
+    label = apartment.label() if hasattr(apartment, "label") else (apartment.apartment_number or apartment.construction_number or "")
+    return (
+        _premise_type_sort_rank(apartment),
+        _apartment_number_sort_value(apartment.apartment_number or apartment.construction_number),
+        str(apartment.building or "").strip().lower(),
+        str(label or "").strip().lower(),
+    )
+
+
 def _task_apartment_sort_value(task: Task):
     apartment = getattr(task, "apartment", None)
     done_rank = 1 if getattr(task, "is_done", False) else 0
@@ -7691,9 +8718,7 @@ def _task_apartment_sort_value(task: Task):
     return (
         done_rank,
         0,
-        0 if (apartment.premise_type or "apartment") != "commercial" else 1,
-        _apartment_number_sort_value(apartment.apartment_number or apartment.construction_number),
-        str(apartment.building or "").strip().lower(),
+        *_apartment_sort_value(apartment),
         str(task.work_point.point_number if task.work_point else "").strip(),
         int(task.id or 0),
     )
@@ -7705,9 +8730,7 @@ def _task_apartment_sort_value_no_done(task: Task):
         return (1, 1, (1, 0, ""), "", "", 0)
     return (
         0,
-        0 if (apartment.premise_type or "apartment") != "commercial" else 1,
-        _apartment_number_sort_value(apartment.apartment_number or apartment.construction_number),
-        str(apartment.building or "").strip().lower(),
+        *_apartment_sort_value(apartment),
         str(task.work_point.point_number if task.work_point else "").strip(),
         int(task.id or 0),
     )
@@ -7887,6 +8910,13 @@ def _apartment_group_mode(apartments: list[Apartment]) -> str:
     return "не принята"
 
 
+APARTMENT_DETAIL_MODE_LABELS = {
+    "not_accepted": "не принята",
+    "app": "АПП",
+    "unsold": "не продана",
+}
+
+
 def _is_unsold_apartment(apartment: Apartment) -> bool:
     return is_apartment_unsold(apartment)
 
@@ -7934,9 +8964,9 @@ def _po_status_for_group(apartments: list[Apartment], tasks: list[Task]) -> str 
 
 def _apartment_inspection_comment(apartments: list[Apartment]) -> str | None:
     for apartment in apartments:
-        note = str(apartment.inspection_note or "").strip()
-        if note and not note.startswith("__inspection_schedule__:"):
-            return note
+        comment = str(apartment.correction_comment or "").strip()
+        if comment:
+            return comment
     return None
 
 
@@ -7949,8 +8979,13 @@ def _apartment_manual_comment(apartments: list[Apartment]) -> str | None:
 
 def _apartment_history_anchor_task(apartments: list[Apartment]) -> Task | None:
     tasks = [task for apartment in apartments for task in list(apartment.tasks or [])]
+    apartment = _pick_apartment_representative(apartments) if apartments else None
+    if apartment is not None:
+        source_uid = stable_hash(["apartment-history", apartment.project_id, apartment.id])
+        existing_anchor = Task.query.filter_by(source_uid=source_uid).first()
+        if existing_anchor is not None and existing_anchor not in tasks:
+            tasks.append(existing_anchor)
     if not tasks:
-        apartment = _pick_apartment_representative(apartments) if apartments else None
         if apartment is None:
             return None
         work_point = WorkPoint.query.filter_by(point_number="history", source_sheet_name="apartment_history").first()
@@ -7964,7 +8999,6 @@ def _apartment_history_anchor_task(apartments: list[Apartment]) -> Task | None:
             )
             db.session.add(work_point)
             db.session.flush()
-        source_uid = stable_hash(["apartment-history", apartment.project_id, apartment.id])
         task = Task(
             source_uid=source_uid,
             project_id=apartment.project_id,
@@ -8012,7 +9046,7 @@ def _parse_inspection_schedule_marker(note: str | None) -> date | datetime | Non
     prefix = "__inspection_schedule__:"
     if not text.startswith(prefix):
         return None
-    payload = text[len(prefix):].strip()
+    payload = text[len(prefix):].splitlines()[0].strip()
     if not payload:
         return None
     for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
@@ -8027,10 +9061,84 @@ def _parse_inspection_schedule_marker(note: str | None) -> date | datetime | Non
 
 
 def _apartment_inspection_value(apartment: Apartment) -> date | datetime | None:
+    values = _apartment_inspection_values(apartment)
+    return min(values, key=lambda value: _inspection_sort_datetime(value) or datetime.max) if values else None
+
+
+def _apartment_inspection_values(apartment: Apartment) -> list[date | datetime]:
     scheduled = _parse_inspection_schedule_marker(apartment.inspection_note)
-    if scheduled is not None:
-        return scheduled
-    return apartment.inspection_date or apartment.first_inspection_date
+    values: list[date | datetime] = [scheduled] if scheduled is not None else []
+    for value in (apartment.inspection_date, apartment.first_inspection_date, apartment.reinspection_date):
+        if value is not None:
+            values.append(value)
+    for match in re.finditer(r"Дополнительный осмотр:\s*(\d{2}\.\d{2}\.\d{4})", str(apartment.inspection_note or "")):
+        parsed = parse_date(match.group(1))
+        if parsed is not None:
+            values.append(parsed)
+    if apartment.first_inspection_present:
+        values.extend(_inspection_dates_from_backup(apartment.inspection_note))
+    unique: dict[date, date | datetime] = {}
+    for value in values:
+        calendar_date = value.date() if isinstance(value, datetime) else value
+        unique.setdefault(calendar_date, value)
+    return sorted(unique.values(), key=lambda value: _inspection_sort_datetime(value) or datetime.max)
+
+
+def _inspection_dates_from_backup(note: str | None) -> list[date | datetime]:
+    prefix = INSPECTION_DATES_BACKUP_PREFIX
+    for line in str(note or "").splitlines():
+        payload = line.strip()
+        if not payload.startswith(prefix):
+            continue
+        try:
+            raw_values = json.loads(payload[len(prefix):])
+        except (TypeError, ValueError):
+            return []
+        if not isinstance(raw_values, list):
+            return []
+        values: list[date | datetime] = []
+        for raw_value in raw_values[:MAX_APARTMENT_INSPECTIONS]:
+            if not isinstance(raw_value, str):
+                continue
+            try:
+                parsed_datetime = datetime.fromisoformat(raw_value)
+            except ValueError:
+                parsed_date = parse_date(raw_value)
+                if parsed_date is not None:
+                    values.append(parsed_date)
+            else:
+                values.append(parsed_datetime if "T" in raw_value or " " in raw_value else parsed_datetime.date())
+        return values
+    return []
+
+
+def _set_inspection_dates_backup(note: str | None, values: list[date | datetime]) -> str | None:
+    retained = [
+        line.strip()
+        for line in str(note or "").splitlines()
+        if line.strip() and not line.strip().startswith(INSPECTION_DATES_BACKUP_PREFIX)
+    ]
+    unique: dict[date, date | datetime] = {}
+    for value in values:
+        calendar_date = value.date() if isinstance(value, datetime) else value
+        if calendar_date not in unique or isinstance(value, datetime):
+            unique[calendar_date] = value
+    ordered_values = sorted(unique.values(), key=lambda value: _inspection_sort_datetime(value) or datetime.max)
+    if ordered_values:
+        payload = [value.isoformat() for value in ordered_values[:MAX_APARTMENT_INSPECTIONS]]
+        retained.append(INSPECTION_DATES_BACKUP_PREFIX + json.dumps(payload, ensure_ascii=False))
+    return "\n".join(retained) or None
+
+
+def _remove_inspection_schedule_and_extra_dates(note: str | None) -> str | None:
+    retained = []
+    for line in str(note or "").splitlines():
+        if line.strip().startswith("__inspection_schedule__:"):
+            continue
+        if re.fullmatch(r"\s*Дополнительный осмотр:\s*\d{2}\.\d{2}\.\d{4}\s*", line):
+            continue
+        retained.append(line.strip())
+    return "\n".join(line for line in retained if line) or None
 
 
 def _inspection_sort_datetime(value: date | datetime | None) -> datetime | None:
@@ -8045,28 +9153,138 @@ def _format_inspection_display_value(value: date | datetime | None) -> str:
     if value is None:
         return "—"
     if isinstance(value, datetime):
+        if value < datetime.now():
+            return value.strftime("%d.%m.%Y")
         return value.strftime("%d.%m.%Y %H:%M")
-    return format_ru_date(value)
+    return value.strftime("%d.%m.%Y")
 
 
 def _apartment_inspection_date(apartments: list[Apartment]) -> date | None:
     dates: list[date] = []
     for apartment in apartments:
-        value = _apartment_inspection_value(apartment)
-        if isinstance(value, datetime):
-            dates.append(value.date())
-        elif isinstance(value, date):
-            dates.append(value)
+        for value in _apartment_inspection_values(apartment):
+            if isinstance(value, datetime):
+                dates.append(value.date())
+            elif isinstance(value, date):
+                dates.append(value)
     return min(dates) if dates else None
 
 
 def _apartment_inspection_display(apartments: list[Apartment]) -> str:
-    values = [_apartment_inspection_value(apartment) for apartment in apartments]
+    values = [value for apartment in apartments for value in _apartment_inspection_values(apartment)]
     values = [value for value in values if value is not None]
     if not values:
         return "—"
     chosen = min(values, key=lambda value: _inspection_sort_datetime(value) or datetime.max)
     return _format_inspection_display_value(chosen)
+
+
+def _apartment_inspection_displays(apartments: list[Apartment]) -> list[str]:
+    values = [value for apartment in apartments for value in _apartment_inspection_values(apartment)]
+    unique: dict[date, date | datetime] = {}
+    for value in values:
+        if value is None:
+            continue
+        calendar_date = value.date() if isinstance(value, datetime) else value
+        if calendar_date not in unique or isinstance(value, datetime):
+            unique[calendar_date] = value
+    return [
+        _format_inspection_display_value(value)
+        for value in sorted(
+            unique.values(),
+            key=lambda value: _inspection_sort_datetime(value) or datetime.max,
+        )
+    ]
+
+
+def _apartment_inspection_items(apartments: list[Apartment]) -> list[dict[str, str]]:
+    values = [value for apartment in apartments for value in _apartment_inspection_values(apartment)]
+    unique: dict[date, date | datetime] = {}
+    for value in values:
+        if value is None:
+            continue
+        calendar_date = value.date() if isinstance(value, datetime) else value
+        if calendar_date not in unique or isinstance(value, datetime):
+            unique[calendar_date] = value
+    items: list[dict[str, str]] = []
+    for value in sorted(unique.values(), key=lambda value: _inspection_sort_datetime(value) or datetime.max):
+        label = _format_inspection_display_value(value)
+        if isinstance(value, datetime):
+            raw_value = value.date().isoformat()
+        else:
+            raw_value = value.isoformat()
+        items.append({"label": label, "value": raw_value})
+    return items
+
+
+def _add_apartment_inspection_date(apartment: Apartment, inspection_date: date) -> bool:
+    existing_dates = {
+        value.date() if isinstance(value, datetime) else value
+        for value in (
+            _apartment_inspection_values(apartment)
+            + ([] if apartment.first_inspection_present else _inspection_dates_from_backup(apartment.inspection_note))
+        )
+        if value is not None
+    }
+    if inspection_date in existing_dates:
+        apartment.first_inspection_present = True
+        return False
+    if len(existing_dates) >= MAX_APARTMENT_INSPECTIONS:
+        return False
+    if apartment.inspection_date is None:
+        apartment.inspection_date = inspection_date
+    elif apartment.first_inspection_date is None:
+        apartment.first_inspection_date = inspection_date
+    elif apartment.reinspection_date is None:
+        apartment.reinspection_date = inspection_date
+    else:
+        note = str(apartment.inspection_note or "").strip()
+        line = f"Дополнительный осмотр: {inspection_date.strftime('%d.%m.%Y')}"
+        if line not in note:
+            apartment.inspection_note = f"{note}\n{line}".strip() if note else line
+    if apartment.first_inspection_date is None:
+        apartment.first_inspection_date = inspection_date
+    apartment.first_inspection_present = True
+    apartment.inspection_date_backup = apartment.inspection_date or apartment.first_inspection_date or inspection_date
+    return True
+
+
+def _remove_apartment_inspection_date(apartment: Apartment, inspection_date: date) -> bool:
+    changed = False
+    for field_name in ("inspection_date", "first_inspection_date", "reinspection_date"):
+        value = getattr(apartment, field_name)
+        if value == inspection_date:
+            setattr(apartment, field_name, None)
+            changed = True
+    note = str(apartment.inspection_note or "")
+    if note:
+        target_extra_line = f"Дополнительный осмотр: {inspection_date.strftime('%d.%m.%Y')}"
+        lines = note.splitlines()
+        next_lines: list[str] = []
+        for line in lines:
+            if line.strip() == target_extra_line:
+                changed = True
+                continue
+            marker_date = _parse_inspection_schedule_marker(line)
+            marker_day = marker_date.date() if isinstance(marker_date, datetime) else marker_date
+            if marker_day == inspection_date:
+                changed = True
+                continue
+            next_lines.append(line)
+        if changed:
+            apartment.inspection_note = "\n".join(line.strip() for line in next_lines if line.strip()) or None
+    backup_values = _inspection_dates_from_backup(apartment.inspection_note)
+    retained_backup_values = [
+        value
+        for value in backup_values
+        if (value.date() if isinstance(value, datetime) else value) != inspection_date
+    ]
+    if len(retained_backup_values) != len(backup_values):
+        apartment.inspection_note = _set_inspection_dates_backup(apartment.inspection_note, retained_backup_values)
+        changed = True
+    if not _apartment_inspection_values(apartment):
+        apartment.first_inspection_present = False
+    return changed
 
 
 def _apartment_inspection_status_class(status: str | None) -> str:
@@ -8110,7 +9328,7 @@ def _app_deadline_display(apartment: Apartment) -> str:
 def _group_app_deadline_display(apartments: list[Apartment]) -> str:
     deadline = _group_remark_deadline(apartments)
     if deadline:
-        return deadline.strftime("%d.%m.%Y")
+        return format_ru_date(deadline)
     for apartment in apartments:
         raw = str(getattr(apartment, "app_deadline_raw", None) or "").strip()
         if raw and not Apartment._is_no_deadline_text(raw):
@@ -8129,6 +9347,60 @@ def _group_avr_signed_date(apartments: list[Apartment]) -> date | None:
     return min(dates) if dates else None
 
 
+def _group_has_dop_agreement_task(apartments: list[Apartment]) -> bool:
+    for apartment in apartments:
+        for task in apartment.tasks or []:
+            if task.is_archived:
+                continue
+            if is_dop_agreement_point(task.work_point):
+                return True
+    return False
+
+
+def _group_addendum_status(apartments: list[Apartment]) -> str:
+    if _apartment_group_mode(apartments) != "АПП":
+        return ADDENDUM_STATUS_NONE
+    manual_statuses = [
+        apartment.addendum_status or ADDENDUM_STATUS_NONE
+        for apartment in apartments
+        if getattr(apartment, "addendum_status_manual", False)
+    ]
+    if manual_statuses:
+        if ADDENDUM_STATUS_SIGNED in manual_statuses:
+            return ADDENDUM_STATUS_SIGNED
+        if ADDENDUM_STATUS_NEEDED in manual_statuses:
+            return ADDENDUM_STATUS_NEEDED
+        return ADDENDUM_STATUS_NONE
+    if _group_has_dop_agreement_task(apartments):
+        return ADDENDUM_STATUS_NEEDED
+    stored_statuses = [apartment.addendum_status or ADDENDUM_STATUS_NONE for apartment in apartments]
+    if ADDENDUM_STATUS_SIGNED in stored_statuses:
+        return ADDENDUM_STATUS_SIGNED
+    if ADDENDUM_STATUS_NEEDED in stored_statuses:
+        return ADDENDUM_STATUS_NEEDED
+    return ADDENDUM_STATUS_NONE
+
+
+def _group_addendum_signed_date(apartments: list[Apartment]) -> date | None:
+    dates = [apartment.addendum_signed_date for apartment in apartments if apartment.addendum_signed_date]
+    return min(dates) if dates else None
+
+
+def _group_app_signed_date(apartments: list[Apartment]) -> date | None:
+    dates = [apartment.deadline_date for apartment in apartments if apartment.deadline_date]
+    return min(dates) if dates else None
+
+
+def _group_app_status(apartments: list[Apartment]) -> str:
+    if apartments and all(apartment.app_deadline_status == APP_DEADLINE_NO_REMARKS for apartment in apartments):
+        return APP_DEADLINE_NO_REMARKS
+    return APP_DEADLINE_NORMAL
+
+
+def _app_status_label(status: str | None) -> str:
+    return "Без замечаний" if status == APP_DEADLINE_NO_REMARKS else "Есть замечания"
+
+
 def _group_app_deadline_status(apartments: list[Apartment]) -> str | None:
     deadline = _group_remark_deadline(apartments)
     if not deadline:
@@ -8143,14 +9415,16 @@ def _group_app_deadline_status(apartments: list[Apartment]) -> str | None:
 
 def _apartment_inspection_status(apartments: list[Apartment]) -> str | None:
     if apartments and any(_is_unsold_apartment(apartment) for apartment in apartments):
-        return "Был"
-    values = [_apartment_inspection_value(apartment) for apartment in apartments]
+        return "не продана"
+    values = [value for apartment in apartments for value in _apartment_inspection_values(apartment)]
     values = [value for value in values if value is not None]
     if values:
         nearest = min(values, key=lambda value: _inspection_sort_datetime(value) or datetime.max)
         nearest_dt = _inspection_sort_datetime(nearest)
         if nearest_dt is not None:
-            return "Будет" if nearest_dt >= datetime.now() else "Был"
+            if isinstance(nearest, datetime):
+                return "Будет" if nearest_dt >= datetime.now() else "Был"
+            return "Будет" if nearest_dt.date() >= date.today() else "Был"
     if any(apartment.first_inspection_present for apartment in apartments):
         return "Был"
     return "Не был"
@@ -8161,7 +9435,82 @@ def _is_app_inspection_locked(apartments: list[Apartment]) -> bool:
 
 
 def _premise_label(apartment: Apartment) -> str:
-    return "Комм" if (apartment.premise_type or "apartment") == "commercial" else "кв"
+    premise_type = apartment.premise_type or "apartment"
+    if premise_type == "commercial":
+        return "Комм"
+    if premise_type == "storeroom":
+        return "КЛ"
+    if premise_type == "parking":
+        return "П"
+    return "кв"
+
+
+def _apartment_contract_number(apartment: Apartment) -> str:
+    premise_type = apartment.premise_type or "apartment"
+    stored_contract_number = str(getattr(apartment, "contract_number", "") or "").strip()
+    candidates = [
+        str(apartment.apartment_number or "").strip(),
+        str(apartment.construction_number or "").strip(),
+    ]
+    def format_contract_number(number: str) -> str:
+        number = normalize_number_cell(number) or number
+        if premise_type == "commercial":
+            return number
+        if premise_type == "storeroom":
+            normalized = Apartment._number_without_prefix(number, "КЛ")
+            normalized = normalize_number_cell(normalized) or normalized
+            return f"Кладовка {normalized}"
+        if premise_type == "parking":
+            normalized = Apartment._number_without_prefix(number, "П")
+            normalized = normalize_number_cell(normalized) or normalized
+            return f"Парковка {normalized}"
+        return f"Квартира {number}"
+
+    if stored_contract_number:
+        return format_contract_number(stored_contract_number)
+    if premise_type == "commercial":
+        return format_contract_number(candidates[0]) if candidates and candidates[0] else ""
+    for value in candidates:
+        match = re.search(r"\(([^()]+)\)", value)
+        if match:
+            number = match.group(1).strip()
+            if number:
+                return format_contract_number(number)
+    for value in candidates:
+        if value.count("/") == 1:
+            right_part = value.rsplit("/", 1)[1].strip()
+            if right_part:
+                return format_contract_number(right_part)
+    for value in candidates:
+        if value:
+            return format_contract_number(value)
+    return ""
+
+
+def _apartment_contract_input_value(apartment: Apartment) -> str:
+    return _apartment_contract_number(apartment)
+
+
+def _normalize_apartment_contract_form_value(apartment: Apartment, value: str | None) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    premise_type = apartment.premise_type or "apartment"
+    lowered = text.lower().replace("ё", "е")
+    prefixes = {
+        "apartment": ("квартира", "кв."),
+        "storeroom": ("кладовка", "кладовая", "кл."),
+        "parking": ("парковка", "паркинг", "п."),
+    }.get(premise_type, ())
+    for prefix in prefixes:
+        if lowered.startswith(prefix):
+            text = text[len(prefix):].strip()
+            break
+    if premise_type == "parking":
+        text = Apartment._number_without_prefix(text, "П")
+    elif premise_type == "storeroom":
+        text = Apartment._number_without_prefix(text, "КЛ")
+    return normalize_number_cell(text) or text
 
 
 def _floor_from_construction_number(value: str | None) -> str:
@@ -8191,17 +9540,7 @@ def _avr_owner_options(owner_name: str | None) -> list[str]:
 
 
 def _contractor_point_options() -> list[dict[str, str]]:
-    points = (
-        WorkPoint.query.filter(WorkPoint.point_number.in_(CONTRACTOR_POINT_LABELS.keys()))
-        .order_by(WorkPoint.point_number.asc())
-        .all()
-    )
-    existing_numbers = {str(point.point_number).strip() for point in points}
-    options = []
-    for number, label in CONTRACTOR_POINT_LABELS.items():
-        if number in existing_numbers:
-            options.append({"number": number, "label": label})
-    return options
+    return _remark_point_options(min_number=10)
 
 
 def _contractor_apartment_options(project_id: int) -> list[dict]:
@@ -8224,11 +9563,7 @@ def _contractor_apartment_options(project_id: int) -> list[dict]:
             "floor": str(representative.floor or "").strip(),
             "finishing_type": str(representative.finishing_type or "").strip(),
             "number": re.sub(r"\D+", "", str(representative.apartment_number or representative.construction_number or "").strip()),
-            "_sort_key": (
-                0 if (representative.premise_type or "apartment") == "apartment" else 1,
-                _apartment_number_sort_value(representative.apartment_number or representative.construction_number),
-                str(representative.building or "").strip().lower(),
-            ),
+            "_sort_key": _apartment_sort_value(representative),
         })
     options.sort(key=lambda option: option["_sort_key"])
     return options
@@ -8264,6 +9599,8 @@ def _apartment_group_contact_values(apartments: list[Apartment], field_name: str
         raw_value = str(getattr(apartment, field_name, "") or "")
         for part in raw_value.splitlines():
             value = part.strip()
+            if field_name == "owner_name" and is_unsold_owner_name(value):
+                continue
             normalized = value.casefold()
             if value and normalized not in seen:
                 seen.add(normalized)
@@ -8308,9 +9645,12 @@ def _build_apartment_overview(apartment_or_group, include_activity: bool = True)
     percent = round((done / total * 100), 1) if total else (100 if mode == "АПП" else 0)
     remark_deadline = _group_remark_deadline(apartments)
     app_deadline_status = _group_app_deadline_status(apartments)
+    app_status = _group_app_status(apartments)
     return {
         "apartment": apartment,
         "premise_label": _premise_label(apartment),
+        "contract_number": _apartment_contract_number(apartment),
+        "contract_number_input": _apartment_contract_input_value(apartment),
         "apartments": apartments,
         "group_count": len(apartments),
         "owner_names": _apartment_group_contact_values(apartments, "owner_name"),
@@ -8320,6 +9660,8 @@ def _build_apartment_overview(apartment_or_group, include_activity: bool = True)
         "manual_comment": _apartment_manual_comment(apartments),
         "inspection_date": _apartment_inspection_date(apartments),
         "inspection_display": _apartment_inspection_display(apartments),
+        "inspection_displays": _apartment_inspection_displays(apartments),
+        "inspection_items": _apartment_inspection_items(apartments),
         "inspection_status": _apartment_inspection_status(apartments),
         "inspection_status_class": _apartment_inspection_status_class(_apartment_inspection_status(apartments)),
         "tasks": tasks,
@@ -8337,9 +9679,16 @@ def _build_apartment_overview(apartment_or_group, include_activity: bool = True)
         "remark_deadline": remark_deadline,
         "remark_deadline_display": _group_app_deadline_display(apartments),
         "remark_deadline_status": _remark_deadline_status_for_group(apartments, remark_deadline, app_deadline_status),
+        "app_signed_date": _group_app_signed_date(apartments),
+        "app_status": app_status,
+        "app_status_label": _app_status_label(app_status),
+        "addendum_status": _group_addendum_status(apartments),
+        "addendum_status_label": ADDENDUM_STATUS_LABELS.get(_group_addendum_status(apartments), "Нет"),
+        "addendum_signed_date": _group_addendum_signed_date(apartments),
+        "has_addendum_task": _group_has_dop_agreement_task(apartments),
         "avr_status": _group_avr_status(apartments),
         "avr_signed_date": _group_avr_signed_date(apartments),
-        "show_avr": mode == "АПП" and (apartment.premise_type or "apartment") == "apartment",
+        "show_avr": mode == "АПП" and (apartment.premise_type or "apartment") in {"apartment", "storeroom", "parking"} and app_status != APP_DEADLINE_NO_REMARKS,
         "po_status": _po_status_for_group(apartments, active_tasks),
         "has_ordered_glass": bool(ordered_glass),
         "has_replaced_glass": bool(replaced_glass),
@@ -8392,7 +9741,7 @@ def apartments():
     per_page = 10 if is_mobile_request else 20
     mobile_page = 1
     mobile_total_pages = 1
-    mobile_pagination_args = request.args.to_dict(flat=True)
+    mobile_pagination_args = request.args.to_dict(flat=False)
     mobile_pagination_args.pop("page", None)
     try:
         mobile_page = max(1, int(request.args.get("page", 1)))
@@ -8401,9 +9750,7 @@ def apartments():
 
     if not has_active_filters:
         groups = _group_project_apartments(project.id, include_activity=False)
-        groups.sort(key=lambda group: _apartment_number_sort_value(
-            _pick_apartment_representative(group).display_number(fallback_to_id=False)
-        ))
+        groups.sort(key=lambda group: _apartment_sort_value(_pick_apartment_representative(group)))
         total_count = len(groups)
         mobile_total_pages = max(1, (total_count + per_page - 1) // per_page)
         mobile_page = min(mobile_page, mobile_total_pages)
@@ -8449,7 +9796,7 @@ def apartments():
         "apartments.html",
         rows=rows,
         args=request.args,
-        export_args=request.args.to_dict(flat=True),
+        export_args=request.args.to_dict(flat=False),
         finishing_types=finishing_types,
         total_count=total_count,
         mobile_page=mobile_page,
@@ -8461,6 +9808,8 @@ def apartments():
         po_status_classes=PO_STATUS_CLASSES,
         avr_status_needed=AVR_STATUS_NEEDED,
         avr_status_signed=AVR_STATUS_SIGNED,
+        app_deadline_normal=APP_DEADLINE_NORMAL,
+        app_deadline_no_remarks=APP_DEADLINE_NO_REMARKS,
     )
 
 
@@ -8477,7 +9826,7 @@ def _apartment_overview_search_haystack(row: dict) -> str:
             apartment.phone or "",
             apartment.finishing_type or "",
             apartment.comment or "",
-            apartment.inspection_note or "",
+            apartment.correction_comment or "",
         ])
     values.append(str(row.get("glass_status_label") or ""))
     values.append(str(row.get("mode") or ""))
@@ -8517,6 +9866,10 @@ def _filtered_apartment_overview_rows(
     app_status_filter = (args.get("app_status") or "").strip()
     avr_status_filter = (args.get("avr_status") or "").strip()
     po_status_filter = (args.get("po_status") or "").strip()
+    if current_user.is_authenticated and current_user.role == ROLE_OFFICE:
+        po_only = False
+        po_status_filter = ""
+    finishing_groups = set(get_multi_param_values(args, "finishing_group"))
     rows = []
     overview_rows = source_rows
     if overview_rows is None:
@@ -8537,7 +9890,7 @@ def _filtered_apartment_overview_rows(
                     haystack = _apartment_overview_search_haystack(row)
                     if needle not in haystack:
                         continue
-            elif search_mode in {"premise_number", "premise_number_or_building", "commercial_pair", "construction_number"}:
+            elif search_mode in {"premise_number", "premise_number_or_building", "commercial_pair", "construction_number", "premise_type", "typed_premise_number"}:
                 if not any(premise_matches_search(item, search_mode, search_value) for item in row["apartments"]):
                     continue
             else:
@@ -8551,9 +9904,21 @@ def _filtered_apartment_overview_rows(
             continue
         if app_status_filter == "not_accepted" and row.get("mode") != "не принята":
             continue
+        if avr_status_filter == "with_remarks" and (row.get("mode") != "АПП" or row.get("app_status") != APP_DEADLINE_NORMAL):
+            continue
+        if avr_status_filter == APP_DEADLINE_NO_REMARKS and (row.get("mode") != "АПП" or row.get("app_status") != APP_DEADLINE_NO_REMARKS):
+            continue
         if avr_status_filter in {AVR_STATUS_NEEDED, AVR_STATUS_SIGNED} and (not row.get("show_avr") or row.get("avr_status") != avr_status_filter):
             continue
+        if avr_status_filter == "addendum" and not row.get("has_addendum_task"):
+            continue
+        if avr_status_filter == "addendum_signed" and (not row.get("has_addendum_task") or row.get("addendum_status") != ADDENDUM_STATUS_SIGNED):
+            continue
+        if avr_status_filter == "addendum_not_signed" and (not row.get("has_addendum_task") or row.get("addendum_status") == ADDENDUM_STATUS_SIGNED):
+            continue
         if po_status_filter and row.get("po_status") != po_status_filter:
+            continue
+        if finishing_groups and not _apartment_row_matches_finishing_groups(row, finishing_groups):
             continue
         if inspection_filter == "was" and row.get("inspection_status") != "Был":
             continue
@@ -8573,17 +9938,31 @@ def _filtered_apartment_overview_rows(
                     len(premise_selectors),
                 ),
                 _inspection_sort_rank(row, inspection_order),
-                _apartment_number_sort_value(row["apartment"].display_number(fallback_to_id=False)),
+                _apartment_sort_value(row["apartment"]),
             )
         )
     else:
         rows.sort(
             key=lambda row: (
                 _inspection_sort_rank(row, inspection_order),
-                _apartment_number_sort_value(row["apartment"].display_number(fallback_to_id=False)),
+                _apartment_sort_value(row["apartment"]),
             )
         )
     return rows, premise_selectors, po_only
+
+
+def _apartment_row_matches_finishing_groups(row: dict, finishing_groups: set[str]) -> bool:
+    for apartment in row.get("apartments") or []:
+        finish = str(apartment.finishing_type or "").strip()
+        is_white = "бел" in finish.lower().replace("ё", "е")
+        is_none = not finish
+        if "white" in finishing_groups and is_white:
+            return True
+        if "none" in finishing_groups and is_none:
+            return True
+        if "clean" in finishing_groups and not is_white and not is_none:
+            return True
+    return False
 
 
 def _apartments_export_filename_stem(project_name: str | None) -> str:
@@ -8605,7 +9984,7 @@ def apartments_export():
     rows, _premise_selectors, _po_only = _filtered_apartment_overview_rows(project.id, request.args)
     wb = Workbook()
     ws = wb.active
-    ws.title = "Квартиры"
+    ws.title = "Помещения"
     ws.append([
         "Помещение",
         "Отделка",
@@ -8877,6 +10256,89 @@ def update_apartment_po_status(apartment_id: int):
     return redirect(request.referrer or url_for("main.apartments"))
 
 
+@bp.route("/apartments/<int:apartment_id>/details", methods=["POST"])
+@login_required
+def update_apartment_details(apartment_id: int):
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    if current_user.role == "viewer":
+        abort(403)
+    apartment = db.session.get(Apartment, apartment_id) or abort(404)
+    if apartment.project_id != project.id:
+        abort(404)
+
+    group_key = _apartment_group_key(apartment)
+    group = [
+        item
+        for item in Apartment.query.filter(Apartment.project_id == project.id).all()
+        if _is_visible_apartment_row(item) and _apartment_group_key(item) == group_key
+    ]
+    target_group = group or [apartment]
+    old_overview = _build_apartment_overview(target_group, include_activity=False)
+    old_owner = "\n".join(old_overview.get("owner_names") or [])
+    old_phone = "\n".join(old_overview.get("phones") or [])
+    old_contract_number = str(_pick_apartment_representative(target_group).contract_number or "").strip()
+    old_finish = str(_pick_apartment_representative(target_group).finishing_type or "").strip()
+    old_mode = old_overview.get("mode") or ""
+
+    owner_name = str(request.form.get("owner_name") or "").strip()
+    phone = str(request.form.get("phone") or "").strip()
+    contract_number = _normalize_apartment_contract_form_value(apartment, request.form.get("contract_number"))
+    finishing_type = str(request.form.get("finishing_type") or "").strip()
+    mode_value = str(request.form.get("mode") or "").strip()
+    if mode_value not in APARTMENT_DETAIL_MODE_LABELS:
+        abort(400)
+    if any(len(value) > 255 for value in (owner_name, phone, finishing_type)) or len(contract_number) > 80:
+        if _wants_json_response():
+            return jsonify({
+                "ok": False,
+                "message": "ФИО, телефон и отделка не должны превышать 255 символов, номер по договору — 80 символов.",
+            }), 400
+        flash("ФИО, телефон и отделка не должны превышать 255 символов, номер по договору — 80 символов.", "warning")
+        return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
+
+    if mode_value != "unsold" and is_unsold_owner_name(owner_name):
+        owner_name = ""
+
+    for item in target_group:
+        item.owner_name = None if mode_value == "unsold" else (owner_name or None)
+        item.phone = phone or None
+        item.contract_number = contract_number or None
+        item.finishing_type = finishing_type or None
+        item.is_unsold = mode_value == "unsold"
+        item.is_app_mode = mode_value == "app"
+        if mode_value != "app":
+            item.addendum_status = ADDENDUM_STATUS_NONE
+            item.addendum_signed_date = None
+            item.addendum_status_manual = False
+
+    new_mode = APARTMENT_DETAIL_MODE_LABELS[mode_value]
+    history_changes = [
+        _log_apartment_field_change(target_group, "owner_name", old_owner, owner_name),
+        _log_apartment_field_change(target_group, "phone", old_phone, phone),
+        _log_apartment_field_change(target_group, "contract_number", old_contract_number, contract_number),
+        _log_apartment_field_change(target_group, "finishing_type", old_finish, finishing_type),
+        _log_apartment_field_change(target_group, "apartment_mode", old_mode, new_mode),
+    ]
+    db.session.commit()
+
+    changed_count = sum(1 for item in history_changes if item)
+    if _wants_json_response():
+        return jsonify({
+            "ok": True,
+            "message": "Данные помещения обновлены." if changed_count else "Данные помещения не изменились.",
+            "changed": changed_count,
+            "mode": new_mode,
+            "owner_name": owner_name,
+            "phone": phone,
+            "contract_number": contract_number,
+            "finishing_type": finishing_type,
+        })
+    flash("Данные помещения обновлены." if changed_count else "Данные помещения не изменились.", "success")
+    return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
+
+
 @bp.route("/apartments/<int:apartment_id>/inspection-status", methods=["POST"])
 @login_required
 def update_apartment_inspection_status(apartment_id: int):
@@ -8904,35 +10366,51 @@ def update_apartment_inspection_status(apartment_id: int):
             return jsonify({"ok": False, "message": message}), 400
         flash(message, "warning")
         return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
+    old_status = _apartment_inspection_status(target_group) or ""
     if any(_is_unsold_apartment(item) for item in target_group):
         for item in target_group:
             item.first_inspection_present = False
             item.first_inspection_date = None
             item.inspection_date = None
+            item.reinspection_date = None
+            item.inspection_note = _remove_inspection_schedule_and_extra_dates(item.inspection_note)
+        _log_apartment_field_change(target_group, "apartment_inspection_status", old_status, _apartment_inspection_status(target_group) or "")
         db.session.commit()
         flash("У непроданной квартиры осмотр фиксируется автоматически: Не был", "info")
         return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
 
     was_present = status == "was"
     for item in target_group:
-        item.first_inspection_present = was_present
         if was_present:
-            restored_date = item.inspection_date or item.first_inspection_date or item.inspection_date_backup
+            item.first_inspection_present = True
+            restored_date = _apartment_inspection_date([item]) or item.inspection_date_backup
             item.first_inspection_date = restored_date or date.today()
             item.inspection_date = restored_date or item.first_inspection_date
             item.inspection_date_backup = item.inspection_date
         else:
-            previous_date = item.inspection_date or item.first_inspection_date
+            previous_values = _apartment_inspection_values(item)
+            previous_date = min(
+                previous_values,
+                key=lambda value: _inspection_sort_datetime(value) or datetime.max,
+            ) if previous_values else item.inspection_date_backup
             if previous_date:
-                item.inspection_date_backup = previous_date
+                item.inspection_date_backup = previous_date.date() if isinstance(previous_date, datetime) else previous_date
+            item.inspection_note = _set_inspection_dates_backup(
+                _remove_inspection_schedule_and_extra_dates(item.inspection_note),
+                previous_values or ([previous_date] if previous_date else []),
+            )
+            item.first_inspection_present = False
             item.inspection_date = None
             item.first_inspection_date = None
+            item.reinspection_date = None
+            item.inspection_note = _remove_inspection_schedule_and_extra_dates(item.inspection_note)
             item.first_inspection_present = False
-            if _parse_inspection_schedule_marker(item.inspection_note):
-                item.inspection_note = None
+    new_status = _apartment_inspection_status(target_group) or ""
+    history_change = _log_apartment_field_change(target_group, "apartment_inspection_status", old_status, new_status)
     db.session.commit()
     if _wants_json_response():
         overview = _build_apartment_overview(target_group)
+        history_entry = _build_change_history_entry(history_change[0], task=history_change[1]) if history_change else None
         return jsonify({
             "ok": True,
             "message": "Статус осмотра обновлён",
@@ -8940,6 +10418,7 @@ def update_apartment_inspection_status(apartment_id: int):
             "inspection_date_label": overview.get("inspection_display") or "—",
             "inspection_status": overview.get("inspection_status") or "",
             "inspection_status_class": overview.get("inspection_status_class") or "status-pill-muted",
+            "history_entry": history_entry,
         })
     flash("Статус осмотра обновлён", "success")
     return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
@@ -8958,6 +10437,12 @@ def update_apartment_inspection_date(apartment_id: int):
         abort(404)
 
     inspection_date = parse_date(request.form.get("inspection_date"))
+    if inspection_date is None:
+        message = "Выберите дату осмотра"
+        if _wants_json_response():
+            return jsonify({"ok": False, "message": message}), 400
+        flash(message, "warning")
+        return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
     group_key = _apartment_group_key(apartment)
     group = [
         item
@@ -8971,24 +10456,99 @@ def update_apartment_inspection_date(apartment_id: int):
             return jsonify({"ok": False, "message": message}), 400
         flash(message, "warning")
         return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
+    old_date_label = ", ".join(_apartment_inspection_displays(target_group)) or "—"
+    added_count = 0
     for item in target_group:
-        item.inspection_date = inspection_date
-        item.first_inspection_date = inspection_date
-        item.first_inspection_present = inspection_date is not None
-        if inspection_date is not None:
-            item.inspection_date_backup = inspection_date
+        if _add_apartment_inspection_date(item, inspection_date):
+            added_count += 1
+    if not added_count and all(
+        inspection_date not in {
+            value.date() if isinstance(value, datetime) else value
+            for value in _apartment_inspection_values(item)
+        }
+        for item in target_group
+    ):
+        message = f"Можно добавить не более {MAX_APARTMENT_INSPECTIONS} дат осмотра"
+        if _wants_json_response():
+            return jsonify({"ok": False, "message": message}), 400
+        flash(message, "warning")
+        return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
+    new_date_label = ", ".join(_apartment_inspection_displays(target_group)) or "—"
+    history_change = _log_apartment_field_change(target_group, "apartment_inspection_date", old_date_label, new_date_label)
     db.session.commit()
 
-    message = "Дата осмотра обновлена" if inspection_date else "Дата осмотра очищена"
+    message = "Дата осмотра добавлена" if added_count else "Такая дата осмотра уже есть"
     if _wants_json_response():
         overview = _build_apartment_overview(target_group)
+        history_entry = _build_change_history_entry(history_change[0], task=history_change[1]) if history_change else None
         return jsonify({
             "ok": True,
             "message": message,
             "inspection_date": inspection_date.isoformat() if inspection_date else "",
-            "inspection_date_label": overview.get("inspection_display") or "—",
+            "inspection_date_label": ", ".join(overview.get("inspection_displays") or []) or "—",
+            "inspection_date_labels": overview.get("inspection_displays") or [],
+            "inspection_items": overview.get("inspection_items") or [],
+            "inspection_delete_url": url_for("main.delete_apartment_inspection_date", apartment_id=apartment.id),
+            "inspection_max": MAX_APARTMENT_INSPECTIONS,
             "inspection_status": overview.get("inspection_status") or "",
             "inspection_status_class": overview.get("inspection_status_class") or "status-pill-muted",
+            "history_entry": history_entry,
+        })
+    flash(message, "success")
+    return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
+
+
+@bp.route("/apartments/<int:apartment_id>/inspection-date/delete", methods=["POST"])
+@login_required
+def delete_apartment_inspection_date(apartment_id: int):
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    if current_user.role == "viewer":
+        abort(403)
+    apartment = db.session.get(Apartment, apartment_id) or abort(404)
+    if apartment.project_id != project.id:
+        abort(404)
+
+    inspection_date = parse_date(request.form.get("inspection_date"))
+    if inspection_date is None:
+        abort(400)
+    group_key = _apartment_group_key(apartment)
+    group = [
+        item
+        for item in Apartment.query.filter(Apartment.project_id == project.id).all()
+        if _is_visible_apartment_row(item) and _apartment_group_key(item) == group_key
+    ]
+    target_group = group or [apartment]
+    if _is_app_inspection_locked(target_group):
+        message = "В режиме АПП осмотр с датой изменить нельзя"
+        if _wants_json_response():
+            return jsonify({"ok": False, "message": message}), 400
+        flash(message, "warning")
+        return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
+
+    old_date_label = ", ".join(_apartment_inspection_displays(target_group)) or "—"
+    removed_count = 0
+    for item in target_group:
+        if _remove_apartment_inspection_date(item, inspection_date):
+            removed_count += 1
+    new_date_label = ", ".join(_apartment_inspection_displays(target_group)) or "—"
+    history_change = _log_apartment_field_change(target_group, "apartment_inspection_date", old_date_label, new_date_label)
+    db.session.commit()
+
+    message = "Дата осмотра удалена" if removed_count else "Дата осмотра уже удалена"
+    if _wants_json_response():
+        overview = _build_apartment_overview(target_group)
+        history_entry = _build_change_history_entry(history_change[0], task=history_change[1]) if history_change else None
+        return jsonify({
+            "ok": True,
+            "message": message,
+            "inspection_date": overview.get("inspection_date").isoformat() if overview.get("inspection_date") else "",
+            "inspection_date_label": ", ".join(overview.get("inspection_displays") or []) or "—",
+            "inspection_date_labels": overview.get("inspection_displays") or [],
+            "inspection_status": overview.get("inspection_status") or "",
+            "inspection_status_class": overview.get("inspection_status_class") or "status-pill-muted",
+            "history_entry": history_entry,
         })
     flash(message, "success")
     return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
@@ -9015,7 +10575,7 @@ def update_apartment_inspection_note(apartment_id: int):
     target_group = group or [apartment]
     old_note = _apartment_inspection_comment(target_group) or ""
     for item in group or [apartment]:
-        item.inspection_note = note or None
+        item.correction_comment = note or None
     history_change = _log_apartment_field_change(target_group, "apartment_inspection_note", old_note, note)
     db.session.commit()
     if _wants_json_response():
@@ -9053,6 +10613,109 @@ def update_apartment_comment(apartment_id: int):
         history_entry = _build_change_history_entry(history_change[0], task=history_change[1]) if history_change else None
         return jsonify({"ok": True, "message": "Комментарий сохранен", "comment": comment, "history_entry": history_entry})
     flash("Комментарий сохранен", "success")
+    return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
+
+
+@bp.route("/apartments/<int:apartment_id>/app-status", methods=["POST"])
+@login_required
+def update_apartment_app_status(apartment_id: int):
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    if current_user.role == "viewer":
+        abort(403)
+    apartment = db.session.get(Apartment, apartment_id) or abort(404)
+    if apartment.project_id != project.id:
+        abort(404)
+
+    status = (request.form.get("app_status") or APP_DEADLINE_NORMAL).strip()
+    if status not in {APP_DEADLINE_NORMAL, APP_DEADLINE_NO_REMARKS}:
+        abort(400)
+    signed_date = parse_date(request.form.get("app_signed_date"))
+    posted_deadline = parse_date(request.form.get("app_deadline_date"))
+    calculated_deadline = signed_date + timedelta(days=60) if signed_date else None
+    deadline_manual = (request.form.get("app_deadline_manual") or "").strip() == "1"
+    if posted_deadline and posted_deadline != calculated_deadline:
+        deadline_manual = True
+    deadline_date = posted_deadline if deadline_manual else calculated_deadline
+
+    group_key = _apartment_group_key(apartment)
+    group = [
+        item
+        for item in Apartment.query.filter(Apartment.project_id == project.id).all()
+        if _is_visible_apartment_row(item) and _apartment_group_key(item) == group_key
+    ]
+    target_group = group or [apartment]
+    old_overview = _build_apartment_overview(target_group, include_activity=False)
+    old_signed_date = old_overview.get("app_signed_date")
+    old_deadline = old_overview.get("remark_deadline")
+    old_status = old_overview.get("app_status")
+    old_avr_status = old_overview.get("avr_status")
+    old_avr_signed_date = old_overview.get("avr_signed_date")
+
+    for item in target_group:
+        item.is_app_mode = True
+        item.is_unsold = False
+        item.deadline_date = signed_date
+        if status == APP_DEADLINE_NO_REMARKS:
+            item.app_deadline_status = APP_DEADLINE_NO_REMARKS
+            item.app_deadline_date = None
+            item.remark_deadline_date = None
+            item.app_deadline_raw = "без замечаний"
+            item.avr_status = AVR_STATUS_NEEDED
+            item.avr_signed_date = None
+        else:
+            item.app_deadline_status = APP_DEADLINE_NORMAL
+            item.app_deadline_date = deadline_date
+            item.remark_deadline_date = deadline_date
+            item.app_deadline_raw = None
+            if item.avr_status != AVR_STATUS_SIGNED:
+                item.avr_status = AVR_STATUS_NEEDED
+
+    history_changes = [
+        _log_apartment_field_change(
+            target_group,
+            "deadline_date",
+            old_signed_date.isoformat() if old_signed_date else "",
+            signed_date.isoformat() if signed_date else "",
+        ),
+        _log_apartment_field_change(
+            target_group,
+            "app_deadline_date",
+            old_deadline.isoformat() if old_deadline else "",
+            deadline_date.isoformat() if deadline_date and status != APP_DEADLINE_NO_REMARKS else "",
+        ),
+        _log_apartment_field_change(target_group, "app_deadline_status", old_status, status),
+        _log_apartment_field_change(target_group, "avr_status", old_avr_status, _group_avr_status(target_group)),
+        _log_apartment_field_change(
+            target_group,
+            "avr_signed_date",
+            old_avr_signed_date.isoformat() if old_avr_signed_date else "",
+            _group_avr_signed_date(target_group).isoformat() if _group_avr_signed_date(target_group) else "",
+        ),
+    ]
+    db.session.commit()
+
+    history_entry = None
+    for history_change in history_changes:
+        if history_change:
+            history_entry = _build_change_history_entry(history_change[0], task=history_change[1], users_cache={})
+            break
+    message = "Данные АПП обновлены"
+    if _wants_json_response():
+        return jsonify({
+            "ok": True,
+            "message": message,
+            "app_status": status,
+            "app_status_label": _app_status_label(status),
+            "app_signed_date": signed_date.isoformat() if signed_date else "",
+            "app_signed_date_label": format_ru_date(signed_date) if signed_date else "—",
+            "app_deadline_date": deadline_date.isoformat() if deadline_date and status != APP_DEADLINE_NO_REMARKS else "",
+            "app_deadline_date_label": format_ru_date(deadline_date) if deadline_date and status != APP_DEADLINE_NO_REMARKS else "Нет срока",
+            "show_avr": status != APP_DEADLINE_NO_REMARKS,
+            "history_entry": history_entry,
+        })
+    flash(message, "success")
     return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
 
 
@@ -9112,6 +10775,66 @@ def update_apartment_avr_status(apartment_id: int):
     return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
 
 
+@bp.route("/apartments/<int:apartment_id>/addendum-status", methods=["POST"])
+@login_required
+def update_apartment_addendum_status(apartment_id: int):
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    if current_user.role == "viewer":
+        abort(403)
+    apartment = db.session.get(Apartment, apartment_id) or abort(404)
+    if apartment.project_id != project.id:
+        abort(404)
+    status = (request.form.get("addendum_status") or "").strip()
+    if status not in {ADDENDUM_STATUS_NONE, ADDENDUM_STATUS_NEEDED, ADDENDUM_STATUS_SIGNED}:
+        abort(400)
+    signed_date = parse_date(request.form.get("addendum_signed_date"))
+    if status == ADDENDUM_STATUS_SIGNED and signed_date is None:
+        signed_date = date.today()
+
+    group_key = _apartment_group_key(apartment)
+    group = [
+        item
+        for item in Apartment.query.filter(Apartment.project_id == project.id).all()
+        if _is_visible_apartment_row(item) and _apartment_group_key(item) == group_key
+    ]
+    target_group = group or [apartment]
+    if _apartment_group_mode(target_group) != "АПП":
+        abort(400)
+    old_status = _group_addendum_status(target_group)
+    old_signed_date = _group_addendum_signed_date(target_group)
+    for item in target_group:
+        item.addendum_status = status
+        item.addendum_signed_date = signed_date if status == ADDENDUM_STATUS_SIGNED else None
+        item.addendum_status_manual = True
+    status_history_change = _log_apartment_field_change(target_group, "addendum_status", old_status, status)
+    date_history_change = _log_apartment_field_change(
+        target_group,
+        "addendum_signed_date",
+        old_signed_date.isoformat() if old_signed_date else "",
+        signed_date.isoformat() if signed_date and status == ADDENDUM_STATUS_SIGNED else "",
+    )
+    db.session.commit()
+    if _wants_json_response():
+        history_entry = None
+        for history_change in (date_history_change, status_history_change):
+            if history_change:
+                history_entry = _build_change_history_entry(history_change[0], task=history_change[1], users_cache={})
+                break
+        return jsonify({
+            "ok": True,
+            "message": "Статус доп. соглашения обновлен",
+            "addendum_status": status,
+            "addendum_status_label": ADDENDUM_STATUS_LABELS.get(status, status),
+            "addendum_signed_date": signed_date.isoformat() if signed_date and status == ADDENDUM_STATUS_SIGNED else "",
+            "addendum_signed_date_label": format_ru_date(signed_date) if signed_date and status == ADDENDUM_STATUS_SIGNED else "",
+            "history_entry": history_entry,
+        })
+    flash("Статус доп. соглашения обновлен", "success")
+    return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
+
+
 @bp.route("/apartments/<int:apartment_id>")
 @login_required
 def apartment_detail(apartment_id: int):
@@ -9145,6 +10868,8 @@ def apartment_detail(apartment_id: int):
         _build_change_history_entry(item["change"], task=item["task"], users_cache=users_cache)
         for item in overview["changes"]
         if not _is_legacy_problem_comment_change(item["change"], item["task"])
+        and _history_change_visible_to_current_user(item["change"])
+        and not (current_user.role == ROLE_OFFICE and item["change"].field_name == "po_status")
     ]
     history_page = max(request.args.get("history_page", 1, type=int), 1)
     history_per_page = 12
@@ -9169,6 +10894,11 @@ def apartment_detail(apartment_id: int):
         po_status_classes=PO_STATUS_CLASSES,
         avr_status_needed=AVR_STATUS_NEEDED,
         avr_status_signed=AVR_STATUS_SIGNED,
+        app_deadline_normal=APP_DEADLINE_NORMAL,
+        app_deadline_no_remarks=APP_DEADLINE_NO_REMARKS,
+        addendum_status_none=ADDENDUM_STATUS_NONE,
+        addendum_status_needed=ADDENDUM_STATUS_NEEDED,
+        addendum_status_signed=ADDENDUM_STATUS_SIGNED,
     )
 
 
@@ -9255,7 +10985,7 @@ def work_report():
 @bp.route("/report/export")
 @login_required
 def work_report_export():
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER, ROLE_VERIFIER}:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
         abort(403)
     project = selected_project()
     if project is None:
@@ -9336,7 +11066,7 @@ def work_report_export():
 
 def _apartment_task_groups(query):
     rows = []
-    for apartment in query.order_by(cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()).all():
+    for apartment in query.order_by(_premise_type_sort_expression(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()).all():
         tasks = [task for task in apartment.tasks if not task.is_archived]
         visible = [task for task in tasks if task.work_point and task.work_point.point_number in VISIBLE_WORK_POINT_NUMBERS]
         done = [task for task in visible if task.is_done]
@@ -9397,6 +11127,8 @@ def _delete_task_with_relations(task: Task, project_id: int) -> None:
         Task.project_id == project_id,
         Task.glass_parent_task_id == task.id,
     ).all()
+    related_task_ids = [task.id, *(repeat_task.id for repeat_task in repeat_tasks if repeat_task.id)]
+    SyncConflict.query.filter(SyncConflict.task_id.in_(related_task_ids)).delete(synchronize_session=False)
     for repeat_task in repeat_tasks:
         for writeoff in list(repeat_task.material_writeoffs):
             writeoff.tasks.remove(repeat_task)
@@ -9487,6 +11219,8 @@ def task_detail(task_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
+    ensure_default_categories()
+    db.session.commit()
     task = db.session.get(Task, task_id) or abort(404)
     if task.project_id != project.id:
         abort(404)
@@ -9500,7 +11234,12 @@ def task_detail(task_id: int):
     edit_form.responsible_id.data = str(task.responsible_id or "")
     edit_form.planned_date.data = task.planned_date.isoformat() if task.planned_date else ""
     comment_form = CommentForm()
-    visible_changes = [change for change in task.changes if not _is_legacy_problem_comment_change(change, task)]
+    visible_changes = [
+        change
+        for change in task.changes
+        if not _is_legacy_problem_comment_change(change, task)
+        and _history_change_visible_to_current_user(change)
+    ]
     users_cache: dict[int, str] = {}
     history_entries = [_build_change_history_entry(change, task=task, users_cache=users_cache) for change in visible_changes]
     other_tasks = (
@@ -9523,6 +11262,7 @@ def task_detail(task_id: int):
         task=task,
         edit_form=edit_form,
         comment_form=comment_form,
+        points=_remark_point_options(min_number=10),
         visible_changes=visible_changes,
         history_entries=history_entries,
         other_open_tasks=other_tasks,
@@ -9544,9 +11284,12 @@ def task_delete(task_id: int):
         .first()
         or abort(404)
     )
+    apartment_id = task.apartment_id
     _delete_task_with_relations(task, project.id)
     db.session.commit()
     flash("Замечание удалено", "success")
+    if apartment_id:
+        return redirect(url_for("main.apartment_detail", apartment_id=apartment_id))
     return _safe_redirect(request.form.get("next"), "main.task_list")
 
 
@@ -9601,6 +11344,48 @@ def update_task(task_id: int):
     else:
         flash("Проверьте поля формы", "danger")
     return redirect(url_for("main.task_detail", task_id=task.id))
+
+
+@bp.route("/tasks/<int:task_id>/point", methods=["POST"])
+@login_required
+def update_task_point(task_id: int):
+    wants_json = _wants_json_response()
+    project = selected_project()
+    if project is None:
+        return redirect(url_for("main.objects"))
+    task = db.session.get(Task, task_id) or abort(404)
+    if task.project_id != project.id:
+        abort(404)
+    if not can_change_task(current_user, task):
+        abort(403)
+    point_number = (request.form.get("point_number") or "").strip()
+    if not point_number.isdigit() or int(point_number) < 10:
+        if wants_json:
+            return jsonify(ok=False, message="Выберите корректный пункт с 10-го и дальше."), 400
+        flash("Выберите корректный пункт", "danger")
+        return redirect(url_for("main.task_detail", task_id=task.id, back=request.form.get("next")))
+    old_point = task.work_point
+    new_point = _resolve_remark_work_point(point_number)
+    if new_point is None:
+        if wants_json:
+            return jsonify(ok=False, message="Выберите корректный пункт с 10-го и дальше."), 400
+        flash("Выберите корректный пункт", "danger")
+        return redirect(url_for("main.task_detail", task_id=task.id, back=request.form.get("next")))
+    if old_point and old_point.id == new_point.id:
+        if wants_json:
+            return jsonify(ok=True, changed=False, point_number=point_number, label=new_point.display_name, message="Пункт не изменился.")
+        flash("Пункт не изменился", "info")
+        return redirect(url_for("main.task_detail", task_id=task.id, back=request.form.get("next")))
+    old_label = old_point.display_name if old_point else ""
+    new_label = new_point.display_name
+    task.work_point = new_point
+    task.manually_edited = True
+    log_change(task, "field_update", "work_point", old_label, new_label)
+    db.session.commit()
+    if wants_json:
+        return jsonify(ok=True, changed=True, point_number=point_number, label=new_label, message="Пункт замечания обновлен.")
+    flash("Пункт замечания обновлен", "success")
+    return redirect(url_for("main.task_detail", task_id=task.id, back=request.form.get("next")))
 
 
 @bp.route("/tasks/<int:task_id>/comment", methods=["POST"])
@@ -9928,7 +11713,7 @@ def mapping_settings():
     if project is None:
         return redirect(url_for("main.objects"))
     ensure_default_categories()
-    hidden_point_numbers = {"7", "9", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33"}
+    hidden_point_numbers = {"7", "9", "26", "27", "28", "29", "30", "31", "32", "33", "43", "44", "45"}
     categories_to_show = [
         category
         for category in WorkCategory.query.filter(WorkCategory.is_active.is_(True)).order_by(WorkCategory.sort_order.asc()).all()
@@ -9937,11 +11722,16 @@ def mapping_settings():
     point_ids_for_project = [
         point_id for (point_id,) in db.session.query(Task.work_point_id).filter(Task.project_id == project.id).distinct().all()
     ]
-    points = (
-        WorkPoint.query.filter(WorkPoint.id.in_(point_ids_for_project or [-1]), WorkPoint.is_active.is_(True))
+    points = [
+        point
+        for point in WorkPoint.query.filter(
+            WorkPoint.id.in_(point_ids_for_project or [-1]),
+            WorkPoint.is_active.is_(True),
+        )
         .order_by(WorkPoint.point_number.asc())
         .all()
-    )
+        if str(point.point_number or "").strip() not in hidden_point_numbers
+    ]
     if request.method == "POST":
         wants_json = _wants_json_response()
         allowed_point_ids = {point.id for point in points}
@@ -10003,9 +11793,18 @@ def account():
 
     if request.method == "POST":
         action = (request.form.get("action") or "").strip()
+        wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
         if action == "start_2fa":
             pending_secret = generate_totp_secret()
             session["account_2fa_pending_secret"] = pending_secret
+            if wants_json:
+                provisioning = provisioning_uri(user.username, pending_secret)
+                return jsonify(
+                    ok=True,
+                    message="Отсканируйте QR-код или введите ключ вручную, затем подтвердите кодом.",
+                    pending_secret=pending_secret,
+                    qr_data_uri=qr_svg_data_uri(provisioning),
+                )
             flash("Отсканируйте QR-код или введите ключ вручную, затем подтвердите кодом.", "info")
         elif action == "confirm_2fa":
             secret = pending_secret or user.two_factor_secret
@@ -10032,6 +11831,33 @@ def account():
                 session.pop("account_2fa_pending_secret", None)
                 pending_secret = None
                 flash("Двухэтапная аутентификация отключена.", "success")
+        elif action == "update_contacts":
+            full_name = str(request.form.get("full_name") or "").strip()
+            email = str(request.form.get("email") or "").strip()
+            phone = str(request.form.get("phone") or "").strip()
+            contact_error = ""
+            if len(full_name) > 160:
+                contact_error = "ФИО не должно превышать 160 символов."
+            elif len(email) > 180:
+                contact_error = "Email не должен превышать 180 символов."
+            elif email and ("@" not in email or "." not in email.rsplit("@", 1)[-1]):
+                contact_error = "Укажите корректный email."
+            elif len(phone) > 80:
+                contact_error = "Номер телефона не должен превышать 80 символов."
+            if contact_error:
+                if wants_json:
+                    return jsonify(ok=False, message=contact_error), 400
+                flash(contact_error, "warning")
+            else:
+                user.full_name = full_name or None
+                user.email = email or None
+                user.phone = phone or None
+                db.session.commit()
+                if wants_json:
+                    return jsonify(ok=True, message="Контакты сохранены.")
+                flash("Контакты сохранены.", "success")
+        elif action == "change_password":
+            return redirect(url_for("main.account_password"))
         return redirect(url_for("main.account"))
 
     if pending_secret:
@@ -10044,6 +11870,28 @@ def account():
         provisioning_uri=provisioning,
         qr_data_uri=qr_data_uri,
     )
+
+
+@bp.route("/account/password", methods=["GET", "POST"])
+@login_required
+def account_password():
+    user = db.session.get(User, current_user.id) or abort(404)
+    if request.method == "POST":
+        current_password = request.form.get("current_password") or ""
+        new_password = request.form.get("new_password") or ""
+        confirm_password = request.form.get("confirm_password") or ""
+        if not user.check_password(current_password):
+            flash("Текущий пароль указан неверно.", "danger")
+        elif len(new_password) < 8:
+            flash("Новый пароль должен быть не короче 8 символов.", "warning")
+        elif new_password != confirm_password:
+            flash("Новый пароль и подтверждение не совпадают.", "warning")
+        else:
+            user.set_password(new_password)
+            db.session.commit()
+            flash("Пароль изменён.", "success")
+            return redirect(url_for("main.account"))
+    return render_template("account_password.html")
 
 
 @bp.route("/users", methods=["GET", "POST"])
@@ -10061,19 +11909,22 @@ def users():
             requested_project_ids = {
                 value for value in request.form.getlist("project_ids") if str(value).isdigit()
             }
+            all_projects_access = request.form.get("all_projects_access") == "1"
             valid_project_ids = {project.id for project in all_projects}
             project_ids = sorted({int(value) for value in requested_project_ids if int(value) in valid_project_ids})
-            if not project_ids:
+            if not all_projects_access and not project_ids:
                 flash("Выберите хотя бы один объект.", "danger")
                 users = User.query.order_by(User.created_at.desc()).all()
                 return render_template("users.html", users=users, form=form, project=project, all_projects=all_projects, protected_user_ids=_protected_user_ids(users))
             user = User(
                 username=form.username.data.strip(),
                 full_name=form.full_name.data.strip() if form.full_name.data else None,
+                email=form.email.data.strip() if form.email.data else None,
+                phone=form.phone.data.strip() if form.phone.data else None,
                 role=form.role.data,
                 is_active=True,
             )
-            user.set_project_access(project_ids, all_projects=False)
+            user.set_project_access(project_ids, all_projects=all_projects_access)
             password = form.password.data
             user.set_password(password)
             db.session.add(user)
@@ -10086,7 +11937,7 @@ def users():
     if project:
         users = [
             user for user in users
-            if user.role in {ROLE_ADMIN, ROLE_MANAGER, ROLE_VERIFIER} or user.can_access_project(project)
+            if user.role in {ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_OFFICE} or user.can_access_project(project)
         ]
     return render_template(
         "users.html",
@@ -10117,19 +11968,70 @@ def user_update_projects(user_id: int):
     requested_ids = {
         int(value) for value in request.form.getlist("project_ids") if str(value).isdigit()
     }
+    all_projects_access = request.form.get("all_projects_access") == "1"
     project_ids = sorted(requested_ids & valid_project_ids)
-    if not project_ids:
+    if not all_projects_access and not project_ids:
         if wants_json:
             return jsonify(ok=False, message="Выберите хотя бы один объект."), 400
         flash("Выберите хотя бы один объект.", "danger")
         return redirect(url_for("main.users"))
-    user.set_project_access(project_ids, all_projects=False)
+    user.set_project_access(project_ids, all_projects=all_projects_access)
     db.session.commit()
     if wants_json:
-        count = len(project_ids)
+        count = len(valid_project_ids) if all_projects_access else len(project_ids)
         label = "1 объект" if count == 1 else (f"{count} объекта" if 2 <= count <= 4 else f"{count} объектов")
-        return jsonify(ok=True, project_ids=project_ids, count=count, label=label, message="Доступ к объектам сохранён.")
+        if all_projects_access:
+            label = "Все объекты"
+        return jsonify(
+            ok=True,
+            project_ids=project_ids,
+            all_projects_access=all_projects_access,
+            count=count,
+            label=label,
+            message="Доступ к объектам сохранён.",
+        )
     flash("Доступ к объектам обновлён.", "success")
+    return redirect(url_for("main.users"))
+
+
+@bp.route("/users/<int:user_id>/role", methods=["POST"])
+@login_required
+@role_required(ROLE_ADMIN)
+def user_update_role(user_id: int):
+    wants_json = _wants_json_response()
+    user = db.session.get(User, user_id) or abort(404)
+    rejection = _reject_protected_developer_user(user, "изменять роль")
+    if rejection:
+        return rejection
+    _abort_if_user_outside_current_project(user)
+    if user.role == ROLE_ADMIN:
+        if wants_json:
+            return jsonify(ok=False, message="Роль разработчика нельзя изменить здесь."), 400
+        flash("Роль разработчика нельзя изменить здесь.", "danger")
+        return redirect(url_for("main.users"))
+    if user.id == current_user.id:
+        if wants_json:
+            return jsonify(ok=False, message="Нельзя изменить роль текущего пользователя."), 400
+        flash("Нельзя изменить роль текущего пользователя.", "danger")
+        return redirect(url_for("main.users"))
+
+    role_choices = dict(USER_ROLE_CHOICES)
+    role = str(request.form.get("role") or "").strip()
+    if role not in role_choices:
+        if wants_json:
+            return jsonify(ok=False, message="Выберите допустимую роль."), 400
+        flash("Выберите допустимую роль.", "danger")
+        return redirect(url_for("main.users"))
+
+    user.role = role
+    if role == ROLE_ADMIN:
+        user.set_project_access([], all_projects=True)
+    db.session.commit()
+
+    label = ROLE_LABELS.get(user.role, user.role)
+    if wants_json:
+        return jsonify(ok=True, role=user.role, label=label, message="Роль пользователя сохранена.")
+    flash("Роль пользователя обновлена.", "success")
     return redirect(url_for("main.users"))
 
 
@@ -10146,14 +12048,14 @@ def user_update_name(user_id: int):
     full_name = str(request.form.get("full_name") or "").strip()
     if len(full_name) > 160:
         if wants_json:
-            return jsonify(ok=False, message="Имя не должно превышать 160 символов."), 400
-        flash("Имя не должно превышать 160 символов.", "danger")
+            return jsonify(ok=False, message="ФИО не должно превышать 160 символов."), 400
+        flash("ФИО не должно превышать 160 символов.", "danger")
         return redirect(url_for("main.users"))
     user.full_name = full_name or None
     db.session.commit()
     if wants_json:
-        return jsonify(ok=True, full_name=user.full_name or "", label=user.full_name or "—", message="Имя сохранено.")
-    flash("Имя пользователя обновлено.", "success")
+        return jsonify(ok=True, full_name=user.full_name or "", label=user.full_name or "—", message="ФИО сохранено.")
+    flash("ФИО пользователя обновлено.", "success")
     return redirect(url_for("main.users"))
 
 
@@ -10253,6 +12155,21 @@ def user_delete(user_id: int):
         project_id=project.id if project else None,
         extra={"project_ids": sorted(user.project_access_ids), "all_projects": user.can_access_all_projects},
     )
+    Task.query.filter_by(responsible_id=user.id).update({"responsible_id": None}, synchronize_session=False)
+    MaterialRequest.query.filter_by(author_id=user.id).update({"author_id": None}, synchronize_session=False)
+    MaterialWriteOff.query.filter_by(author_id=user.id).update({"author_id": None}, synchronize_session=False)
+    SyncConflict.query.filter_by(resolved_by_user_id=user.id).update({"resolved_by_user_id": None}, synchronize_session=False)
+    ChangeLog.query.filter_by(user_id=user.id).update({"user_id": None}, synchronize_session=False)
+    SiteErrorReport.query.filter_by(user_id=user.id).update({"user_id": None}, synchronize_session=False)
+    SiteErrorReport.query.filter_by(developer_reply_user_id=user.id).update({"developer_reply_user_id": None}, synchronize_session=False)
+    ChatMessage.query.filter(
+        or_(ChatMessage.sender_id == user.id, ChatMessage.recipient_id == user.id)
+    ).delete(synchronize_session=False)
+    SiteVisit.query.filter_by(user_id=user.id).update({"user_id": None}, synchronize_session=False)
+    DeletionActionLog.query.filter_by(user_id=user.id).update({"user_id": None}, synchronize_session=False)
+    DeletionActionLog.query.filter_by(undone_by_user_id=user.id).update({"undone_by_user_id": None}, synchronize_session=False)
+    SecurityEvent.query.filter_by(user_id=user.id).update({"user_id": None}, synchronize_session=False)
+    TaskComment.query.filter_by(user_id=user.id).delete(synchronize_session=False)
     db.session.delete(user)
     db.session.commit()
     flash("Аккаунт удалён", "success")
@@ -10262,7 +12179,7 @@ def user_delete(user_id: int):
 @bp.route("/sync-logs")
 @login_required
 def sync_logs():
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
+    if current_user.role != ROLE_ADMIN:
         abort(403)
     project = selected_project()
     if project is None:
@@ -10369,14 +12286,14 @@ def _sync_log_conflicts(log: SyncLog, project_id: int) -> list[SyncConflict]:
 @bp.route("/sync-logs/<int:log_id>/details")
 @login_required
 def sync_log_details(log_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
-        abort(403)
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
     log = db.session.get(SyncLog, log_id) or abort(404)
     if not log.project_id or log.project_id != project.id:
         abort(404)
+    if current_user.role != ROLE_ADMIN:
+        abort(403)
 
     after_payload, exact_snapshot = _sync_log_after_payload(log, project.id)
     apartments = {
@@ -10453,14 +12370,14 @@ def sync_log_details(log_id: int):
 @bp.route("/sync-logs/<int:log_id>/delete", methods=["POST"])
 @login_required
 def delete_sync_log(log_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
-        abort(403)
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
     log = db.session.get(SyncLog, log_id) or abort(404)
     if not log.project_id or log.project_id != project.id:
         abort(404)
+    if current_user.role != ROLE_ADMIN:
+        abort(403)
     delete_from = log.started_at
     if not log.rolled_back_at:
         ok, message = apply_sync_rollback(log)
@@ -10493,14 +12410,14 @@ def delete_sync_log(log_id: int):
 @bp.route("/sync-logs/<int:log_id>/rollback", methods=["POST"])
 @login_required
 def rollback_sync_log(log_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_MANAGER}:
-        abort(403)
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
     log = db.session.get(SyncLog, log_id) or abort(404)
     if not log.project_id or log.project_id != project.id:
         abort(404)
+    if current_user.role != ROLE_ADMIN:
+        abort(403)
     ok, message = apply_sync_rollback(log)
     if ok:
         _refresh_sync_dashboard_settings(project.id)
@@ -10511,11 +12428,11 @@ def rollback_sync_log(log_id: int):
 
 def _parse_conflict_value_for_field(field_name: str | None, value: str | None):
     text = (value or "").strip()
-    if field_name in {"inspection_date", "reinspection_date", "deadline_date", "remark_deadline_date", "app_deadline_date", "avr_signed_date"}:
+    if field_name in {"inspection_date", "reinspection_date", "deadline_date", "remark_deadline_date", "app_deadline_date", "avr_signed_date", "addendum_signed_date"}:
         return parse_date(text)
     if field_name == "is_app_mode":
         return text.lower() in {"1", "true", "yes", "да", "апп"}
-    if field_name in {"owner_name", "phone", "finishing_type", "entrance", "floor", "app_deadline_raw", "app_deadline_status", "avr_status", "comment", "inspection_note"}:
+    if field_name in {"owner_name", "phone", "contract_number", "finishing_type", "entrance", "floor", "app_deadline_raw", "app_deadline_status", "avr_status", "addendum_status", "comment", "inspection_note"}:
         return text or None
     return text or None
 
@@ -10526,6 +12443,7 @@ SYNC_CONFLICT_FIELD_LABELS = {
     "source_cell_value": "Текст замечания",
     "description": "Текст замечания",
     "owner_name": "Собственник",
+    "contract_number": "По договору",
     "is_unsold": "Статус продажи",
     "phone": "Телефон",
     "finishing_type": "Вид отделки",
@@ -10542,6 +12460,8 @@ SYNC_CONFLICT_FIELD_LABELS = {
     "is_app_mode": "Режим АПП",
     "avr_status": "Статус АВР",
     "avr_signed_date": "Дата подписания АВР",
+    "addendum_status": "Доп. соглашение",
+    "addendum_signed_date": "Дата подписания доп. соглашения",
     "comment": "Комментарий",
 }
 
@@ -10552,6 +12472,7 @@ SYNC_CONFLICT_VALUE_LABELS = {
     "expired": "Срок истёк",
     "needed": "Требуется АВР",
     "signed": "АВР подписан",
+    "none": "Нет",
     "true": "Да",
     "false": "Нет",
     "yes": "Да",
@@ -10603,6 +12524,8 @@ def _sync_conflict_value_label(conflict: SyncConflict, value: str | None) -> str
         return task_status.get("label", text)
     if conflict.field_name == "is_app_mode":
         return "Да" if text.casefold() in {"1", "true", "yes", "да", "апп"} else "Нет"
+    if conflict.field_name == "addendum_status":
+        return ADDENDUM_STATUS_LABELS.get(text, text)
     translated = SYNC_CONFLICT_VALUE_LABELS.get(text.casefold())
     if translated:
         return translated

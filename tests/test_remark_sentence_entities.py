@@ -269,7 +269,7 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
             is_active=True,
         )
         ordinary_point = WorkPoint(
-            point_number="26",
+            point_number="27",
             source_sheet_name="Другой лист",
             original_column_name="Дата устранения",
             short_name="Дата устранения",
@@ -353,7 +353,7 @@ class RemarkSentenceEntityIntegrationTests(unittest.TestCase):
         self.assertEqual(len(tasks), 1)
         self.assertEqual(tasks[0].apartment.apartment_number, "34")
         self.assertEqual(tasks[0].work_point.point_number, "26")
-        self.assertEqual(tasks[0].work_point.original_column_name, "Отступное ТМЦ")
+        self.assertEqual(tasks[0].work_point.original_column_name, "Отступное (ТМЦ)")
         self.assertEqual(tasks[0].description, dop_text)
 
     def test_legacy_row_is_split_while_original_relations_stay_on_first_entity(self):

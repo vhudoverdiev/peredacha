@@ -487,14 +487,46 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
 }
 
 .users-name-autosave.is-saving,
+.users-role-autosave.is-saving,
 .users-access-dropdown.is-saving {
   opacity: .65;
 }
 
 .users-name-autosave.is-saved .users-name-input,
+.users-role-autosave.is-saved .users-role-select,
 .users-access-dropdown.is-saved .users-access-summary {
   border-color: #79bf25;
   box-shadow: 0 0 0 .16rem rgba(121, 191, 37, .1);
+}
+
+.users-role-autosave {
+  margin: 0;
+}
+
+.users-role-select {
+  width: 100%;
+  min-height: 2.35rem;
+  padding: .42rem 2rem .42rem .62rem;
+  border: 1px solid rgba(141, 214, 44, .42);
+  border-radius: .72rem;
+  background-color: #fff;
+  color: #111827;
+  font-size: .9rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.users-role-select:hover,
+.users-role-select:focus {
+  border-color: rgba(121, 191, 37, .62);
+  background-color: #fafff4;
+  box-shadow: 0 0 0 .18rem rgba(121, 191, 37, .1);
+}
+
+.users-role-static {
+  display: inline-flex;
+  min-height: 2.35rem;
+  align-items: center;
 }
 
 .users-access-menu .users-access-projects {
@@ -515,12 +547,11 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
 
 @media (min-width: 992px) {
   body.app-body:has(.users-page) .users-table .users-col-login { width: 8%; }
-  body.app-body:has(.users-page) .users-table .users-col-name { width: 14%; }
-  body.app-body:has(.users-page) .users-table .users-col-role { width: 13%; }
-  body.app-body:has(.users-page) .users-table .users-col-project { width: 14%; }
-  body.app-body:has(.users-page) .users-table .users-col-password { width: 17%; }
-  body.app-body:has(.users-page) .users-table .users-col-captcha { width: 9%; }
-  body.app-body:has(.users-page) .users-table .users-col-created { width: 12%; }
+  body.app-body:has(.users-page) .users-table .users-col-name { width: 18%; }
+  body.app-body:has(.users-page) .users-table .users-col-role { width: 15%; }
+  body.app-body:has(.users-page) .users-table .users-col-project { width: 18%; }
+  body.app-body:has(.users-page) .users-table .users-col-captcha { width: 12%; }
+  body.app-body:has(.users-page) .users-table .users-col-created { width: 16%; }
   body.app-body:has(.users-page) .users-table .users-col-actions { width: 13%; }
 
   body.app-body:has(.users-page) .users-table .users-actions-heading,
@@ -3332,6 +3363,65 @@ textarea.form-control {
   color: #565d62;
 }
 
+.password-generate-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .55rem;
+  align-items: center;
+}
+
+.password-generate-btn,
+.password-generate-btn:hover,
+.password-generate-btn:focus-visible,
+.password-generate-btn:active {
+  background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 850;
+  box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
+}
+
+.password-generate-btn:hover,
+.password-generate-btn:focus-visible,
+.password-generate-btn:active {
+  background: linear-gradient(180deg, var(--peredacha-action-green-hover) 0%, var(--peredacha-action-green-dark) 100%) !important;
+  border-color: var(--peredacha-action-green-dark) !important;
+  box-shadow: 0 12px 26px rgba(95, 152, 36, .26) !important;
+}
+
+.password-generate-btn,
+.password-generate-btn *,
+.password-generate-btn i,
+.password-generate-btn .bi,
+.password-generate-btn .bi::before,
+.password-generate-btn:hover,
+.password-generate-btn:hover *,
+.password-generate-btn:hover i,
+.password-generate-btn:hover .bi,
+.password-generate-btn:hover .bi::before,
+.password-generate-btn:focus-visible,
+.password-generate-btn:focus-visible *,
+.password-generate-btn:focus-visible i,
+.password-generate-btn:focus-visible .bi,
+.password-generate-btn:focus-visible .bi::before,
+.password-generate-btn:active,
+.password-generate-btn:active *,
+.password-generate-btn:active i,
+.password-generate-btn:active .bi,
+.password-generate-btn:active .bi::before {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+@media (max-width: 575.98px) {
+  .password-generate-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .form-check-input {
   border-color: #cfe4b4;
 }
@@ -4496,6 +4586,35 @@ code {
   transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
 }
 
+.apartment-card.apartment-card-unsold {
+  background: rgba(255, 214, 102, 0.18);
+  border-color: rgba(230, 176, 34, 0.42);
+  box-shadow: 0 10px 30px rgba(145, 111, 18, 0.08);
+}
+
+.apartment-card.apartment-card-unsold:hover {
+  border-color: rgba(230, 176, 34, 0.58);
+  box-shadow: 0 18px 45px rgba(145, 111, 18, 0.13);
+}
+
+.task-detail-point-form {
+  max-width: 34rem;
+}
+
+.task-detail-point-form .developer-custom-select,
+.task-detail-point-form .task-detail-point-select {
+  min-width: min(100%, 20rem);
+  max-width: 28rem;
+}
+
+.task-detail-point-save-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .apartment-card:hover {
   color: inherit;
   border-color: rgba(13, 110, 253, .32);
@@ -4713,13 +4832,60 @@ code {
   align-items: center;
 }
 
+.apartment-data-row-with-control {
+  grid-template-columns: minmax(6.5rem, 28%) minmax(0, 1fr) minmax(11rem, auto);
+  column-gap: .6rem;
+}
+
+.apartment-inline-stack {
+  display: grid;
+  gap: .65rem;
+}
+
+.apartment-inline-controls,
+.apartment-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .4rem;
+  min-width: 0;
+}
+
+.apartment-inline-controls .form-control {
+  width: auto;
+  min-width: 8.8rem;
+  max-width: 10.5rem;
+}
+
+.apartment-inline-controls .btn,
+.apartment-inline-form .btn,
+.apartment-inline-controls .app-status-option,
+.apartment-inline-form .inspection-option {
+  min-height: 34px;
+}
+
+.apartment-inline-controls .app-status-option,
+.apartment-inline-form .inspection-option {
+  padding: .38rem .62rem;
+  font-size: .78rem;
+}
+
+.apartment-addendum-form .form-control[name="addendum_signed_date"] {
+  display: none;
+}
+
+.apartment-addendum-form:has(button[name="addendum_status"].btn-success) .form-control[name="addendum_signed_date"] {
+  display: block;
+}
+
 .apartment-data-row span,
 .apartment-data-note span,
 .apartment-data-po > span {
   color: var(--crm-muted);
   font-size: .78rem;
   font-weight: 800;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .apartment-data-row b,
@@ -6711,7 +6877,7 @@ code {
 }
 
 
-/* Hudoverdiev footer, bottom-left error button, error badges, verifier role */
+/* Hudoverdiev footer, bottom-left error button, and error badges */
 .crm-footer {
   width: 100%;
   margin: 2rem 0 0;
@@ -7321,9 +7487,70 @@ code {
   background: #f8fafc;
   border: 1px solid rgba(15,23,42,.08);
 }
+.apartment-app-form {
+  display: grid;
+  gap: .65rem;
+  padding: .75rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #f3faec 100%);
+  border: 1px solid rgba(116, 196, 34, .24);
+}
+.apartment-app-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .55rem;
+}
+.apartment-app-field {
+  display: grid;
+  gap: .25rem;
+  margin: 0;
+  font-size: .78rem;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+}
+.apartment-app-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45rem;
+}
+.app-status-option {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: .5rem .8rem;
+  border-radius: .8rem;
+  border: 1px solid #cdeab1;
+  background: #fff;
+  color: #101828;
+  font-weight: 800;
+  cursor: pointer;
+}
+.btn-check:checked + .app-status-option-needed {
+  background: #fffaeb;
+  border-color: #fdb022;
+  color: #93370d;
+}
+.btn-check:checked + .app-status-option-no-remarks {
+  background: #ecfdf3;
+  border-color: #32d583;
+  color: #067647;
+}
 .apartment-avr-actions .btn,
 .apartment-avr-form .form-control {
   min-height: 34px;
+}
+
+.apartment-detail-page .apartment-data-row.apartment-avr-form,
+.apartment-detail-page .apartment-data-row.apartment-addendum-form {
+  display: grid;
+  margin: 0;
+  padding: .75rem;
+  background: #f9fbf5;
+  border: 1px solid #edf1f7;
+  border-radius: .85rem;
 }
 @media (max-width: 767px) and (hover: none) and (pointer: coarse) {
   .report-error-floating {
@@ -7333,7 +7560,22 @@ code {
   }
   .report-error-floating span { display: none !important; }
   .apartment-avr-form { align-items: stretch; }
+  .apartment-app-grid { grid-template-columns: 1fr; }
   .apartment-avr-actions { width: 100%; }
+  .apartment-data-row-with-control {
+    grid-template-columns: 1fr;
+  }
+  .apartment-inline-controls,
+  .apartment-inline-form {
+    justify-content: stretch;
+  }
+  .apartment-inline-controls .form-control,
+  .apartment-inline-controls .btn,
+  .apartment-inline-controls .app-status-option,
+  .apartment-inline-form .inspection-option {
+    width: 100%;
+    max-width: none;
+  }
 }
 
 /* Materials v2 */
@@ -14303,17 +14545,6 @@ body:has(.documents-standalone-layout)::-webkit-scrollbar,
   }
 }
 
-.verifier-topbar-actions {
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-@media (max-width: 768px) and (hover: none) and (pointer: coarse) {
-  .verifier-topbar-actions .btn {
-    min-height: 38px;
-  }
-}
-
 /* v14 issued employee Excel export button. */
 .assignment-issued-head-actions {
   display: inline-flex;
@@ -14355,7 +14586,7 @@ body:has(.documents-standalone-layout)::-webkit-scrollbar,
 }
 
 /* ======================================================================
-   v15: worker panel polish, verifier layout cleanup, assignment actions.
+   v15: worker panel polish and assignment actions.
    ====================================================================== */
 .worker-topbar-title span,
 .worker-person-name {
@@ -14428,13 +14659,6 @@ body:has(.documents-standalone-layout)::-webkit-scrollbar,
   color: #21314f;
   border-color: #b9c9e1;
   background: #f6f9ff;
-}
-
-/* Verifier report should use the same geometry as the engineer panel. */
-.verifier-topbar-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
 }
 
 /* Make all issued employee tables visually identical regardless of rows count. */
@@ -15765,6 +15989,12 @@ body:has(.documents-standalone-layout)::-webkit-scrollbar,
   color: #8dd62c;
   margin-top: .08rem;
 }
+.apartment-inspection-static-note span {
+  min-width: 0;
+}
+.apartment-inspection-static-note b {
+  white-space: nowrap;
+}
 .apartment-inspection-status-label {
   display: block;
   margin-bottom: .45rem;
@@ -16468,6 +16698,10 @@ body:has(.documents-standalone-layout)::-webkit-scrollbar,
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   gap: .55rem !important;
+}
+.object-meta-stats-no-commercial {
+  margin-top: .55rem !important;
+  align-content: start !important;
 }
 .object-stat-row {
   min-height: 3.3rem !important;
@@ -29324,12 +29558,67 @@ body:has(.report-grid) .report-summary-actions .btn.btn-outline-success:focus * 
 .apartment-detail-page .apartment-data-row,
 .apartment-detail-page .apartment-data-note,
 .apartment-detail-page .apartment-data-po,
+.apartment-detail-page .apartment-details-edit-form,
 .apartment-detail-page .inspection-note-form,
 .apartment-detail-page .apartment-big-progress,
 .apartment-detail-page .apartment-task-item,
 .apartment-detail-page .apartment-activity-item,
 .apartment-detail-page .empty-info-box {
   background: #ffffff !important;
+}
+
+.apartment-details-edit-form {
+  display: grid;
+  gap: .65rem;
+  margin: 0 0 1rem;
+}
+
+.apartment-detail-page .apartment-data-row.apartment-data-edit-row {
+  background: #ffffff !important;
+  border-color: rgba(121, 191, 37, .2);
+}
+
+.apartment-data-edit-row label {
+  min-width: 0;
+  margin: 0;
+  color: var(--crm-muted);
+  font-size: .78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.apartment-data-edit-row .form-control,
+.apartment-data-edit-row .form-select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.65rem;
+  border-color: rgba(121, 191, 37, .28);
+  border-radius: .75rem;
+  background-color: #ffffff;
+  color: var(--crm-title);
+  font-weight: 700;
+}
+
+.apartment-data-edit-row .form-control:focus,
+.apartment-data-edit-row .form-select:focus {
+  border-color: var(--peredacha-action-green);
+  box-shadow: 0 0 0 .18rem rgba(121, 191, 37, .16);
+}
+
+.apartment-details-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.apartment-inspection-reset-btn:hover,
+.apartment-inspection-reset-btn:focus,
+.apartment-inspection-reset-btn:focus-visible,
+.apartment-inspection-reset-btn:active {
+  background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
 }
 
 .apartment-detail-page .apartment-task-item:hover {
@@ -30551,6 +30840,36 @@ body:has(.users-page) textarea:-webkit-autofill:active {
     linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(251, 253, 247, .98)) !important;
   box-shadow: 0 18px 44px rgba(86, 93, 98, .08);
 }
+.account-back-button,
+.account-back-button:hover,
+.account-back-button:focus-visible,
+.account-back-button:active {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: .45rem;
+  min-height: 0;
+  margin-bottom: .55rem;
+  padding: 0;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  color: #111827 !important;
+  font-weight: 850;
+  line-height: 1;
+  text-decoration: none !important;
+  box-shadow: none;
+}
+.account-back-button:hover,
+.account-back-button:focus-visible {
+  color: #000000 !important;
+  text-decoration: none !important;
+  transform: none;
+}
+.account-back-button i,
+.account-back-button span {
+  color: inherit !important;
+}
 .account-grid {
   display: grid;
   grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
@@ -30615,6 +30934,68 @@ body:has(.users-page) textarea:-webkit-autofill:active {
   margin: 0;
   color: #111827;
   font-weight: 850;
+}
+
+.account-profile-edit-list {
+  margin-bottom: 1rem;
+}
+
+.account-profile-list dt label {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.account-profile-input.form-control {
+  width: 100%;
+  min-height: 2.45rem;
+  margin: -.35rem 0;
+  border-color: rgba(121,191,37,.22);
+  border-radius: .78rem;
+  background: #ffffff;
+  font-weight: 750;
+}
+
+.account-profile-input.form-control:focus {
+  border-color: rgba(121,191,37,.72);
+  box-shadow: 0 0 0 .18rem rgba(121,191,37,.16);
+}
+.account-password-form {
+  padding-top: 1rem;
+  border-top: 1px solid rgba(121,191,37,.14);
+}
+.account-password-title {
+  margin-bottom: .8rem;
+}
+.account-password-title > span {
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: .9rem;
+  font-size: 1.15rem;
+}
+.account-password-title h2 {
+  font-size: 1.12rem;
+}
+.account-password-grid {
+  display: grid;
+  gap: .65rem;
+  margin-bottom: .9rem;
+}
+.account-password-field {
+  display: grid;
+  gap: .35rem;
+  margin: 0;
+  color: var(--peredacha-brand-gray);
+  font-weight: 850;
+}
+.account-password-field .account-profile-input.form-control {
+  margin: 0;
+  color: #111827;
+}
+.account-password-submit,
+.account-password-submit:hover,
+.account-password-submit:focus-visible {
+  color: #ffffff !important;
 }
 .account-security-status {
   display: inline-flex;
@@ -39798,7 +40179,25 @@ html.desktop-like-pointer body.auth-body .modal-dialog {
   max-width: min(var(--desktop-modal-base-width), calc((100vw - 24px) / var(--desktop-modal-scale))) !important;
   margin-left: auto !important;
   margin-right: auto !important;
-  zoom: var(--desktop-modal-scale) !important;
+  zoom: 1 !important;
+  transform: translateY(-50px) scale(var(--desktop-modal-scale)) !important;
+  transform-origin: center center !important;
+  transition: transform .3s ease-out !important;
+}
+
+html.desktop-like-pointer body.app-body .modal.show .modal-dialog,
+html.desktop-like-pointer body.auth-body .modal.show .modal-dialog {
+  transform: translateY(0) scale(var(--desktop-modal-scale)) !important;
+}
+
+html.desktop-like-pointer body.auth-body #registrationRequestModal .modal-dialog,
+html.desktop-like-pointer body.auth-body #reportErrorModal .modal-dialog {
+  transform: translateY(-50px) scale(1) !important;
+}
+
+html.desktop-like-pointer body.auth-body #registrationRequestModal.modal.show .modal-dialog,
+html.desktop-like-pointer body.auth-body #reportErrorModal.modal.show .modal-dialog {
+  transform: translateY(0) scale(1) !important;
 }
 
 html.desktop-like-pointer body.app-body .modal-dialog.modal-sm,
@@ -43178,11 +43577,32 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
 
   html.mobile-viewport body.app-body .account-enable-2fa-btn,
   html.adaptive-mobile-viewport body.app-body .account-enable-2fa-btn,
+  html.mobile-viewport body.app-body .account-contact-save-btn,
+  html.adaptive-mobile-viewport body.app-body .account-contact-save-btn,
   html.mobile-viewport body.app-body .account-logout-btn,
   html.adaptive-mobile-viewport body.app-body .account-logout-btn {
     min-height: 3rem !important;
     border-radius: 1rem !important;
     font-weight: 900 !important;
+  }
+
+  html.mobile-viewport body.app-body .account-profile-card .account-contact-form,
+  html.adaptive-mobile-viewport body.app-body .account-profile-card .account-contact-form {
+    width: 100% !important;
+  }
+
+  html.mobile-viewport body.app-body .account-profile-card .account-profile-edit-list,
+  html.adaptive-mobile-viewport body.app-body .account-profile-card .account-profile-edit-list {
+    margin-bottom: 1.05rem !important;
+  }
+
+  html.mobile-viewport body.app-body .account-profile-card .account-contact-save-btn,
+  html.adaptive-mobile-viewport body.app-body .account-profile-card .account-contact-save-btn {
+    display: inline-flex !important;
+    width: 100% !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto !important;
   }
 
   html.mobile-viewport body.app-body .account-logout-form,
@@ -45130,11 +45550,15 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
 
   html.mobile-viewport body.app-body .apartment-card-info,
   html.adaptive-mobile-viewport body.app-body .apartment-card-info {
+    min-width: 0 !important;
+    max-width: 100% !important;
     gap: .54rem !important;
   }
 
   html.mobile-viewport body.app-body .apartment-card-info span,
   html.adaptive-mobile-viewport body.app-body .apartment-card-info span {
+    min-width: 0 !important;
+    max-width: 100% !important;
     align-items: flex-start !important;
     gap: .56rem !important;
     padding: .68rem .78rem !important;
@@ -45144,6 +45568,8 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     color: #32402f !important;
     font-size: .9rem !important;
     line-height: 1.42 !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .96) !important;
   }
 
@@ -45339,9 +45765,11 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   }
 
   html.mobile-viewport body.app-body .apartment-detail-page .apartment-data-row > span,
+  html.mobile-viewport body.app-body .apartment-detail-page .apartment-data-edit-row > label,
   html.mobile-viewport body.app-body .apartment-detail-page .apartment-data-note > span,
   html.mobile-viewport body.app-body .apartment-detail-page .apartment-data-po > span,
   html.adaptive-mobile-viewport body.app-body .apartment-detail-page .apartment-data-row > span,
+  html.adaptive-mobile-viewport body.app-body .apartment-detail-page .apartment-data-edit-row > label,
   html.adaptive-mobile-viewport body.app-body .apartment-detail-page .apartment-data-note > span,
   html.adaptive-mobile-viewport body.app-body .apartment-detail-page .apartment-data-po > span {
     color: #6d7669 !important;
@@ -49852,7 +50280,18 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-task-action-form-problem {
-    grid-column: 1 / -1 !important;
+    grid-column: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-task-actions.has-delete-action .apartment-task-action-form-problem {
+    grid-column: 1 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-task-actions.has-delete-action .apartment-task-delete-mobile-form {
+    grid-column: 2 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-task-action-btn {
@@ -49862,6 +50301,20 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     width: 100% !important;
     min-height: 2.66rem !important;
     padding: .56rem .68rem !important;
+    border-radius: .94rem !important;
+    font-size: .79rem !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-task-delete-mobile-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-height: 2.66rem !important;
+    padding: .56rem .48rem !important;
     border-radius: .94rem !important;
     font-size: .79rem !important;
     font-weight: 800 !important;
@@ -54122,6 +54575,21 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   }
 }
 
+/* v526: objects is a scrollable mobile list, so the bottom dock stays fixed to
+   the viewport instead of being anchored to the page canvas. */
+@media (max-width: 767.98px) {
+  html.standalone-app:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body.app-body:has(.objects-page) {
+    min-height: 100dvh !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    background: #f6f8fb !important;
+    background-color: #f6f8fb !important;
+  }
+}
+
 /* v510: The duplicated upper paginator sits directly before the first card. */
 .page-pagination-top {
   margin-top: 0 !important;
@@ -54187,13 +54655,12 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   }
 
   body.app-body:has(.users-page) .users-table .users-col-login { width: 9%; }
-  body.app-body:has(.users-page) .users-table .users-col-name { width: 13%; }
-  body.app-body:has(.users-page) .users-table .users-col-role { width: 13%; }
-  body.app-body:has(.users-page) .users-table .users-col-project { width: 15%; }
-  body.app-body:has(.users-page) .users-table .users-col-password { width: 17%; }
-  body.app-body:has(.users-page) .users-table .users-col-captcha { width: 10%; }
-  body.app-body:has(.users-page) .users-table .users-col-created { width: 13%; }
-  body.app-body:has(.users-page) .users-table .users-col-actions { width: 10%; }
+  body.app-body:has(.users-page) .users-table .users-col-name { width: 17%; }
+  body.app-body:has(.users-page) .users-table .users-col-role { width: 15%; }
+  body.app-body:has(.users-page) .users-table .users-col-project { width: 18%; }
+  body.app-body:has(.users-page) .users-table .users-col-captcha { width: 12%; }
+  body.app-body:has(.users-page) .users-table .users-col-created { width: 16%; }
+  body.app-body:has(.users-page) .users-table .users-col-actions { width: 13%; }
 
   body.app-body:has(.users-page) .users-table :is(th, td) {
     word-break: normal !important;
@@ -54203,7 +54670,6 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
 
   body.app-body:has(.users-page) .users-table :is(
     .users-login-cell,
-    .users-password-cell,
     .users-captcha-cell,
     .users-actions-cell
   ) {
@@ -54218,10 +54684,6 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   ) {
     white-space: normal !important;
     line-height: 1.35 !important;
-  }
-
-  body.app-body:has(.users-page) .users-table .password-preview {
-    min-width: 0 !important;
   }
 
   body.app-body:has(.users-page) .users-layout > .col-lg-8,
@@ -55078,6 +55540,76 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
   text-shadow: none !important;
 }
 
+/* Keep finishing filter labels and checkboxes aligned on the mobile Apartments page. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-finishing-col {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-finishing-col .remarks-filter-checks {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: .55rem !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    align-items: stretch !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-finishing-col .remarks-filter-check {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.9rem !important;
+    margin: 0 !important;
+    padding: .45rem .7rem .45rem 2.45rem !important;
+    border: 1px solid #e3eadc !important;
+    border-radius: .9rem !important;
+    background: linear-gradient(180deg, #fff, #f8fbf5) !important;
+    box-sizing: border-box !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-finishing-col .remarks-filter-check:last-child {
+    grid-column: 1 / -1 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-finishing-col .remarks-filter-check .form-check-input {
+    position: absolute !important;
+    inset: 50% auto auto .82rem !important;
+    float: none !important;
+    flex: none !important;
+    width: 1.15rem !important;
+    height: 1.15rem !important;
+    margin: 0 !important;
+    transform: translateY(-50%) !important;
+    appearance: auto !important;
+    -webkit-appearance: auto !important;
+    accent-color: #6fa91f !important;
+    box-sizing: border-box !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartments-page) .apartments-filter-finishing-col .remarks-filter-check .form-check-label {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    color: #263324 !important;
+    font-size: .86rem !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+  }
+}
+
 /* v558: Apartments mobile filters use custom select text, because native mobile
    selects can ignore font-weight and render the selected value bold. */
 @media (max-width: 767.98px) {
@@ -55199,13 +55731,12 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
   }
 
   body.app-body:has(.users-page) .users-table .users-col-login { width: 12% !important; }
-  body.app-body:has(.users-page) .users-table .users-col-name { width: 13% !important; }
-  body.app-body:has(.users-page) .users-table .users-col-role { width: 12% !important; }
-  body.app-body:has(.users-page) .users-table .users-col-project { width: 13% !important; }
-  body.app-body:has(.users-page) .users-table .users-col-password { width: 12% !important; }
-  body.app-body:has(.users-page) .users-table .users-col-captcha { width: 7% !important; }
-  body.app-body:has(.users-page) .users-table .users-col-created { width: 11% !important; }
-  body.app-body:has(.users-page) .users-table .users-col-actions { width: 10% !important; }
+  body.app-body:has(.users-page) .users-table .users-col-name { width: 17% !important; }
+  body.app-body:has(.users-page) .users-table .users-col-role { width: 13% !important; }
+  body.app-body:has(.users-page) .users-table .users-col-project { width: 18% !important; }
+  body.app-body:has(.users-page) .users-table .users-col-captcha { width: 9% !important; }
+  body.app-body:has(.users-page) .users-table .users-col-created { width: 13% !important; }
+  body.app-body:has(.users-page) .users-table .users-col-actions { width: 18% !important; }
 
   body.app-body:has(.users-page) .users-table .users-login-cell {
     white-space: nowrap !important;
@@ -55218,11 +55749,7 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
     padding-right: .8rem !important;
   }
 
-  body.app-body:has(.users-page) .users-table :is(th:nth-child(5), td.users-password-cell) {
-    padding-right: .45rem !important;
-  }
-
-  body.app-body:has(.users-page) .users-table :is(th:nth-child(6), td.users-captcha-cell) {
+  body.app-body:has(.users-page) .users-table :is(th:nth-child(5), td.users-captcha-cell) {
     padding-left: .45rem !important;
   }
 
@@ -55397,6 +55924,32 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
   color: var(--crm-muted);
 }
 
+.contractor-directory-details {
+  display: grid;
+  gap: .45rem;
+  margin-top: .7rem;
+}
+
+.contractor-directory-detail-row {
+  display: grid;
+  gap: .1rem;
+  min-width: 0;
+  color: var(--crm-text);
+  font-size: .9rem;
+  line-height: 1.4;
+}
+
+.contractor-directory-detail-row span {
+  overflow-wrap: anywhere;
+}
+
+.contractor-directory-detail-row strong {
+  color: var(--crm-title);
+  font-size: .78rem;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
 .contractor-directory-points {
   display: flex;
   flex-wrap: wrap;
@@ -55469,6 +56022,219 @@ html body.app-body .developer-select-menu-portal .developer-select-option {
   .contractor-directory-card {
     min-height: 0;
     padding: 1rem;
+  }
+}
+
+.contractor-points-page {
+  width: min(1380px, 100%);
+  margin: 0 auto;
+}
+
+.contractor-points-filter {
+  display: grid;
+  grid-template-columns: minmax(16rem, 1fr) auto auto;
+  gap: .75rem;
+  align-items: end;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--crm-border);
+  border-radius: var(--crm-radius);
+  background: var(--crm-surface);
+  box-shadow: var(--crm-shadow-soft);
+}
+
+.contractor-points-point-filter {
+  display: grid;
+  gap: .35rem;
+  min-width: 0;
+}
+
+.contractor-points-point-filter label {
+  margin: 0;
+  color: var(--crm-title);
+  font-size: .85rem;
+  font-weight: 800;
+}
+
+.contractor-points-point-filter .form-select,
+.contractor-points-point-select {
+  border-color: #cfe6b8;
+  border-radius: .8rem;
+}
+
+.contractor-points-filter .form-control,
+.contractor-points-filter .form-select,
+.contractor-points-filter .btn {
+  min-height: 3rem;
+}
+
+.contractor-points-summary {
+  margin: .35rem 0 .85rem;
+  color: var(--crm-text);
+}
+
+.contractor-points-table-wrap {
+  overflow: hidden;
+  min-height: 18rem;
+  border: 1px solid var(--crm-border);
+  border-radius: var(--crm-radius);
+  background: var(--crm-surface);
+  box-shadow: var(--crm-shadow-soft);
+}
+
+.contractor-points-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.contractor-points-table th,
+.contractor-points-table td {
+  padding: .85rem 1rem;
+  border-bottom: 1px solid #edf2e7;
+  vertical-align: middle;
+}
+
+.contractor-points-table th {
+  background: #f3f8ed;
+  color: var(--crm-title);
+  font-size: .86rem;
+  font-weight: 850;
+  text-align: left;
+}
+
+.contractor-points-table th:first-child,
+.contractor-points-table td:first-child {
+  width: 11rem;
+}
+
+.contractor-points-table th:last-child,
+.contractor-points-table td:last-child {
+  width: 22rem;
+}
+
+.contractor-points-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.contractor-points-premise-link {
+  color: var(--crm-title);
+  font-weight: 400;
+  text-decoration: none;
+}
+
+.contractor-points-premise-link:hover,
+.contractor-points-premise-link:focus {
+  color: #5fb315;
+}
+
+.contractor-points-remark {
+  color: var(--crm-text);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.contractor-points-point-form {
+  margin: 0;
+}
+
+.contractor-points-point-select {
+  width: 100%;
+  min-height: 3rem;
+}
+
+.contractor-points-filter .developer-custom-select,
+.contractor-points-point-form .developer-custom-select {
+  width: 100% !important;
+}
+
+.contractor-points-filter .developer-select-button,
+.contractor-points-point-form .developer-select-button {
+  min-height: 3rem !important;
+  border-color: #cfe6b8 !important;
+  border-radius: .8rem !important;
+}
+
+.contractor-points-point-form .developer-select-button {
+  min-height: 2.75rem !important;
+  padding-block: .55rem !important;
+}
+
+.contractor-points-point-form.is-saving .contractor-points-point-select {
+  opacity: .72;
+}
+
+.contractor-points-point-form.is-saved .contractor-points-point-select,
+.contractor-points-point-form.is-saved .developer-select-button {
+  border-color: #68bf18;
+  box-shadow: 0 0 0 .16rem rgba(104, 191, 24, .14);
+}
+
+.contractor-points-empty-cell {
+  padding: 0 !important;
+}
+
+@media (max-width: 900px) {
+  .contractor-points-filter {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .contractor-points-filter {
+    grid-template-columns: 1fr;
+    padding: .85rem;
+  }
+
+  .contractor-points-filter .btn {
+    width: 100%;
+  }
+
+  .contractor-points-table-wrap {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .contractor-points-table,
+  .contractor-points-table tbody,
+  .contractor-points-table tr,
+  .contractor-points-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .contractor-points-table thead {
+    display: none;
+  }
+
+  .contractor-points-table tr {
+    margin-bottom: .75rem;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--crm-radius);
+    background: var(--crm-surface);
+    box-shadow: var(--crm-shadow-soft);
+    overflow: hidden;
+  }
+
+  .contractor-points-table td {
+    padding: .8rem .9rem;
+    border-bottom: 1px solid #edf2e7;
+  }
+
+  .contractor-points-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .contractor-points-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: .25rem;
+    color: var(--crm-muted);
+    font-size: .76rem;
+    font-weight: 800;
+    text-transform: uppercase;
   }
 }
 
@@ -56521,6 +57287,128 @@ html body.app-body .glass-page .js-glass-ordered-edit-form .glass-measure-item-c
   }
 }
 
+/* Desktop Apartments filter: keep action buttons directly under the finishing
+   filter instead of wrapping to the left edge when finishing checkboxes are present. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .apartments-filter-form,
+  html body.app-body .apartments-filter-form {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-areas:
+      "search inspection"
+      "app avr"
+      "po po"
+      "finishing actions" !important;
+    gap: .75rem !important;
+    align-items: end !important;
+    margin: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-filter-form:not(:has(select[name="po_status"])),
+  html body.app-body .apartments-filter-form:not(:has(select[name="po_status"])) {
+    grid-template-areas:
+      "search inspection"
+      "app avr"
+      "finishing actions" !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-filter-form > [class*="col-"],
+  html body.app-body .apartments-filter-form > [class*="col-"] {
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: none !important;
+    padding: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-filter-form > div:has(input[name="q"]),
+  html body.app-body .apartments-filter-form > div:has(input[name="q"]) {
+    grid-area: search !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-filter-form > div:has(select[name="inspection_status"]),
+  html body.app-body .apartments-filter-form > div:has(select[name="inspection_status"]) {
+    grid-area: inspection !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-filter-form > div:has(select[name="app_status"]),
+  html body.app-body .apartments-filter-form > div:has(select[name="app_status"]) {
+    grid-area: app !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-filter-form > div:has(select[name="avr_status"]),
+  html body.app-body .apartments-filter-form > div:has(select[name="avr_status"]) {
+    grid-area: avr !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-filter-form > div:has(select[name="po_status"]),
+  html body.app-body .apartments-filter-form > div:has(select[name="po_status"]) {
+    grid-area: po !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-filter-form > .apartments-filter-finishing-col,
+  html body.app-body .apartments-filter-form > .apartments-filter-finishing-col {
+    grid-area: finishing !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-filter-form > .apartments-filter-actions,
+  html body.app-body .apartments-filter-form > .apartments-filter-actions {
+    grid-area: actions !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-end !important;
+    align-items: flex-end !important;
+    gap: .55rem !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-filter-form > .apartments-filter-finishing-col .remarks-filter-checks,
+  html body.app-body .apartments-filter-form > .apartments-filter-finishing-col .remarks-filter-checks {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: .45rem .7rem !important;
+    align-items: center !important;
+    overflow: visible !important;
+  }
+
+}
+
+@media (min-width: 1200px) {
+  html.desktop-like-pointer body.app-body .apartments-filter-form,
+  html body.app-body .apartments-filter-form {
+    grid-template-columns:
+      minmax(220px, 1.35fr)
+      minmax(150px, .88fr)
+      minmax(150px, .82fr)
+      minmax(130px, .72fr)
+      minmax(180px, 1fr)
+      max-content
+      max-content !important;
+    grid-template-areas:
+      "search inspection app avr po finishing actions" !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-filter-form:not(:has(select[name="po_status"])),
+  html body.app-body .apartments-filter-form:not(:has(select[name="po_status"])) {
+    grid-template-columns:
+      minmax(220px, 1.35fr)
+      minmax(150px, .88fr)
+      minmax(150px, .82fr)
+      minmax(130px, .72fr)
+      max-content
+      max-content !important;
+    grid-template-areas:
+      "search inspection app avr finishing actions" !important;
+  }
+
+  html.desktop-like-pointer body.app-body .apartments-filter-form
+    .apartments-filter-finishing-col .remarks-filter-checks,
+  html body.app-body .apartments-filter-form
+    .apartments-filter-finishing-col .remarks-filter-checks {
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+  }
+}
+
 /* Desktop only: stable multi-material rows and compact manual-writeoff controls. */
 @media (min-width: 768px) {
   html body.app-body .js-multi-material-form .material-lines-field {
@@ -56893,4 +57781,1927 @@ body:has(.developer-section-tabs) .site-errors-filter-form .developer-custom-sel
   visibility: hidden !important;
   pointer-events: none !important;
   z-index: -1 !important;
+}
+
+/* v642: unsold apartment/commercial cards keep the translucent yellow fill
+   after the later apartments-page and mobile card overrides. */
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold {
+  background: rgba(255, 214, 102, 0.12) !important;
+  background-color: rgba(255, 214, 102, 0.12) !important;
+  border-color: rgba(230, 176, 34, 0.36) !important;
+  box-shadow: 0 10px 30px rgba(145, 111, 18, 0.1) !important;
+}
+
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold:hover,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold:active,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold:focus,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold:focus-within {
+  background: rgba(255, 214, 102, 0.15) !important;
+  background-color: rgba(255, 214, 102, 0.15) !important;
+  border-color: rgba(230, 176, 34, 0.5) !important;
+  box-shadow: 0 18px 45px rgba(145, 111, 18, 0.14) !important;
+}
+
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:hover,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-top,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-label,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-number,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-info,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-info span,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active .apartment-card-top,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus .apartment-card-top,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible .apartment-card-top,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active .apartment-card-label,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus .apartment-card-label,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible .apartment-card-label,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active .apartment-card-number,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus .apartment-card-number,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible .apartment-card-number,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active .apartment-card-info,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus .apartment-card-info,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible .apartment-card-info,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active .apartment-card-info span,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus .apartment-card-info span,
+html body.app-body:has(.apartments-page) .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible .apartment-card-info span {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* v653: production cache/Bootstrap active-state guard for password generation
+   and unsold cards. */
+html body.app-body .btn.btn-outline-primary.password-generate-btn,
+html body.app-body .btn.btn-outline-primary.password-generate-btn:hover,
+html body.app-body .btn.btn-outline-primary.password-generate-btn:focus,
+html body.app-body .btn.btn-outline-primary.password-generate-btn:focus-visible,
+html body.app-body .btn.btn-outline-primary.password-generate-btn:active,
+html body.app-body .btn.btn-outline-primary.password-generate-btn.active,
+html body.app-body .btn.btn-outline-primary.password-generate-btn.show {
+  --bs-btn-color: #ffffff;
+  --bs-btn-hover-color: #ffffff;
+  --bs-btn-active-color: #ffffff;
+  --bs-btn-bg: var(--peredacha-action-green);
+  --bs-btn-hover-bg: var(--peredacha-action-green-hover);
+  --bs-btn-active-bg: var(--peredacha-action-green-hover);
+  --bs-btn-border-color: var(--peredacha-action-green);
+  --bs-btn-hover-border-color: var(--peredacha-action-green-hover);
+  --bs-btn-active-border-color: var(--peredacha-action-green-hover);
+  background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html body.app-body .btn.btn-outline-primary.password-generate-btn *,
+html body.app-body .btn.btn-outline-primary.password-generate-btn *::before,
+html body.app-body .btn.btn-outline-primary.password-generate-btn:hover *,
+html body.app-body .btn.btn-outline-primary.password-generate-btn:hover *::before,
+html body.app-body .btn.btn-outline-primary.password-generate-btn:focus *,
+html body.app-body .btn.btn-outline-primary.password-generate-btn:focus *::before,
+html body.app-body .btn.btn-outline-primary.password-generate-btn:focus-visible *,
+html body.app-body .btn.btn-outline-primary.password-generate-btn:focus-visible *::before,
+html body.app-body .btn.btn-outline-primary.password-generate-btn:active *,
+html body.app-body .btn.btn-outline-primary.password-generate-btn:active *::before {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold:hover,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold:active,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold:focus,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold:focus-within {
+  background: rgba(255, 214, 102, 0.12) !important;
+  background-color: rgba(255, 214, 102, 0.12) !important;
+}
+
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:hover,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-info,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-info span,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-info i,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active .apartment-card-info,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active .apartment-card-info span,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:active .apartment-card-info i,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus .apartment-card-info,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus .apartment-card-info span,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus .apartment-card-info i,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible .apartment-card-info,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible .apartment-card-info span,
+html body.app-body .apartments-page .apartments-grid .apartment-card.apartment-card-unsold .apartment-card-link:focus-visible .apartment-card-info i {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* v655: account password back link is plain black text without a button shell. */
+html body.app-body a.account-back-button,
+html body.app-body a.account-back-button:link,
+html body.app-body a.account-back-button:visited,
+html body.app-body a.account-back-button:hover,
+html body.app-body a.account-back-button:focus,
+html body.app-body a.account-back-button:focus-visible,
+html body.app-body a.account-back-button:active,
+html body.app-body a.account-back-button.active {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: .5rem !important;
+  width: auto !important;
+  min-height: 0 !important;
+  margin: 0 0 .65rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #111827 !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+}
+
+html body.app-body a.account-back-button:hover,
+html body.app-body a.account-back-button:focus,
+html body.app-body a.account-back-button:focus-visible,
+html body.app-body a.account-back-button:active {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: #000000 !important;
+  transform: none !important;
+}
+
+html body.app-body a.account-back-button i,
+html body.app-body a.account-back-button span,
+html body.app-body a.account-back-button .bi,
+html body.app-body a.account-back-button .bi::before,
+html body.app-body a.account-back-button:hover i,
+html body.app-body a.account-back-button:hover span,
+html body.app-body a.account-back-button:hover .bi,
+html body.app-body a.account-back-button:hover .bi::before,
+html body.app-body a.account-back-button:active i,
+html body.app-body a.account-back-button:active span,
+html body.app-body a.account-back-button:active .bi,
+html body.app-body a.account-back-button:active .bi::before {
+  color: inherit !important;
+}
+/* CRM messenger */
+.floating-messenger-corner {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 5.3rem;
+  z-index: 1052;
+}
+
+.messenger-floating-btn {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(101, 173, 34, .32);
+  background: linear-gradient(135deg, #1f2933, #111820);
+  color: #fff;
+  box-shadow: 0 1rem 2.4rem rgba(17, 24, 39, .25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.messenger-floating-btn:hover,
+.messenger-floating-btn:focus {
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 1.2rem 2.8rem rgba(17, 24, 39, .3);
+}
+
+.messenger-floating-btn.has-unread {
+  background: linear-gradient(135deg, #e44848, #b91c1c);
+  border-color: rgba(255, 255, 255, .3);
+}
+
+.messenger-floating-count {
+  position: absolute;
+  top: -.35rem;
+  right: -.35rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 .5rem 1rem rgba(239, 68, 68, .28);
+}
+
+.crm-messenger-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1060;
+  background: rgba(17, 24, 39, .18);
+  backdrop-filter: blur(2px);
+}
+
+.crm-messenger-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(31rem, calc(100vw - 1.25rem));
+  height: 100vh;
+  z-index: 1061;
+  padding: 1rem;
+  transform: translateX(110%);
+  transition: transform .24s ease;
+  pointer-events: none;
+}
+
+.crm-messenger-panel.is-open {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.crm-messenger-shell {
+  height: 100%;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(141, 214, 44, .26);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(141, 214, 44, .16), transparent 13rem),
+    linear-gradient(180deg, #fff 0%, #fbfef9 100%);
+  box-shadow: -1.25rem 0 3.5rem rgba(17, 24, 39, .18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.crm-messenger-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.2rem 1.2rem .9rem;
+  border-bottom: 1px solid rgba(141, 214, 44, .18);
+}
+
+.crm-messenger-eyebrow {
+  display: block;
+  color: #65ad22;
+  font-weight: 900;
+  font-size: .75rem;
+  text-transform: uppercase;
+}
+
+.crm-messenger-head h2 {
+  margin: .1rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 950;
+}
+
+.crm-messenger-close {
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 0;
+  border-radius: .8rem;
+  background: #111820;
+  color: #fff;
+}
+
+.crm-messenger-tabs {
+  display: flex;
+  gap: .5rem;
+  padding: .8rem 1rem;
+}
+
+.crm-messenger-tab {
+  flex: 1;
+  border: 1px solid rgba(101, 173, 34, .28);
+  border-radius: .8rem;
+  background: #fff;
+  color: #111820;
+  font-weight: 900;
+  padding: .7rem .8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+}
+
+.crm-messenger-tab.active {
+  background: #65ad22;
+  border-color: #65ad22;
+  color: #fff;
+  box-shadow: 0 .75rem 1.8rem rgba(101, 173, 34, .2);
+}
+
+.crm-messenger-view {
+  min-height: 0;
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  padding: 0 1rem 1rem;
+}
+
+.crm-messenger-view.active {
+  display: flex;
+}
+
+.crm-messenger-developer-card,
+.crm-messenger-user-picker {
+  border: 1px solid rgba(141, 214, 44, .22);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, .78);
+  padding: .85rem;
+  margin-bottom: .8rem;
+}
+
+.crm-messenger-developer-card {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+}
+
+.crm-messenger-avatar {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: .9rem;
+  background: #65ad22;
+  color: #fff;
+  font-weight: 950;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crm-messenger-developer-card small,
+.crm-messenger-user-picker label,
+.crm-messenger-appeals-head small {
+  display: block;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.crm-messenger-messages,
+.crm-messenger-appeals {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid rgba(141, 214, 44, .18);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, .68);
+  padding: .85rem;
+}
+
+.crm-messenger-message {
+  display: flex;
+  margin-bottom: .65rem;
+}
+
+.crm-messenger-message.is-own {
+  justify-content: flex-end;
+}
+
+.crm-messenger-bubble {
+  max-width: 84%;
+  border-radius: 1rem;
+  padding: .72rem .85rem;
+  background: #eef7e8;
+  border: 1px solid rgba(101, 173, 34, .18);
+}
+
+.crm-messenger-message.is-own .crm-messenger-bubble {
+  background: #111820;
+  color: #fff;
+  border-color: #111820;
+}
+
+.crm-messenger-message-meta {
+  font-size: .72rem;
+  opacity: .7;
+  font-weight: 800;
+  margin-bottom: .25rem;
+}
+
+.crm-messenger-message-body {
+  white-space: pre-wrap;
+  line-height: 1.35;
+}
+
+.crm-messenger-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .65rem;
+  padding-top: .8rem;
+}
+
+.crm-messenger-form textarea {
+  resize: none;
+  border-radius: .9rem;
+}
+
+.crm-messenger-form .btn {
+  border-radius: .9rem;
+  font-weight: 900;
+}
+
+.crm-messenger-empty {
+  color: #6b7280;
+  font-weight: 800;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.crm-messenger-error {
+  color: #dc2626;
+}
+
+.crm-messenger-appeals-head {
+  margin-bottom: .75rem;
+}
+
+.crm-messenger-appeal {
+  border: 1px solid rgba(141, 214, 44, .22);
+  border-radius: 1rem;
+  background: #fff;
+  padding: .9rem;
+  margin-bottom: .75rem;
+}
+
+.crm-messenger-appeal.is-unread {
+  border-color: rgba(239, 68, 68, .42);
+  box-shadow: 0 .75rem 1.6rem rgba(239, 68, 68, .08);
+}
+
+.crm-messenger-appeal-title {
+  display: flex;
+  justify-content: space-between;
+  gap: .75rem;
+  font-weight: 900;
+}
+
+.crm-messenger-appeal-title b {
+  color: #dc2626;
+  white-space: nowrap;
+}
+
+.crm-messenger-appeal-question {
+  margin: .6rem 0;
+  color: #4b5563;
+}
+
+.crm-messenger-appeal-reply {
+  border-radius: .8rem;
+  background: #f3faed;
+  padding: .75rem;
+}
+
+.crm-messenger-appeal-reply small {
+  display: block;
+  color: #65ad22;
+  font-weight: 900;
+  margin-bottom: .25rem;
+}
+
+.site-error-reply-form {
+  border: 1px solid rgba(101, 173, 34, .22);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(243, 250, 237, .82), rgba(255, 255, 255, .92));
+  padding: .9rem;
+}
+
+.site-error-reply-form .form-label {
+  font-weight: 900;
+  color: #111820;
+}
+
+.site-error-reply-form textarea.form-control {
+  border-radius: .85rem;
+  border-color: rgba(101, 173, 34, .28);
+}
+
+.site-error-reply-meta {
+  color: #6b7280;
+  font-size: .82rem;
+  font-weight: 700;
+  margin-top: .45rem;
+}
+
+@media (max-width: 767.98px) {
+  .floating-messenger-corner {
+    right: 1rem;
+    bottom: 5.15rem;
+  }
+
+  .floating-error-corner {
+    bottom: 1rem;
+  }
+
+  .crm-messenger-panel {
+    width: 100vw;
+    padding: .55rem;
+  }
+
+  .crm-messenger-shell {
+    border-radius: 1rem;
+  }
+}
+
+/* v656: message floating button is aligned above the help button on every page. */
+html body.app-body .floating-messenger-corner {
+  position: fixed !important;
+  right: 1.25rem !important;
+  bottom: calc(1.25rem + 42px + .75rem) !important;
+  z-index: 1052 !important;
+}
+
+html body.app-body .messenger-floating-btn {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  max-width: 42px !important;
+  max-height: 42px !important;
+  padding: 0 !important;
+  border-radius: 1rem !important;
+  border: 0 !important;
+  background: #111820 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px rgba(17, 24, 39, .18) !important;
+}
+
+html body.app-body .messenger-floating-btn i,
+html body.app-body .messenger-floating-btn i::before {
+  color: #ffffff !important;
+  font-size: 1.1rem !important;
+}
+
+html body.app-body .messenger-floating-btn:hover,
+html body.app-body .messenger-floating-btn:focus {
+  background: #111820 !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+}
+
+html body.app-body .messenger-floating-btn.has-unread {
+  background: #dc2626 !important;
+}
+
+html.desktop-like-pointer body.app-body .floating-messenger-corner {
+  right: 1.25rem !important;
+  bottom: calc(1.25rem + clamp(28px, calc(24px + 18px * var(--desktop-stage-scale, 1)), 42px) + .75rem) !important;
+}
+
+html.desktop-like-pointer body.app-body .floating-messenger-corner .messenger-floating-btn {
+  width: clamp(28px, calc(24px + 18px * var(--desktop-stage-scale, 1)), 42px) !important;
+  height: clamp(28px, calc(24px + 18px * var(--desktop-stage-scale, 1)), 42px) !important;
+  min-width: clamp(28px, calc(24px + 18px * var(--desktop-stage-scale, 1)), 42px) !important;
+  min-height: clamp(28px, calc(24px + 18px * var(--desktop-stage-scale, 1)), 42px) !important;
+  max-width: clamp(28px, calc(24px + 18px * var(--desktop-stage-scale, 1)), 42px) !important;
+  max-height: clamp(28px, calc(24px + 18px * var(--desktop-stage-scale, 1)), 42px) !important;
+  border-radius: clamp(.78rem, calc(1rem * var(--desktop-stage-scale, 1)), 1rem) !important;
+}
+
+html.desktop-like-pointer body.app-body .floating-messenger-corner .messenger-floating-btn i,
+html.desktop-like-pointer body.app-body .floating-messenger-corner .messenger-floating-btn i::before {
+  font-size: clamp(.92rem, calc(.82rem + .36rem * var(--desktop-stage-scale, 1)), 1.18rem) !important;
+}
+
+@media (max-width: 767.98px) {
+  html body.app-body .floating-messenger-corner {
+    right: 1rem !important;
+    bottom: calc(1rem + 42px + .65rem) !important;
+  }
+}
+
+/* v657: compact messenger panel and calmer controls. */
+html body.app-body .crm-messenger-panel {
+  width: min(25.5rem, calc(100vw - 1rem)) !important;
+  padding: .75rem !important;
+}
+
+html body.app-body .crm-messenger-shell {
+  border-radius: 1rem !important;
+}
+
+html body.app-body .crm-messenger-head {
+  padding: .85rem 1rem .7rem !important;
+}
+
+html body.app-body .crm-messenger-eyebrow {
+  font-size: .66rem !important;
+}
+
+html body.app-body .crm-messenger-head h2 {
+  font-size: 1.1rem !important;
+}
+
+html body.app-body .crm-messenger-close {
+  width: 2rem !important;
+  height: 2rem !important;
+  border-radius: .65rem !important;
+}
+
+html body.app-body .crm-messenger-tabs {
+  padding: .55rem .8rem !important;
+}
+
+html body.app-body .crm-messenger-tab {
+  min-height: 2.25rem !important;
+  padding: .42rem .65rem !important;
+  border-radius: .65rem !important;
+  font-size: .88rem !important;
+}
+
+html body.app-body .crm-messenger-view {
+  padding: 0 .8rem .8rem !important;
+}
+
+html body.app-body .crm-messenger-developer-card,
+html body.app-body .crm-messenger-user-picker {
+  border-radius: .8rem !important;
+  padding: .65rem !important;
+  margin-bottom: .6rem !important;
+}
+
+html body.app-body .crm-messenger-messages,
+html body.app-body .crm-messenger-appeals {
+  border-radius: .8rem !important;
+  padding: .65rem !important;
+}
+
+html body.app-body .crm-messenger-form {
+  grid-template-columns: 1fr auto !important;
+  gap: .5rem !important;
+  padding-top: .6rem !important;
+  align-items: stretch !important;
+}
+
+html body.app-body .crm-messenger-form textarea {
+  min-height: 3.1rem !important;
+  max-height: 5.5rem !important;
+  border-radius: .75rem !important;
+}
+
+html body.app-body .crm-messenger-form .btn {
+  width: auto !important;
+  min-width: 6.6rem !important;
+  min-height: 3.1rem !important;
+  padding: .45rem .75rem !important;
+  border-radius: .75rem !important;
+  font-size: .88rem !important;
+  box-shadow: 0 .55rem 1.2rem rgba(101, 173, 34, .18) !important;
+}
+
+html body.app-body .crm-messenger-bubble {
+  border-radius: .8rem !important;
+  padding: .58rem .7rem !important;
+}
+
+@media (max-width: 767.98px) {
+  html body.app-body .crm-messenger-panel {
+    width: 100vw !important;
+    padding: .5rem !important;
+  }
+}
+
+/* v658: dashboard acceptance split lives in inspections card. */
+html body.app-body .dashboard-info-divider {
+  height: 1px !important;
+  margin: .85rem 0 .7rem !important;
+  background: linear-gradient(90deg, rgba(141, 214, 44, .42), rgba(226, 232, 240, .45)) !important;
+}
+
+html body.app-body .dashboard-info-subtitle {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: .4rem !important;
+  margin: 0 0 .55rem !important;
+  color: #65ad22 !important;
+  font-size: .78rem !important;
+  font-weight: 950 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0 !important;
+}
+
+html body.app-body .dashboard-info-subtitle::before {
+  content: "" !important;
+  width: .5rem !important;
+  height: .5rem !important;
+  border-radius: 999px !important;
+  background: #65ad22 !important;
+  box-shadow: 0 0 0 .22rem rgba(101, 173, 34, .14) !important;
+}
+
+html body.app-body .dashboard-line-list.dashboard-line-list-compact {
+  gap: .55rem !important;
+}
+
+html body.app-body .dashboard-line-list.dashboard-line-list-compact div {
+  min-height: 3.2rem !important;
+  padding: .62rem .75rem !important;
+}
+
+/* v659: accepted stats inside inspections card are a compact visual group. */
+html body.app-body .dashboard-accepted-summary {
+  margin-top: .8rem !important;
+  padding: .75rem !important;
+  border: 1px solid rgba(141, 214, 44, .22) !important;
+  border-radius: .9rem !important;
+  background: linear-gradient(180deg, rgba(243, 250, 237, .62), rgba(255, 255, 255, .92)) !important;
+}
+
+html body.app-body .dashboard-accepted-summary-title {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: .45rem !important;
+  margin-bottom: .6rem !important;
+  color: #1f7a12 !important;
+  font-size: .82rem !important;
+  font-weight: 950 !important;
+}
+
+html body.app-body .dashboard-accepted-summary-title i {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1.45rem !important;
+  height: 1.45rem !important;
+  border-radius: .5rem !important;
+  background: rgba(101, 173, 34, .14) !important;
+  color: #65ad22 !important;
+}
+
+html body.app-body .dashboard-accepted-summary-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: .55rem !important;
+}
+
+html body.app-body .dashboard-accepted-summary-grid div {
+  min-width: 0 !important;
+  padding: .6rem .7rem !important;
+  border: 1px solid rgba(226, 232, 240, .9) !important;
+  border-radius: .75rem !important;
+  background: #ffffff !important;
+}
+
+html body.app-body .dashboard-accepted-summary-grid span {
+  display: block !important;
+  color: #667085 !important;
+  font-size: .76rem !important;
+  font-weight: 850 !important;
+  line-height: 1.2 !important;
+}
+
+html body.app-body .dashboard-accepted-summary-grid b {
+  display: block !important;
+  margin-top: .25rem !important;
+  color: #111827 !important;
+  font-size: 1.12rem !important;
+  font-weight: 950 !important;
+}
+
+/* v660: neutral accepted card and tighter floating buttons. */
+html body.app-body .dashboard-accepted-summary {
+  margin-top: .75rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+html body.app-body .dashboard-accepted-summary-title {
+  margin: 0 0 .55rem !important;
+  color: #111827 !important;
+  font-size: 1rem !important;
+  font-weight: 850 !important;
+}
+
+html body.app-body .dashboard-accepted-summary-title i {
+  width: 1rem !important;
+  height: 1rem !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #8dd62c !important;
+}
+
+html body.app-body .dashboard-accepted-summary-grid {
+  grid-template-columns: 1fr !important;
+  gap: .65rem !important;
+}
+
+html body.app-body .dashboard-accepted-summary-grid div {
+  min-height: 3.8rem !important;
+  padding: .72rem .85rem !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: .9rem !important;
+  background: #ffffff !important;
+  box-shadow: 0 .75rem 1.6rem rgba(15, 23, 42, .035) !important;
+}
+
+html body.app-body .dashboard-accepted-types {
+  display: grid !important;
+  gap: .75rem !important;
+}
+
+html body.app-body .dashboard-accepted-type {
+  min-width: 0 !important;
+}
+
+html body.app-body .dashboard-accepted-type h3 {
+  margin: 0 0 .42rem !important;
+  color: #111827 !important;
+  font-size: .86rem !important;
+  font-weight: 850 !important;
+  letter-spacing: 0 !important;
+}
+
+html body.app-body .dashboard-accepted-summary-grid span {
+  color: #667085 !important;
+  font-size: .82rem !important;
+  font-weight: 750 !important;
+}
+
+html body.app-body .dashboard-accepted-summary-grid b {
+  color: #111827 !important;
+  font-size: 1.18rem !important;
+  font-weight: 850 !important;
+}
+
+html body.app-body .floating-messenger-corner {
+  bottom: calc(1.25rem + 42px + .35rem) !important;
+}
+
+html.desktop-like-pointer body.app-body .floating-messenger-corner {
+  bottom: calc(1.25rem + clamp(28px, calc(24px + 18px * var(--desktop-stage-scale, 1)), 42px) + .35rem) !important;
+}
+
+@media (max-width: 767.98px) {
+  html body.app-body .floating-messenger-corner {
+    bottom: calc(1rem + 42px + .35rem) !important;
+  }
+}
+
+/* v661: compact apartment card controls with autosave. */
+html body.app-body .apartment-detail-page .apartment-data-list {
+  gap: .62rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-data-row,
+html body.app-body .apartment-detail-page .apartment-data-note,
+html body.app-body .apartment-detail-page .apartment-details-edit-form .apartment-data-row {
+  min-width: 0 !important;
+  padding: .68rem .78rem !important;
+  border-radius: .8rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-data-row > span,
+html body.app-body .apartment-detail-page .apartment-data-row > label,
+html body.app-body .apartment-detail-page .apartment-data-note > span {
+  min-width: 8.2rem !important;
+  max-width: 8.2rem !important;
+  color: #111827 !important;
+  font-size: .72rem !important;
+  font-weight: 950 !important;
+  line-height: 1.15 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0 !important;
+  white-space: normal !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-data-row > b {
+  min-width: 0 !important;
+  color: #111827 !important;
+  font-size: .86rem !important;
+  font-weight: 850 !important;
+  line-height: 1.25 !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-data-note > p {
+  min-width: 0 !important;
+  color: #111827 !important;
+  font-size: .86rem !important;
+  font-weight: 400 !important;
+  line-height: 1.25 !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-owner-names-control {
+  min-height: 2.45rem !important;
+  resize: vertical !important;
+  line-height: 1.35 !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-data-note-with-action {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  column-gap: .65rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-data-note-with-action > span {
+  grid-column: 1 / -1 !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-data-note-with-action > p {
+  grid-column: 1 !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-data-note-with-action > .apartment-note-clear-btn {
+  grid-column: 2 !important;
+  justify-self: end !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-compact-control-row,
+html body.app-body .apartment-detail-page form.apartment-compact-control-row {
+  display: grid !important;
+  grid-template-columns: minmax(7.2rem, 8.2rem) minmax(5.8rem, 1fr) minmax(10.2rem, auto) !important;
+  align-items: center !important;
+  column-gap: .65rem !important;
+  row-gap: .45rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-compact-control-row > span {
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inline-controls,
+html body.app-body .apartment-detail-page .apartment-inline-form {
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: wrap !important;
+  gap: .42rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inline-controls .form-control,
+html body.app-body .apartment-detail-page .apartment-inline-form .form-control {
+  width: 9.45rem !important;
+  max-width: 100% !important;
+  min-height: 2.35rem !important;
+  padding: .42rem .62rem !important;
+  border-radius: .7rem !important;
+  font-size: .82rem !important;
+  font-weight: 750 !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inline-controls .btn,
+html body.app-body .apartment-detail-page .apartment-inline-form .btn,
+html body.app-body .apartment-detail-page .app-status-option,
+html body.app-body .apartment-detail-page .inspection-option {
+  min-height: 2.25rem !important;
+  padding: .42rem .68rem !important;
+  border-radius: .7rem !important;
+  font-size: .8rem !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+  white-space: nowrap !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-addendum-form .apartment-inline-controls {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  gap: .38rem !important;
+  width: 9.45rem !important;
+  max-width: 100% !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-addendum-form button[name="addendum_status"] {
+  min-width: 0 !important;
+  width: 100% !important;
+  padding-inline: .34rem !important;
+  font-size: .68rem !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-addendum-status-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: .36rem !important;
+  width: 100% !important;
+}
+
+html body.app-body .apartment-detail-page :is(.apartment-avr-form, .apartment-addendum-form) .btn-outline-success:hover,
+html body.app-body .apartment-detail-page :is(.apartment-avr-form, .apartment-addendum-form) .btn-outline-success:focus-visible,
+html body.app-body .apartment-detail-page :is(.apartment-avr-form, .apartment-addendum-form) .btn-outline-success:active {
+  background: linear-gradient(180deg, var(--peredacha-action-green), var(--peredacha-action-green-hover)) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 24px rgba(103, 184, 28, .22) !important;
+}
+
+html body.app-body .apartment-detail-page .inspection-note-form {
+  padding: .72rem .78rem !important;
+  border-radius: .85rem !important;
+}
+
+html body.app-body .apartment-detail-page .inspection-note-form textarea.form-control {
+  min-height: 5rem !important;
+  border-radius: .75rem !important;
+  font-size: .88rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-display {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: .35rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inline-stack {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: .62rem !important;
+}
+
+@media (max-width: 1399.98px) {
+  html body.app-body .apartment-detail-page .apartment-compact-control-row,
+  html body.app-body .apartment-detail-page form.apartment-compact-control-row {
+    grid-template-columns: minmax(6.4rem, 7.6rem) minmax(4.4rem, 1fr) !important;
+  }
+
+  html body.app-body .apartment-detail-page .apartment-compact-control-row .apartment-inline-controls {
+    grid-column: 1 / -1 !important;
+    justify-content: flex-start !important;
+  }
+
+  html body.app-body .apartment-detail-page .apartment-addendum-form .apartment-inline-controls {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  html body.app-body .apartment-detail-page .apartment-data-row > span,
+  html body.app-body .apartment-detail-page .apartment-data-row > label {
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  html body.app-body .apartment-detail-page .apartment-compact-control-row,
+  html body.app-body .apartment-detail-page form.apartment-compact-control-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body.app-body .apartment-detail-page .apartment-inline-controls,
+  html body.app-body .apartment-detail-page .apartment-inline-form {
+    justify-content: flex-start !important;
+  }
+}
+
+/* v662: developer replies open on demand and keep action icons readable. */
+html body.app-body .site-error-reply-shell {
+  margin-top: .85rem !important;
+}
+
+html body.app-body .site-error-reply-preview {
+  border: 1px solid rgba(141, 214, 44, .24) !important;
+  border-radius: .85rem !important;
+  background: linear-gradient(180deg, rgba(243, 250, 237, .72), rgba(255, 255, 255, .96)) !important;
+  padding: .72rem .82rem !important;
+  margin-bottom: .55rem !important;
+}
+
+html body.app-body .site-error-reply-preview small {
+  display: block !important;
+  margin-bottom: .3rem !important;
+  color: #65ad22 !important;
+  font-size: .72rem !important;
+  font-weight: 950 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0 !important;
+}
+
+html body.app-body .site-error-reply-preview p {
+  margin: 0 !important;
+  color: #111827 !important;
+  font-size: .9rem !important;
+  line-height: 1.45 !important;
+  white-space: pre-wrap !important;
+}
+
+html body.app-body .site-error-reply-toggle {
+  margin-top: .45rem !important;
+}
+
+html body.app-body .site-error-reply-toggle.is-open {
+  background: #111820 !important;
+  box-shadow: 0 .7rem 1.3rem rgba(17, 24, 32, .14) !important;
+}
+
+html body.app-body .site-error-action-btn-success i,
+html body.app-body .site-error-action-btn-success i::before,
+html body.app-body .site-error-action-btn-success span {
+  color: #ffffff !important;
+}
+
+html body.app-body .site-error-reply-form.d-none {
+  display: none !important;
+}
+
+html body.app-body .site-error-reply-form textarea.form-control {
+  min-height: 5.5rem !important;
+  resize: vertical !important;
+}
+
+/* v663: apartment APP/inspection dates match the deadline row and stay left aligned. */
+html body.app-body .apartment-detail-page [data-apartment-inspection-display],
+html body.app-body .apartment-detail-page [data-apartment-app-signed-display],
+html body.app-body .apartment-detail-page .apartment-deadline-display {
+  justify-self: start !important;
+  align-self: center !important;
+  text-align: left !important;
+  color: #111827 !important;
+  font-size: .86rem !important;
+  font-weight: 950 !important;
+  line-height: 1.25 !important;
+}
+
+html body.app-body .apartment-detail-page [data-apartment-inspection-display] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  gap: .25rem !important;
+}
+
+html body.app-body .apartment-detail-page [data-apartment-inspection-display] > span:not(.status-pill):not(.apartment-inspection-date-stack),
+html body.app-body .apartment-detail-page [data-apartment-app-signed-display],
+html body.app-body .apartment-detail-page .apartment-deadline-display .apartment-deadline-date {
+  display: inline-block !important;
+  color: #111827 !important;
+  font-size: .86rem !important;
+  font-weight: 950 !important;
+  line-height: 1.25 !important;
+  text-align: left !important;
+  white-space: normal !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+html body.app-body .apartment-detail-page [data-apartment-inspection-display] .status-pill {
+  align-self: flex-start !important;
+  margin: 0 !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-date-form,
+html body.app-body .apartment-detail-page .apartment-inspection-status-form-detail {
+  justify-content: flex-start !important;
+}
+
+/* v664: keep inspection status, date picker and reset action in one compact row. */
+html body.app-body .apartment-detail-page .apartment-compact-control-row:has([data-apartment-inspection-display]) {
+  grid-template-columns: minmax(5.9rem, 6.7rem) minmax(7.1rem, 1fr) minmax(10.2rem, auto) !important;
+  column-gap: .45rem !important;
+}
+
+html body.app-body .apartment-detail-page [data-apartment-inspection-display] {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  gap: .3rem !important;
+  min-width: 0 !important;
+}
+
+html body.app-body .apartment-detail-page [data-apartment-inspection-display] > span:not(.status-pill):not(.apartment-inspection-date-stack) {
+  font-size: .78rem !important;
+  line-height: 1.05 !important;
+  white-space: normal !important;
+}
+
+html body.app-body .apartment-detail-page [data-apartment-inspection-display] .status-pill {
+  align-self: center !important;
+  padding: .12rem .42rem !important;
+  font-size: .72rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inline-controls {
+  grid-column: auto !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  justify-self: end !important;
+  width: 8.45rem !important;
+  max-width: 100% !important;
+  gap: .34rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inspection-date-form .form-control {
+  width: 100% !important;
+  min-height: 2rem !important;
+  padding: .28rem .42rem !important;
+  font-size: .72rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inspection-reset-btn {
+  width: 100% !important;
+  min-height: 2rem !important;
+  padding: .32rem .5rem !important;
+  font-size: .76rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-date-stack {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: .18rem !important;
+  min-width: 0 !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-date-stack > span,
+html body.app-body .apartment-detail-page .apartment-inspection-date-item {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: .32rem !important;
+  white-space: nowrap !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-date-delete-form {
+  display: inline-flex !important;
+  margin: 0 !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-date-delete-btn {
+  width: 1.45rem !important;
+  height: 1.45rem !important;
+  min-height: 1.45rem !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: .45rem !important;
+  line-height: 1 !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-date-delete-btn i {
+  font-size: .78rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-addendum-date-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  max-width: 6.2rem !important;
+  min-height: 1.75rem !important;
+  padding: .2rem .48rem !important;
+  font-size: .72rem !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+/* v666: align inspection value with the other apartment date rows. */
+html body.app-body .apartment-detail-page .apartment-compact-control-row:has([data-apartment-inspection-display]) {
+  grid-template-columns: minmax(7.2rem, 8.2rem) minmax(7.1rem, 1fr) minmax(10.2rem, auto) !important;
+}
+
+html body.app-body .apartment-detail-page [data-apartment-inspection-display] {
+  min-width: 0 !important;
+  justify-self: start !important;
+}
+
+/* v670: stack inspection date picker above reset action in the right column. */
+html body.app-body .apartment-detail-page .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inspection-date-form {
+  transform: none !important;
+  width: 100% !important;
+}
+
+/* Keep apartment inspection controls inside the mobile detail card. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartment-detail-page)
+    .apartment-compact-control-row:has([data-apartment-inspection-display]) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: start !important;
+    justify-items: stretch !important;
+    gap: .5rem !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartment-detail-page)
+    .apartment-compact-control-row:has([data-apartment-inspection-display]) > span {
+    grid-column: 1 !important;
+    justify-self: start !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartment-detail-page)
+    .apartment-compact-control-row:has([data-apartment-inspection-display]) [data-apartment-inspection-display] {
+    grid-column: 1 !important;
+    justify-self: start !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartment-detail-page)
+    .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inline-controls {
+    grid-column: 1 !important;
+    justify-self: stretch !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartment-detail-page)
+    .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inspection-date-form {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartment-detail-page)
+    .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inspection-date-form .form-control {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.75rem !important;
+    font-size: 16px !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartment-detail-page)
+    .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inspection-date-form .btn,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body:has(.apartment-detail-page)
+    .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inspection-reset-btn {
+    width: 100% !important;
+    min-height: 2.75rem !important;
+    margin: 0 !important;
+    justify-self: stretch !important;
+  }
+}
+
+/* v667: stack AVR date field above status buttons, matching deadline control. */
+html body.app-body .apartment-detail-page .apartment-avr-form .apartment-inline-controls {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  gap: .38rem !important;
+  width: 9.45rem !important;
+  max-width: 100% !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-avr-form .apartment-inline-controls .form-control {
+  width: 100% !important;
+  min-height: 2.35rem !important;
+  padding: .42rem .62rem !important;
+  font-size: .82rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-avr-status-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: .36rem !important;
+  width: 100% !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-avr-status-actions .btn {
+  width: 100% !important;
+  min-height: 2.15rem !important;
+  padding: .35rem .45rem !important;
+  font-size: .76rem !important;
+}
+
+/* v671: keep apartment date/action rows in the same desktop layout when the
+   browser is narrowed; mobile still switches at its own breakpoint. */
+@media (min-width: 768px) {
+  html body.app-body .apartment-detail-page .apartment-compact-control-row,
+  html body.app-body .apartment-detail-page form.apartment-compact-control-row,
+  html body.app-body .apartment-detail-page .apartment-compact-control-row:has([data-apartment-inspection-display]) {
+    grid-template-columns: minmax(7.2rem, 8.2rem) minmax(7.1rem, 1fr) minmax(9.7rem, auto) !important;
+    align-items: center !important;
+    column-gap: .65rem !important;
+  }
+
+  html body.app-body .apartment-detail-page .apartment-compact-control-row .apartment-inline-controls,
+  html body.app-body .apartment-detail-page .apartment-compact-control-row .apartment-inline-form {
+    grid-column: auto !important;
+    justify-self: end !important;
+    justify-content: flex-end !important;
+  }
+
+  html body.app-body .apartment-detail-page :is(.apartment-avr-form, .apartment-addendum-form) .apartment-inline-controls,
+  html body.app-body .apartment-detail-page .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inline-controls {
+    width: 9.7rem !important;
+    max-width: 9.7rem !important;
+  }
+
+  html body.app-body .apartment-detail-page .apartment-addendum-status-actions {
+    grid-template-columns: minmax(5.05rem, 1.22fr) minmax(4.1rem, .95fr) !important;
+    gap: .28rem !important;
+  }
+
+  html body.app-body .apartment-detail-page .apartment-addendum-form button[name="addendum_status"] {
+    min-height: 2.15rem !important;
+    padding-inline: .24rem !important;
+    font-size: .62rem !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+  }
+}
+
+/* v665: final CRM polish for accepted stats, replies and apartment quick edits. */
+html body.app-body .dashboard-accepted-summary-title {
+  margin: .75rem 0 .65rem !important;
+  color: #111827 !important;
+  font-size: 1rem !important;
+  font-weight: 950 !important;
+  line-height: 1.25 !important;
+}
+
+html body.app-body .dashboard-accepted-summary-title i {
+  width: 1rem !important;
+  height: 1rem !important;
+  color: #8dd62c !important;
+}
+
+html body.app-body .dashboard-accepted-summary-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: .65rem !important;
+}
+
+html body.app-body .dashboard-accepted-summary-grid div {
+  min-height: 4.65rem !important;
+  padding: .85rem .95rem !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: .9rem !important;
+  background: #ffffff !important;
+  box-shadow: 0 .75rem 1.6rem rgba(15, 23, 42, .035) !important;
+}
+
+html body.app-body .dashboard-accepted-summary-grid span {
+  display: block !important;
+  color: #667085 !important;
+  font-size: .86rem !important;
+  font-weight: 850 !important;
+  line-height: 1.25 !important;
+}
+
+html body.app-body .dashboard-accepted-summary-grid b {
+  display: block !important;
+  margin-top: .2rem !important;
+  color: #0f172a !important;
+  font-size: 1.25rem !important;
+  font-weight: 950 !important;
+  line-height: 1.05 !important;
+}
+
+html body.app-body .site-error-reply-toggle.is-open {
+  color: #111827 !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(148, 163, 184, .55) !important;
+  box-shadow: 0 .55rem 1.15rem rgba(15, 23, 42, .055) !important;
+}
+
+html body.app-body .site-error-reply-toggle.is-open i,
+html body.app-body .site-error-reply-toggle.is-open i::before,
+html body.app-body .site-error-reply-toggle.is-open span {
+  color: #111827 !important;
+}
+
+html body.app-body .apartment-note-clear-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 2.15rem !important;
+  height: 2.15rem !important;
+  min-width: 2.15rem !important;
+  padding: 0 !important;
+  border-color: rgba(239, 68, 68, .38) !important;
+  color: #dc2626 !important;
+  background: #ffffff !important;
+  font-weight: 850 !important;
+}
+
+html body.app-body .apartment-note-clear-btn[hidden] {
+  display: none !important;
+}
+
+html body.app-body .apartment-note-clear-btn:hover,
+html body.app-body .apartment-note-clear-btn:focus-visible {
+  color: #ffffff !important;
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+}
+
+html body.app-body .apartment-note-form-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: .75rem !important;
+  margin-bottom: .4rem !important;
+}
+
+html body.app-body .apartment-note-form-head .form-label {
+  margin: 0 !important;
+}
+
+/* v668: object cards keep stats aligned regardless of details/commercial rows. */
+html.desktop-like-pointer body.app-body:has(.objects-page) .object-card {
+  display: grid !important;
+  grid-template-rows: auto auto auto minmax(6.65rem, auto) auto !important;
+  align-content: start !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.objects-page) .object-title {
+  min-height: 3.05rem !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.objects-page) .object-address {
+  min-height: 3.05rem !important;
+  align-items: flex-start !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.objects-page) .object-description {
+  min-height: 6.65rem !important;
+  margin: .95rem 0 .85rem !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.objects-page) .object-description-empty {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.objects-page) .object-description-spacer {
+  display: none !important;
+}
+
+html.desktop-like-pointer body.app-body:has(.objects-page) .object-meta-stats,
+html.desktop-like-pointer body.app-body:has(.objects-page) .object-meta-stats-no-commercial {
+  margin-top: 0 !important;
+  align-content: start !important;
+}
+
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.objects-page) .object-card {
+    display: flex !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.objects-page) .object-description {
+    min-height: 0 !important;
+    margin: .85rem 0 .8rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.objects-page) .object-description-empty {
+    display: none !important;
+  }
+}
+
+/* v672: align dashboard accepted type headings with metric cards. */
+html body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-accepted-type h3 {
+  margin: 0 0 .42rem .95rem !important;
+  color: #111827 !important;
+  font-size: .86rem !important;
+  font-weight: 850 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0 !important;
+}
+
+html body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-accepted-type:empty {
+  display: none !important;
+}
+
+html body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-accepted-summary-grid span {
+  display: block !important;
+  color: #6b7280 !important;
+  font-size: .86rem !important;
+  font-weight: 700 !important;
+  line-height: normal !important;
+}
+
+html body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-accepted-summary-grid b {
+  display: block !important;
+  margin-top: .2rem !important;
+  color: #0f172a !important;
+  font-size: 1.25rem !important;
+  font-weight: 950 !important;
+  line-height: 1.05 !important;
+}
+
+html body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-info-title.dashboard-accepted-summary-title {
+  margin: .75rem 0 .65rem !important;
+  color: #111827 !important;
+  font-size: 1rem !important;
+  font-weight: 900 !important;
+  line-height: 1.25 !important;
+}
+
+html body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-info-title.dashboard-accepted-summary-title i {
+  width: auto !important;
+  height: auto !important;
+  border-radius: inherit !important;
+}
+
+/* v666: make the accepted subsection title match regular dashboard card titles. */
+html body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-info-title.dashboard-accepted-summary-title {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  gap: 1rem !important;
+  color: #111827 !important;
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  line-height: 1.24 !important;
+}
+
+html body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-info-title.dashboard-accepted-summary-title span {
+  font-weight: inherit !important;
+}
+
+/* v673: keep the accepted title visually light like the inspections title. */
+html body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-info-title.dashboard-accepted-summary-title,
+html body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-info-title.dashboard-accepted-summary-title span {
+  font-weight: 500 !important;
+}
+
+html body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-info-title.dashboard-soft-section-title {
+  font-weight: 500 !important;
+}
+
+@media (max-width: 767.98px) {
+  html.mobile-viewport body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-accepted-summary-grid span,
+  html.adaptive-mobile-viewport body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-accepted-summary-grid span,
+  html.touch-app-device body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-accepted-summary-grid span {
+    display: block !important;
+    margin-bottom: .24rem !important;
+    color: #748096 !important;
+    -webkit-text-fill-color: #748096 !important;
+    font-size: .74rem !important;
+    line-height: 1.2 !important;
+    font-weight: 700 !important;
+  }
+}
+
+/* Inspection dates use a separate value row and control row to avoid collisions. */
+html body.app-body .apartment-detail-page .apartment-compact-control-row:has([data-apartment-inspection-display]) {
+  grid-template-columns: minmax(4.8rem, 40%) minmax(0, 1fr) !important;
+  align-items: start !important;
+  column-gap: .75rem !important;
+  row-gap: .55rem !important;
+  min-width: 0 !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-compact-control-row:has([data-apartment-inspection-display]) > span {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: start !important;
+  padding-top: .18rem !important;
+}
+
+html body.app-body .apartment-detail-page [data-apartment-inspection-display] {
+  display: grid !important;
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: start !important;
+  justify-content: start !important;
+  gap: .45rem .6rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+html body.app-body .apartment-detail-page [data-apartment-inspection-display] .status-pill {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  justify-self: start !important;
+  margin-top: .08rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-date-stack {
+  display: flex !important;
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: .35rem .5rem !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-date-item {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: .28rem !important;
+  max-width: 100% !important;
+  padding: .3rem .4rem .3rem .65rem !important;
+  border: 1px solid #e4eadf !important;
+  border-radius: .65rem !important;
+  background: #f8faf6 !important;
+  color: #263326 !important;
+  font-size: .78rem !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inline-controls {
+  display: flex !important;
+  flex-direction: column !important;
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  justify-self: start !important;
+  gap: .42rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inspection-date-form {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: stretch !important;
+  gap: .38rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-date-form .form-control {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 2.5rem !important;
+  padding: .4rem .55rem !important;
+  border-color: #dce6d7 !important;
+  border-radius: .7rem !important;
+  background: #fff !important;
+  font-size: .82rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-date-form .btn,
+html body.app-body .apartment-detail-page .apartment-inspection-reset-btn {
+  display: block !important;
+  width: 100% !important;
+  min-height: 2.5rem !important;
+  margin: 0 !important;
+  padding: .4rem .7rem !important;
+  border-radius: .7rem !important;
+  font-size: .78rem !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-action-btn {
+  transition: color .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-action-btn:hover,
+html body.app-body .apartment-detail-page .apartment-inspection-action-btn:focus-visible {
+  transform: translateY(-1px) !important;
+  background: linear-gradient(180deg, var(--peredacha-action-green) 0%, var(--peredacha-action-green-hover) 100%) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  box-shadow: 0 10px 22px var(--peredacha-action-green-shadow) !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-action-btn:active {
+  transform: translateY(0) scale(.98) !important;
+}
+
+html body.app-body .apartment-detail-page [data-apartment-inspection-display] {
+  flex-wrap: wrap !important;
+  row-gap: .35rem !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-date-stack {
+  display: grid !important;
+  grid-template-columns: minmax(0, max-content) !important;
+  grid-auto-flow: row !important;
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+  justify-content: start !important;
+  flex: 1 1 100% !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start !important;
+  column-gap: 0 !important;
+  row-gap: .5rem !important;
+  width: max-content !important;
+  max-width: 100% !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-inspection-date-item {
+  flex: 0 0 auto !important;
+  gap: .3rem !important;
+  white-space: nowrap !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body.app-body .apartment-detail-page .apartment-inspection-action-btn {
+    transition: none !important;
+  }
+
+  html body.app-body .apartment-detail-page .apartment-inspection-action-btn:hover,
+  html body.app-body .apartment-detail-page .apartment-inspection-action-btn:focus-visible,
+  html body.app-body .apartment-detail-page .apartment-inspection-action-btn:active {
+    transform: none !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-compact-control-row:has([data-apartment-inspection-display]) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    row-gap: .55rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-compact-control-row:has([data-apartment-inspection-display]) > span,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) [data-apartment-inspection-display],
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inline-controls {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-inspection-date-item {
+    font-size: .76rem !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inline-controls {
+    justify-self: start !important;
+    width: 100% !important;
+    max-width: 14rem !important;
+    margin-left: 0 !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-inspection-date-form .form-control,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-inspection-date-form .btn,
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-inspection-reset-btn {
+    width: 100% !important;
+    min-height: 2.75rem !important;
+    font-size: 16px !important;
+  }
+}
+
+/* Keep the inspection list layout above legacy mobile text overrides. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-detail-page [data-apartment-inspection-display] > .apartment-inspection-date-stack {
+    display: grid !important;
+    grid-template-columns: max-content !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-detail-page [data-apartment-inspection-display] > .status-pill {
+    width: fit-content !important;
+  }
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-detail-page .apartment-compact-control-row .apartment-inspection-date-form {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.apartment-detail-page) .apartment-detail-page .apartment-inspection-date-form > * {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
 }

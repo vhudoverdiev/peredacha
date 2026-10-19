@@ -112,11 +112,19 @@ class ApartmentAndTaskModelContractsTests(unittest.TestCase):
         self.assertIn("15", commercial_with_building.full_label())
         self.assertIn("2", commercial_with_building.full_label())
 
+    def test_storeroom_labels_use_lowercase_abbreviation_with_spacing(self):
+        storeroom = Apartment(id=4, apartment_number="КЛ1", premise_type="storeroom")
+        legacy_lowercase = Apartment(id=5, apartment_number="кл 2", premise_type="storeroom")
+
+        self.assertEqual(storeroom.label(), "кл 1")
+        self.assertEqual(storeroom.full_label(), "кл 1")
+        self.assertEqual(legacy_lowercase.label(), "кл 2")
+
     def test_app_deadline_label_and_badge_use_effective_deadline_boundaries(self):
         today = date(2026, 7, 29)
         no_deadline = Apartment(app_deadline_raw="без замечаний")
         explicit = Apartment(app_deadline_date=date(2026, 8, 1))
-        derived = Apartment(is_app_mode=True, inspection_date=date(2026, 7, 1))
+        derived = Apartment(is_app_mode=True, deadline_date=date(2026, 7, 1))
 
         self.assertIn("срок", no_deadline.app_deadline_label().lower())
         self.assertEqual(explicit.app_deadline_label(), "01.08.2026")

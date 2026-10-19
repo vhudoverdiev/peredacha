@@ -2,7 +2,7 @@ import unittest
 
 from config import Config
 from app import create_app, db
-from app.models import AppSetting, WorkCategory, WorkPoint
+from app.models import AppSetting, Apartment, Project, STATUS_NOT_STARTED, Task, WorkCategory, WorkPoint
 from app.services.mapping_service import (
     _mapping_custom_key,
     apply_default_point_mapping,
@@ -33,13 +33,14 @@ class MappingServiceContractsTests(unittest.TestCase):
         db.drop_all()
         self.context.pop()
 
-    def test_dop_agreement_detection_uses_human_header_text_not_fixed_point_number(self):
+    def test_dop_agreement_detection_uses_human_header_text_and_canonical_point_number(self):
         self.assertTrue(is_dop_agreement_header("Доп. соглашение ТМЦ"))
         self.assertTrue(is_dop_agreement_header("Отступные по ТМЦ"))
         self.assertFalse(is_dop_agreement_header("Обычный пункт 18"))
 
         point = WorkPoint(point_number="77", original_column_name="Доп соглашение ТМЦ")
         self.assertTrue(is_dop_agreement_point(point))
+        self.assertTrue(is_dop_agreement_point(WorkPoint(point_number="26", short_name="Отступное (ТМЦ)")))
         self.assertFalse(is_dop_agreement_point(WorkPoint(point_number="18", short_name="Витражи")))
         self.assertFalse(is_dop_agreement_point(None))
 
@@ -66,8 +67,35 @@ class MappingServiceContractsTests(unittest.TestCase):
         self.assertFalse(db.session.get(WorkCategory, removed.id).is_active)
         self.assertFalse(db.session.get(WorkCategory, unknown.id).is_active)
         self.assertIn(visible_point, painters.work_points)
-        self.assertIn(dop_point, dop.work_points)
+        canonical_dop = WorkPoint.query.filter_by(point_number="26").first()
+        self.assertIsNotNone(canonical_dop)
+        self.assertIn(canonical_dop, dop.work_points)
+        self.assertFalse(dop_point.is_active)
         self.assertNotIn(hidden_point, unknown.work_points)
+
+    def test_legacy_dop_agreement_point_tasks_are_moved_to_point_26(self):
+        project = Project(name="QA")
+        apartment = Apartment(project=project, apartment_number="1")
+        legacy_point = WorkPoint(point_number="47", original_column_name="Доп соглашение ТМЦ", is_active=True)
+        task = Task(
+            source_uid="legacy-dop",
+            project=project,
+            apartment=apartment,
+            work_point=legacy_point,
+            title="Legacy",
+            description="Legacy",
+            status=STATUS_NOT_STARTED,
+        )
+        db.session.add_all([project, apartment, legacy_point, task])
+        db.session.commit()
+
+        ensure_default_categories()
+        db.session.commit()
+
+        db.session.refresh(task)
+        self.assertEqual(task.work_point.point_number, "26")
+        self.assertEqual(task.work_point.short_name, "Отступное (ТМЦ)")
+        self.assertFalse(db.session.get(WorkPoint, legacy_point.id).is_active)
 
     def test_apply_default_point_mapping_respects_customized_category(self):
         point_10 = WorkPoint(point_number="10", short_name="10")

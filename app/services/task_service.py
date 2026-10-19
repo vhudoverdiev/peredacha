@@ -24,10 +24,14 @@ from app.models import (
 )
 from app.services.changelog_service import log_change
 from app.services.mapping_service import (
+    DOP_AGREEMENT_LABEL,
+    DOP_AGREEMENT_POINT_NUMBER,
+    DOP_AGREEMENT_POINT_NUMBERS,
     ensure_default_categories,
     apply_default_point_mapping,
     is_dop_agreement_header,
 )
+from app.services.remark_format import is_fully_quoted_remark_text
 from app.services.uid_service import (
     build_source_fragment_uid,
     build_task_uid,
@@ -39,10 +43,18 @@ from app.services.uid_service import (
 from app.time_utils import utc_now
 
 
+def _asc_nulls_last(column):
+    return column.is_(None).asc(), column.asc()
+
+
+def _desc_nulls_last(column):
+    return column.is_(None).asc(), column.desc()
+
+
 APARTMENT_HEADERS = {
-    "apartment_number": ["квартира", "кв", "помещение", "номер квартиры"],
-    "construction_number": ["строительный", "строит", "стр. №", "строительный номер"],
-    "owner_name": ["собственник", "владелец", "фио"],
+    "apartment_number": ["квартира", "кв", "кв/№", "кв №", "№ пом", "№ кл", "№ клад", "факт/№", "дду", "помещение", "номер квартиры", "№ ком", "ком.", "коммерц", "паркинг", "парковка", "машиноместо", "м/м"],
+    "construction_number": ["строительный", "стр. №", "строительный номер"],
+    "owner_name": ["собственник", "владелец", "фио", "дольщик"],
     "phone": ["телефон", "тел", "контакт"],
     "finishing_type": ["отделка", "вид отделки"],
     "entrance": ["подъезд", "секция"],
@@ -73,9 +85,9 @@ IGNORED_POINT_HEADER_PARTS = [
 
 # Cyrillic aliases for matching real Excel headers.
 APARTMENT_HEADERS_RU = {
-    "apartment_number": ["квартира", "кв", "помещение", "номер квартиры"],
-    "construction_number": ["строительный", "строит", "стр. №", "строительный номер", "стр №", "стр.№"],
-    "owner_name": ["собственник", "владелец", "фио"],
+    "apartment_number": ["квартира", "кв", "кв/№", "кв №", "№ пом", "№ кл", "№ клад", "факт/№", "дду", "помещение", "номер квартиры", "№ ком", "ком.", "коммерц", "паркинг", "парковка", "машиноместо", "м/м"],
+    "construction_number": ["строительный", "стр. №", "строительный номер", "стр №", "стр.№"],
+    "owner_name": ["собственник", "владелец", "фио", "дольщик"],
     "phone": ["телефон", "тел", "контакт"],
     "finishing_type": ["отделка", "вид отделки"],
     "entrance": ["подъезд", "секция"],
@@ -125,12 +137,9 @@ APARTMENT_IMPORT_CONFLICT_LABELS = {
     "inspection_note": "Комментарий осмотра",
 }
 
-# Основные рабочие замечания для вкладки "Все" и рабочих разделов: пункты 10-22.
-MAIN_WORK_POINT_NUMBERS = {str(number) for number in range(10, 23)}
-# Колонка доп. соглашения сдвигается между объектами, поэтому определяем её по
-# названию заголовка, а не по фиксированному номеру пункта.
-DOP_AGREEMENT_POINT_NUMBERS = set()
-# Импортировать можно основные замечания + доп. соглашение, но во вкладку "Все" попадают только 10-22.
+# Основные рабочие замечания для вкладки "Все" и рабочих разделов: пункты 10-25.
+MAIN_WORK_POINT_NUMBERS = {str(number) for number in range(10, 26)}
+# Импортировать можно основные замечания + доп. соглашение, но во вкладку "Все" попадают только 10-25.
 VISIBLE_WORK_POINT_NUMBERS = MAIN_WORK_POINT_NUMBERS | DOP_AGREEMENT_POINT_NUMBERS
 
 AVR_STATUS_NEEDED = "needed"
@@ -149,11 +158,18 @@ PREMISE_PAIR_QUERY_RE = re.compile(
 )
 PREMISE_QUERY_RE = re.compile(r"\b(кв|квартира|к|комм|коммерция|помещение|пом)\D{0,12}(\d+)\b", re.IGNORECASE)
 PREMISE_SUFFIX_QUERY_RE = re.compile(r"\b(\d+)\s*(?:к|кв|комм)\b", re.IGNORECASE)
+TYPED_PREMISE_QUERY_RE = re.compile(
+    r"\b(кл|кладовка|кладовая|п|парковка|паркинг|машиноместо)\.?\s*(\d*)\b",
+    re.IGNORECASE,
+)
 PREMISE_SEARCH_MODES = {
+    "premise_range",
     "construction_number",
     "commercial_pair",
     "premise_number",
     "premise_number_or_building",
+    "premise_type",
+    "typed_premise_number",
 }
 LEADING_MULTI_PREMISE_RE = re.compile(
     r"""
@@ -161,9 +177,13 @@ LEADING_MULTI_PREMISE_RE = re.compile(
     (
         \d+-\d+-\d+
         |
+        \d+\s*[-–—]\s*\d+(?![\d/-])
+        |
         (?:кв|к|комм|коммерция|помещение|пом)?\s*\d+\s*/\s*(?:к|корпус)?\s*\d+
         |
         (?:кв|квартира|к|комм|коммерция|помещение|пом)\D{0,12}\d+
+        |
+        (?:кл|кладовка|кладовая|п|парковка|паркинг|машиноместо)\.?(?=\s*\d|$)\s*\d*
         |
         \d+\s*(?:к|кв|комм)
         |
@@ -179,6 +199,10 @@ def detect_search_mode(query: str | None) -> tuple[str, str]:
     text = str(query or "").strip()
     if not text:
         return "text", ""
+    range_match = re.fullmatch(r"(\d{1,9})\s*[-–—]\s*(\d{1,9})", text)
+    if range_match:
+        low, high = sorted(map(int, range_match.groups()))
+        return "premise_range", f"{low}|{high}"
     normalized = normalize_text(text).replace("ё", "е")
     if CONSTRUCTION_QUERY_RE.fullmatch(normalized):
         return "construction_number", normalized
@@ -187,6 +211,13 @@ def detect_search_mode(query: str | None) -> tuple[str, str]:
         return "commercial_pair", f"{match.group(1)}|{match.group(2)}"
     if text.isdigit():
         return "premise_number", text
+    match = TYPED_PREMISE_QUERY_RE.fullmatch(normalized)
+    if match:
+        prefix, number = match.group(1), match.group(2)
+        premise_type = "parking" if prefix in {"п", "парковка", "паркинг", "машиноместо"} else "storeroom"
+        if number:
+            return "typed_premise_number", f"{premise_type}|{number}"
+        return "premise_type", premise_type
     match = PREMISE_QUERY_RE.search(normalized)
     if match:
         prefix, number = match.group(1), match.group(2)
@@ -258,6 +289,8 @@ def premise_matches_selector(apartment: Apartment | None, selector: tuple[str, s
 
 def premise_selector_value(selector: tuple[str, str]) -> str:
     mode, value = selector
+    if mode == "premise_range":
+        return str(value).replace("|", "-")
     if mode == "commercial_pair":
         number, _, building = str(value).partition("|")
         return f"{number}/{building}".strip("/")
@@ -266,6 +299,20 @@ def premise_selector_value(selector: tuple[str, str]) -> str:
 
 def premise_selector_clause(selector: tuple[str, str]):
     mode, value = selector
+    if mode == "premise_range":
+        low, high = map(int, value.split("|"))
+        number = func.trim(Apartment.apartment_number)
+        number = case(
+            (Apartment.premise_type == "storeroom", func.replace(func.replace(number, "КЛ", ""), "кл", "")),
+            (Apartment.premise_type == "parking", func.replace(func.replace(number, "П", ""), "п", "")),
+            else_=number,
+        )
+        number = func.trim(number)
+        remainder = number
+        for digit in "0123456789":
+            remainder = func.replace(remainder, digit, "")
+        return and_(number != "", remainder == "", cast(number, Integer).between(low, high))
+
     if mode == "commercial_pair":
         number, _, building = str(value).partition("|")
         return and_(
@@ -280,6 +327,24 @@ def premise_selector_clause(selector: tuple[str, str]):
             Apartment.apartment_number == value,
             and_(Apartment.premise_type == "commercial", Apartment.building == value),
         )
+    if mode == "premise_type":
+        return Apartment.premise_type == value
+    if mode == "typed_premise_number":
+        premise_type, _, number = str(value).partition("|")
+        if premise_type == "storeroom":
+            normalized_number = normalize_storeroom_number(number)
+        elif premise_type == "parking":
+            normalized_number = normalize_parking_number(number)
+        else:
+            normalized_number = normalize_number_cell(number)
+        return and_(
+            Apartment.premise_type == premise_type,
+            or_(
+                Apartment.apartment_number == normalized_number,
+                Apartment.construction_number == normalized_number,
+                Apartment.contract_number == normalize_number_cell(number),
+            ),
+        )
     if mode == "premise_number":
         return Apartment.apartment_number == value
     return None
@@ -289,6 +354,14 @@ def premise_matches_search(apartment: Apartment | None, mode: str, value: str | 
     if not apartment or not value:
         return False
     value = str(value).strip()
+    if mode == "premise_range":
+        low, high = map(int, value.split("|"))
+        number = str(apartment.apartment_number or "").strip()
+        if apartment.premise_type == "storeroom":
+            number = re.sub(r"^кл", "", number, flags=re.I).strip()
+        elif apartment.premise_type == "parking":
+            number = re.sub(r"^п", "", number, flags=re.I).strip()
+        return bool(re.fullmatch(r"[0-9]+", number)) and low <= int(number) <= high
     if mode == "commercial_pair":
         number, _, building = value.partition("|")
         return (
@@ -302,6 +375,25 @@ def premise_matches_search(apartment: Apartment | None, mode: str, value: str | 
         if str(apartment.apartment_number or "").strip() == value:
             return True
         return (apartment.premise_type or "apartment") == "commercial" and str(apartment.building or "").strip() == value
+    if mode == "premise_type":
+        return (apartment.premise_type or "apartment") == value
+    if mode == "typed_premise_number":
+        premise_type, _, number = value.partition("|")
+        if (apartment.premise_type or "apartment") != premise_type:
+            return False
+        if premise_type == "storeroom":
+            normalized_number = normalize_storeroom_number(number)
+        elif premise_type == "parking":
+            normalized_number = normalize_parking_number(number)
+        else:
+            normalized_number = normalize_number_cell(number)
+        plain_number = normalize_number_cell(number) or number
+        values = {
+            str(apartment.apartment_number or "").strip(),
+            str(apartment.construction_number or "").strip(),
+            str(apartment.contract_number or "").strip(),
+        }
+        return normalized_number in values or plain_number in values
     return premise_matches_number(apartment, value)
 
 
@@ -318,6 +410,35 @@ def premise_matches_number(apartment: Apartment | None, number: str | None) -> b
         if value == number:
             return True
     return False
+
+
+def text_search_variants(search_value: str) -> list[str]:
+    value = str(search_value or "").strip()
+    variants = {
+        value,
+        value.lower(),
+        value.upper(),
+        value.capitalize(),
+    }
+    return [variant for variant in variants if variant]
+
+
+def text_field_search_clause(field, search_value: str):
+    return or_(*(field.ilike(f"%{variant}%") for variant in text_search_variants(search_value)))
+
+
+def task_row_text_search_clause(search_value: str):
+    empty_description = or_(Task.description.is_(None), Task.description == "")
+    return or_(
+        text_field_search_clause(Task.description, search_value),
+        text_field_search_clause(Task.title, search_value),
+        and_(empty_description, text_field_search_clause(Task.source_cell_value, search_value)),
+        text_field_search_clause(WorkPoint.point_number, search_value),
+        text_field_search_clause(WorkPoint.short_name, search_value),
+        text_field_search_clause(WorkPoint.original_column_name, search_value),
+        text_field_search_clause(User.full_name, search_value),
+        text_field_search_clause(User.username, search_value),
+    )
 
 
 @dataclass
@@ -663,6 +784,7 @@ def dop_agreement_work_point_clause():
         return and_(*(text_field.like(f"%{part}%") for part in parts))
 
     return or_(
+        WorkPoint.point_number.in_(DOP_AGREEMENT_POINT_NUMBERS),
         field_has_all(WorkPoint.original_column_name, "Отступ", "ТМЦ"),
         field_has_all(WorkPoint.original_column_name, "отступ", "тмц"),
         field_has_all(WorkPoint.short_name, "Отступ", "ТМЦ"),
@@ -734,6 +856,9 @@ def normalize_number_cell(value: Any) -> str | None:
             return str(int(value))
         return str(value).strip()
     text = str(value).strip()
+    decimal_integer = re.fullmatch(r"(\d+)\.0+", text)
+    if decimal_integer:
+        return decimal_integer.group(1)
     return text or None
 
 
@@ -786,6 +911,48 @@ def normalize_commercial_number(value: str | None) -> str | None:
     return normalized or text
 
 
+def normalize_storeroom_number(value: str | None) -> str | None:
+    text = normalize_number_cell(value)
+    if not text:
+        return None
+    if re.match(r"^кл\s*\d+", text, flags=re.IGNORECASE):
+        number = re.sub(r"^кл\s*", "", text, flags=re.IGNORECASE).strip()
+        number = normalize_number_cell(number) or number
+        return f"КЛ{number}" if number else text
+    return f"КЛ{text}"
+
+
+def normalize_parking_number(value: str | None) -> str | None:
+    text = normalize_number_cell(value)
+    if not text:
+        return None
+    if re.match(r"^п\s*\d+", text, flags=re.IGNORECASE):
+        number = re.sub(r"^п\s*", "", text, flags=re.IGNORECASE).strip()
+        number = normalize_number_cell(number) or number
+        return f"П{number}" if number else text
+    return f"П{text}"
+
+
+def contract_number_from_premise_identity(*values: str | None) -> str | None:
+    fallback_number: str | None = None
+    for value in values:
+        text = normalize_number_cell(value)
+        if not text:
+            continue
+        match = re.search(r"\(([^()]+)\)", text)
+        if match:
+            number = match.group(1).strip()
+            if number:
+                return number
+        if text.count("/") == 1:
+            right_part = text.rsplit("/", 1)[1].strip()
+            if right_part:
+                return right_part
+        if fallback_number is None:
+            fallback_number = text
+    return fallback_number
+
+
 def apartment_number_from_construction(construction_number: str | None) -> str | None:
     if not construction_number:
         return None
@@ -814,6 +981,51 @@ def detect_status_marker(remark_text: str) -> str | None:
     if "(лб)" in lowered or is_auto_done_remark(remark_text):
         return STATUS_DONE
     return None
+
+
+def has_completed_source_marker(task: Task) -> bool:
+    """Return True when legacy source text visually marks a task as completed."""
+    values = (
+        task.description,
+        task.source_cell_value,
+    )
+    return any(
+        detect_status_marker(str(value or "")) == STATUS_DONE
+        or is_fully_quoted_remark_text(value)
+        for value in values
+        if str(value or "").strip()
+    )
+
+
+def repair_completed_source_marker_statuses(
+    *,
+    project_id: int | None = None,
+    task_ids: Iterable[int] | None = None,
+) -> int:
+    """Normalize old rows where completed source text was saved as not done."""
+    query = Task.query.filter(
+        Task.status.notin_(DONE_STATUSES),
+        Task.is_done.is_(False),
+        Task.is_archived.is_(False),
+        Task.is_missing_in_latest_sync.is_(False),
+    )
+    if project_id is not None:
+        query = query.filter(Task.project_id == project_id)
+    if task_ids is not None:
+        ids = [int(task_id) for task_id in task_ids if task_id]
+        if not ids:
+            return 0
+        query = query.filter(Task.id.in_(ids))
+
+    changed = 0
+    for task in query.yield_per(200):
+        if not has_completed_source_marker(task):
+            continue
+        change_task_status(task, STATUS_DONE, commit=False)
+        changed += 1
+    if changed:
+        db.session.commit()
+    return changed
 
 
 def _pending_text_sync_conflict(task_id: int) -> SyncConflict | None:
@@ -1009,6 +1221,10 @@ def is_premise_section_marker(row: list[Any]) -> str | None:
         return "commercial"
     if first in {"квартиры", "квартира"} and len(values) <= 2:
         return "apartment"
+    if first in {"кладовки", "кладовка", "кладовые", "кладовая"} and len(values) <= 2:
+        return "storeroom"
+    if first in {"паркинг", "парковки", "парковка", "машиноместа", "машиноместо"} and len(values) <= 2:
+        return "parking"
     return None
 
 
@@ -1191,6 +1407,12 @@ def get_or_update_apartment(
         apartment_number = None
     if premise_type == "commercial":
         apartment_number = normalize_commercial_number(apartment_number)
+    if premise_type == "storeroom":
+        apartment_number = normalize_storeroom_number(apartment_number or construction_number or fallback_apartment_number)
+        construction_number = apartment_number
+    if premise_type == "parking":
+        apartment_number = normalize_parking_number(apartment_number or construction_number or fallback_apartment_number)
+        construction_number = apartment_number
     apartment_number = apartment_number or apartment_number_from_construction(construction_number) or fallback_apartment_number
     sheet_part = normalize_text(sheet_name or "")
     building_part = normalize_text(building or "")
@@ -1235,6 +1457,8 @@ def get_or_update_apartment(
 
     apartment.premise_type = premise_type or "apartment"
     apartment.building = building or apartment.building
+    if not str(apartment.contract_number or "").strip():
+        apartment.contract_number = normalize_number_cell(apartment_number) if apartment.premise_type == "commercial" else contract_number_from_premise_identity(apartment_number, construction_number)
 
     owner_name = str(value_at(row, base_mapping.get("owner_name")) or "").strip() or None
     owner_has_real_name = bool(owner_name and not is_unsold_owner_name(owner_name))
@@ -1412,7 +1636,12 @@ def get_or_update_apartment(
 
 
 def get_or_update_work_point(point_number: str, header: str, sheet_name: str, column_index: int) -> WorkPoint:
-    point = WorkPoint.query.filter_by(point_number=point_number, source_sheet_name=sheet_name).first()
+    if is_dop_agreement_header(header) or str(point_number or "").strip() in DOP_AGREEMENT_POINT_NUMBERS:
+        point_number = DOP_AGREEMENT_POINT_NUMBER
+        header = DOP_AGREEMENT_LABEL
+        point = WorkPoint.query.filter_by(point_number=point_number).order_by(WorkPoint.id.asc()).first()
+    else:
+        point = WorkPoint.query.filter_by(point_number=point_number, source_sheet_name=sheet_name).first()
     if point is None:
         point = WorkPoint(point_number=point_number, source_sheet_name=sheet_name)
         db.session.add(point)
@@ -1680,7 +1909,7 @@ def upsert_task_from_cell(
     # которое в CRM всё ещё находится в статусе «Не выполнено». Уже выставленные
     # статусы являются приоритетными и импортом не перезаписываются.
     auto_status = detect_status_marker(remark_text)
-    if source_cell_is_struck and auto_status is None:
+    if (source_cell_is_struck or is_fully_quoted_remark_text(remark_text)) and auto_status is None:
         auto_status = STATUS_DONE
     if should_auto_finishers(apartment, work_point):
         auto_status = STATUS_FINISHERS
@@ -1721,13 +1950,25 @@ def sync_rows(
 
     sync_time = utc_now()
 
-    default_premise_type = "commercial" if "коммер" in (sheet_name or "").strip().lower() else "apartment"
+    normalized_sheet_name = normalize_text(sheet_name or "").replace("ё", "е")
+    if "коммер" in normalized_sheet_name:
+        default_premise_type = "commercial"
+    elif "клад" in normalized_sheet_name:
+        default_premise_type = "storeroom"
+    elif "паркинг" in normalized_sheet_name or "парков" in normalized_sheet_name or "машиномест" in normalized_sheet_name:
+        default_premise_type = "parking"
+    else:
+        default_premise_type = "apartment"
     premise_type = default_premise_type
     current_building: str | None = None
     commercial_numbers_in_building: set[str] = set()
     if premise_type == "commercial" and not getattr(project, "has_commercial", True):
         return result.as_dict() | {"seen_uids": set()}
     if premise_type == "apartment" and not getattr(project, "has_apartments", True):
+        return result.as_dict() | {"seen_uids": set()}
+    if premise_type == "storeroom" and not getattr(project, "has_storerooms", False):
+        return result.as_dict() | {"seen_uids": set()}
+    if premise_type == "parking" and not getattr(project, "has_parking", False):
         return result.as_dict() | {"seen_uids": set()}
 
     data_start = header_index + 1
@@ -1754,7 +1995,7 @@ def sync_rows(
             base_mapping = anchored_mapping
             base_indexes = set(base_mapping.values())
             point_columns = {idx: header for idx, header in point_columns.items() if idx not in base_indexes}
-    if not point_columns or (base_mapping.get("apartment_number") is None and base_mapping.get("construction_number") is None):
+    if base_mapping.get("apartment_number") is None and base_mapping.get("construction_number") is None:
         return result.as_dict() | {"seen_uids": set()}
 
     for row_zero_idx, row in enumerate(rows[data_start:], start=data_start + 1):
@@ -1782,6 +2023,10 @@ def sync_rows(
             continue
         if current_premise_type == "apartment" and not getattr(project, "has_apartments", True):
             continue
+        if current_premise_type == "storeroom" and not getattr(project, "has_storerooms", False):
+            continue
+        if current_premise_type == "parking" and not getattr(project, "has_parking", False):
+            continue
 
         raw_apartment_number = normalize_apartment_number_cell(value_at(row, base_mapping.get("apartment_number")))
         raw_construction_number = normalize_number_cell(value_at(row, base_mapping.get("construction_number")))
@@ -1793,6 +2038,12 @@ def sync_rows(
                 or is_service_premise_text(raw_apartment_number)
                 or (not construction_number_looks_valid and not apartment_number_looks_valid)
             ):
+                continue
+        if current_premise_type == "storeroom":
+            if not looks_like_apartment_identifier(raw_apartment_number or raw_construction_number):
+                continue
+        if current_premise_type == "parking":
+            if not looks_like_apartment_identifier(raw_apartment_number or raw_construction_number):
                 continue
         if current_premise_type == "commercial":
             raw_apartment_number = normalize_commercial_number(raw_apartment_number)
@@ -1981,7 +2232,7 @@ def build_task_query(params, category_id: int | None = None, project_id: int | N
         else:
             query = query.filter(Task.work_point_id.in_(point_ids or [-1]))
     else:
-        # Вкладка "Все" должна показывать только рабочие пункты 10-22.
+        # Вкладка "Все" должна показывать только рабочие пункты.
         query = query.filter(WorkPoint.point_number.in_(MAIN_WORK_POINT_NUMBERS))
 
     apartment_number = (params.get("apartment_number") or "").strip()
@@ -2001,21 +2252,7 @@ def build_task_query(params, category_id: int | None = None, project_id: int | N
             if selector_clauses:
                 query = query.filter(or_(*selector_clauses))
             if tail_query:
-                like = f"%{tail_query}%"
-                query = query.filter(
-                    or_(
-                        Apartment.apartment_number.ilike(like),
-                        Apartment.construction_number.ilike(like),
-                        Apartment.owner_name.ilike(like),
-                        Apartment.phone.ilike(like),
-                        Task.description.ilike(like),
-                        Task.source_cell_value.ilike(like),
-                        WorkPoint.point_number.ilike(like),
-                        WorkPoint.short_name.ilike(like),
-                        User.full_name.ilike(like),
-                        User.username.ilike(like),
-                    )
-                )
+                query = query.filter(task_row_text_search_clause(tail_query))
         else:
             search_mode, search_value = detect_search_mode(q)
             if search_mode == "commercial_pair":
@@ -2036,22 +2273,12 @@ def build_task_query(params, category_id: int | None = None, project_id: int | N
                 )
             elif search_mode == "premise_number":
                 query = query.filter(Apartment.apartment_number == search_value)
+            elif search_mode in {"premise_type", "typed_premise_number"}:
+                clause = premise_selector_clause((search_mode, search_value))
+                if clause is not None:
+                    query = query.filter(clause)
             else:
-                like = f"%{search_value}%"
-                query = query.filter(
-                    or_(
-                        Apartment.apartment_number.ilike(like),
-                        Apartment.construction_number.ilike(like),
-                        Apartment.owner_name.ilike(like),
-                        Apartment.phone.ilike(like),
-                        Task.description.ilike(like),
-                        Task.source_cell_value.ilike(like),
-                        WorkPoint.point_number.ilike(like),
-                        WorkPoint.short_name.ilike(like),
-                        User.full_name.ilike(like),
-                        User.username.ilike(like),
-                    )
-                )
+                query = query.filter(task_row_text_search_clause(search_value))
 
     status = params.get("status")
     if status != "missing":
@@ -2136,11 +2363,19 @@ def build_task_query(params, category_id: int | None = None, project_id: int | N
         (Apartment.app_deadline_date <= expiring_until, 1),
         else_=2,
     )
+    premise_type_rank = case(
+        (Apartment.premise_type.is_(None), 0),
+        (Apartment.premise_type == "apartment", 0),
+        (Apartment.premise_type == "commercial", 1),
+        (Apartment.premise_type == "storeroom", 2),
+        (Apartment.premise_type == "parking", 3),
+        else_=4,
+    )
 
     def ordered(*parts):
         if premise_order_rank is None:
-            return parts
-        return (done_last, premise_order_rank.asc(), *parts[1:]) if parts and parts[0] is done_last else (premise_order_rank.asc(), *parts)
+            return (premise_type_rank.asc(), *parts)
+        return (premise_type_rank.asc(), premise_order_rank.asc(), *parts[1:]) if parts and parts[0] is done_last else (premise_type_rank.asc(), premise_order_rank.asc(), *parts)
 
     if sort == "apartment":
         query = query.order_by(*ordered(done_last, cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), WorkPoint.point_number.asc()))
@@ -2149,19 +2384,19 @@ def build_task_query(params, category_id: int | None = None, project_id: int | N
     elif sort == "owner":
         query = query.order_by(*ordered(done_last, Apartment.owner_name.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()))
     elif sort == "finishing_type":
-        query = query.order_by(*ordered(done_last, Apartment.finishing_type.asc().nullslast(), Apartment.apartment_number.asc()))
+        query = query.order_by(*ordered(done_last, *_asc_nulls_last(Apartment.finishing_type), Apartment.apartment_number.asc()))
     elif sort == "point":
         query = query.order_by(*ordered(done_last, WorkPoint.point_number.asc(), Apartment.apartment_number.asc()))
     elif sort == "status":
-        query = query.order_by(*ordered(done_last, deadline_rank.asc(), Apartment.app_deadline_date.asc().nullslast(), Task.status.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()))
+        query = query.order_by(*ordered(done_last, deadline_rank.asc(), *_asc_nulls_last(Apartment.app_deadline_date), Task.status.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()))
     elif sort == "mode":
         query = query.order_by(*ordered(done_last, Apartment.is_app_mode.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()))
     elif sort == "priority":
         query = query.order_by(*ordered(done_last, Task.priority.desc(), Task.updated_at.desc()))
     elif sort == "planned_old":
-        query = query.order_by(*ordered(done_last, Task.planned_date.asc().nullslast(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()))
+        query = query.order_by(*ordered(done_last, *_asc_nulls_last(Task.planned_date), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()))
     elif sort == "planned_new":
-        query = query.order_by(*ordered(done_last, Task.planned_date.desc().nullslast(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()))
+        query = query.order_by(*ordered(done_last, *_desc_nulls_last(Task.planned_date), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()))
     elif sort == "done_first":
         query = query.order_by(*ordered(done_last, Task.updated_at.desc()))
     else:
@@ -2213,9 +2448,12 @@ def _premise_rows_from_query(query):
         Apartment.phone,
         Apartment.finishing_type,
         Apartment.is_app_mode,
+        Apartment.inspection_date,
         Apartment.first_inspection_present,
         Apartment.first_inspection_date,
+        Apartment.reinspection_date,
         Apartment.inspection_note,
+        Apartment.app_deadline_status,
     ).all()
 
 
@@ -2232,6 +2470,11 @@ def _row_to_premise(row):
     apartment.owner_name = getattr(row, "owner_name", None)
     apartment.is_unsold = bool(getattr(row, "is_unsold", False))
     apartment.finishing_type = getattr(row, "finishing_type", None)
+    apartment.is_app_mode = bool(getattr(row, "is_app_mode", False))
+    apartment.inspection_date = getattr(row, "inspection_date", None)
+    apartment.first_inspection_date = getattr(row, "first_inspection_date", None)
+    apartment.reinspection_date = getattr(row, "reinspection_date", None)
+    apartment.first_inspection_present = bool(getattr(row, "first_inspection_present", False))
     return apartment
 
 
@@ -2271,10 +2514,17 @@ def _row_premise_type(row) -> str:
 
 
 def _has_first_inspection(rows: list) -> bool:
-    # The transfer statistics import is the source of truth: red/yellow fill in
-    # "Дата осмотра" stores False, every other fill stores True. Duplicate source
-    # rows represent one premise, so one positive row is enough for the group.
-    return any(bool(getattr(row, "first_inspection_present", False)) for row in rows)
+    # Read persisted CRM fields only. Imports populate these fields, but the
+    # dashboard does not read source workbooks; current acceptance and inspection
+    # edits in CRM are reflected on the next stats query. Acceptance implies a
+    # completed inspection, and duplicate source rows represent one premise.
+    date_fields = ("inspection_date", "first_inspection_date", "reinspection_date")
+    return any(
+        bool(getattr(row, "first_inspection_present", False))
+        or bool(getattr(row, "is_app_mode", False))
+        or any(getattr(row, field, None) is not None for field in date_fields)
+        for row in rows
+    )
 
 
 def _finishing_bucket(value: str | None) -> str:
@@ -2307,12 +2557,39 @@ def dashboard_stats(
     total_apartments = len(grouped_rows)
     apartment_count = sum(1 for rows in grouped_rows.values() if rows and _row_premise_type(rows[0]) == "apartment")
     commercial_count = sum(1 for rows in grouped_rows.values() if rows and _row_premise_type(rows[0]) == "commercial")
+    storeroom_count = sum(1 for rows in grouped_rows.values() if rows and _row_premise_type(rows[0]) == "storeroom")
+    parking_count = sum(1 for rows in grouped_rows.values() if rows and _row_premise_type(rows[0]) == "parking")
+    app_like_premise_types = {"apartment", "storeroom", "parking"}
 
     accepted = sum(
         1
         for rows in grouped_rows.values()
-        if rows and _row_premise_type(rows[0]) == "apartment" and _group_is_accepted(rows)
+        if rows and _row_premise_type(rows[0]) in app_like_premise_types and _group_is_accepted(rows)
     )
+    accepted_with_remarks_by_type = {
+        premise_type: sum(
+            1
+            for rows in grouped_rows.values()
+            if rows
+            and _row_premise_type(rows[0]) == premise_type
+            and _group_is_accepted(rows)
+            and not all(getattr(row, "app_deadline_status", None) == APP_DEADLINE_NO_REMARKS for row in rows)
+        )
+        for premise_type in ("apartment", "commercial", "storeroom", "parking")
+    }
+    accepted_no_remarks_by_type = {
+        premise_type: sum(
+            1
+            for rows in grouped_rows.values()
+            if rows
+            and _row_premise_type(rows[0]) == premise_type
+            and _group_is_accepted(rows)
+            and all(getattr(row, "app_deadline_status", None) == APP_DEADLINE_NO_REMARKS for row in rows)
+        )
+        for premise_type in ("apartment", "commercial", "storeroom", "parking")
+    }
+    accepted_with_remarks = accepted_with_remarks_by_type["apartment"]
+    accepted_no_remarks = accepted_no_remarks_by_type["apartment"]
     unsold_apartment_count = sum(
         1
         for rows in grouped_rows.values()
@@ -2323,11 +2600,42 @@ def dashboard_stats(
         for rows in grouped_rows.values()
         if rows and _row_premise_type(rows[0]) == "commercial" and _group_is_unsold(rows)
     )
-    unsold = unsold_apartment_count + unsold_commercial_count
+    unsold_storeroom_count = sum(
+        1
+        for rows in grouped_rows.values()
+        if rows and _row_premise_type(rows[0]) == "storeroom" and _group_is_unsold(rows)
+    )
+    unsold_parking_count = sum(
+        1
+        for rows in grouped_rows.values()
+        if rows and _row_premise_type(rows[0]) == "parking" and _group_is_unsold(rows)
+    )
+    not_accepted_storeroom_count = sum(
+        1
+        for rows in grouped_rows.values()
+        if rows
+        and _row_premise_type(rows[0]) == "storeroom"
+        and not _group_is_accepted(rows)
+        and not _group_is_unsold(rows)
+    )
+    unsold = unsold_apartment_count + unsold_commercial_count + unsold_storeroom_count + unsold_parking_count
     not_accepted = max(total_apartments - accepted - unsold, 0)
 
-    inspected = sum(1 for rows in grouped_rows.values() if _has_first_inspection(rows))
-    not_inspected = max(total_apartments - inspected, 0)
+    inspection_rows = [rows for rows in grouped_rows.values() if not _group_is_unsold(rows)]
+    inspected = sum(1 for rows in inspection_rows if _has_first_inspection(rows))
+    not_inspected = max(len(inspection_rows) - inspected, 0)
+    inspection_by_type = {}
+    for premise_type in ("apartment", "storeroom", "parking", "commercial"):
+        type_rows = [
+            rows
+            for rows in inspection_rows
+            if rows and _row_premise_type(rows[0]) == premise_type
+        ]
+        type_inspected = sum(1 for rows in type_rows if _has_first_inspection(rows))
+        inspection_by_type[premise_type] = {
+            "inspected": type_inspected,
+            "not_inspected": max(len(type_rows) - type_inspected, 0),
+        }
     white = 0
     clean = 0
     unknown_finishing = 0
@@ -2346,6 +2654,8 @@ def dashboard_stats(
         "apartments": total_apartments,
         "apartment_count": apartment_count,
         "commercial_count": commercial_count,
+        "storeroom_count": storeroom_count,
+        "parking_count": parking_count,
         "tasks": total_tasks,
         "done": done,
         "not_done": total_tasks - done,
@@ -2354,12 +2664,26 @@ def dashboard_stats(
         "missing": Task.query.filter(Task.project_id == project_id, Task.is_missing_in_latest_sync.is_(True)).count() if project_id else Task.query.filter(Task.is_missing_in_latest_sync.is_(True)).count(),
         "percent": round((done / total_tasks * 100), 1) if total_tasks else 0,
         "accepted": accepted,
+        "accepted_with_remarks": accepted_with_remarks,
+        "accepted_no_remarks": accepted_no_remarks,
+        "accepted_with_remarks_apartment": accepted_with_remarks_by_type["apartment"],
+        "accepted_no_remarks_apartment": accepted_no_remarks_by_type["apartment"],
+        "accepted_with_remarks_commercial": accepted_with_remarks_by_type["commercial"],
+        "accepted_no_remarks_commercial": accepted_no_remarks_by_type["commercial"],
+        "accepted_with_remarks_storeroom": accepted_with_remarks_by_type["storeroom"],
+        "accepted_no_remarks_storeroom": accepted_no_remarks_by_type["storeroom"],
+        "accepted_with_remarks_parking": accepted_with_remarks_by_type["parking"],
+        "accepted_no_remarks_parking": accepted_no_remarks_by_type["parking"],
         "unsold": unsold,
         "unsold_apartment_count": unsold_apartment_count,
         "unsold_commercial_count": unsold_commercial_count,
+        "unsold_storeroom_count": unsold_storeroom_count,
+        "unsold_parking_count": unsold_parking_count,
+        "not_accepted_storeroom_count": not_accepted_storeroom_count,
         "not_accepted": not_accepted,
         "inspected": inspected,
         "not_inspected": not_inspected,
+        "inspection_by_type": inspection_by_type,
         "clean_apartments": clean,
         "white_apartments": white,
         "unknown_finishing_apartments": unknown_finishing,

@@ -16,6 +16,7 @@ from app.services.apartment_overview import (
     notification_counts,
     task_sort_key,
 )
+from app.routes import _premise_options_from_apartments, _project_apartment_options
 
 
 class TestConfig(Config):
@@ -66,12 +67,34 @@ class ApartmentOverviewContractsTests(unittest.TestCase):
 
     def test_sort_keys_order_numeric_apartments_and_done_tasks_last(self):
         self.assertLess(apartment_sort_key(Apartment(apartment_number="9")), apartment_sort_key(Apartment(apartment_number="10")))
+        self.assertLess(
+            apartment_sort_key(Apartment(apartment_number="330", premise_type="apartment")),
+            apartment_sort_key(Apartment(apartment_number="КЛ154", premise_type="storeroom")),
+        )
 
         open_floor = Task(work_point=self.floor_point, description="B", is_done=False)
         done_wall = Task(work_point=self.wall_point, description="A", is_done=True)
         open_wall = Task(work_point=self.wall_point, description="A", is_done=False)
 
         self.assertEqual(sorted([open_floor, done_wall, open_wall], key=task_sort_key), [open_wall, open_floor, done_wall])
+
+    def test_premise_lists_keep_apartments_commercial_storerooms_and_parking_in_order(self):
+        premises = [
+            self._apartment("П1", premise_type="parking"),
+            self._apartment("КЛ1", premise_type="storeroom"),
+            self._apartment("К1", premise_type="commercial"),
+            self._apartment("2", premise_type="apartment"),
+        ]
+        expected_order = ["apartment", "commercial", "storeroom", "parking"]
+
+        self.assertEqual(
+            [item.premise_type for item in _project_apartment_options(self.project.id)],
+            expected_order,
+        )
+        self.assertEqual(
+            [item["label"] for item in _premise_options_from_apartments(list(reversed(premises)))],
+            [item.label() for item in _project_apartment_options(self.project.id)],
+        )
 
     def test_apartment_main_tasks_exclude_archived_external_and_empty_tasks(self):
         apartment = self._apartment("1")

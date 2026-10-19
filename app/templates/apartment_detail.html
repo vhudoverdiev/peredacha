@@ -4,7 +4,7 @@
 <div class="apartment-detail-page" data-ajax-pagination-page="apartment-history">
 {% set status_labels = {'not_started': 'не выполнено', 'done': 'выполнено', 'finishers': 'чистовики', 'contractor': 'подрядчик', 'guarantee': 'гарантия', 'concession': 'отступные', 'problem': 'проблема'} %}
 {% set status_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'guarantee': 'status-pill-primary', 'concession': 'status-pill-muted', 'problem': 'status-pill-danger'} %}
-{% set field_labels = {'status': 'Статус', 'comment': 'Комментарий', 'description': 'Текст замечания', 'responsible_id': 'Исполнитель', 'planned_date': 'Плановая дата', 'is_missing_in_latest_sync': 'Отсутствует в последней синхронизации'} %}
+{% set field_labels = {'status': 'Статус', 'comment': 'Комментарий', 'description': 'Текст замечания', 'responsible_id': 'Исполнитель', 'planned_date': 'Плановая дата', 'is_missing_in_latest_sync': 'Отсутствует в последней синхронизации', 'owner_name': 'ФИО собственника', 'phone': 'Номер телефона', 'contract_number': 'По договору', 'finishing_type': 'Отделка', 'apartment_mode': 'Режим'} %}
 
 <div class="page-head apartment-detail-head">
   <div>
@@ -19,7 +19,7 @@
 </div>
 
 <div class="row g-3">
-  <div class="col-xl-4">
+  <div class="col-xl-4" data-apartment-detail-sidebar>
     <div class="card content-card mb-3">
       <div class="card-body">
         <h2 class="section-title">Данные помещения</h2>
@@ -29,6 +29,44 @@
             <span>Помещение</span>
             <b>{{ apartment.detail_label() }}</b>
           </div>
+          <div class="apartment-data-row{% if current_user.role != 'viewer' %} apartment-data-edit-row{% endif %}">
+            {% if current_user.role != 'viewer' %}
+            <label for="apartment-contract-{{ apartment.id }}">По договору</label>
+            <input class="form-control form-control-sm" id="apartment-contract-{{ apartment.id }}" name="contract_number" type="text" value="{{ row.contract_number_input or '' }}" maxlength="80" inputmode="text" form="apartment-details-form-{{ apartment.id }}">
+            {% else %}
+            <span>По договору</span>
+            <b>{{ row.contract_number or '—' }}</b>
+            {% endif %}
+          </div>
+          {% if current_user.role != 'viewer' %}
+          <form id="apartment-details-form-{{ apartment.id }}" method="post" action="{{ url_for('main.update_apartment_details', apartment_id=apartment.id) }}" class="apartment-details-edit-form mb-3" data-apartment-details-autosave="1">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="apartment-data-row apartment-data-edit-row">
+              <label for="apartment-owner-{{ apartment.id }}">ФИО собственника</label>
+              <textarea class="form-control form-control-sm apartment-owner-names-control" id="apartment-owner-{{ apartment.id }}" name="owner_name" rows="{{ [row.owner_names|length, 1]|max }}" maxlength="255" autocomplete="name">{{ row.owner_names|join('\n') if row.owner_names else '' }}</textarea>
+            </div>
+            <div class="apartment-data-row apartment-data-edit-row">
+              <label for="apartment-phone-{{ apartment.id }}">Номер телефона</label>
+              <input class="form-control form-control-sm" id="apartment-phone-{{ apartment.id }}" name="phone" type="text" value="{{ row.phones|join('\n') if row.phones else '' }}" maxlength="255" autocomplete="tel">
+            </div>
+            {% if apartment.premise_type != 'commercial' %}
+            <div class="apartment-data-row apartment-data-edit-row">
+              <label for="apartment-finishing-{{ apartment.id }}">Отделка</label>
+              <input class="form-control form-control-sm" id="apartment-finishing-{{ apartment.id }}" name="finishing_type" type="text" value="{{ apartment.finishing_type or '' }}" maxlength="255">
+            </div>
+            {% else %}
+            <input type="hidden" name="finishing_type" value="{{ apartment.finishing_type or '' }}">
+            {% endif %}
+            <div class="apartment-data-row apartment-data-edit-row">
+              <label for="apartment-mode-{{ apartment.id }}">Режим</label>
+              <select class="form-select form-select-sm" id="apartment-mode-{{ apartment.id }}" name="mode">
+                <option value="not_accepted" {% if row.mode == 'не принята' %}selected{% endif %}>Не принята</option>
+                <option value="app" {% if row.mode == 'АПП' %}selected{% endif %}>АПП</option>
+                <option value="unsold" {% if row.mode == 'не продана' %}selected{% endif %}>Не продана</option>
+              </select>
+            </div>
+          </form>
+          {% else %}
           <div class="apartment-data-row">
             <span>ФИО собственника</span>
             <b>{{ row.owner_names|join(', ') if row.owner_names else '—' }}</b>
@@ -47,140 +85,234 @@
             <span>Режим</span>
             <b>
               {% if row.mode == 'АПП' %}<span class="status-pill status-pill-success">АПП</span>
-              {% elif row.mode == 'не продана' %}<span class="status-pill status-pill-muted">не продана</span>
-              {% else %}<span class="status-pill status-pill-warning">не принята</span>{% endif %}
+              {% elif row.mode == 'не продана' %}<span class="status-pill status-pill-muted">Не продана</span>
+              {% else %}<span class="status-pill status-pill-warning">Не принята</span>{% endif %}
             </b>
-          </div>
-          {% if row.inspection_date %}
-          <div class="apartment-data-row">
-            <span>Осмотр</span>
-            <b class="apartment-inspection-display" data-apartment-inspection-display>
-              <span class="status-pill {{ row.inspection_status_class }}">{{ row.inspection_status }}</span>
-              <span>{{ row.inspection_display }}</span>
-            </b>
-          </div>
-          {% else %}
-          <div class="apartment-data-row">
-            <span>Осмотр</span>
-            <b data-apartment-inspection-display><span class="status-pill {{ row.inspection_status_class }}">{{ row.inspection_status }}</span></b>
           </div>
           {% endif %}
+          {% if row.mode != 'не продана' %}
           {% set can_manage_inspection = current_user.role != 'viewer' and row.mode not in ['не продана', 'АПП'] %}
           {% set can_edit_inspection_date = can_manage_inspection %}
           {% set can_reset_inspection = can_manage_inspection and row.inspection_status == 'Был' %}
           {% set can_reset_future_inspection_mobile = can_manage_inspection and row.inspection_status == 'Будет' %}
-          {% if can_edit_inspection_date and row.inspection_date %}
-          <form method="post" action="{{ url_for('main.update_apartment_inspection_date', apartment_id=apartment.id) }}" class="apartment-inspection-date-form apartment-inspection-status-form-detail mb-3" data-apartment-async="1">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label class="apartment-inspection-status-label" for="inspection-date-{{ apartment.id }}">Изменить осмотр</label>
-            <div class="apartment-inspection-date-actions">
-              <input class="form-control" type="date" id="inspection-date-{{ apartment.id }}" name="inspection_date" value="{{ row.inspection_date.isoformat() if row.inspection_date else '' }}">
-              <button class="btn btn-primary btn-sm" type="submit">Сохранить</button>
+          <div class="apartment-data-row apartment-data-row-with-control apartment-compact-control-row">
+            <span>Осмотр</span>
+            <b class="apartment-inspection-display" data-apartment-inspection-display>
+              <span class="status-pill {{ row.inspection_status_class }}">{{ row.inspection_status }}</span>
+              {% if row.inspection_items %}
+              <span class="apartment-inspection-date-stack {% if row.inspection_items|length == 1 %}is-single{% endif %}">
+                {% for inspection_item in row.inspection_items %}
+                <span class="apartment-inspection-date-item">
+                  <span>{{ inspection_item.label }}</span>
+                  {% if can_edit_inspection_date %}
+                  <form method="post" action="{{ url_for('main.delete_apartment_inspection_date', apartment_id=apartment.id) }}" class="apartment-inspection-date-delete-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="inspection_date" value="{{ inspection_item.value }}">
+                    <button class="btn btn-sm btn-outline-danger apartment-inspection-date-delete-btn" type="submit" title="Удалить дату осмотра" aria-label="Удалить дату осмотра {{ inspection_item.label }}"><i class="bi bi-trash"></i></button>
+                  </form>
+                  {% endif %}
+                </span>
+                {% endfor %}
+              </span>
+              {% endif %}
+            </b>
+            {% if can_edit_inspection_date %}
+            <div class="apartment-inline-controls">
+              {% if row.inspection_items|length < 5 %}
+              <form method="post" action="{{ url_for('main.update_apartment_inspection_date', apartment_id=apartment.id) }}" class="apartment-inline-form apartment-inspection-date-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input class="form-control form-control-sm" type="date" id="inspection-date-{{ apartment.id }}" name="inspection_date" value="" title="Добавить дату осмотра" required>
+                <button class="btn btn-sm btn-outline-primary apartment-inspection-action-btn" type="submit">Добавить</button>
+              </form>
+              {% else %}
+              <span class="text-muted small">Добавлено 5 из 5 осмотров</span>
+              {% endif %}
+              {% if can_reset_inspection or can_reset_future_inspection_mobile %}
+              <form method="post" action="{{ url_for('main.update_apartment_inspection_status', apartment_id=apartment.id) }}" class="apartment-inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="inspection_status" value="not_was">
+                <button class="btn btn-outline-primary btn-sm apartment-inspection-action-btn apartment-inspection-reset-btn" type="submit">Не был</button>
+              </form>
+              {% endif %}
             </div>
-          </form>
-          {% if can_reset_inspection %}
-          <form method="post" action="{{ url_for('main.update_apartment_inspection_status', apartment_id=apartment.id) }}" class="apartment-inspection-status-form apartment-inspection-status-form-detail mb-3">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="inspection_status" value="not_was">
-            <span class="apartment-inspection-status-label">Сбросить осмотр</span>
-            <div class="apartment-inspection-date-actions">
-              <button class="btn btn-outline-success btn-sm" type="submit">Поставить «Не был»</button>
-            </div>
-          </form>
-          {% elif can_reset_future_inspection_mobile %}
-          <form method="post" action="{{ url_for('main.update_apartment_inspection_status', apartment_id=apartment.id) }}" class="apartment-inspection-status-form apartment-inspection-status-form-detail apartment-inspection-reset-mobile-only d-none mb-3">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="inspection_status" value="not_was">
-            <span class="apartment-inspection-status-label">Сбросить осмотр</span>
-            <div class="apartment-inspection-date-actions">
-              <button class="btn btn-outline-success btn-sm" type="submit">Поставить «Не был»</button>
-            </div>
-          </form>
-          {% endif %}
-          {% elif can_edit_inspection_date %}
-          <form method="post" action="{{ url_for('main.update_apartment_inspection_status', apartment_id=apartment.id) }}" class="apartment-inspection-status-form apartment-inspection-status-form-detail mb-3">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <span class="apartment-inspection-status-label">Изменить осмотр</span>
-            <div class="apartment-inspection-status-actions">
-              <input class="btn-check" type="radio" name="inspection_status" id="inspection-detail-was-{{ apartment.id }}" value="was" {% if row.inspection_status == 'Был' %}checked{% endif %} onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
-              <label class="inspection-option inspection-option-was" for="inspection-detail-was-{{ apartment.id }}">Был</label>
-              <input class="btn-check" type="radio" name="inspection_status" id="inspection-detail-not-was-{{ apartment.id }}" value="not_was" {% if row.inspection_status != 'Был' %}checked{% endif %} onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
-              <label class="inspection-option inspection-option-not-was" for="inspection-detail-not-was-{{ apartment.id }}">Не был</label>
-            </div>
-          </form>
-          {% elif row.mode == 'не продана' %}
-          <div class="apartment-inspection-static-note mb-3">
-            <i class="bi bi-info-circle"></i> Для непроданной квартиры осмотр фиксируется автоматически: <b>Был</b>.
+            {% endif %}
           </div>
           {% endif %}
 
           {% if row.mode == 'АПП' %}
+          {% if current_user.role != 'viewer' %}
+          <form method="post" action="{{ url_for('main.update_apartment_app_status', apartment_id=apartment.id) }}" class="apartment-inline-stack" data-apartment-async="1" data-app-deadline-auto-form>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="app_deadline_manual" value="0" data-app-deadline-manual>
+            <div class="apartment-data-row apartment-data-row-with-control apartment-compact-control-row">
+              <span>Дата АПП</span>
+              <b data-apartment-app-signed-display>{{ row.app_signed_date|ru_date if row.app_signed_date else '—' }}</b>
+              <div class="apartment-inline-controls">
+                <input class="form-control form-control-sm" type="date" name="app_signed_date" value="{{ row.app_signed_date.isoformat() if row.app_signed_date else '' }}" data-app-signed-date title="Дата АПП">
+              </div>
+            </div>
+            <div class="apartment-data-row apartment-data-row-with-control apartment-data-deadline-row apartment-compact-control-row">
+              <span>Срок устранения</span>
+              <b class="apartment-deadline-display">
+                <span class="apartment-deadline-date" data-apartment-app-deadline-display>{{ row.remark_deadline_display }}</span>
+                {% if row.remark_deadline_status %}
+                  <span class="deadline-badge deadline-badge-{{ row.remark_deadline_status.class }} apartment-deadline-status ms-2">{{ row.remark_deadline_status.label }}</span>
+                {% endif %}
+              </b>
+              <div class="apartment-inline-controls" data-app-deadline-date-control {% if not row.remark_deadline %}hidden{% endif %}>
+                <input class="form-control form-control-sm" type="date" name="app_deadline_date" value="{{ row.remark_deadline.isoformat() if row.remark_deadline else '' }}" data-app-deadline-date title="Срок устранения">
+              </div>
+            </div>
+            <div class="apartment-data-row apartment-data-row-with-control apartment-compact-control-row">
+              <span>АПП</span>
+              <b data-apartment-app-status-display>
+                {% if row.app_status == app_deadline_no_remarks %}
+                  <span class="status-pill status-pill-success">Без замечаний</span>
+                {% else %}
+                  <span class="status-pill status-pill-warning">Есть замечания</span>
+                {% endif %}
+              </b>
+              <div class="apartment-inline-controls">
+                <input class="btn-check" type="radio" name="app_status" id="app-status-normal-{{ apartment.id }}" value="{{ app_deadline_normal }}" {% if row.app_status != app_deadline_no_remarks %}checked{% endif %} onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
+                <label class="app-status-option app-status-option-needed" for="app-status-normal-{{ apartment.id }}">Есть замечания</label>
+                <input class="btn-check" type="radio" name="app_status" id="app-status-no-remarks-{{ apartment.id }}" value="{{ app_deadline_no_remarks }}" {% if row.app_status == app_deadline_no_remarks %}checked{% endif %} onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
+                <label class="app-status-option app-status-option-no-remarks" for="app-status-no-remarks-{{ apartment.id }}">Без замечаний</label>
+              </div>
+            </div>
+          </form>
+          {% else %}
+          <div class="apartment-data-row">
+            <span>Дата АПП</span>
+            <b data-apartment-app-signed-display>{{ row.app_signed_date|ru_date if row.app_signed_date else '—' }}</b>
+          </div>
           <div class="apartment-data-row apartment-data-deadline-row">
             <span>Срок устранения</span>
             <b class="apartment-deadline-display">
-              <span class="apartment-deadline-date">{{ row.remark_deadline_display }}</span>
+              <span class="apartment-deadline-date" data-apartment-app-deadline-display>{{ row.remark_deadline_display }}</span>
               {% if row.remark_deadline_status %}
                 <span class="deadline-badge deadline-badge-{{ row.remark_deadline_status.class }} apartment-deadline-status ms-2">{{ row.remark_deadline_status.label }}</span>
               {% endif %}
             </b>
           </div>
+          <div class="apartment-data-row">
+            <span>Статус АПП</span>
+            <b data-apartment-app-status-display>
+              {% if row.app_status == app_deadline_no_remarks %}
+                <span class="status-pill status-pill-success">Без замечаний</span>
+              {% else %}
+                <span class="status-pill status-pill-warning">Есть замечания</span>
+              {% endif %}
+            </b>
+          </div>
+          {% endif %}
           {% endif %}
           {% if row.show_avr %}
+          {% if current_user.role != 'viewer' %}
+            <form method="post" action="{{ url_for('main.update_apartment_avr_status', apartment_id=apartment.id) }}" class="apartment-data-row apartment-data-row-with-control apartment-inline-form apartment-avr-form apartment-compact-control-row" data-apartment-async="1">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <span>АВР</span>
+            <b data-apartment-avr-display>
+              {% if row.avr_status == avr_status_signed %}
+                <span class="badge-avr-signed">{{ row.avr_signed_date|ru_date if row.avr_signed_date else 'Подписан' }}</span>
+              {% else %}
+                <span class="badge-avr-needed">Нужен</span>
+              {% endif %}
+            </b>
+            <div class="apartment-inline-controls">
+              <input class="form-control form-control-sm" type="date" name="avr_signed_date" value="{{ row.avr_signed_date.isoformat() if row.avr_signed_date else today.isoformat() }}" title="Дата подписания АВР">
+              <div class="apartment-avr-status-actions">
+                <button class="btn btn-sm {{ 'btn-primary' if row.avr_status == avr_status_needed else 'btn-outline-primary' }}" type="submit" name="avr_status" value="{{ avr_status_needed }}">Нужен</button>
+                <button class="btn btn-sm {{ 'btn-primary' if row.avr_status == avr_status_signed else 'btn-outline-primary' }}" type="submit" name="avr_status" value="{{ avr_status_signed }}">Подписан</button>
+              </div>
+            </div>
+          </form>
+          {% else %}
           <div class="apartment-data-row">
             <span>АВР</span>
             <b data-apartment-avr-display>
               {% if row.avr_status == avr_status_signed %}
-                <span class="badge-avr-signed">Подписан{% if row.avr_signed_date %} от {{ row.avr_signed_date|ru_date }}{% endif %}</span>
+                <span class="badge-avr-signed">{{ row.avr_signed_date|ru_date if row.avr_signed_date else 'Подписан' }}</span>
               {% else %}
                 <span class="badge-avr-needed">Нужен</span>
               {% endif %}
             </b>
           </div>
-          {% if current_user.role != 'viewer' %}
-          <form method="post" action="{{ url_for('main.update_apartment_avr_status', apartment_id=apartment.id) }}" class="apartment-avr-form mb-3" data-apartment-async="1">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label class="form-label mb-0">Изменить АВР</label>
-            <div class="apartment-avr-actions">
-              <button class="btn btn-sm {{ 'btn-primary' if row.avr_status == avr_status_needed else 'btn-outline-primary' }}" type="submit" name="avr_status" value="{{ avr_status_needed }}">Нужен</button>
-              <button class="btn btn-sm {{ 'btn-success' if row.avr_status == avr_status_signed else 'btn-outline-success' }}" type="submit" name="avr_status" value="{{ avr_status_signed }}">Подписан</button>
-              <input class="form-control form-control-sm" type="date" name="avr_signed_date" value="{{ row.avr_signed_date.isoformat() if row.avr_signed_date else today.isoformat() }}" title="Дата подписания АВР">
+          {% endif %}
+          {% endif %}
+          {% if row.mode == 'АПП' and row.has_addendum_task %}
+            {% if current_user.role != 'viewer' %}
+            <form method="post" action="{{ url_for('main.update_apartment_addendum_status', apartment_id=apartment.id) }}" class="apartment-data-row apartment-data-row-with-control apartment-inline-form apartment-addendum-form apartment-compact-control-row" data-apartment-async="1">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <span>Соглашение</span>
+              <b data-apartment-addendum-display>
+                {% if row.addendum_status == addendum_status_signed %}
+                  <span class="badge-avr-signed">{{ row.addendum_signed_date|ru_date if row.addendum_signed_date else 'Подписано' }}</span>
+                {% else %}
+                  <span class="badge-avr-needed">Не подписано</span>
+                {% endif %}
+              </b>
+              <div class="apartment-inline-controls">
+                <input class="form-control form-control-sm" type="date" name="addendum_signed_date" value="{{ row.addendum_signed_date.isoformat() if row.addendum_signed_date else today.isoformat() }}" title="Дата подписания соглашения">
+                <div class="apartment-addendum-status-actions">
+                  <button class="btn btn-sm {{ 'btn-primary' if row.addendum_status != addendum_status_signed else 'btn-outline-primary' }}" type="submit" name="addendum_status" value="{{ addendum_status_needed }}">Не подписано</button>
+                  <button class="btn btn-sm {{ 'btn-success' if row.addendum_status == addendum_status_signed else 'btn-outline-success' }}" type="submit" name="addendum_status" value="{{ addendum_status_signed }}">Подписано</button>
+                </div>
+              </div>
+            </form>
+            {% else %}
+            <div class="apartment-data-row">
+              <span>Соглашение</span>
+              <b data-apartment-addendum-display>
+                {% if row.addendum_status == addendum_status_signed %}
+                  <span class="badge-avr-signed">{{ row.addendum_signed_date|ru_date if row.addendum_signed_date else 'Подписано' }}</span>
+                {% else %}
+                  <span class="badge-avr-needed">Не подписано</span>
+                {% endif %}
+              </b>
             </div>
-          </form>
+            {% endif %}
           {% endif %}
-          {% endif %}
-          {% if row.mode == 'АПП' %}
-          <div class="apartment-data-note">
-            <span>Комментарий</span>
-            <p data-apartment-comment-display>{{ row.manual_comment or '—' }}</p>
+          {% set manual_comment_text = (row.manual_comment or '')|trim %}
+          {% set has_manual_comment = manual_comment_text and manual_comment_text not in ['-', '—'] %}
+          {% set inspection_comment_text = (row.inspection_comment or '')|trim %}
+          {% set has_inspection_comment = inspection_comment_text and inspection_comment_text not in ['-', '—'] %}
+          <div class="apartment-data-note apartment-data-note-with-action">
+            <span>Комментарий(передача)</span>
+            <p data-apartment-comment-display>{{ manual_comment_text if has_manual_comment else '—' }}</p>
+            {% if current_user.role not in ['viewer', 'office'] %}
+            <button class="btn btn-sm btn-outline-danger apartment-note-clear-btn" type="button" data-clear-note-button data-clear-note-form="apartment-comment-form-{{ apartment.id }}" title="Удалить комментарий" aria-label="Удалить комментарий"{% if not has_manual_comment %} hidden{% endif %}><i class="bi bi-trash"></i></button>
+            {% endif %}
           </div>
-          {% elif row.mode == 'не принята' %}
-          <div class="apartment-data-note">
-            <span>Комментарий</span>
-            <p data-apartment-inspection-note-display>{{ row.inspection_comment or '—' }}</p>
+          <div class="apartment-data-note apartment-data-note-with-action">
+            <span>Комментарий(устранение замечаний)</span>
+            <p data-apartment-inspection-note-display>{{ inspection_comment_text if has_inspection_comment else '—' }}</p>
+            {% if current_user.role not in ['viewer', 'office'] %}
+            <button class="btn btn-sm btn-outline-danger apartment-note-clear-btn" type="button" data-clear-note-button data-clear-note-form="inspection-note-form-{{ apartment.id }}" title="Удалить устранение" aria-label="Удалить устранение"{% if not has_inspection_comment %} hidden{% endif %}><i class="bi bi-trash"></i></button>
+            {% endif %}
           </div>
-          {% endif %}
-          {% if row.mode == 'АПП' and current_user.role != 'viewer' %}
-          <form method="post" action="{{ url_for('main.update_apartment_comment', apartment_id=apartment.id) }}" class="inspection-note-form" data-apartment-async="1">
+          {% if current_user.role not in ['viewer', 'office'] %}
+          <form method="post" action="{{ url_for('main.update_apartment_comment', apartment_id=apartment.id) }}" class="inspection-note-form" data-apartment-async="1" id="apartment-comment-form-{{ apartment.id }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label class="form-label" for="apartment-comment-{{ apartment.id }}">Комментарий</label>
-            <textarea class="form-control" id="apartment-comment-{{ apartment.id }}" name="apartment_comment" rows="3" placeholder="Например: Собственник не подписывает АВР">{{ row.manual_comment or '' }}</textarea>
-            <button class="btn btn-primary btn-sm" type="submit">Сохранить</button>
+            <div class="apartment-note-form-head">
+              <label class="form-label" for="apartment-comment-{{ apartment.id }}">Комментарий(передача)</label>
+            </div>
+            <textarea class="form-control" id="apartment-comment-{{ apartment.id }}" name="apartment_comment" rows="3" placeholder="Например: Собственник не подписывает АВР">{{ manual_comment_text if has_manual_comment else '' }}</textarea>
           </form>
-          {% elif row.mode == 'не принята' and current_user.role != 'viewer' %}
-          <form method="post" action="{{ url_for('main.update_apartment_inspection_note', apartment_id=apartment.id) }}" class="inspection-note-form" data-apartment-async="1">
+          <form method="post" action="{{ url_for('main.update_apartment_inspection_note', apartment_id=apartment.id) }}" class="inspection-note-form" data-apartment-async="1" id="inspection-note-form-{{ apartment.id }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label class="form-label" for="inspection-note-{{ apartment.id }}">Комментарий</label>
-            <textarea class="form-control" id="inspection-note-{{ apartment.id }}" name="inspection_note" rows="3">{{ row.inspection_comment or '' }}</textarea>
-            <button class="btn btn-primary btn-sm" type="submit">Сохранить</button>
+            <div class="apartment-note-form-head">
+              <label class="form-label" for="inspection-note-{{ apartment.id }}">Комментарий(устранение замечаний)</label>
+            </div>
+            <textarea class="form-control" id="inspection-note-{{ apartment.id }}" name="inspection_note" rows="3">{{ inspection_comment_text if has_inspection_comment else '' }}</textarea>
           </form>
           {% endif %}
-          {% if row.po_status %}
+          {% if row.po_status and current_user.role != 'office' %}
           <div class="apartment-data-po">
             <span>Внутренний статус</span>
             <form method="post" action="{{ url_for('main.update_apartment_po_status', apartment_id=apartment.id) }}" class="apartment-po-form apartment-po-form-inline" data-apartment-async="1">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <div class="apartment-po-row apartment-po-options">
-              {% if current_user.role != 'viewer' %}
+              {% if current_user.role not in ['viewer', 'office'] %}
                 {% for value, label in po_status_labels.items() %}
                 {% if value != 'po' %}
                 <input class="btn-check" type="radio" name="po_status" id="po-detail-{{ apartment.id }}-{{ value }}" value="{{ value }}" {% if row.po_status == value %}checked{% endif %} onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
@@ -235,7 +367,6 @@
                   <button class="btn btn-sm {{ 'btn-outline-secondary' if is_returnable_status else 'btn-outline-success' }} apartment-task-status-btn" type="submit" title="{{ 'Не выполнено' if is_returnable_status else 'Выполнено' }}" aria-label="{{ 'Не выполнено' if is_returnable_status else 'Выполнено' }}" data-binary-status-toggle-button><i class="bi {{ 'bi-arrow-counterclockwise' if is_returnable_status else 'bi-check2-circle' }}" data-binary-status-toggle-icon></i><span class="visually-hidden" data-binary-status-toggle-label>{{ 'Не выполнено' if is_returnable_status else 'Выполнено' }}</span></button>
                 </form>
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" class="apartment-task-status-form apartment-task-letter-form status-action-form {% if task.status == 'finishers' %}d-none{% endif %}" data-status-action="finishers"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-letter-btn task-stage-action-btn" type="submit" title="Чистовики" aria-label="Чистовики"><i class="bi bi-brush remarks-status-icon" aria-hidden="true"></i><span class="remarks-status-text">Ч</span></button></form>
-                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" class="apartment-task-status-form apartment-task-letter-form status-action-form {% if task.status == 'contractor' %}d-none{% endif %}" data-status-action="contractor"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning apartment-task-letter-btn" type="submit" title="Подрядчик" aria-label="Подрядчик"><i class="bi bi-person-gear remarks-status-icon" aria-hidden="true"></i><span class="remarks-status-text">П</span></button></form>
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" class="apartment-task-status-form apartment-task-letter-form status-action-form {% if task.status == 'guarantee' %}d-none{% endif %}" data-status-action="guarantee"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-letter-btn task-stage-action-btn guarantee-gray-button" type="submit" title="Гарантия" aria-label="Гарантия"><i class="bi bi-shield-check remarks-status-icon" aria-hidden="true"></i><span class="remarks-status-text">Г</span></button></form>
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='concession') }}" class="apartment-task-status-form apartment-task-letter-form status-action-form {% if task.status == 'concession' %}d-none{% endif %}" data-status-action="concession"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning apartment-task-letter-btn" type="submit" title="Отступные" aria-label="Отступные"><span class="remarks-status-text">О</span></button></form>
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="apartment-task-status-form apartment-task-letter-form status-action-form problem-action-form problem-action-form-inline {% if task.status == 'problem' %}d-none{% endif %}" data-status-action="problem"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-danger problem-toggle-btn apartment-task-letter-btn" type="button" title="Проблема" aria-label="Проблема" data-problem-modal-title="Проблема"><i class="bi bi-exclamation-triangle"></i></button></form>
@@ -248,19 +379,20 @@
             <div class="apartment-task-status-mobile">
               <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }} apartment-task-status-current-mobile">{{ task.status_label() }}</span>
               {% if current_user.role != 'viewer' %}
-              <div class="apartment-task-actions actions-cell" data-current-status="{{ task.status }}">
+              <div class="apartment-task-actions actions-cell{% if task.status != 'problem' %} has-delete-action{% endif %}" data-current-status="{{ task.status }}">
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started' if is_returnable_status else 'done') }}" class="apartment-task-action-form status-action-form binary-status-toggle-form" data-status-action="{{ 'not_started' if is_returnable_status else 'done' }}" data-binary-status-toggle data-is-done="{{ '1' if is_returnable_status else '0' }}" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-done-label="Выполнено" data-not-done-label="Не выполнено"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm {{ 'btn-outline-secondary' if is_returnable_status else 'btn-outline-success' }} apartment-task-action-btn" type="submit" data-binary-status-toggle-button><span data-binary-status-toggle-label>{{ 'Не выполнено' if is_returnable_status else 'Выполнено' }}</span></button></form>
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" class="apartment-task-action-form status-action-form {% if task.status == 'finishers' %}d-none{% endif %}" data-status-action="finishers"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-action-btn task-stage-action-btn" type="submit">Чистовики</button></form>
-                <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='contractor') }}" class="apartment-task-action-form status-action-form {% if task.status == 'contractor' %}d-none{% endif %}" data-status-action="contractor"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning apartment-task-action-btn" type="submit">Подрядчик</button></form>
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='guarantee') }}" class="apartment-task-action-form status-action-form {% if task.status == 'guarantee' %}d-none{% endif %}" data-status-action="guarantee"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-action-btn task-stage-action-btn guarantee-gray-button" type="submit">Гарантия</button></form>
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='concession') }}" class="apartment-task-action-form status-action-form {% if task.status == 'concession' %}d-none{% endif %}" data-status-action="concession"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-warning apartment-task-action-btn" type="submit">Отступные</button></form>
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='problem') }}" class="apartment-task-action-form apartment-task-action-form-problem status-action-form problem-action-form problem-action-form-inline {% if task.status == 'problem' %}d-none{% endif %}" data-status-action="problem"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-danger problem-toggle-btn apartment-task-action-btn" type="button" data-problem-modal-title="Проблема">Проблема</button></form>
+                {% if task.status != 'problem' %}
+                <form method="post" action="{{ url_for('main.task_delete', task_id=task.id) }}" class="apartment-task-delete-mobile-form" data-confirm="Удалить это замечание? Это действие нельзя отменить.">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="next" value="{{ request.full_path }}">
+                  <button class="btn btn-outline-danger apartment-task-delete-mobile-btn" type="submit"><i class="bi bi-trash me-2" aria-hidden="true"></i>Удалить</button>
+                </form>
+                {% endif %}
               </div>
-              <form method="post" action="{{ url_for('main.task_delete', task_id=task.id) }}" class="apartment-task-delete-mobile-form" data-confirm="Удалить это замечание? Это действие нельзя отменить.">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="next" value="{{ request.full_path }}">
-                <button class="btn btn-outline-danger apartment-task-delete-mobile-btn" type="submit"><i class="bi bi-trash me-2" aria-hidden="true"></i>Удалить</button>
-              </form>
               {% endif %}
             </div>
             <div class="apartment-task-meta">
@@ -300,7 +432,7 @@
       </div>
     </div>
 
-    <div class="card content-card" data-ajax-pagination-content data-ajax-items-selector=".timeline-item">
+    <div class="card content-card" data-apartment-history-card data-ajax-pagination-content data-ajax-items-selector=".timeline-item">
       <div class="card-body">
         <h2 class="section-title">История изменений по помещению</h2>
         <div class="timeline" data-apartment-history-list data-current-page="{{ history_page }}" {% if not history_entries %}hidden{% endif %}>
@@ -331,4 +463,115 @@
 </div>
 
 </div>
+
+<script>
+(() => {
+  const refreshRenderedSections = async (refreshSidebar) => {
+    const response = await fetch(window.location.href, {
+      credentials: 'same-origin',
+      headers: { 'Accept': 'text/html' },
+    });
+    if (!response.ok) throw new Error('Не удалось обновить данные страницы.');
+    const documentCopy = new DOMParser().parseFromString(await response.text(), 'text/html');
+
+    const currentHistory = document.querySelector('[data-apartment-history-card]');
+    const nextHistory = documentCopy.querySelector('[data-apartment-history-card]');
+    if (currentHistory && nextHistory) currentHistory.replaceWith(nextHistory);
+
+    if (refreshSidebar) {
+      const currentSidebar = document.querySelector('[data-apartment-detail-sidebar]');
+      const nextSidebar = documentCopy.querySelector('[data-apartment-detail-sidebar]');
+      if (currentSidebar && nextSidebar) {
+        currentSidebar.replaceWith(nextSidebar);
+        initApartmentDetailsAutosave();
+      }
+    }
+  };
+
+  const initApartmentDetailsAutosave = () => {
+    const form = document.querySelector('[data-apartment-details-autosave]');
+    if (!form || form.dataset.autosaveBound === '1') return;
+    form.dataset.autosaveBound = '1';
+
+    const formId = form.id || '';
+    const fieldSelector = '[name="owner_name"], [name="phone"], [name="contract_number"], [name="finishing_type"], [name="mode"]';
+    const ownerInput = form.querySelector('[name="owner_name"]');
+    const modeSelect = form.querySelector('[name="mode"]');
+    const fields = Array.from(document.querySelectorAll(fieldSelector)).filter((field) => field.form === form || (formId && field.getAttribute('form') === formId));
+    const saveUrl = form.getAttribute('action') || window.location.href;
+    let debounceTimer = null;
+    let saving = false;
+    let saveAgain = false;
+    let refreshSidebarRequested = false;
+    let lastSavedPayload = new URLSearchParams(new FormData(form)).toString();
+    const currentPayload = () => new URLSearchParams(new FormData(form)).toString();
+
+    const save = async () => {
+      clearTimeout(debounceTimer);
+      const formData = new FormData(form);
+      const payload = new URLSearchParams(formData).toString();
+      if (payload === lastSavedPayload) return;
+      if (saving) {
+        saveAgain = true;
+        return;
+      }
+
+      saving = true;
+      try {
+        const response = await fetch(saveUrl, {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin',
+          headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) {
+          throw new Error(data.message || 'Не удалось сохранить данные помещения.');
+        }
+        lastSavedPayload = payload;
+        const refreshSidebar = refreshSidebarRequested;
+        refreshSidebarRequested = false;
+        await refreshRenderedSections(refreshSidebar);
+      } catch (error) {
+        console.error('Apartment details autosave failed:', error);
+        if (window.showCrmNotice) showCrmNotice(error.message || 'Не удалось сохранить данные помещения.', 'danger');
+      } finally {
+        saving = false;
+        const hasNewChanges = document.body.contains(form) && currentPayload() !== payload;
+        if (saveAgain || hasNewChanges) {
+          saveAgain = false;
+          window.setTimeout(save, 0);
+        }
+      }
+    };
+
+    const scheduleSave = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(save, 650);
+    };
+
+    fields.forEach((field) => {
+      field.addEventListener('input', scheduleSave);
+      field.addEventListener('blur', save);
+      field.addEventListener('change', () => {
+        if (field === modeSelect) {
+          refreshSidebarRequested = true;
+          if (field.value === 'unsold' && ownerInput) ownerInput.value = '';
+        }
+        save();
+      });
+    });
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      save();
+    });
+  };
+
+  initApartmentDetailsAutosave();
+})();
+</script>
 {% endblock %}

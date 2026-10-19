@@ -33,6 +33,7 @@ from config import Config
 
 class E2EVisualConfig(Config):
     TESTING = False
+    ALLOW_SQLITE_RUNTIME = True
     SECRET_KEY = "e2e-visual-secret-key"
     SQLALCHEMY_DATABASE_URI = os.environ["E2E_VISUAL_DATABASE_URL"]
     WTF_CSRF_ENABLED = False

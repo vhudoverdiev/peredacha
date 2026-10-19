@@ -43,6 +43,16 @@
         <label class="form-label" for="contractorName">Наименование подрядчика</label>
         <input class="form-control form-control-lg" id="contractorName" name="name" type="text" value="{{ contractor_name }}" maxlength="180" autocomplete="organization" required>
         <div class="invalid-feedback">Укажите наименование подрядчика.</div>
+        <label class="form-label mt-3" for="contractorLegalAddress">Юридический адрес</label>
+        <input class="form-control form-control-lg" id="contractorLegalAddress" name="legal_address" type="text" value="{{ contractor_legal_address }}" maxlength="255" autocomplete="street-address">
+        <label class="form-label mt-3" for="contractorDirectorFullName">ФИО директора</label>
+        <input class="form-control form-control-lg" id="contractorDirectorFullName" name="director_full_name" type="text" value="{{ contractor_director_full_name }}" maxlength="255" autocomplete="name">
+        <label class="form-label mt-3" for="contractorContractNumber">№ договора подряда</label>
+        <input class="form-control form-control-lg" id="contractorContractNumber" name="contract_number" type="text" value="{{ contractor_contract_number }}" maxlength="255">
+        <label class="form-label mt-3" for="contractorContractDate">Дата договора</label>
+        <input class="form-control form-control-lg" id="contractorContractDate" name="contract_date" type="text" value="{{ contractor_contract_date }}" maxlength="50" autocomplete="off">
+        <label class="form-label mt-3" for="contractorEmail">Эл.почта</label>
+        <input class="form-control form-control-lg" id="contractorEmail" name="email" type="email" value="{{ contractor_email }}" maxlength="255" autocomplete="email">
       </div>
       <div class="contractor-wizard-actions contractor-wizard-actions-end">
         {% if contractor %}

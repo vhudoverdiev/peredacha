@@ -1,10 +1,10 @@
-const STATIC_CACHE = 'peredacha-static-v169-first-launch-only';
+const STATIC_CACHE = 'peredacha-static-v187-inspection-layout';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
   '/static/apple-touch-icon.png',
-  '/static/favicon-32x32.png',
-  '/static/favicon-16x16.png',
+  '/static/favicon.ico?v=v610-akvilon-original',
+  '/static/favicon-32x32.png?v=v610-akvilon-original',
   '/static/apple-splash.png',
   '/static/apple-splash-1290x2796.png',
   '/static/apple-splash-1320x2868.png',
@@ -13,10 +13,10 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v638-site-error-remove-native-fallback',
+  '/static/style.css?v=v697-inspection-layout',
   '/static/mobile-only.css?v=v88-remark-sentence-lines',
-  '/static/desktop-only.css?v=v69-material-list-rise-animation',
-  '/static/script.js?v=v673-material-tabs-replace-content',
+  '/static/desktop-only.css?v=v76-objects-three-columns',
+  '/static/script.js?v=v685-deadline-hide',
 ];
 
 const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;

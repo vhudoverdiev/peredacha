@@ -13,8 +13,11 @@ from app.services.transfer_import import (
     _is_not_inspected_fill,
     _is_orange_unsold_fill,
     _is_transfer_header_map,
+    _normalize_transfer_apartment_number,
+    _normalize_transfer_premise_number,
     _parse_app_date,
     _parse_inspection_schedule,
+    _transfer_sheet_premise_type,
     _theme_color_rgb,
 )
 
@@ -34,6 +37,32 @@ class TransferImportContractsTests(unittest.TestCase):
         self.assertEqual(mapping["inspection_note"], 3)
         self.assertTrue(_is_transfer_header_map(mapping))
         self.assertFalse(_is_transfer_header_map({"number": 0, "inspection_note": 1}))
+
+    def test_header_detection_accepts_dd_u_fact_number_and_short_record_column(self):
+        rows = [
+            ["Факт/№ ДДУ", "Ф.И.О. Дольщиков", "Телефон", "Вид отделки", "Запись", "Дата первичного осмотра", "Дата подписания АПП"],
+            ["310/1", "Owner", "+7999", "Белая", "", "", ""],
+        ]
+
+        header_index, mapping = _find_header_map(rows)
+
+        self.assertEqual(header_index, 0)
+        self.assertEqual(mapping["number"], 0)
+        self.assertEqual(mapping["inspection_note"], 4)
+        self.assertTrue(_is_transfer_header_map(mapping))
+
+    def test_slash_transfer_number_uses_first_part_as_apartment_number(self):
+        self.assertEqual(_normalize_transfer_apartment_number("310/1"), "310")
+        self.assertEqual(_normalize_transfer_apartment_number("  330 / 12 "), "330")
+        self.assertEqual(_normalize_transfer_apartment_number("12/3/4"), "12/3/4")
+
+    def test_extra_transfer_sheet_types_normalize_their_numbers(self):
+        self.assertEqual(_transfer_sheet_premise_type("Паркинг"), "parking")
+        self.assertEqual(_transfer_sheet_premise_type("Кладовки"), "storeroom")
+        self.assertEqual(_transfer_sheet_premise_type("Коммерция"), "commercial")
+        self.assertEqual(_normalize_transfer_premise_number("1", "parking"), "П1")
+        self.assertEqual(_normalize_transfer_premise_number("2", "storeroom"), "КЛ2")
+        self.assertEqual(_normalize_transfer_premise_number("310/1", "apartment"), "310")
 
     def test_app_date_parser_extracts_explicit_app_date_without_treating_plain_dates_as_app(self):
         self.assertEqual(_parse_app_date("АПП 05.08.2026"), date(2026, 8, 5))

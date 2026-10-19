@@ -172,9 +172,9 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
             self.shared_css,
         )
         self.assertIn(".site-page-loader", self.shared_css)
-        firefox_css = self.shared_css[
-            self.shared_css.index("/* v629: Firefox on desktop")
-        :]
+        firefox_css_start = self.shared_css.index("/* v629: Firefox on desktop")
+        firefox_css_end = self.shared_css.index("/* v638:", firefox_css_start)
+        firefox_css = self.shared_css[firefox_css_start:firefox_css_end]
         self.assertIn("animation: none !important", firefox_css)
         self.assertIn("opacity: 1 !important", firefox_css)
         self.assertIn("transform: none !important", firefox_css)
@@ -198,7 +198,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v169-first-launch-only")
+        self.assertEqual(worker_version, "v187-inspection-layout")
 
     def test_script_and_css_cache_busters_are_synchronized(self):
         script_version = re.search(
@@ -230,9 +230,9 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         self.assertEqual(css_version, worker_css_version)
         self.assertEqual(mobile_css_version, worker_mobile_css_version)
         self.assertEqual(style_version, worker_style_version)
-        self.assertEqual(script_version, "v673-material-tabs-replace-content")
-        self.assertEqual(css_version, "v69-material-list-rise-animation")
-        self.assertEqual(style_version, "v638-site-error-remove-native-fallback")
+        self.assertEqual(script_version, "v685-deadline-hide")
+        self.assertEqual(css_version, "v76-objects-three-columns")
+        self.assertEqual(style_version, "v697-inspection-layout")
         self.assertEqual(mobile_css_version, "v88-remark-sentence-lines")
 
 

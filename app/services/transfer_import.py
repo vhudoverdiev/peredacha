@@ -16,6 +16,7 @@ from app.models import Apartment, Project, SyncLog
 from app.time_utils import utc_now
 from app.services.task_service import (
     apply_app_deadline_logic,
+    contract_number_from_premise_identity,
     get_or_create_project,
     is_service_premise_text,
     is_unsold_owner_name,
@@ -23,6 +24,8 @@ from app.services.task_service import (
     normalize_apartment_number_cell,
     normalize_building_marker,
     normalize_finishing_type,
+    normalize_parking_number,
+    normalize_storeroom_number,
     normalize_number_cell,
     parse_date,
 )
@@ -40,18 +43,18 @@ def _normalize_header(value: Any) -> str:
 
 def _find_header_map(rows: list[list[Any]]) -> tuple[int, dict[str, int]]:
     exact_headers = {
-        "number": ("№ кв", "№ квартиры"),
+        "number": ("№ кв", "№ квартиры", "№ кладовки", "№ паркинга", "№ парковки", "факт/№ дду"),
         "owner_name": ("ф.и.о. дольщиков", "фио дольщиков", "ф.и.о дольщиков"),
         "phone": ("телефон",),
         "finishing_type": ("вид отделки",),
-        "inspection_note": ("дата осмотра", "запись на осмотр"),
+        "inspection_note": ("дата осмотра", "запись на осмотр", "запись"),
         "first_inspection_date": ("дата первичного осмотра",),
         "reinspection_date": ("дата повторного осмотра",),
         "app_signed_date": ("дата подписания апп",),
         "remark_deadline_date": ("срок устранения замечаний по апп",),
     }
     aliases = {
-        "number": ("№ кв", "№ ком", "помещения"),
+        "number": ("№ кв", "№ ком", "№ клад", "№ парк", "помещения"),
         "owner_name": ("ф.и.о", "фио", "дольщик", "дольщиков"),
         "phone": ("телефон",),
         "finishing_type": ("вид отделки",),
@@ -92,6 +95,46 @@ def _is_transfer_header_map(mapping: dict[str, int]) -> bool:
     }
     extra_hits = sum(1 for field in extra_fields if field in mapping)
     return extra_hits >= 2
+
+
+def _normalize_transfer_apartment_number(value: Any) -> str | None:
+    number = normalize_apartment_number_cell(value)
+    if not number:
+        return None
+    slash_match = re.fullmatch(r"\s*(\d+)\s*/\s*\d+\s*", number)
+    return slash_match.group(1) if slash_match else number
+
+
+def _transfer_sheet_premise_type(title: str | None) -> str:
+    normalized = normalize_text(title or "").replace("ё", "е")
+    if "коммер" in normalized:
+        return "commercial"
+    if any(word in normalized for word in ("кладов", "кладоч", "кладовые", "кладовая")):
+        return "storeroom"
+    if any(word in normalized for word in ("паркинг", "парков", "машиномест")):
+        return "parking"
+    return "apartment"
+
+
+def _normalize_transfer_premise_number(value: Any, premise_type: str) -> str | None:
+    number = _normalize_transfer_apartment_number(value)
+    if not number:
+        return None
+    if premise_type == "storeroom":
+        return normalize_storeroom_number(number)
+    if premise_type == "parking":
+        return normalize_parking_number(number)
+    return number
+
+
+def _project_supports_transfer_premise_type(project: Project, premise_type: str) -> bool:
+    if premise_type == "commercial":
+        return bool(getattr(project, "has_commercial", True))
+    if premise_type == "storeroom":
+        return bool(getattr(project, "has_storerooms", False))
+    if premise_type == "parking":
+        return bool(getattr(project, "has_parking", False))
+    return bool(getattr(project, "has_apartments", True))
 
 
 def _value_at(row: list[Any], index: int | None) -> Any:
@@ -220,7 +263,7 @@ def _is_orange_unsold_fill(cell: Any) -> bool:
     if not rgb:
         return False
     r, g, b = rgb
-    # Excel orange used for "не продано" is close to #FBBC04.
+    # Spreadsheet orange used for "не продано" is close to #FBBC04.
     # Yellow section headers are skipped before this check, so they are not counted.
     return r >= 210 and 95 <= g <= 215 and b <= 120
 
@@ -324,18 +367,20 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
         result = {"created_count": 0, "updated_count": 0, "accepted_count": 0, "waiting_count": 0, "unsold_count": 0}
 
         for ws in wb.worksheets:
-            is_commercial_sheet = "коммер" in (ws.title or "").strip().lower()
+            premise_type = _transfer_sheet_premise_type(ws.title)
+            is_commercial_sheet = premise_type == "commercial"
             current_building: str | None = None
             commercial_numbers_in_building: set[str] = set()
-            if is_commercial_sheet and not getattr(project, "has_commercial", True):
-                continue
-            if not is_commercial_sheet and not getattr(project, "has_apartments", True):
+            if not _project_supports_transfer_premise_type(project, premise_type):
                 continue
             cell_rows = [list(row) for row in ws.iter_rows()]
             rows = [[cell.value for cell in row] for row in cell_rows]
             if not rows:
                 continue
-            header_index, mapping = _find_header_map(rows)
+            try:
+                header_index, mapping = _find_header_map(rows)
+            except ValueError:
+                continue
             if not _is_transfer_header_map(mapping):
                 continue
             for row_idx, row in enumerate(rows[header_index + 1 :], start=header_index + 2):
@@ -350,7 +395,7 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
                     continue
                 if raw_number is None or _is_section_row(raw_number):
                     continue
-                apartment_number = normalize_apartment_number_cell(raw_number)
+                apartment_number = _normalize_transfer_premise_number(raw_number, premise_type)
                 if not apartment_number:
                     continue
                 if not is_commercial_sheet and not looks_like_apartment_identifier(apartment_number):
@@ -379,23 +424,21 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
                 phone = None if is_unsold else (str(_value_at(row, mapping.get("phone")) or "").strip() or None)
                 finishing_type = normalize_finishing_type(_value_at(row, mapping.get("finishing_type")))
                 inspection_note = _value_at(row, mapping.get("inspection_note"))
-                inspection_cell = _cell_at(cell_row, mapping.get("inspection_note"))
                 first_inspection_value = _value_at(row, mapping.get("first_inspection_date"))
                 inspection_text = str(inspection_note or "").strip()
                 # Принято / АПП считаем по цвету ячейки номера помещения:
                 # зелёная ячейка в колонке «№ кв» / «№ ком.» = принято.
                 accepted_date = _parse_app_date(inspection_note)
                 scheduled_inspection = _parse_inspection_schedule(inspection_note)
-                inspection_was_completed = not _is_not_inspected_fill(inspection_cell)
+                inspection_was_completed = scheduled_inspection is not None
                 is_app_mode = bool((_is_green_fill(number_cell) and not is_unsold) or accepted_date)
 
-                premise_type = "commercial" if is_commercial_sheet else "apartment"
                 if is_commercial_sheet:
                     source_row_id = normalize_text(f"{project.id}|commercial|building-{current_building or 'unknown'}|{apartment_number}")
                     apartment = Apartment.query.filter_by(project_id=project.id, source_row_id=source_row_id).first()
                 else:
                     source_row_id = None
-                    apartment = Apartment.query.filter_by(project_id=project.id, apartment_number=apartment_number, premise_type="apartment").first()
+                    apartment = Apartment.query.filter_by(project_id=project.id, apartment_number=apartment_number, premise_type=premise_type).first()
                 created = apartment is None
                 if apartment is None:
                     apartment = Apartment(project_id=project.id, apartment_number=apartment_number, premise_type=premise_type)
@@ -417,6 +460,10 @@ def sync_transfer_statistics(path: Path, project_name: str) -> dict[str, int]:
                 apartment.premise_type = premise_type
                 if is_commercial_sheet:
                     apartment.building = current_building
+                elif premise_type in {"storeroom", "parking"}:
+                    apartment.construction_number = apartment_number
+                if not str(apartment.contract_number or "").strip():
+                    apartment.contract_number = apartment_number if is_commercial_sheet else contract_number_from_premise_identity(str(raw_number or ""), apartment_number)
                 if source_row_id:
                     apartment.source_row_id = source_row_id
                 apartment.owner_name = owner_name

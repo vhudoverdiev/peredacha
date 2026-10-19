@@ -46,7 +46,13 @@ class ApartmentsFilteredExportTests(unittest.TestCase):
             owner_name="Петров",
             finishing_type="Черновая",
         )
-        db.session.add_all([self.project, self.user, self.matching, self.other])
+        self.without_finish = Apartment(
+            project=self.project,
+            apartment_number="127",
+            owner_name="Сидоров",
+            finishing_type="",
+        )
+        db.session.add_all([self.project, self.user, self.matching, self.other, self.without_finish])
         db.session.commit()
 
         self.client = self.app.test_client()
@@ -69,6 +75,27 @@ class ApartmentsFilteredExportTests(unittest.TestCase):
         self.assertIn('data-ajax-pagination-sync="apartments-export"', html)
         self.assertIn('/apartments/export?q=125', html)
 
+    def test_finishing_filter_uses_the_same_groups_as_remarks(self):
+        response = self.client.get("/apartments", query_string={"finishing_group": "white"})
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn('name="finishing_group" value="white" checked', html)
+        self.assertIn("125", html)
+        self.assertNotIn("126", html)
+        self.assertNotIn("127", html)
+
+    def test_finishing_filter_preserves_multiple_values_in_export_link(self):
+        response = self.client.get(
+            "/apartments",
+            query_string=[("finishing_group", "white"), ("finishing_group", "none")],
+        )
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn("/apartments/export?finishing_group=white&amp;finishing_group=none", html)
+        self.assertIn("125", html)
+        self.assertIn("127", html)
+        self.assertNotIn("126", html)
+
     def test_filtered_excel_contains_only_apartments_from_current_filter(self):
         response = self.client.get("/apartments/export", query_string={"q": "125"})
         self.assertEqual(response.status_code, 200)
@@ -80,6 +107,23 @@ class ApartmentsFilteredExportTests(unittest.TestCase):
         ]
         content = "\n".join(values)
         self.assertIn("125", content)
+        self.assertNotIn("126", content)
+
+    def test_finishing_filtered_excel_contains_only_matching_groups(self):
+        response = self.client.get(
+            "/apartments/export",
+            query_string=[("finishing_group", "white"), ("finishing_group", "none")],
+        )
+        self.assertEqual(response.status_code, 200)
+        workbook = load_workbook(BytesIO(response.data), read_only=True)
+        values = [
+            str(cell or "")
+            for row in workbook.active.iter_rows(values_only=True)
+            for cell in row
+        ]
+        content = "\n".join(values)
+        self.assertIn("125", content)
+        self.assertIn("127", content)
         self.assertNotIn("126", content)
 
     def test_ajax_refresh_updates_export_href_outside_the_cards_container(self):

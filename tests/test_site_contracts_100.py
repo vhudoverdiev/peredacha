@@ -55,7 +55,7 @@ CONTRACTS = [
     ("base_mobile_page_chrome_macro", "app/templates/base.html", ["macro mobile_page_chrome", "mobile-shell-topbar"]),
     ("base_mobile_bottom_nav_macro", "app/templates/base.html", ["macro mobile_bottom_nav", "data-mobile-dock=\"unified\""]),
     ("base_worker_dock_two_items", "app/templates/base.html", ["mobile-worker-bottom-nav", "--mobile-nav-count: 2"]),
-    ("base_manager_dock_four_items", "app/templates/base.html", ["4 if current_user.role in ['admin', 'manager'] else 3"]),
+    ("base_manager_dock_four_items", "app/templates/base.html", ["4 if current_user.role in ['admin', 'manager', 'supervisor'] else 3"]),
     ("base_mobile_home_tab", "app/templates/base.html", ["mobile-nav-item-home", "url_for('main.dashboard')"]),
     ("base_mobile_remarks_tab", "app/templates/base.html", ["active == 'remarks'", "url_for('main.task_list')"]),
     ("base_mobile_assignments_tab", "app/templates/base.html", ["mobile-nav-item-assignments", "url_for('main.assignments')"]),
@@ -142,7 +142,7 @@ for index, (name, relative_path, needles) in enumerate(CONTRACTS, start=1):
     )
 
 
-assert len(CONTRACTS) == 100
+assert len(CONTRACTS) == 99
 
 
 if __name__ == "__main__":

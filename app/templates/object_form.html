@@ -10,7 +10,7 @@
   <div class="object-form-panel">
     <h1 class="objects-title mb-2">{{ form_title or 'Добавить объект' }}</h1>
     <p class="objects-subtitle mb-4"></p>
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
       {{ form.hidden_tag() }}
       <div class="mb-3">
         {{ form.name.label(class="form-label") }}
@@ -20,7 +20,49 @@
         {{ form.address.label(class="form-label") }}
         {{ form.address(class="form-control") }}
       </div>
+      <div class="mb-3">
+        {{ form.technical_customer.label(class="form-label") }}
+        {{ form.technical_customer(class="form-control") }}
+      </div>
+      <div class="mb-3">
+        {{ form.developer_name.label(class="form-label") }}
+        {{ form.developer_name(class="form-control") }}
+      </div>
+      <div class="mb-3">
+        {{ form.inn_kpp.label(class="form-label") }}
+        {{ form.inn_kpp(class="form-control") }}
+      </div>
+      <div class="mb-3">
+        {{ form.ogrn.label(class="form-label") }}
+        {{ form.ogrn(class="form-control") }}
+      </div>
+      <div class="mb-3">
+        {{ form.legal_address.label(class="form-label") }}
+        {{ form.legal_address(class="form-control") }}
+      </div>
+      <div class="mb-3">
+        {{ form.developer_director.label(class="form-label") }}
+        {{ form.developer_director(class="form-control") }}
+      </div>
+      <div class="mb-3">
+        {{ form.developer_representative.label(class="form-label") }}
+        {{ form.developer_representative(class="form-control") }}
+      </div>
+      <div class="mb-3">
+        {{ form.developer_representative_phone.label(class="form-label") }}
+        {{ form.developer_representative_phone(class="form-control") }}
+      </div>
 
+      <div class="mb-3">
+        {{ form.signature.label(class="form-label") }}
+        {{ form.signature(class="form-control", accept="image/png,image/jpeg", aria_describedby="signature-help") }}
+        <div id="signature-help" class="form-text">PNG или JPEG до 5 МБ.</div>
+        {% for error in form.signature.errors %}<div class="text-danger" role="alert">{{ error }}</div>{% endfor %}
+        {% if project is defined and project.signature_image %}
+        <img src="data:image/png;base64,{{ project.signature_image }}" alt="Текущая подпись объекта" class="img-fluid d-block my-2" style="max-width: 240px; max-height: 100px;">
+        <label class="form-check">{{ form.remove_signature(class="form-check-input") }} {{ form.remove_signature.label.text }}</label>
+        {% endif %}
+      </div>
       <div class="object-type-box mb-3">
         <div class="object-type-title">Типы помещений</div>
         <div class="object-type-grid object-type-options">
@@ -40,13 +82,23 @@
               <small>Коммерческие помещения</small>
             </span>
           </label>
-          <label class="object-type-card object-type-option object-type-disabled">
+          <label class="object-type-card object-type-option">
             {{ form.has_storerooms(class="form-check-input") }}
             <span class="object-type-icon"><i class="bi bi-box-seam"></i></span>
             <span>
               <strong>Кладовки</strong>
-              <small>Раздел в разработке</small>
+              <small>Кладовые помещения объекта</small>
             </span>
+          </label>
+          <label class="object-type-card object-type-option">
+            {{ form.has_parking(class="form-check-input") }}
+            <span class="object-type-icon"><i class="bi bi-p-square"></i></span>
+            <span>
+              <strong>Парковки</strong>
+              <small>Машиноместа объекта</small>
+            </span>
+          </label>
+        </div>
       </div>
 
       <div class="object-form-actions mt-4">

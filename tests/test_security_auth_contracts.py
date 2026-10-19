@@ -183,7 +183,9 @@ class SecurityAuthContractsTests(unittest.TestCase):
         other_task = Task(responsible_id=999)
 
         self.assertTrue(can_manage_sync(admin))
-        self.assertTrue(can_manage_mapping(manager))
+        self.assertFalse(can_manage_sync(manager))
+        self.assertTrue(can_manage_mapping(admin))
+        self.assertFalse(can_manage_mapping(manager))
         self.assertTrue(can_export(manager))
         self.assertFalse(can_export(viewer))
         self.assertTrue(readonly(viewer))

@@ -6,7 +6,7 @@ from flask_wtf.csrf import generate_csrf
 
 from app import db
 from app.forms import LoginCaptchaForm, LoginForm, LoginTwoFactorForm
-from app.models import ROLE_VERIFIER, SiteErrorReport, User, WORKER_ROLES
+from app.models import SiteErrorReport, User, WORKER_ROLES
 from app.services.task_service import get_setting
 from app.security import (
     clear_captcha,
@@ -101,10 +101,6 @@ def _redirect_after_login(user: User, next_url: str | None = None):
         return redirect(next_url)
     if is_worker:
         return redirect(url_for("main.my_tasks"))
-    if user.role == ROLE_VERIFIER:
-        if not session.get("current_project_id"):
-            return redirect(url_for("main.objects"))
-        return redirect(url_for("main.work_report"))
     return redirect(url_for("main.dashboard"))
 
 

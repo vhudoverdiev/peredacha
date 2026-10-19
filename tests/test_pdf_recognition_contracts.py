@@ -1,10 +1,33 @@
 from datetime import date
+import builtins
 import unittest
+from pathlib import Path
 
 from app.services import pdf_recognition as recognition
 
 
 class PdfRecognitionContractsTests(unittest.TestCase):
+    def test_recognition_review_page_allows_manual_rows_and_po_mode(self):
+        template = Path("app/templates/task_recognition.html").read_text(encoding="utf-8")
+
+        self.assertIn("data-task-recognition-add-row", template)
+        self.assertIn("btn btn-sm btn-success task-recognition-add-row-btn", template)
+        self.assertNotIn("btn btn-sm btn-outline-success task-recognition-add-row-btn", template)
+        self.assertIn("data-task-recognition-row-template", template)
+        self.assertIn("task-recognition-po-toggle", template)
+        self.assertIn(".btn-check:checked + .task-recognition-po-toggle", template)
+        self.assertIn("-webkit-text-fill-color: #ffffff", template)
+        self.assertIn('name="po_mode"', template)
+        self.assertIn("ПО", template)
+
+    def test_manual_act_page_has_po_mode_with_explanation(self):
+        template = Path("app/templates/task_form.html").read_text(encoding="utf-8")
+
+        self.assertIn('id="manualActPoMode"', template)
+        self.assertIn('name="po_mode"', template)
+        self.assertIn("task-manual-po-toggle", template)
+        self.assertIn("идентичные замечания остаются невыполненными", template)
+
     def test_no_remark_detection_requires_meaningful_marker(self):
         self.assertTrue(recognition.is_no_remark_text(recognition.NO_REMARK_MARKERS[0]))
         self.assertTrue(recognition.is_no_remark_text(f"  {recognition.NO_REMARK_MARKERS[-1]}  "))
@@ -66,6 +89,31 @@ class PdfRecognitionContractsTests(unittest.TestCase):
             ("16", "sash does not close", True),
             ("21", "custom unmapped point", True),
         ])
+
+    def test_ocr_engine_import_system_dependency_error_is_reported_not_raised(self):
+        original_import = builtins.__import__
+        original_engine = recognition._OCR_ENGINE
+        original_error = recognition._OCR_ENGINE_ERROR
+
+        def fake_import(name, *args, **kwargs):
+            if name == "rapidocr_onnxruntime":
+                raise OSError("libxcb.so.1: cannot open shared object file: No such file or directory")
+            return original_import(name, *args, **kwargs)
+
+        try:
+            recognition._OCR_ENGINE = None
+            recognition._OCR_ENGINE_ERROR = None
+            builtins.__import__ = fake_import
+
+            engine, error = recognition._get_ocr_engine()
+        finally:
+            builtins.__import__ = original_import
+            recognition._OCR_ENGINE = original_engine
+            recognition._OCR_ENGINE_ERROR = original_error
+
+        self.assertIsNone(engine)
+        self.assertIn("OCR-распознавание сканов сейчас недоступно", error)
+        self.assertIn("libxcb.so.1", error)
 
 
 if __name__ == "__main__":

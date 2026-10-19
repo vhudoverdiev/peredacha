@@ -43,9 +43,21 @@ class GlassDeleteConfirmModalTest(unittest.TestCase):
         template = (ROOT / "app" / "templates" / "base.html").read_text(encoding="utf-8")
         worker = (ROOT / "app" / "static" / "service-worker.js").read_text(encoding="utf-8")
 
-        self.assertIn("script.js') }}?v=v673-material-tabs-replace-content", template)
-        self.assertIn("/static/script.js?v=v673-material-tabs-replace-content", worker)
-        self.assertIn("peredacha-static-v169-first-launch-only", worker)
+        self.assertIn("script.js') }}?v=v685-deadline-hide", template)
+        self.assertIn("/static/script.js?v=v685-deadline-hide", worker)
+        self.assertIn("peredacha-static-v187-inspection-layout", worker)
+
+    def test_desktop_modal_scale_stays_constant_through_open_and_close_transition(self):
+        styles = (ROOT / "app" / "static" / "style.css").read_text(encoding="utf-8")
+        desktop_modal_start = styles.index("html.desktop-like-pointer body.app-body .modal-dialog,")
+        desktop_modal_end = styles.index("html.desktop-like-pointer body.app-body .modal-dialog.modal-sm", desktop_modal_start)
+        desktop_modal_styles = styles[desktop_modal_start:desktop_modal_end]
+
+        self.assertIn("zoom: 1 !important", desktop_modal_styles)
+        self.assertIn("transform: translateY(-50px) scale(var(--desktop-modal-scale))", desktop_modal_styles)
+        self.assertIn("transform: translateY(0) scale(var(--desktop-modal-scale))", desktop_modal_styles)
+        self.assertIn("#registrationRequestModal .modal-dialog", desktop_modal_styles)
+        self.assertIn("#reportErrorModal .modal-dialog", desktop_modal_styles)
 
 
 if __name__ == "__main__":

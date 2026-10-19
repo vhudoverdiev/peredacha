@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree
 
 from flask import current_app
 from openpyxl import load_workbook
@@ -22,6 +24,7 @@ from app.services.task_service import (
     normalize_apartment_number_cell,
     normalize_number_cell,
     normalize_header_row,
+    normalize_text,
     select_primary_work_point_columns,
     set_setting,
     sync_rows,
@@ -92,6 +95,14 @@ def _cell_rgb(cell: Any) -> tuple[int, int, int] | None:
         indexed = getattr(color, "indexed", None)
         indexed_map = {52: "F4B183", 53: "FCE4D6", 44: "FFC000", 45: "FFFF00"}
         rgb = indexed_map.get(indexed)
+    elif getattr(color, "type", None) == "theme":
+        workbook = getattr(getattr(cell, "parent", None), "parent", None)
+        theme_xml = getattr(workbook, "loaded_theme", None)
+        theme_index = getattr(color, "theme", None)
+        if theme_xml and isinstance(theme_index, int):
+            resolved = _theme_color_rgb(theme_xml, theme_index)
+            if resolved:
+                return _apply_tint(resolved, getattr(color, "tint", 0.0))
     if not rgb or not isinstance(rgb, str):
         return None
     rgb = rgb[-6:]
@@ -101,12 +112,57 @@ def _cell_rgb(cell: Any) -> tuple[int, int, int] | None:
         return None
 
 
+@lru_cache(maxsize=32)
+def _theme_color_rgb(theme_xml: bytes | str, theme_index: int) -> tuple[int, int, int] | None:
+    theme_names = (
+        "lt1", "dk1", "lt2", "dk2", "accent1", "accent2",
+        "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink",
+    )
+    if theme_index < 0 or theme_index >= len(theme_names):
+        return None
+    try:
+        root = ElementTree.fromstring(theme_xml)
+    except (ElementTree.ParseError, TypeError, ValueError):
+        return None
+    namespace = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+    color_node = root.find(f".//{namespace}clrScheme/{namespace}{theme_names[theme_index]}")
+    if color_node is None or not list(color_node):
+        return None
+    rgb = list(color_node)[0].attrib.get("val") or list(color_node)[0].attrib.get("lastClr")
+    if not rgb or len(rgb) < 6:
+        return None
+    rgb = rgb[-6:]
+    try:
+        return int(rgb[0:2], 16), int(rgb[2:4], 16), int(rgb[4:6], 16)
+    except ValueError:
+        return None
+
+
+def _apply_tint(rgb: tuple[int, int, int], tint: Any) -> tuple[int, int, int]:
+    try:
+        tint_value = max(-1.0, min(1.0, float(tint or 0.0)))
+    except (TypeError, ValueError):
+        tint_value = 0.0
+    if tint_value == 0.0:
+        return rgb
+    from colorsys import hls_to_rgb, rgb_to_hls
+
+    red, green, blue = (component / 255 for component in rgb)
+    hue, lightness, saturation = rgb_to_hls(red, green, blue)
+    if tint_value < 0:
+        lightness *= 1 + tint_value
+    else:
+        lightness += (1 - lightness) * tint_value
+    tinted = hls_to_rgb(hue, lightness, saturation)
+    return tuple(round(component * 255) for component in tinted)
+
+
 def _is_orange_unsold_fill(cell: Any) -> bool:
     rgb = _cell_rgb(cell)
     if not rgb:
         return False
     r, g, b = rgb
-    # Orange/yellow fills used in Excel for unsold premises.
+    # Orange/yellow fills used in spreadsheets for unsold premises.
     return r >= 210 and 95 <= g <= 215 and b <= 120
 
 
@@ -168,7 +224,7 @@ def workbook_sheets_to_rows_with_strikes(path: Path) -> list[tuple[str, list[lis
                 if _is_orange_unsold_fill(cell):
                     orange.add((r_idx, c_idx))
             rows.append(out_row)
-        if any(any(str(value or "").strip() for value in row) for row in rows) and _rows_look_like_remark_sheet(rows):
+        if any(any(str(value or "").strip() for value in row) for row in rows) and _worksheet_looks_importable(ws.title, rows):
             result.append((ws.title, rows, struck, orange))
     if result:
         return result
@@ -229,10 +285,10 @@ def _rows_look_like_remark_sheet(rows: list[list[Any]]) -> bool:
                     indexed_points[col_idx] = f"{value}. {header}"
         if indexed_points:
             point_columns = indexed_points
-    if not point_columns:
-        return False
-    point_columns = select_primary_work_point_columns(headers, point_columns)
-    anchored_mapping = map_base_columns(headers, anchor_before_col=min(point_columns))
+    if point_columns:
+        point_columns = select_primary_work_point_columns(headers, point_columns)
+    anchor_col = min(point_columns) if point_columns else None
+    anchored_mapping = map_base_columns(headers, anchor_before_col=anchor_col)
     if anchored_mapping.get("apartment_number") is None and anchored_mapping.get("construction_number") is None:
         return False
     if data_start < len(rows) and is_index_number_row(rows[data_start]):
@@ -247,11 +303,32 @@ def _rows_look_like_remark_sheet(rows: list[list[Any]]) -> bool:
         construction_number = normalize_number_cell(value_at(row, anchored_mapping.get("construction_number")))
         if looks_like_apartment_identifier(apartment_number) or looks_like_apartment_identifier(construction_number):
             has_valid_premise_row = True
-        if any(str(value_at(row, col_idx) or "").strip() for col_idx in point_columns):
+        if point_columns and any(str(value_at(row, col_idx) or "").strip() for col_idx in point_columns):
             return True
     # A newly prepared project workbook can legitimately contain apartments
-    # and all required work-point columns before the first remark is entered.
+    # and storerooms before the first remark is entered.
     return has_valid_premise_row
+
+
+def _worksheet_looks_importable(sheet_name: str | None, rows: list[list[Any]]) -> bool:
+    if _rows_look_like_remark_sheet(rows):
+        return True
+    normalized_sheet_name = normalize_text(sheet_name or "").replace("ё", "е")
+    if not any(
+        marker in normalized_sheet_name
+        for marker in ("квартир", "коммер", "клад", "паркинг", "парков", "машиномест")
+    ):
+        return False
+    first_non_empty = next((row for row in rows if any(str(value or "").strip() for value in row)), [])
+    headers = normalize_header_row(first_non_empty)
+    base_mapping = map_base_columns(headers)
+    if base_mapping.get("apartment_number") is None:
+        return False
+    data_start = rows.index(first_non_empty) + 1 if first_non_empty in rows else 1
+    for row in rows[data_start:]:
+        if looks_like_apartment_identifier(normalize_apartment_number_cell(value_at(row, base_mapping.get("apartment_number")))):
+            return True
+    return False
 
 
 def inspect_remarks_workbook(path: Path) -> dict[str, Any]:
@@ -261,7 +338,7 @@ def inspect_remarks_workbook(path: Path) -> dict[str, Any]:
         rows = [[cell.value for cell in row] for row in ws.iter_rows()]
         if not any(any(str(value or "").strip() for value in row) for row in rows):
             continue
-        if _rows_look_like_remark_sheet(rows):
+        if _worksheet_looks_importable(ws.title, rows):
             matched_sheets.append(ws.title)
     return {
         "ok": bool(matched_sheets),

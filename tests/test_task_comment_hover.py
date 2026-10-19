@@ -19,6 +19,10 @@ class TaskCommentHoverTests(unittest.TestCase):
         self.assertIn('data-task-comment-async="1"', self.task_detail)
         self.assertIn('comment_form.submit(class="btn btn-outline-primary")', self.task_detail)
 
+    def test_office_role_cannot_add_task_comments(self):
+        self.assertIn("current_user.role not in ['viewer', 'office']", self.task_detail)
+        self.assertIn("add_task_comment", self.task_detail)
+
     def test_desktop_hover_uses_help_green_and_black_text(self):
         scoped_hook = '.task-detail-comments-card form[data-task-comment-async="1"]'
         hook_start = self.desktop_css.index(scoped_hook)
