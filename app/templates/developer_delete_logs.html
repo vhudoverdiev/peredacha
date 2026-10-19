@@ -10,6 +10,9 @@
 </div>
 
 <div class="developer-section-tabs" data-ajax-pagination-tabs>
+  <a class="developer-section-tab remarks-tab-link" href="{{ url_for('main.site_errors') }}">
+    <i class="bi bi-inbox"></i><span>Обращения</span>
+  </a>
   <a class="developer-section-tab remarks-tab-link active" href="{{ url_for('main.developer_delete_logs') }}">
     <i class="bi bi-clock-history"></i><span>Логи удалений</span>
   </a>

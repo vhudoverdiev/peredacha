@@ -59705,3 +59705,26 @@ html body.app-body .apartment-detail-page .apartment-inspection-date-item {
   }
 
 }
+
+/* Keep user-written comments inside their card in both viewport modes. */
+.task-detail-comments-card .comment-body {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+html body.app-body .task-detail-comments-card .comment-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: .75rem;
+}
+.task-detail-comments-card .comment-meta,
+.task-detail-comments-card .comment-body {
+  grid-column: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+html body.app-body .task-detail-comments-card .task-comment-delete-form {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  margin: 0;
+}

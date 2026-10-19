@@ -1,0 +1,27 @@
+#!/bin/zsh
+set -euo pipefail
+
+SCRIPT_PATH="${0:A}"
+PROJECT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+cd "$PROJECT_DIR"
+
+PYTHON="${PEREDACHA_LOCAL_PYTHON:-python3.12}"
+if ! command -v "$PYTHON" >/dev/null 2>&1; then
+  echo "Для запуска нужен Python 3.12. Установите его или задайте PEREDACHA_LOCAL_PYTHON."
+  exit 1
+fi
+if [[ ! -x venv/bin/python ]]; then
+  echo "Создаю локальное окружение Python..."
+  "$PYTHON" -m venv venv
+fi
+
+REQUIREMENTS_HASH="$(shasum -a 256 requirements.txt | cut -d ' ' -f 1)"
+INSTALLED_HASH="$(cat venv/.requirements.sha256 2>/dev/null || true)"
+if [[ "$REQUIREMENTS_HASH" != "$INSTALLED_HASH" ]]; then
+  echo "Устанавливаю зависимости проекта..."
+  venv/bin/python -m pip install -r requirements.txt
+  venv/bin/python -m pip check
+  printf '%s\n' "$REQUIREMENTS_HASH" > venv/.requirements.sha256
+fi
+
+exec venv/bin/python deploy/local_server.py "$@"

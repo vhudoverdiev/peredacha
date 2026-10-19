@@ -79,6 +79,12 @@
         <div class="comment-item mb-2">
           <div class="comment-meta">{{ comment.user.full_name or comment.user.username }} · {{ comment.created_at|ru_datetime }}</div>
           <div class="comment-body">{{ comment.body }}</div>
+          {% if can_manage_comments and (comment.user_id == current_user.id or current_user.role == 'admin') %}
+          <form method="post" action="{{ url_for('main.delete_task_comment', task_id=task.id, comment_id=comment.id) }}" class="task-comment-delete-form" data-confirm="Удалить этот комментарий?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-danger apartment-note-clear-btn" type="submit" title="Удалить комментарий" aria-label="Удалить комментарий"><i class="bi bi-trash" aria-hidden="true"></i></button>
+          </form>
+          {% endif %}
         </div>
         {% else %}
         <div class="text-muted">Комментариев пока нет</div>
