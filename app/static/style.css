@@ -59705,12 +59705,3 @@ html body.app-body .apartment-detail-page .apartment-inspection-date-item {
   }
 
 }
-
-/* Keep user-written comments inside their card in both viewport modes. */
-.task-detail-comments-card .comment-body {
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-.task-detail-comments-card .comment-item form {
-  margin-top: .5rem;
-}

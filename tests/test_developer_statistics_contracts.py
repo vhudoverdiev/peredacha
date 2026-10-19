@@ -1,6 +1,5 @@
 from datetime import date, datetime, timedelta
 import unittest
-import re
 
 from config import Config
 from app import create_app, db, login_manager
@@ -32,37 +31,6 @@ class DeveloperStatisticsContractsTests(unittest.TestCase):
         db.drop_all()
         self.context.pop()
         login_manager.session_protection = self.previous_session_protection
-
-    def test_developer_navigation_keeps_all_tabs_in_the_same_order(self):
-        admin = User(username="navigation-admin", role=ROLE_ADMIN, password_hash="unused")
-        db.session.add(admin)
-        db.session.commit()
-        client = self.app.test_client()
-        with client.session_transaction() as session:
-            session["_user_id"] = str(admin.id)
-            session["_fresh"] = True
-            session["session_version"] = admin.session_version
-        expected = ["Обращения", "Логи удалений", "Статистика"]
-        pages = [
-            ("/site-errors", "Обращения"),
-            ("/developer/delete-logs", "Логи удалений"),
-            ("/developer/statistics", "Статистика"),
-            ("/developer/statistics/visits", "Статистика"),
-            ("/developer/statistics/sources", "Статистика"),
-        ]
-        for headers in ({}, {"X-Requested-With": "XMLHttpRequest"}):
-            for url, active in pages:
-                with self.subTest(url=url, headers=headers):
-                    response = client.get(url, headers=headers)
-                    self.assertEqual(response.status_code, 200)
-                    html = response.get_data(as_text=True)
-                    tabs = html.split('class="developer-section-tabs', 1)[1].split('</div>', 1)[0]
-                    self.assertEqual(re.findall(r'<span>(.*?)</span>', tabs), expected)
-                    links = re.findall(r'<a class="([^"]+)" href="([^"]+)">\s*<i[^>]*></i><span>(.*?)</span>', tabs)
-                    self.assertEqual([label for classes, href, label in links if "active" in classes.split()], [active])
-                    self.assertEqual([href for classes, href, label in links], [
-                        "/site-errors", "/developer/delete-logs", "/developer/statistics?days=30",
-                    ])
 
     def test_statistics_totals_include_guest_request_ips_and_unique_visits_are_unique_ips(self):
         user = User(username="stats-admin", role=ROLE_ADMIN, password_hash="unused")

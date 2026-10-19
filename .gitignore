@@ -102,8 +102,3 @@ tests/e2e_visual/diff/
 .coverage.*
 htmlcov/
 *.egg-info/
-
-# Local server audit tools and reports
-/audit-peredacha.sh
-/deploy/server-audit.sh
-/server-audit-*.txt

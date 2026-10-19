@@ -43,9 +43,9 @@ class GlassDeleteConfirmModalTest(unittest.TestCase):
         template = (ROOT / "app" / "templates" / "base.html").read_text(encoding="utf-8")
         worker = (ROOT / "app" / "static" / "service-worker.js").read_text(encoding="utf-8")
 
-        self.assertIn("script.js') }}?v=v686-task-comments", template)
-        self.assertIn("/static/script.js?v=v686-task-comments", worker)
-        self.assertIn("peredacha-static-v188-task-comments", worker)
+        self.assertIn("script.js') }}?v=v685-deadline-hide", template)
+        self.assertIn("/static/script.js?v=v685-deadline-hide", worker)
+        self.assertIn("peredacha-static-v187-inspection-layout", worker)
 
     def test_desktop_modal_scale_stays_constant_through_open_and_close_transition(self):
         styles = (ROOT / "app" / "static" / "style.css").read_text(encoding="utf-8")

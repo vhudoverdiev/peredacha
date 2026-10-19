@@ -257,7 +257,7 @@ SECTION_LOCK_CHOICES = [
         "icon": "bi-card-checklist",
         "endpoints": {
             "main.task_list", "main.task_detail", "main.task_new", "main.task_delete",
-            "main.task_recognition", "main.update_task", "main.add_task_comment", "main.delete_task_comment", "main.quick_status",
+            "main.task_recognition", "main.update_task", "main.add_task_comment", "main.quick_status",
             "main.inline_update_text", "main.split_task_remark",
         },
     },
@@ -829,8 +829,6 @@ def _build_change_history_entry(change: ChangeLog, task: Task | None = None, use
         summary = f"Замечание добавлено после распознавания PDF: «{str(change.new_value or '').strip() or 'без текста'}»."
     elif change.action == "comment_added":
         summary = f"Добавлен новый комментарий: «{str(change.new_value or '').strip() or 'без текста'}»."
-    elif change.action == "comment_deleted":
-        summary = "Комментарий удалён."
     elif change.action == "created_from_sync":
         summary = f"Замечание добавлено из синхронизации: «{str(change.new_value or '').strip() or 'без названия источника'}»."
     elif change.action == "missing_in_latest_sync":
@@ -1351,7 +1349,7 @@ OFFICE_FORBIDDEN_ENDPOINTS = {
     "main.assignment_delete_from_employee",
     "main.assignment_manual_task_new",
     "main.assignment_issued_employee_export",
-    "main.add_task_comment", "main.delete_task_comment",
+    "main.add_task_comment",
     "main.update_apartment_po_status",
     "main.update_apartment_comment",
     "main.update_apartment_inspection_note",
@@ -2330,7 +2328,7 @@ def _mobile_phone_allowed_endpoints() -> set[str]:
         "main.task_recognition",
         "main.quick_status",
         "main.update_task",
-        "main.add_task_comment", "main.delete_task_comment",
+        "main.add_task_comment",
         "main.inline_update_text",
         "main.split_task_remark",
         "main.remarks_excel_selection",
@@ -11270,7 +11268,6 @@ def task_detail(task_id: int):
         other_open_tasks=other_tasks,
         back_url=back_url,
         can_delete_task=current_user.role != "viewer",
-        can_manage_comments=can_change_task(current_user, task) and current_user.role not in {"viewer", "office"},
     )
 
 
@@ -11419,36 +11416,12 @@ def add_task_comment(task_id: int):
                     "author": current_user.full_name or current_user.username,
                     "timestamp": format_ru_datetime(comment.created_at),
                     "body": comment.body,
-                    "delete_url": url_for("main.delete_task_comment", task_id=task.id, comment_id=comment.id),
                 },
                 "history_entry": history_entry,
             })
         flash("Комментарий добавлен", "success")
     elif wants_json:
         return jsonify({"ok": False, "message": "Не удалось добавить комментарий"}), 400
-    return redirect(url_for("main.task_detail", task_id=task.id))
-
-
-@bp.route("/tasks/<int:task_id>/comments/<int:comment_id>/delete", methods=["POST"])
-@login_required
-def delete_task_comment(task_id: int, comment_id: int):
-    project = selected_project()
-    if project is None:
-        return redirect(url_for("main.objects"))
-    task = db.session.get(Task, task_id) or abort(404)
-    if task.project_id != project.id:
-        abort(404)
-    if current_user.role in {"viewer", "office"} or not can_change_task(current_user, task):
-        abort(403)
-    comment = db.session.get(TaskComment, comment_id) or abort(404)
-    if comment.task_id != task.id:
-        abort(404)
-    if comment.user_id != current_user.id and current_user.role != ROLE_ADMIN:
-        abort(403)
-    log_change(task, "comment_deleted", "comment", comment.body, "")
-    db.session.delete(comment)
-    db.session.commit()
-    flash("Комментарий удалён", "success")
     return redirect(url_for("main.task_detail", task_id=task.id))
 
 

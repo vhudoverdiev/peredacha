@@ -61,11 +61,7 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
 
         self.assertIn("site-errors-kind-tabs", site_errors_template)
         self.assertNotIn("site-errors-kind-tabs", delete_logs_template)
-        # The shared top-level navigation must retain the reports link;
-        # report-kind filters still belong only to the reports page.
-        navigation = delete_logs_template.split('class="developer-section-tabs"', 1)[1].split('</div>', 1)[0]
-        self.assertIn("Обращения", navigation)
-        self.assertIn("url_for('main.site_errors')", navigation)
+        self.assertNotIn("Обращения", delete_logs_template)
         self.assertNotIn("Регистрации", delete_logs_template)
         self.assertNotIn("Системные", delete_logs_template)
 
