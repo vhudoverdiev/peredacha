@@ -55,6 +55,19 @@ def default_avr_phrase(inspection_date: date | datetime | str | None) -> str:
     return f"Все замечания с акта осмотра от {display_date} устранены"
 
 
+def completion_phrase_with_inspection_date(text: str | None, inspection_date: date | datetime | None) -> str:
+    phrase = str(text or "").strip()
+    if not phrase:
+        return default_avr_phrase(inspection_date)
+    display_date = format_doc_date(inspection_date) or "__.__.____"
+    return re.sub(
+        r"(Все замечания с акта осмотра от)[ \t]*(?:\d{2}\.\d{2}\.\d{4}|[_ .\t]*(?=[ \t]+устранены))",
+        lambda match: f"{match.group(1)} {display_date}",
+        phrase,
+        flags=re.IGNORECASE,
+    )
+
+
 def safe_avr_filename(project_name: str, apartment_number: str, premise_type: str | None = None) -> str:
     premise_prefix = "Komm" if (premise_type or "").strip().lower() == "commercial" else "Kv"
     stem = f"AVR-{project_name} - {premise_prefix}{apartment_number or 'kv'}"
@@ -88,7 +101,7 @@ def _fill_document_xml(data: bytes, values: dict[str, str]) -> bytes:
     _set_table_cell_text(tables, 0, 0, 1, values.get("apartment_number", ""))
     _set_table_cell_text(tables, 0, 0, 3, values.get("floor", ""))
     _set_table_cell_text(tables, 0, 0, 5, values.get("address", ""))
-    _set_table_cell_text(tables, 1, 0, 1, format_avr_person_lines(values.get("developer_representative", "")))
+    _set_table_cell_text(tables, 1, 0, 1, str(values.get("developer_representative") or "").strip())
     _set_table_cell_text(tables, 2, 0, 1, format_avr_person_lines(values.get("owner_name", "")))
     _set_table_cell_text(tables, 3, 0, 1, values.get("inspection_date", ""))
 
@@ -106,7 +119,7 @@ def _fill_linear_template(root: ET.Element, values: dict[str, str]) -> None:
     act_date = _date_with_year_word(values.get("act_date", ""))
     premise_type = (values.get("premise_type") or "apartment").strip().lower()
     premise_number = values.get("apartment_number", "")
-    developer = format_avr_person_lines(values.get("developer_representative", ""))
+    developer = str(values.get("developer_representative") or "").strip()
     owner = format_avr_person_lines(values.get("owner_name", ""))
     date_index = _set_first_matching_paragraph_segments(paragraphs, "дата", [(act_date, True)])
     if date_index is None and len(paragraphs) > 1:

@@ -169,7 +169,7 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v190-comment-delete-icon")
+        self.assertEqual(worker_version, "v193-mapping-catalog-calendar")
 
 
 if __name__ == "__main__":

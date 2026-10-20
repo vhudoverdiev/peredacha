@@ -27,6 +27,8 @@ const { chromium } = require('playwright');
       await page.locator('.login-form').evaluate(form => { form.dataset.csrfReady = '1'; });
       await Promise.all([page.waitForURL(url => !url.pathname.startsWith('/login')), page.locator('.login-submit').click()]);
       await page.goto(`${base}/tasks/1`);
+      await page.evaluate(() => { window.__commentDocumentMarker = 'preserved'; });
+      await page.route('**/comments/*/delete', async route => { await new Promise(resolve => setTimeout(resolve, 400)); await route.continue(); });
       const form = page.locator('[data-task-comment-async]');
       const textarea = form.locator('textarea');
       assert.equal(await form.locator('[type=reset]').count(), 0);
@@ -63,7 +65,20 @@ const { chromium } = require('playwright');
       assert.equal(await page.locator('.comment-item').count(), before + 1);
       // Existing comments retain the delete action after reloading.
       await page.reload();
-      await page.locator('.comment-item').last().getByRole('button', { name: 'Удалить комментарий' }).click();
+      await page.evaluate(() => { window.__commentDocumentMarker = 'preserved'; });
+      await page.route('**/comments/*/delete', route => route.fulfill({
+        status: 500, contentType: 'application/json', body: '{"ok":false,"message":"Delete test failure"}',
+      }), { times: 1 });
+      const deleteIcon = page.locator('.comment-item').last().getByRole('button', { name: 'Удалить комментарий' });
+      await deleteIcon.click();
+      await page.locator('.js-crm-confirm-ok').click();
+      await page.locator('.crm-toast-danger').filter({ hasText: 'Delete test failure' }).waitFor({ state: 'attached' });
+      assert.equal(await page.locator('.comment-item').count(), before + 1);
+      assert.equal(await deleteIcon.isEnabled(), true);
+      assert.equal((await deleteIcon.textContent()).trim(), '');
+      assert.equal(await deleteIcon.locator('.bi-trash').count(), 1);
+      assert.equal(await page.evaluate(() => window.__commentDocumentMarker), 'preserved');
+      await deleteIcon.click();
       await Promise.all([page.waitForURL(`${base}/tasks/1`), page.locator('.js-crm-confirm-ok').click()]);
       await page.waitForFunction(count => document.querySelectorAll('.comment-item').length === count, before);
       await textarea.fill('Delete immediately after posting');
@@ -71,6 +86,10 @@ const { chromium } = require('playwright');
       await page.waitForFunction(count => document.querySelectorAll('.comment-item').length === count + 1, before);
       await page.locator('.comment-item').last().getByRole('button', { name: 'Удалить комментарий' }).click();
       await page.locator('.js-crm-confirm-ok').click();
+      const busy = page.locator('.task-comment-delete-form [aria-busy="true"]');
+      await busy.waitFor();
+      assert.equal((await busy.textContent()).trim(), '');
+      assert.ok(await busy.evaluate(el => el.getBoundingClientRect().width <= 44));
       await page.waitForFunction(count => document.querySelectorAll('.comment-item').length === count, before);
       // A rejected request must keep the draft and re-enable the controls.
       await page.route('**/tasks/1/comment', route => route.fulfill({ status: 500, contentType: 'application/json', body: '{"ok":false,"message":"Test failure"}' }));
@@ -79,6 +98,13 @@ const { chromium } = require('playwright');
       await page.waitForFunction(() => !document.querySelector('[data-task-comment-async] [type=submit]').disabled);
       assert.equal(await textarea.inputValue(), 'Keep draft after failure');
       assert.equal(await page.locator('.comment-item').count(), before);
+      assert.equal(await page.evaluate(() => window.__commentDocumentMarker), 'preserved');
+      if (name === 'iphone-16-pro-max') {
+        await page.locator('.task-detail-delete-btn').click();
+        await page.locator('.js-crm-confirm-ok').click();
+        await page.getByRole('heading', { name: 'Замечание удалено', exact: true }).waitFor();
+        assert.equal(await page.evaluate(() => window.__commentDocumentMarker), 'preserved');
+      }
       assert.deepEqual(errors, [], `${name}: browser errors`);
       console.log(`${name}: add, history, compact delete icon, escaping, overflow, cancel and delete passed`);
       await context.close();

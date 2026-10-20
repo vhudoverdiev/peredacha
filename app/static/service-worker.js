@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v190-comment-delete-icon';
+const STATIC_CACHE = 'peredacha-static-v193-mapping-catalog-calendar';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,10 +13,10 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v700-comment-delete-icon',
-  '/static/mobile-only.css?v=v88-remark-sentence-lines',
+  '/static/style.css?v=v703-mapping-catalog-calendar',
+  '/static/mobile-only.css?v=v89-android-root-scroll',
   '/static/desktop-only.css?v=v76-objects-three-columns',
-  '/static/script.js?v=v688-comment-delete-icon',
+  '/static/script.js?v=v691-mapping-catalog-calendar',
 ];
 
 const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;

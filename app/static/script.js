@@ -470,6 +470,7 @@ const syncDesktopViewportLock = (options = {}) => {
   document.documentElement.classList.toggle('adaptive-mobile-viewport', adaptiveMobileViewport);
   document.body?.classList.toggle('adaptive-mobile-viewport', adaptiveMobileViewport);
   document.documentElement.classList.toggle('touch-app-device', touchAppDevice);
+  document.documentElement.classList.toggle('android-touch-device', touchAppDevice && /Android/i.test(getNavigatorInfo().userAgent || ''));
   document.body?.classList.toggle('touch-app-device', touchAppDevice);
   document.documentElement.classList.toggle('real-phone-device', phoneTouchDevice);
   document.body?.classList.toggle('real-phone-device', phoneTouchDevice);
@@ -3066,8 +3067,7 @@ document.addEventListener('DOMContentLoaded', () => {
               dateItem.append(label);
 
               const deleteForm = document.createElement('form');
-              deleteForm.className = 'task-comment-delete-form';
-            deleteForm.method = 'post';
+              deleteForm.method = 'post';
               deleteForm.action = data.inspection_delete_url || '';
               deleteForm.className = 'apartment-inspection-date-delete-form';
               const csrf = document.createElement('input');
@@ -8242,6 +8242,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!input || !button || !valueText) return;
 
     const modal = ensureGlobalDateModal();
+    const ownerModal = picker.closest('.modal.show');
+    const host = ownerModal || document.body;
+    if (modal.parentElement !== host) host.appendChild(modal);
     const label = picker.dataset.dateLabel || getReadableDateLabel(input);
     modal.querySelector('.js-global-date-kicker').textContent = label;
 
@@ -8291,10 +8294,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const close = () => {
       modal.classList.add('d-none');
-      document.removeEventListener('keydown', onKeydown);
+      document.removeEventListener('keydown', onKeydown, true);
+      ownerModal?.removeEventListener('hidden.bs.modal', close);
+      if (button.isConnected) button.focus({ preventScroll: true });
     };
     const onKeydown = event => {
-      if (event.key === 'Escape') close();
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        close();
+      }
     };
 
     modal.querySelectorAll('.js-global-date-cancel').forEach(cancel => { cancel.onclick = close; });
@@ -8327,8 +8336,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     render();
-    document.addEventListener('keydown', onKeydown);
+    document.addEventListener('keydown', onKeydown, true);
+    ownerModal?.addEventListener('hidden.bs.modal', close, { once: true });
     modal.classList.remove('d-none');
+    saveBtn.focus({ preventScroll: true });
   };
 
   const readableDateNames = {
@@ -9197,3 +9208,65 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }, true);
 })();
+
+// Deletion in a task card must not submit a document or resize an icon button.
+document.addEventListener('submit', async event => {
+  const form = event.target;
+  if (!form.matches?.('.task-comment-delete-form, .task-detail-delete-form')) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if (form.dataset.deleting === '1') return;
+  form.dataset.deleting = '1';
+  const button = event.submitter || form.querySelector('[type="submit"]');
+  const previousHtml = button?.innerHTML;
+  const previousWidth = button?.style.width;
+  try {
+    if (!(await window.crmShowActionConfirm(form.dataset.confirm))) return;
+    if (button) {
+      button.style.width = `${button.offsetWidth}px`;
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>';
+    }
+    const response = await fetch(form.action, {
+      method: 'POST', body: new FormData(form), credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok !== true) throw new Error(data.message || 'Не удалось удалить. Попробуйте ещё раз.');
+    if (form.matches('.task-comment-delete-form')) {
+      const card = form.closest('.task-detail-comments-card');
+      form.closest('.comment-item')?.remove();
+      if (card && !card.querySelector('.comment-item')) {
+        const empty = document.createElement('div');
+        empty.className = 'text-muted';
+        empty.textContent = 'Комментариев пока нет';
+        card.querySelector('[data-task-comment-async]')?.before(empty);
+      }
+      appendTimelineEntry(document.querySelector('[data-task-history-list]'), document.querySelector('[data-task-history-empty]'), data.history_entry);
+    } else {
+      const page = form.closest('.task-detail-page');
+      const title = document.createElement('h1');
+      title.className = 'page-title';
+      title.textContent = 'Замечание удалено';
+      title.tabIndex = -1;
+      const back = document.createElement('a');
+      back.className = 'btn btn-outline-secondary mt-3';
+      back.textContent = 'Вернуться к замечаниям';
+      back.href = data.redirect_url;
+      page.replaceChildren(title, back);
+      title.focus({ preventScroll: true });
+    }
+    showCrmNotice(data.message || 'Удалено', 'success');
+  } catch (error) {
+    showCrmNotice(error.message || 'Не удалось удалить', 'danger');
+  } finally {
+    delete form.dataset.deleting;
+    if (button) {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+      button.style.width = previousWidth;
+      button.innerHTML = previousHtml;
+    }
+  }
+}, true);

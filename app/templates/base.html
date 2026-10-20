@@ -183,6 +183,7 @@
       document.documentElement.classList.toggle('real-phone-device', isPhoneTouchDevice);
       document.documentElement.classList.toggle('tablet-touch-device', isTabletTouchDevice);
       document.documentElement.classList.toggle('touch-app-device', isTouchAppDevice);
+      document.documentElement.classList.toggle('android-touch-device', isTouchAppDevice && /Android/i.test(userAgent));
       applyTouchViewportProfile();
       if (!isTouchAppDevice && !useAdaptiveMobileViewport) {
         // A desktop Firefox page loaded inside the navigation buffer is kept
@@ -922,7 +923,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v190-comment-delete-icon', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v193-mapping-catalog-calendar', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -963,8 +964,8 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v700-comment-delete-icon">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v88-remark-sentence-lines">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v703-mapping-catalog-calendar">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v89-android-root-scroll">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v76-objects-three-columns">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
@@ -1546,6 +1547,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v688-comment-delete-icon"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v691-mapping-catalog-calendar"></script>
 </body>
 </html>

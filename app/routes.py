@@ -108,6 +108,7 @@ from app.services.document_flow import (
 )
 from app.services.avr_document import (
     build_avr_docx,
+    completion_phrase_with_inspection_date,
     default_avr_phrase,
     format_doc_date,
     format_input_date,
@@ -117,7 +118,7 @@ from app.services.contractor_claim_docx import build_contractor_claim_docx
 from app.services.excel_export import _excel_premise_label, _safe_filename_part, auto_adjust_row_heights, build_export_path, export_glass_measurements_excel, export_remark_tasks_excel, export_report_tasks_excel, export_simple_tasks_excel, export_source_excel_reconstructed, export_source_excel_with_strikes, export_tasks_to_excel, resolve_source_excel_with_strikes_path
 from app.services.pdf_export import export_assignment_worker_pdf, export_table_pdf, export_tasks_pdf
 from app.services.excel_import import inspect_remarks_workbook, mark_stale_running_sync_logs, preview_excel, save_upload, sync_excel_file
-from app.services.mapping_service import ensure_default_categories, is_dop_agreement_point, update_category_points
+from app.services.mapping_service import ensure_mapping_catalog_points, group_mapping_points, ensure_default_categories, is_dop_agreement_point, update_category_points
 from app.services.pdf_recognition import is_no_remark_text, recognize_pdf_act
 from app.services.transfer_import import _is_app_mode, _parse_app_date, inspect_transfer_workbook, sync_transfer_statistics
 from app.services.task_service import (
@@ -10021,12 +10022,21 @@ def avr():
         abort(403)
 
     apartments = _project_apartment_options(project.id)
+    inspection_groups: dict[str, list[Apartment]] = {}
+    for item in Apartment.query.filter_by(project_id=project.id).all():
+        if _is_visible_apartment_row(item):
+            inspection_groups.setdefault(_apartment_group_key(item), []).append(item)
+    first_inspection_dates = {
+        key: _apartment_inspection_date(group) for key, group in inspection_groups.items()
+    }
+    representative_name = " ".join((current_user.full_name or "").split())
     apartment_rows = []
     for apartment in apartments:
         number = apartment.apartment_number or apartment.construction_number or ""
         floor = _avr_floor(apartment)
         owner_options = _avr_owner_options(apartment.owner_name)
-        inspection_date = format_input_date(apartment.first_inspection_date)
+        first_inspection_date = first_inspection_dates.get(_apartment_group_key(apartment))
+        inspection_date = format_input_date(first_inspection_date)
         apartment_rows.append(
             {
                 "id": apartment.id,
@@ -10039,7 +10049,7 @@ def avr():
                 "owner_selected": owner_options[:1] if owner_options else ([apartment.owner_name] if apartment.owner_name else []),
                 "inspection_date": inspection_date,
                 "address": project.address or "",
-                "phrase": default_avr_phrase(apartment.first_inspection_date),
+                "phrase": default_avr_phrase(first_inspection_date),
             }
         )
 
@@ -10050,6 +10060,7 @@ def avr():
             selected_apartment = next((item for item in apartments if item.id == int(selected_id)), None)
         except ValueError:
             selected_apartment = None
+    selected_inspection_date = first_inspection_dates.get(_apartment_group_key(selected_apartment)) if selected_apartment else None
     today_input = date.today().strftime("%Y-%m-%d")
     selected_floor = _avr_floor(selected_apartment) if selected_apartment else ""
     selected_owner_options = _avr_owner_options(selected_apartment.owner_name if selected_apartment else "")
@@ -10061,17 +10072,23 @@ def avr():
         "owner_name": (selected_owner_options[0] if selected_owner_options else (selected_apartment.owner_name or "")) if selected_apartment else "",
         "owner_options": selected_owner_options,
         "owner_selected": selected_owner_options[:1] if selected_owner_options else ([selected_apartment.owner_name] if selected_apartment and selected_apartment.owner_name else []),
-        "developer_representative": "Худовердиев В.С.",
+        "developer_representative": representative_name,
         "act_date": today_input,
-        "inspection_date": format_input_date(selected_apartment.first_inspection_date) if selected_apartment else "",
+        "inspection_date": format_input_date(selected_inspection_date),
         "address": project.address or "",
-        "completion_phrase": default_avr_phrase(selected_apartment.first_inspection_date) if selected_apartment else default_avr_phrase(None),
+        "completion_phrase": default_avr_phrase(selected_inspection_date),
     }
 
     if request.method == "POST":
         if selected_apartment is None:
             flash("Выберите квартиру для формирования АВР.", "warning")
             return render_template("avr.html", apartments=apartment_rows, defaults=defaults, today=today_input)
+
+        representative_name = " ".join(request.form.get("developer_representative", representative_name).split())
+        if not representative_name:
+            flash("Укажите ФИО представителя застройщика.", "warning")
+            return render_template("avr.html", apartments=apartment_rows,
+                                   defaults=defaults | {"developer_representative": ""}, today=today_input)
 
         selected_owners = [owner.strip() for owner in request.form.getlist("owner_names") if owner.strip()]
         owner_name = "\n".join(selected_owners) if selected_owners else (request.form.get("owner_name") or "").strip()
@@ -10081,11 +10098,11 @@ def avr():
             "premise_type": selected_apartment.premise_type or "apartment",
             "owner_name": owner_name,
             "owner_selected": selected_owners or ([owner_name] if owner_name else []),
-            "developer_representative": (request.form.get("developer_representative") or "Худовердиев В.С.").strip(),
+            "developer_representative": representative_name,
             "act_date": format_doc_date(request.form.get("act_date") or today_input),
-            "inspection_date": format_doc_date(request.form.get("inspection_date") or defaults["inspection_date"]),
+            "inspection_date": format_doc_date(selected_inspection_date),
             "address": (request.form.get("address") or project.address or "").strip(),
-            "completion_phrase": (request.form.get("completion_phrase") or default_avr_phrase(request.form.get("inspection_date") or defaults["inspection_date"])).strip(),
+            "completion_phrase": completion_phrase_with_inspection_date(request.form.get("completion_phrase"), selected_inspection_date),
         }
 
         if (values["premise_type"] != "commercial" and not values["floor"]) or not values["owner_name"]:
@@ -11290,6 +11307,11 @@ def task_delete(task_id: int):
     apartment_id = task.apartment_id
     _delete_task_with_relations(task, project.id)
     db.session.commit()
+    if _wants_json_response():
+        return jsonify(ok=True, message="Замечание удалено", redirect_url=(
+            url_for("main.apartment_detail", apartment_id=apartment_id) if apartment_id
+            else url_for("main.task_list")
+        ))
     flash("Замечание удалено", "success")
     if apartment_id:
         return redirect(url_for("main.apartment_detail", apartment_id=apartment_id))
@@ -11445,9 +11467,12 @@ def delete_task_comment(task_id: int, comment_id: int):
         abort(404)
     if comment.user_id != current_user.id and current_user.role != ROLE_ADMIN:
         abort(403)
-    log_change(task, "comment_deleted", "comment", comment.body, "")
+    history_change = log_change(task, "comment_deleted", "comment", comment.body, "")
     db.session.delete(comment)
     db.session.commit()
+    if _wants_json_response():
+        return jsonify(ok=True, message="Комментарий удалён", history_entry=
+                       _build_change_history_entry(history_change, task=task, users_cache={}))
     flash("Комментарий удалён", "success")
     return redirect(url_for("main.task_detail", task_id=task.id))
 
@@ -11739,33 +11764,38 @@ def mapping_settings():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
+    points = ensure_mapping_catalog_points()
     ensure_default_categories()
+    db.session.commit()
     hidden_point_numbers = {"7", "9", "26", "27", "28", "29", "30", "31", "32", "33", "43", "44", "45"}
     categories_to_show = [
         category
         for category in WorkCategory.query.filter(WorkCategory.is_active.is_(True)).order_by(WorkCategory.sort_order.asc()).all()
         if (category.name or "").strip().lower() not in {"все", "доп.соглашение"}
     ]
-    point_ids_for_project = [
-        point_id for (point_id,) in db.session.query(Task.work_point_id).filter(Task.project_id == project.id).distinct().all()
-    ]
-    points = [
-        point
-        for point in WorkPoint.query.filter(
-            WorkPoint.id.in_(point_ids_for_project or [-1]),
-            WorkPoint.is_active.is_(True),
-        )
-        .order_by(WorkPoint.point_number.asc())
-        .all()
-        if str(point.point_number or "").strip() not in hidden_point_numbers
-    ]
+    point_groups = group_mapping_points(points)
+    group_by_member = {
+        member_id: group for group in point_groups for member_id in group["member_ids"]
+    }
+    selected_point_ids = {
+        category.id: {
+            group["id"] for group in point_groups
+            if group["member_ids"] & {point.id for point in category.work_points}
+        } for category in categories_to_show
+    }
     if request.method == "POST":
         wants_json = _wants_json_response()
         allowed_point_ids = {point.id for point in points}
         for category in categories_to_show:
             selected = request.form.getlist(f"category_{category.id}")
-            point_ids = [int(x) for x in selected if x.isdigit() and int(x) in allowed_point_ids]
-            update_category_points(category.id, point_ids, commit=False)
+            point_ids = {
+                member_id for value in selected
+                if value.isascii() and value.isdigit() and int(value) in allowed_point_ids
+                for member_id in group_by_member[int(value)]["member_ids"]
+            }
+            # Keep assignments for hidden technical points outside this catalogue.
+            point_ids.update(point.id for point in category.work_points if point.id not in allowed_point_ids)
+            update_category_points(category.id, sorted(point_ids), commit=False)
         db.session.commit()
         if wants_json:
             return jsonify({"ok": True, "message": f"Распределение сохранено для объекта: {project.name}"})
@@ -11774,7 +11804,8 @@ def mapping_settings():
     return render_template(
         "mapping_settings.html",
         categories=categories_to_show,
-        points=points,
+        points=point_groups,
+        selected_point_ids=selected_point_ids,
         hidden_point_numbers=hidden_point_numbers,
         project=project,
     )

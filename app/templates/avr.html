@@ -89,6 +89,7 @@
         <div class="avr-field">
           <label class="form-label" for="avr-developer">Представитель застройщика</label>
           <input class="form-control" id="avr-developer" name="developer_representative" value="{{ defaults.developer_representative }}" data-avr-developer required>
+          {% if not defaults.developer_representative %}<div class="form-text">Укажите ФИО представителя застройщика.</div>{% endif %}
         </div>
 
         <div class="avr-field">

@@ -138,6 +138,21 @@ def seed_database() -> None:
             )
         )
 
+    if os.environ.get("E2E_EXTENDED_FIXTURES") == "1":
+        # Opt-in regressions need long lists and source-specific point copies.
+        # Normal visual baselines keep their original fixtures.
+        user.all_projects_access = True
+        user.full_name = "Иванов Иван Иванович"
+        developer.full_name = "Петров Пётр Петрович"
+        db.session.add_all(Project(name=f"Scroll QA object {index}") for index in range(20))
+        apartments[0].floor = "2"
+        apartments[0].first_inspection_date = date(2026, 2, 1)
+        apartments[0].inspection_date = date(2026, 6, 1)
+        for number in ("15", "22", "24"):
+            for sheet in ("Таблица", "Кладовые"):
+                point = WorkPoint(point_number=number, short_name=f"QA point {number}", source_sheet_name=sheet)
+                db.session.add(Task(source_uid=f"mapping-{number}-{sheet}", project=project,
+                                    apartment=apartments[0], work_point=point, description="Mapping QA remark"))
     db.session.commit()
 
 

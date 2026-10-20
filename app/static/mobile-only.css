@@ -2257,3 +2257,21 @@
     display: block;
   }
 }
+
+/* Android Chromium must pass body pan gestures to the document scroller.
+   Suppress overscroll at the root, not at a body with no own scroll range. */
+@media (max-width: 767.98px) {
+  html.android-touch-device {
+    overscroll-behavior-y: none !important;
+  }
+  html.android-touch-device body.app-body.app-body.app-body:not(.modal-open):not(:has(.js-crm-confirm-modal:not(.d-none))) {
+    overscroll-behavior-y: auto !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  html.android-touch-device .js-crm-confirm-modal:not(.d-none) {
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain !important;
+  }
+}

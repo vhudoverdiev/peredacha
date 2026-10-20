@@ -5,7 +5,7 @@
 <div class="page-head">
   <div>
     <h1 class="page-title">Распределение</h1>
-    <p class="page-subtitle">Настройка по текущему объекту: {{ project.name }}. Показываются только пункты, которые есть в задачах этого объекта.</p>
+    <p class="page-subtitle">Настройка по текущему объекту: {{ project.name }}. Показаны все рабочие пункты, включая пункты без импортированных замечаний.</p>
     <div class="mapping-save-note js-mapping-save-note" data-idle-text="Изменения сохраняются автоматически.">Изменения сохраняются автоматически.</div>
   </div>
 </div>
@@ -26,12 +26,12 @@
           {% for point in points %}
             {% if point.point_number not in hidden_point_numbers %}
             <div class="form-check">
-              <input class="form-check-input" type="checkbox" name="category_{{ category.id }}" value="{{ point.id }}" id="c{{ category.id }}p{{ point.id }}" {% if point in category.work_points %}checked{% endif %}>
+              <input class="form-check-input" type="checkbox" name="category_{{ category.id }}" value="{{ point.id }}" id="c{{ category.id }}p{{ point.id }}" {% if point.id in selected_point_ids[category.id] %}checked{% endif %}>
               <label class="form-check-label" for="c{{ category.id }}p{{ point.id }}"><b>{{ point.point_number }}</b> — {{ point.display_name | replace(point.point_number ~ '. ', '') | replace(point.point_number ~ '.', '') }}</label>
             </div>
             {% endif %}
           {% else %}
-            <div class="text-muted">Пункты появятся после синхронизации выбранного объекта.</div>
+            <div class="text-muted">Рабочие пункты не найдены.</div>
           {% endfor %}
           </div>
         </div>

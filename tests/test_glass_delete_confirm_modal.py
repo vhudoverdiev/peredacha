@@ -43,9 +43,9 @@ class GlassDeleteConfirmModalTest(unittest.TestCase):
         template = (ROOT / "app" / "templates" / "base.html").read_text(encoding="utf-8")
         worker = (ROOT / "app" / "static" / "service-worker.js").read_text(encoding="utf-8")
 
-        self.assertIn("script.js') }}?v=v688-comment-delete-icon", template)
-        self.assertIn("/static/script.js?v=v688-comment-delete-icon", worker)
-        self.assertIn("peredacha-static-v190-comment-delete-icon", worker)
+        self.assertIn("script.js') }}?v=v691-mapping-catalog-calendar", template)
+        self.assertIn("/static/script.js?v=v691-mapping-catalog-calendar", worker)
+        self.assertIn("peredacha-static-v193-mapping-catalog-calendar", worker)
 
     def test_desktop_modal_scale_stays_constant_through_open_and_close_transition(self):
         styles = (ROOT / "app" / "static" / "style.css").read_text(encoding="utf-8")

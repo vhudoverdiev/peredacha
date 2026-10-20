@@ -198,7 +198,7 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         ).group(1)
 
         self.assertEqual(worker_version, cache_version)
-        self.assertEqual(worker_version, "v190-comment-delete-icon")
+        self.assertEqual(worker_version, "v193-mapping-catalog-calendar")
 
     def test_script_and_css_cache_busters_are_synchronized(self):
         script_version = re.search(
@@ -230,10 +230,10 @@ class FirefoxFrameBufferedNavigationTests(unittest.TestCase):
         self.assertEqual(css_version, worker_css_version)
         self.assertEqual(mobile_css_version, worker_mobile_css_version)
         self.assertEqual(style_version, worker_style_version)
-        self.assertEqual(script_version, "v688-comment-delete-icon")
+        self.assertEqual(script_version, "v691-mapping-catalog-calendar")
         self.assertEqual(css_version, "v76-objects-three-columns")
-        self.assertEqual(style_version, "v700-comment-delete-icon")
-        self.assertEqual(mobile_css_version, "v88-remark-sentence-lines")
+        self.assertEqual(style_version, "v703-mapping-catalog-calendar")
+        self.assertEqual(mobile_css_version, "v89-android-root-scroll")
 
 
 if __name__ == "__main__":

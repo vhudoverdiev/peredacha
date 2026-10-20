@@ -1643,7 +1643,15 @@ def get_or_update_work_point(point_number: str, header: str, sheet_name: str, co
     else:
         point = WorkPoint.query.filter_by(point_number=point_number, source_sheet_name=sheet_name).first()
     if point is None:
+        # A mapping may already be configured using a catalogue/manual point
+        # before this import sheet creates its own source-specific record.
+        categories = {
+            category.id: category
+            for sibling in WorkPoint.query.filter_by(point_number=point_number, is_active=True).all()
+            for category in sibling.categories
+        }
         point = WorkPoint(point_number=point_number, source_sheet_name=sheet_name)
+        point.categories = list(categories.values())
         db.session.add(point)
     point.original_column_name = header
     point.short_name = header

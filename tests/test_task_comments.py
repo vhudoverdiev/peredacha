@@ -105,3 +105,22 @@ class TaskCommentTests(unittest.TestCase):
         db.session.commit()
         self.assertEqual(self.client.post(self.delete_url(comment)).status_code, 302)
         self.assertEqual(TaskComment.query.count(), 0)
+
+    def test_ajax_comment_delete_returns_history_without_redirect(self):
+        comment = self.add_comment()
+        response = self.client.post(self.delete_url(comment), headers={'Accept': 'application/json'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['ok'])
+        self.assertNotIn('Location', response.headers)
+        self.assertEqual(response.json['history_entry']['summary'], 'Комментарий удалён.')
+        self.assertEqual(TaskComment.query.count(), 0)
+
+    def test_ajax_task_delete_returns_json_without_redirect(self):
+        self.add_comment()
+        task_id = self.task.id
+        response = self.client.post(f'/tasks/{task_id}/delete', headers={'Accept': 'application/json'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['ok'])
+        self.assertNotIn('Location', response.headers)
+        self.assertIsNone(db.session.get(Task, task_id))
+        self.assertEqual(TaskComment.query.count(), 0)

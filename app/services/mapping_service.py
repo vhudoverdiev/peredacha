@@ -2,6 +2,7 @@ import re
 
 from app import db
 from app.models import AppSetting, Task, WorkCategory, WorkPoint
+from app.work_points import WORK_POINT_LABELS
 
 DEFAULT_CATEGORIES = [
     ("Все", "#212529", 0),
@@ -185,3 +186,41 @@ def update_category_points(category_id: int, point_ids: list[int], *, commit: bo
     if commit:
         db.session.commit()
     return category
+
+
+def group_mapping_points(points: list[WorkPoint]) -> list[dict]:
+    """One assignment control per logical number, retaining every import ID."""
+    groups = {}
+    for point in points:
+        number = str(point.point_number or "").strip()
+        number = str(int(number)) if number.isascii() and number.isdigit() else number
+        if number not in groups:
+            groups[number] = {
+                "id": point.id, "point_number": number,
+                "display_name": WORK_POINT_LABELS.get(number, point.display_name),
+                "member_ids": set(),
+            }
+        groups[number]["member_ids"].add(point.id)
+    return sorted(groups.values(), key=lambda item: (
+        (0, int(item["point_number"])) if item["point_number"].isascii() and item["point_number"].isdigit()
+        else (1, item["point_number"])
+    ))
+
+
+def ensure_mapping_catalog_points() -> list[WorkPoint]:
+    """Allow assignment setup before a work point has any imported tasks."""
+    existing = WorkPoint.query.filter(WorkPoint.point_number.in_(MAIN_POINT_NUMBERS)).order_by(WorkPoint.id.asc()).all()
+    active_numbers = {point.point_number for point in existing if point.is_active}
+    for number in sorted(MAIN_POINT_NUMBERS, key=int):
+        if number in active_numbers:
+            continue
+        point = next((item for item in existing if item.point_number == number and item.source_sheet_name == "manual"), None)
+        if point is None:
+            point = WorkPoint(point_number=number, short_name=WORK_POINT_LABELS[number],
+                              original_column_name=WORK_POINT_LABELS[number], source_sheet_name="manual", is_active=True)
+            db.session.add(point)
+            existing.append(point)
+        else:
+            point.is_active = True
+    db.session.flush()
+    return [point for point in existing if point.is_active]
