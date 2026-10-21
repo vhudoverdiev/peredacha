@@ -18,10 +18,10 @@
     <div class="card-body">
       <div class="row g-3">
         <div class="col-12">
-          <label class="form-label mb-0">PDF-акты</label>
+          <label class="form-label mb-0" for="recognitionFiles">PDF-акты</label>
         </div>
         <div class="col-12 col-sm-8 col-lg-9">
-          <input class="form-control" type="file" name="pdf_files" accept=".pdf,application/pdf" multiple required>
+          <input id="recognitionFiles" class="form-control" type="file" name="pdf_files" accept=".pdf,application/pdf" multiple required>
         </div>
         <div class="col-12 col-sm-4 col-lg-3">
           <button class="btn btn-primary w-100" type="submit"><i class="bi bi-search me-2"></i>Распознать</button>
@@ -155,7 +155,7 @@
                   </select>
                 </td>
                 <td>
-                  <textarea class="form-control form-control-sm task-recognition-description-field" name="act_{{ act_idx }}_row_{{ row_idx }}_description" rows="2">{{ remark.description }}</textarea>
+                  <textarea aria-label="Текст замечания" class="form-control form-control-sm task-recognition-description-field" name="act_{{ act_idx }}_row_{{ row_idx }}_description" rows="2">{{ remark.description }}</textarea>
                 </td>
               </tr>
               <tr class="task-recognition-concession-row d-none" data-recognition-concession-row>
@@ -195,7 +195,7 @@
               </select>
             </td>
             <td>
-              <textarea class="form-control form-control-sm task-recognition-description-field" name="act_{{ act_idx }}_row___ROW___description" rows="2"></textarea>
+              <textarea aria-label="Текст замечания" class="form-control form-control-sm task-recognition-description-field" name="act_{{ act_idx }}_row___ROW___description" rows="2"></textarea>
             </td>
           </tr>
           <tr class="task-recognition-concession-row d-none" data-recognition-concession-row>

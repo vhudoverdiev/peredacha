@@ -21,9 +21,11 @@
       <a class="btn btn-sm btn-outline-success task-add-choice-btn {{ 'is-active' if current_mode == 'manual' else '' }}" href="{{ url_for('main.task_new', mode='manual') }}">
         <i class="bi bi-pencil-square" aria-hidden="true"></i>Ручное
       </a>
+      {% if not is_mobile_phone_request %}
       <a class="btn btn-sm btn-outline-success task-add-choice-btn {{ 'is-active' if current_mode == 'auto' else '' }}" href="{{ url_for('main.task_recognition') }}">
         <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>Автоматическое
       </a>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -169,7 +171,7 @@
     </div>
   </div>
 </form>
-{% elif current_mode == 'auto' %}
+{% elif current_mode == 'auto' and not is_mobile_phone_request %}
 <div class="card content-card">
   <div class="card-body">
     <h2 class="section-title mb-3">Автоматическое распознавание PDF</h2>

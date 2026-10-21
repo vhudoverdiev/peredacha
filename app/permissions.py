@@ -1,10 +1,10 @@
 from functools import wraps
 from flask import abort, flash, redirect, url_for
 from flask_login import current_user
-from app.models import ROLE_ADMIN, ROLE_MANAGER, ROLE_OFFICE, ROLE_SUPERVISOR, ROLE_VIEWER, WORKER_ROLES
+from app.models import ROLE_ADMIN, ROLE_MANAGER, ROLE_OFFICE, ROLE_OFFICE_MANAGER, ROLE_SUPERVISOR, ROLE_VIEWER, WORKER_ROLES
 
 
-OFFICE_MANAGER_ROLES = {ROLE_MANAGER, ROLE_OFFICE, ROLE_SUPERVISOR}
+OFFICE_MANAGER_ROLES = {ROLE_MANAGER, ROLE_OFFICE, ROLE_OFFICE_MANAGER, ROLE_SUPERVISOR}
 
 
 def role_required(*roles):
@@ -46,3 +46,15 @@ def can_export(user) -> bool:
 
 def readonly(user) -> bool:
     return user.role == ROLE_VIEWER
+
+
+def can_view_task_comments(user) -> bool:
+    return getattr(user, "role", None) in {ROLE_ADMIN, ROLE_MANAGER}
+
+
+def can_use_project_workflows(user) -> bool:
+    return getattr(user, 'role', None) in {ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_OFFICE, ROLE_OFFICE_MANAGER, ROLE_VIEWER}
+
+
+def can_create_appeal(user) -> bool:
+    return getattr(user, 'role', None) in {ROLE_ADMIN, ROLE_OFFICE, ROLE_OFFICE_MANAGER}

@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Настроить время{% endblock %}
+{% macro time_select(name, selected='', optional=false) %}
+<select class="form-select workflow-time-select" name="{{ name }}" {% if not optional %}required{% endif %} data-force-custom-select>
+  {% if optional %}<option value="">Не выбран</option>{% endif %}
+  {% for minute in range(0, 1440, 5) %}
+    {% set value = '%02d:%02d'|format(minute // 60, minute % 60) %}
+    <option value="{{ value }}" {% if value == selected %}selected{% endif %}>{{ value }}</option>
+  {% endfor %}
+</select>
+{% endmacro %}
+{% block content %}
+<section class="workflow-page records-page">
+  <div class="workflow-head"><div><h1 class="page-title">Настроить время</h1><p class="text-muted">{{ project.name }} · Доступные интервалы записи</p></div><a class="btn btn-outline-secondary" href="{{ url_for('main.records') }}"><i class="bi bi-arrow-left me-2"></i>Назад к записям</a></div>
+  <div class="card content-card workflow-availability">
+    <h2>Расписание на период</h2>
+    <form method="post" action="{{ url_for('main.records_availability') }}" class="workflow-availability-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>С даты<input class="form-control" name="start_date" type="date" value="{{ selected.isoformat() }}" required></label><label>По дату<input class="form-control" name="end_date" type="date" value="{{ availability_end }}" required></label>
+      <label>Начало{{ time_select('start_time', '09:00') }}</label><label>Окончание{{ time_select('end_time', '17:00') }}</label>
+      <fieldset class="workflow-weekdays workflow-lunch-fields"><legend>Обед</legend><label>С{{ time_select('lunch_start', optional=true) }}</label><label>До{{ time_select('lunch_end', optional=true) }}</label></fieldset>
+      <label>Длительность осмотра<select class="form-select" name="duration">{% for minutes in [15,30,45,60,120] %}<option value="{{ minutes }}" {% if minutes==30 %}selected{% endif %}>{{ minutes }} минут</option>{% endfor %}</select></label>
+      <fieldset class="workflow-weekdays"><legend>Дни недели</legend>{% for name in ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'] %}<label><input class="form-check-input" name="weekday" type="checkbox" value="{{ loop.index0 }}" {% if loop.index0<5 %}checked{% endif %}>{{ name }}</label>{% endfor %}</fieldset>
+      <button class="btn btn-primary" type="submit">Сохранить расписание</button>
+    </form>
+  </div>
+  <div class="card content-card workflow-availability workflow-extra-day-form"><h2>Открыть дополнительный день</h2><form method="post" action="{{ url_for('main.records_availability') }}" class="workflow-availability-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="single_day" value="1"><label>Дата<input class="form-control" name="start_date" type="date" value="{{ selected.isoformat() }}" required></label><label>Начало{{ time_select('start_time', '09:00') }}</label><label>Окончание{{ time_select('end_time', '17:00') }}</label><label>Интервал<select class="form-select" name="duration">{% for minutes in [15,30,45,60,120] %}<option value="{{ minutes }}" {% if minutes==30 %}selected{% endif %}>{{ minutes }} минут</option>{% endfor %}</select></label><button class="btn btn-primary" type="submit">Открыть день</button></form></div>
+</section>
+{% endblock %}

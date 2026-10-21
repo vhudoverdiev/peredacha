@@ -1,5 +1,6 @@
 from io import BytesIO
 from pathlib import Path
+from urllib.parse import quote
 import unittest
 
 from openpyxl import load_workbook
@@ -37,7 +38,7 @@ class ApartmentsFilteredExportTests(unittest.TestCase):
         self.matching = Apartment(
             project=self.project,
             apartment_number="125",
-            owner_name="Иванов",
+            owner_name="Иванов Иван Иванович\nСмирнова Анна Сергеевна",
             finishing_type="Белая",
         )
         self.other = Apartment(
@@ -74,6 +75,16 @@ class ApartmentsFilteredExportTests(unittest.TestCase):
         html = response.get_data(as_text=True)
         self.assertIn('data-ajax-pagination-sync="apartments-export"', html)
         self.assertIn('/apartments/export?q=125', html)
+
+    def test_search_finds_apartment_cards_by_owner_surname_or_first_name(self):
+        for query in ('Иванов', 'иван', 'Смирнова', 'анна'):
+            with self.subTest(query=query):
+                response = self.client.get('/apartments', query_string={'q': query})
+                self.assertEqual(response.status_code, 200)
+                html = response.get_data(as_text=True)
+                self.assertIn('кв 125', html)
+                self.assertNotIn('кв 126', html)
+                self.assertIn(f'/apartments/export?q={quote(query)}', html)
 
     def test_finishing_filter_uses_the_same_groups_as_remarks(self):
         response = self.client.get("/apartments", query_string={"finishing_group": "white"})

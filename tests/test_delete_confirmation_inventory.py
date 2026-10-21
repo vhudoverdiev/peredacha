@@ -18,6 +18,7 @@ class DeleteConfirmationInventoryTests(unittest.TestCase):
             "glass_measurements.html": 2,
             "material_request_detail.html": 1,
             "materials.html": 4,
+            "my_tasks.html": 1,
             "task_detail.html": 2,
             "task_list.html": 1,
         }

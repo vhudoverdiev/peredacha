@@ -6,7 +6,7 @@ from flask_wtf.csrf import generate_csrf
 
 from app import db
 from app.forms import LoginCaptchaForm, LoginForm, LoginTwoFactorForm
-from app.models import SiteErrorReport, User, WORKER_ROLES
+from app.models import SiteErrorReport, User, WORKER_ROLES, ROLE_ADMIN
 from app.services.task_service import get_setting
 from app.security import (
     clear_captcha,
@@ -60,7 +60,7 @@ def _render_login_2fa(form: LoginTwoFactorForm):
 def _needs_two_factor_for_ip(user: User) -> bool:
     if not user.two_factor_enabled or not user.two_factor_secret:
         return False
-    if str(get_setting("two_factor_every_login", "0") or "").strip().lower() in {"1", "true", "yes", "on", "да", "checked"}:
+    if user.role != ROLE_ADMIN and str(get_setting("two_factor_every_login", "0") or "").strip().lower() in {"1", "true", "yes", "on", "да", "checked"}:
         return True
     current_ip = client_ip()[:80]
     return not user.last_login_ip or user.last_login_ip != current_ip

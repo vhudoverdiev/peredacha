@@ -2225,8 +2225,9 @@ def column_letter(n: int) -> str:
     return result
 
 
-def build_task_query(params, category_id: int | None = None, project_id: int | None = None):
-    query = Task.query.join(Apartment).join(WorkPoint).outerjoin(User, Task.responsible_id == User.id)
+def build_task_query(params, category_id: int | None = None, project_id: int | None = None, *, include_assignment_manual: bool = False):
+    query = Task.query.outerjoin(Apartment) if include_assignment_manual else Task.query.join(Apartment)
+    query = query.join(WorkPoint).outerjoin(User, Task.responsible_id == User.id)
     if project_id:
         query = query.filter(Task.project_id == project_id)
 
@@ -2241,7 +2242,10 @@ def build_task_query(params, category_id: int | None = None, project_id: int | N
             query = query.filter(Task.work_point_id.in_(point_ids or [-1]))
     else:
         # Вкладка "Все" должна показывать только рабочие пункты.
-        query = query.filter(WorkPoint.point_number.in_(MAIN_WORK_POINT_NUMBERS))
+        visible_points = WorkPoint.point_number.in_(MAIN_WORK_POINT_NUMBERS)
+        if include_assignment_manual:
+            visible_points = or_(visible_points, Task.source_sheet_name == "assignment_manual")
+        query = query.filter(visible_points)
 
     apartment_number = (params.get("apartment_number") or "").strip()
     if apartment_number:

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Обзвонить{% endblock %}
+{% block content %}
+<section class="workflow-page call-list-page">
+  <div class="workflow-head call-list-head">
+    <div><span class="call-list-eyebrow"><i class="bi bi-telephone-outbound"></i> Подготовка к осмотру</span><h1 class="page-title">Обзвонить</h1><p class="text-muted">Проданные помещения со статусом «Приглашаем», у которых нет предстоящего осмотра.</p></div>
+    <a class="btn btn-outline-secondary workflow-back-to-schedule" href="{{ url_for('main.records') }}"><i class="bi bi-arrow-left me-2"></i>К расписанию</a>
+  </div>
+  <div class="call-list-summary"><span class="call-list-summary-icon"><i class="bi bi-telephone"></i></span><div><strong>{{ rows|length }}</strong><span>помещений для обзвона</span></div></div>
+  <div class="call-list-grid">
+    {% for row in rows %}
+    <article class="call-list-card" id="call-list-{{ row.apartment.id }}">
+      <div class="call-list-card-head"><div><small>Помещение</small><h2><a class="call-list-premise-link" href="{{ url_for('main.apartment_detail', apartment_id=row.apartment.id) }}">{{ row.apartment.label() }} <i class="bi bi-arrow-up-right"></i></a></h2></div><span class="call-list-status">Приглашаем</span></div>
+      <div class="call-list-card-body">
+        <div class="call-list-detail"><span class="call-list-detail-icon"><i class="bi bi-person"></i></span><div><small>ФИО</small>{% if row.owner_names %}{% for name in row.owner_names %}<strong>{{ name }}</strong>{% endfor %}{% else %}<span class="text-muted">Не указано</span>{% endif %}</div></div>
+        <div class="call-list-detail"><span class="call-list-detail-icon"><i class="bi bi-telephone"></i></span><div><small>Номера телефонов</small>{% if row.phones %}{% for phone in row.phones %}<a href="tel:{{ phone|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}">{{ phone }}</a>{% endfor %}{% else %}<span class="text-muted">Не указаны</span>{% endif %}</div></div>
+      </div>
+      <div class="call-list-notes">
+        <h3><i class="bi bi-chat-left-text"></i> Комментарии</h3>
+        <div class="call-list-note-list" data-call-note-list>
+          {% for note in row.call_notes %}<div class="call-list-note"><p>{{ note.body }}</p><small>{{ (note.user.full_name or note.user.username) if note.user else 'Пользователь' }} · {{ format_ru_datetime(note.created_at) }}</small>{% if note.user_id == current_user.id or current_user.role in ['admin', 'office_manager'] %}<button type="button" class="call-list-note-delete" data-call-note-delete="{{ url_for('main.records_call_list_comment_delete', apartment_id=row.apartment.id, note_id=note.id) }}" aria-label="Удалить комментарий" title="Удалить комментарий"><i class="bi bi-trash"></i></button>{% endif %}</div>{% else %}<p class="call-list-no-notes" data-call-note-empty>Комментариев пока нет</p>{% endfor %}
+        </div>
+        <form method="post" action="{{ url_for('main.records_call_list_comment', apartment_id=row.apartment.id) }}" data-call-note-form>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="visually-hidden" for="call-note-{{ row.apartment.id }}">Новый комментарий</label>
+          <textarea class="form-control" id="call-note-{{ row.apartment.id }}" name="body" rows="2" maxlength="1000" required placeholder="Например, не дозвонились"></textarea>
+          <button class="btn btn-outline-secondary" type="submit">Добавить комментарий</button>
+        </form>
+      </div>
+      <div class="call-list-card-actions"><a class="btn btn-primary call-list-book" href="{{ url_for('main.record_apartment_new', apartment_id=row.apartment.id) }}"><i class="bi bi-calendar2-plus me-2"></i>Записать на осмотр</a><a class="btn btn-outline-secondary" href="{{ url_for('main.apartment_detail', apartment_id=row.apartment.id) }}">Открыть карточку</a></div>
+    </article>
+    {% else %}
+    <div class="call-list-empty"><span><i class="bi bi-check2-circle"></i></span><h2>Список обзвона пуст</h2><p>Проданные помещения появятся здесь, когда получат статус «Приглашаем» и у них не будет предстоящей записи.</p></div>
+    {% endfor %}
+  </div>
+</section>
+<script>
+document.querySelectorAll('[data-call-note-form]').forEach(form => form.addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const response = await fetch(form.action, {method: 'POST', body: new FormData(form), headers: {'Accept': 'application/json'}});
+    if (!response.ok) throw new Error('Не удалось сохранить комментарий');
+    const {note} = await response.json();
+    const list = form.closest('.call-list-notes').querySelector('[data-call-note-list]');
+    list.querySelector('[data-call-note-empty]')?.remove();
+    const entry = document.createElement('div'); entry.className = 'call-list-note';
+    const body = document.createElement('p'); body.textContent = note.body;
+    const meta = document.createElement('small'); meta.textContent = `${note.author} · ${note.date}`;
+    const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'call-list-note-delete'; remove.dataset.callNoteDelete = note.delete_url; remove.setAttribute('aria-label', 'Удалить комментарий'); remove.title = 'Удалить комментарий';
+    const icon = document.createElement('i'); icon.className = 'bi bi-trash'; remove.append(icon);
+    entry.append(body, meta, remove); list.append(entry); form.reset();
+  } catch (error) { window.alert(error.message); }
+  finally { button.disabled = false; }
+}));
+document.querySelectorAll('[data-call-note-list]').forEach(list => list.addEventListener('click', async event => {
+  const button = event.target.closest('[data-call-note-delete]');
+  if (!button || !list.contains(button)) return;
+  if (!window.confirm('Удалить комментарий?')) return;
+  button.disabled = true;
+  try {
+    const data = new FormData(); data.append('csrf_token', document.querySelector('[data-call-note-form] input[name="csrf_token"]').value);
+    const response = await fetch(button.dataset.callNoteDelete, {method: 'POST', body: data, headers: {'Accept': 'application/json'}});
+    if (!response.ok) throw new Error('Не удалось удалить комментарий');
+    button.closest('.call-list-note').remove();
+    if (!list.querySelector('.call-list-note')) { const empty = document.createElement('p'); empty.className = 'call-list-no-notes'; empty.dataset.callNoteEmpty = ''; empty.textContent = 'Комментариев пока нет'; list.append(empty); }
+  } catch (error) { window.alert(error.message); button.disabled = false; }
+}));
+</script>
+{% endblock %}

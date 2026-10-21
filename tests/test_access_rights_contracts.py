@@ -17,6 +17,7 @@ from app.models import (
     ROLE_LABELS,
     ROLE_MANAGER,
     ROLE_OFFICE,
+    ROLE_OFFICE_MANAGER,
     ROLE_PAINTER,
     ROLE_SUPERVISOR,
     ROLE_VIEWER,
@@ -118,6 +119,9 @@ class AccessRightsContractsTests(unittest.TestCase):
             "main.my_tasks",
             "main.my_task_done",
             "main.my_task_return",
+            "main.my_task_status",
+            "main.my_task_comment",
+            "main.my_task_comment_delete",
             "main.account",
             "main.account_password",
             "main.report_error",
@@ -219,6 +223,60 @@ class AccessRightsContractsTests(unittest.TestCase):
 
         admin = self._user(role=ROLE_ADMIN, username="admin-service-access")
         self.assertIsNone(self._guard(admin, "main.mapping_settings", method="POST"))
+
+    def test_office_manager_keeps_apartments_but_cannot_open_operational_sections(self):
+        user = self._user(role=ROLE_OFFICE_MANAGER, username="office-manager-sections")
+        self.assertIsNone(self._guard(user, "main.apartments"))
+        self.assertIsNone(self._guard(user, "main.apartment_detail"))
+        self.assertIsNone(self._guard(user, "main.records"))
+        for endpoint in (
+            "main.task_list",
+            "main.task_detail",
+            "main.contractors_list",
+            "main.assignments",
+            "main.materials",
+            "main.glass_measurements",
+        ):
+            with self.subTest(endpoint=endpoint):
+                self.assertRedirectsTo(self._guard(user, endpoint), "/")
+
+    def test_office_manager_cannot_change_inspection_or_task_status(self):
+        user = self._user(role=ROLE_OFFICE_MANAGER, username="office-manager-mutations")
+        for endpoint in (
+            "main.update_apartment_inspection_status",
+            "main.update_apartment_inspection_date",
+            "main.delete_apartment_inspection_date",
+            "main.update_apartment_inspection_note",
+            "main.quick_status",
+        ):
+            with self.subTest(endpoint=endpoint), self.assertRaises(Forbidden):
+                self._guard(user, endpoint, method="POST")
+
+    def test_office_manager_comment_and_non_inspection_apartment_edits_remain_available(self):
+        user = self._user(role=ROLE_OFFICE_MANAGER, username="office-manager-apartment")
+        for endpoint in (
+            "main.update_apartment_office_manager_comment",
+            "main.update_apartment_details",
+            "main.update_apartment_app_status",
+            "main.update_apartment_avr_status",
+            "main.update_apartment_addendum_status",
+        ):
+            with self.subTest(endpoint=endpoint):
+                self.assertIsNone(self._guard(user, endpoint, method="POST"))
+
+    def test_closed_section_screen_returns_back_without_logging_user_out(self):
+        client = self.app.test_client()
+        user = self._user(role=ROLE_MANAGER, username="closed-section-back")
+        db.session.add(AppSetting(key="blocked_site_sections", value="remarks"))
+        db.session.commit()
+        with client.session_transaction() as session_data:
+            session_data["_user_id"] = str(user.id)
+            session_data["_fresh"] = True
+            session_data["session_version"] = int(user.session_version or 0)
+        page = client.get("/tasks").get_data(as_text=True)
+        self.assertIn(">Назад\n", page)
+        self.assertNotIn(">Выйти", page)
+        self.assertNotIn('action="/logout"', page)
 
     def test_office_role_matches_manager_except_restricted_sections(self):
         office = self._user(role=ROLE_OFFICE, username="office-access", project=self.project)
@@ -356,7 +414,7 @@ class AccessRightsContractsTests(unittest.TestCase):
         viewer_response = self._guard(viewer, "main.dashboard")
         self.assertIsInstance(viewer_response, tuple)
         self.assertEqual(viewer_response[1], 503)
-        self.assertIsNone(self._guard(manager, "main.dashboard"))
+        self.assertEqual(self._guard(manager, "main.dashboard")[1], 503)
 
     def test_mobile_home_endpoint_respects_role_and_project_selection(self):
         worker = self._user(role=ROLE_PAINTER, username="mobile-worker", project=self.project)
@@ -406,9 +464,10 @@ class AccessRightsContractsTests(unittest.TestCase):
         self.assertEqual(response[1], 503)
         with self.assertRaises(Forbidden):
             self._guard(manager, "main.update_task", method="POST", mobile=True)
-        self.assertIsNone(self._guard(manager, "main.account", mobile=True))
+        self.assertEqual(self._guard(manager, "main.account", mobile=True)[1], 503)
         self.assertIsNone(self._guard(admin, "main.site_settings", mobile=True))
         self.assertIsNone(self._guard(admin, "main.dashboard", mobile=True))
+        self.assertIsNone(self._guard(admin, "main.dashboard", mobile=False))
 
     def test_site_settings_post_persists_all_toggles_and_section_locks(self):
         admin = self._user(role=ROLE_ADMIN, username="settings-save-admin")
@@ -421,23 +480,110 @@ class AccessRightsContractsTests(unittest.TestCase):
         response = client.post(
             "/settings",
             data={
-                "hide_documents_section": "1",
                 "mobile_version_under_development": "1",
                 "site_maintenance_mode": "1",
                 "two_factor_every_login": "1",
-                "blocked_site_sections": ["objects", "materials", "unknown"],
+                "blocked_site_sections": ["dashboard", "materials", "unknown"],
             },
             follow_redirects=False,
         )
 
         self.assertEqual(response.status_code, 302)
         settings = {row.key: row.value for row in AppSetting.query.all()}
-        self.assertEqual(settings["hide_documents_section"], "1")
+        self.assertNotIn("hide_documents_section", settings)
         self.assertEqual(settings["mobile_version_under_development"], "1")
         self.assertEqual(settings["site_maintenance_mode"], "1")
         self.assertEqual(settings["two_factor_every_login"], "1")
         self.assertNotIn("enable_messenger", settings)
-        self.assertEqual(settings["blocked_site_sections"], "materials,objects")
+        self.assertEqual(settings["blocked_site_sections"], "dashboard,materials")
+
+    def test_main_section_locks_cover_nested_actions_and_legacy_keys(self):
+        admin = self._user(role=ROLE_MANAGER, username="group-lock-manager")
+        setting = AppSetting(key="blocked_site_sections", value="assignments,remarks,administration")
+        db.session.add(setting)
+        db.session.commit()
+        for endpoint in ("main.my_task_status", "main.my_task_comment",
+                         "main.export_category_tasks_pdf"):
+            with self.subTest(endpoint=endpoint):
+                response = self._guard(admin, endpoint, method="POST")
+                self.assertEqual(response[1], 503)
+        self.assertIsNone(self._guard(admin, "main.assignments_report"))
+        setting.value = "report"
+        db.session.commit()
+        self.assertEqual(self._guard(admin, "main.assignments_report")[1], 503)
+        self.assertIsNone(self._guard(admin, "main.assignments"))
+        developer = self._user(role=ROLE_ADMIN, username="group-lock-developer")
+        self.assertIsNone(self._guard(developer, "main.assignments"))
+        self.assertIsNone(self._guard(developer, "main.site_settings"))
+        setting.value = "avr"
+        db.session.commit()
+        self.assertIsNone(self._guard(admin, "main.apartments"))
+        self.assertEqual(self._guard(admin, "main.avr")[1], 503)
+        setting.value = "apartments"
+        db.session.commit()
+        self.assertEqual(self._guard(admin, "main.apartments")[1], 503)
+        self.assertIsNone(self._guard(admin, "main.avr"))
+        setting.value = "objects,administration,users,service"
+        db.session.commit()
+        self.assertEqual(self._guard(admin, "main.dashboard")[1], 503)
+        self.assertIsNone(self._guard(admin, "main.objects"))
+        self.assertIsNone(self._guard(admin, "main.users"))
+        with self.assertRaises(Forbidden):
+            self._guard(admin, "main.mapping_settings")
+
+    def test_documents_removed_and_settings_show_only_main_sections(self):
+        admin = self._user(role=ROLE_ADMIN, username="removed-documents-admin")
+        client = self.app.test_client()
+        with client.session_transaction() as state:
+            state["_user_id"] = str(admin.id)
+            state["_fresh"] = True
+            state["session_version"] = int(admin.session_version or 0)
+        for path in ("/documents", "/documents/addendum", "/documents/download/test.docx"):
+            self.assertEqual(client.get(path).status_code, 404)
+        self.assertEqual(client.post("/documents/addendum").status_code, 404)
+        page = client.get("/settings").get_data(as_text=True)
+        self.assertNotIn('href="/documents"', page)
+        self.assertNotIn('hide-documents-setting', page)
+        self.assertEqual(page.count('name="blocked_site_sections"'), 12)
+        self.assertNotIn('section-lock-worker_tasks', page)
+        self.assertNotIn('section-lock-administration', page)
+        self.assertNotIn('section-lock-objects', page)
+        self.assertIn('section-lock-dashboard', page)
+        self.assertIn('section-lock-apartments', page)
+        self.assertIn('section-lock-avr', page)
+        from app.routes import _section_lock_controls
+        self.assertEqual([item['label'] for item in _section_lock_controls()],
+                         ['Главная','Замечания','Подрядчики','Помещения','АВР',
+                          'Расход материалов','Замеры','Выдача задач','Обращения','Записи','Отчет','Для разработчика'])
+
+    def test_brand_opens_object_selection_except_three_worker_roles(self):
+        from html.parser import HTMLParser
+        class Links(HTMLParser):
+            def __init__(self):
+                super().__init__(); self.targets = []
+            def handle_starttag(self, tag, attrs):
+                attrs = dict(attrs)
+                classes = set(attrs.get('class','').split())
+                if tag == 'a' and classes & {'sidebar-brand-link','mobile-shell-brand','mobile-top-avatar'}:
+                    self.targets.append(attrs.get('href'))
+        client = self.app.test_client()
+        from flask import g
+        for role in ROLES:
+            user = self._user(role=role,project=self.project,username='brand-'+role)
+            g.pop('_login_user',None)
+            with client.session_transaction() as state:
+                state['_user_id']=str(user.id); state['_fresh']=True
+                state['session_version']=int(user.session_version or 0)
+                state['current_project_id']=self.project.id
+            for mobile in (False,True):
+                with self.subTest(role=role,mobile=mobile):
+                    page=client.get('/account',headers={'User-Agent':MOBILE_UA} if mobile else {})
+                    self.assertEqual(page.status_code,200)
+                    parser=Links(); parser.feed(page.get_data(as_text=True))
+                    target='/my-tasks' if role in {ROLE_PAINTER,ROLE_HANDYMAN,ROLE_GLAZIER} else '/objects'
+                    self.assertTrue(parser.targets)
+                    self.assertTrue(all(href==target for href in parser.targets),parser.targets)
+                    self.assertEqual(client.get(target,headers={'User-Agent':MOBILE_UA} if mobile else {}).status_code,200)
 
     def test_project_access_guard_returns_allowed_project_and_hides_forbidden_project(self):
         scoped = self._user(role=ROLE_MANAGER, username="project-scoped", project=self.project)

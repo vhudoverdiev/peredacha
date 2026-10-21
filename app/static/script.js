@@ -3130,16 +3130,37 @@ document.addEventListener('DOMContentLoaded', () => {
           if (clearButton) clearButton.hidden = !normalizedValue || normalizedValue === '-' || normalizedValue === '—';
         };
 
+        const updateCommentDisplay = (display, value) => {
+          if (!display) return;
+          if (!value) { display.textContent = '—'; return; }
+          const entry = data.comment_entry;
+          if (!entry?.body) return;
+          if (display.textContent.trim() === '—') display.textContent = '';
+          const block = document.createElement('div');
+          block.className = 'apartment-comment-entry';
+          const body = document.createElement('p');
+          body.textContent = entry.body;
+          const meta = document.createElement('small');
+          meta.textContent = `${entry.author} · ${entry.date}`;
+          block.append(body, meta);
+          display.append(block);
+        };
         const commentDisplay = document.querySelector('[data-apartment-comment-display]');
         if (commentDisplay && Object.prototype.hasOwnProperty.call(data, 'comment')) {
-          commentDisplay.textContent = data.comment || '—';
+          updateCommentDisplay(commentDisplay, data.comment);
           syncApartmentNoteClearButton('[data-apartment-comment-display]', data.comment || '');
         }
 
         const inspectionNoteDisplay = document.querySelector('[data-apartment-inspection-note-display]');
         if (inspectionNoteDisplay && Object.prototype.hasOwnProperty.call(data, 'inspection_note')) {
-          inspectionNoteDisplay.textContent = data.inspection_note || '—';
+          updateCommentDisplay(inspectionNoteDisplay, data.inspection_note);
           syncApartmentNoteClearButton('[data-apartment-inspection-note-display]', data.inspection_note || '');
+        }
+
+        const officeManagerCommentDisplay = document.querySelector('[data-apartment-office-manager-comment-display]');
+        if (officeManagerCommentDisplay && Object.prototype.hasOwnProperty.call(data, 'office_manager_comment')) {
+          updateCommentDisplay(officeManagerCommentDisplay, data.office_manager_comment);
+          syncApartmentNoteClearButton('[data-apartment-office-manager-comment-display]', data.office_manager_comment || '');
         }
 
         if (Object.prototype.hasOwnProperty.call(data, 'avr_status')) {
@@ -3234,6 +3255,10 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
 
+        if (form.classList.contains('apartment-comment-append-form')) {
+          const textarea = form.querySelector('textarea');
+          if (textarea) textarea.value = '';
+        }
         showCrmNotice(data.message || 'Сохранено', 'success');
       } catch (error) {
         showCrmNotice(error.message || 'Не удалось сохранить изменения', 'danger');
@@ -3309,6 +3334,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.querySelectorAll('form[data-apartment-async="1"], form[data-app-deadline-auto-form]').forEach(form => {
+    if (form.classList.contains('apartment-comment-append-form')) return;
     let saveTimer = null;
     const submitSoon = (delay = 120) => {
       window.clearTimeout(saveTimer);
@@ -4517,6 +4543,38 @@ document.addEventListener('DOMContentLoaded', () => {
       return changeAssigneeModal;
     }
     changeAssigneeModal.dataset.assignmentChangeAssigneeReady = '1';
+    // Dismissal never submits the form, including during the opening transition.
+    const dismissAssigneeModal = () => {
+      changeAssigneeModal.dataset.dismissRequested = '1';
+      window.bootstrap?.Modal?.getOrCreateInstance(changeAssigneeModal)?.hide();
+    };
+    let backdropPress = false;
+    changeAssigneeModal.addEventListener('mousedown', event => {
+      backdropPress = event.target === changeAssigneeModal;
+    }, true);
+    changeAssigneeModal.addEventListener('click', event => {
+      const dismissButton = event.target.closest('[data-bs-dismiss="modal"]');
+      const backdrop = event.target === changeAssigneeModal && backdropPress;
+      if (!dismissButton && !backdrop) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      dismissAssigneeModal();
+    }, true);
+    changeAssigneeModal.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      dismissAssigneeModal();
+    }, true);
+    changeAssigneeModal.addEventListener('shown.bs.modal', () => {
+      if (changeAssigneeModal.dataset.dismissRequested !== '1') return;
+      delete changeAssigneeModal.dataset.dismissRequested;
+      window.bootstrap?.Modal?.getOrCreateInstance(changeAssigneeModal)?.hide();
+    });
+    changeAssigneeModal.addEventListener('hidden.bs.modal', () => {
+      delete changeAssigneeModal.dataset.dismissRequested;
+    });
+
 
     changeAssigneeModal.addEventListener('show.bs.modal', event => {
       const button = event.relatedTarget?.closest?.('.js-assignment-change-assignee-open') || event.relatedTarget;
@@ -7697,65 +7755,90 @@ document.addEventListener('DOMContentLoaded', () => {
     leftEl.textContent = String(Math.max(0, left + (isDone ? -1 : 1)));
   };
 
+  const nextDay = Date.parse(list.dataset.nextDay || '');
+  let refreshing = false;
+  const refreshAfterMidnight = () => {
+    if (!refreshing && Number.isFinite(nextDay) && Date.now() >= nextDay &&
+        !list.querySelector('textarea:focus') && !list.querySelector('form[data-saving]')) {
+      // Keep an unsent draft; refresh as soon as it has been submitted or cleared.
+      if ([...list.querySelectorAll('textarea')].some(field => field.value.trim())) return;
+      refreshing = true;
+      window.location.reload();
+    }
+  };
+  if (Number.isFinite(nextDay)) {
+    window.setInterval(refreshAfterMidnight, 30000);
+    document.addEventListener('visibilitychange', refreshAfterMidnight);
+  }
+  list.addEventListener('click', event => {
+    const button = event.target.closest('[data-worker-comment-toggle], [data-worker-comment-close]');
+    if (!button) return;
+    const card = button.closest('[data-worker-task-card]');
+    const panel = card.querySelector('.worker-task-discussion');
+    const toggle = card.querySelector('[data-worker-comment-toggle]');
+    panel.hidden = button.matches('[data-worker-comment-close]') || !panel.hidden;
+    toggle.setAttribute('aria-expanded', String(!panel.hidden));
+    if (panel.hidden) toggle.focus();
+    else panel.querySelector('textarea').focus();
+  });
   list.addEventListener('submit', async event => {
-    const form = event.target.closest('[data-worker-status-form]');
+    const form = event.target.closest('[data-worker-status-form], [data-worker-comment-form]');
     if (!form) return;
     event.preventDefault();
-
+    if (form.dataset.saving) return;
+    const isComment = form.matches('[data-worker-comment-form]');
     const card = form.closest('[data-worker-task-card]');
-    const button = form.querySelector('button[type="submit"]');
-    const pill = card?.querySelector('[data-worker-status-pill]');
-    const wasDone = card?.classList.contains('done') || false;
-    const previousHtml = button?.innerHTML || '';
-    const previousDisabled = button?.disabled || false;
-    if (button) {
-      button.disabled = true;
-      button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Сохраняю';
-    }
-
+    const error = card.querySelector(isComment ? '[data-worker-comment-error]' : '[data-worker-status-error]');
+    const data = new FormData(form);
+    if (!isComment && event.submitter) data.set('status', event.submitter.value);
+    const buttons = [...form.querySelectorAll('button')];
+    form.dataset.saving = '1';
+    buttons.forEach(button => button.disabled = true);
+    error.hidden = true;
     try {
-      const response = await fetch(form.action, {
-        method: 'POST',
-        body: new FormData(form),
-        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-        credentials: 'same-origin'
-      });
-      if (!response.ok) throw new Error('request failed');
-      const data = await response.json();
-      if (!data || !data.ok) throw new Error('bad payload');
-
-      if (card) {
-        card.classList.toggle('done', Boolean(data.is_done));
+      const response = await fetch(form.action, { method:'POST', body:data,
+        headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}, credentials:'same-origin' });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.message || 'Не удалось сохранить. Повторите попытку.');
+      if (isComment) {
+        const comments = card.querySelector('[data-worker-own-comments]');
+        const entry = document.createElement('div'); entry.className = 'worker-task-comment-entry';
+        const timestamp = document.createElement('small'); timestamp.textContent = result.comment.timestamp;
+        const text = document.createElement('p'); text.textContent = result.comment.body;
+        const deleteForm = document.createElement('form');
+        deleteForm.method = 'post'; deleteForm.action = result.comment.delete_url;
+        deleteForm.className = 'worker-comment-delete-form';
+        deleteForm.dataset.confirm = 'Удалить этот комментарий?';
+        deleteForm.append(form.querySelector('[name=csrf_token]').cloneNode());
+        deleteForm.insertAdjacentHTML('beforeend', '<button class="btn btn-sm btn-outline-danger worker-comment-delete-button" type="submit" aria-label="Удалить комментарий" title="Удалить комментарий"><i class="bi bi-trash" aria-hidden="true"></i></button>');
+        entry.append(timestamp, deleteForm, text); comments.prepend(entry); comments.hidden = false;
+        form.reset();
+        card.querySelector('.worker-task-discussion').hidden = true;
+        const toggle = card.querySelector('[data-worker-comment-toggle]');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.focus();
+      } else {
+        const wasDone = card.classList.contains('done');
+        card.classList.toggle('done', Boolean(result.is_done));
+        const pill = card.querySelector('[data-worker-status-pill]');
+        pill.className = `worker-status-pill badge bg-${result.status === 'in_progress' ? 'secondary' : result.status_class}`; pill.textContent = result.status_label;
+        const toggle = form.querySelector('[data-worker-done-toggle]');
+        toggle.value = result.is_done ? 'not_started' : 'done';
+        toggle.textContent = result.is_done ? 'Не выполнено' : 'Выполнено';
+        toggle.classList.toggle('is-active', Boolean(result.is_done));
+        toggle.setAttribute('aria-pressed', String(Boolean(result.is_done)));
+        const progress = form.querySelector('.worker-progress-action');
+        const active = result.status === 'in_progress';
+        progress.classList.toggle('is-active', active);
+        progress.setAttribute('aria-pressed', String(active));
+        updateCounters(wasDone, Boolean(result.is_done));
         if (window.moveDoneItemToBottom) window.moveDoneItemToBottom(card);
       }
-      if (pill) {
-        pill.className = `worker-status-pill badge bg-${data.status_class || 'secondary'}`;
-        pill.textContent = data.status_label || (data.is_done ? 'Выполнено' : 'Не выполнено');
-      }
-
-      const currentAction = form.action;
-      const nextUrl = form.dataset.nextUrl;
-      if (nextUrl) {
-        form.action = nextUrl;
-        form.dataset.nextUrl = currentAction;
-      }
-      if (button) {
-        button.disabled = false;
-        if (data.is_done) {
-          button.className = 'btn worker-status-btn worker-status-btn-return';
-          button.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i><span>Не выполнено</span>';
-        } else {
-          button.className = 'btn worker-status-btn worker-status-btn-done';
-          button.innerHTML = '<i class="bi bi-check2"></i><span>Выполнено</span>';
-        }
-      }
-      updateCounters(wasDone, Boolean(data.is_done));
-    } catch (error) {
-      if (button) {
-        button.disabled = previousDisabled;
-        button.innerHTML = previousHtml;
-      }
-      form.submit();
+    } catch (failure) {
+      error.textContent = failure.message || 'Ошибка сети. Повторите попытку.'; error.hidden = false;
+    } finally {
+      delete form.dataset.saving;
+      buttons.forEach(button => button.disabled = false);
     }
   });
 });
@@ -9212,7 +9295,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Deletion in a task card must not submit a document or resize an icon button.
 document.addEventListener('submit', async event => {
   const form = event.target;
-  if (!form.matches?.('.task-comment-delete-form, .task-detail-delete-form')) return;
+  if (!form.matches?.('.task-comment-delete-form, .task-detail-delete-form, .worker-comment-delete-form')) return;
   event.preventDefault();
   event.stopImmediatePropagation();
   if (form.dataset.deleting === '1') return;
@@ -9234,7 +9317,13 @@ document.addEventListener('submit', async event => {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || data.ok !== true) throw new Error(data.message || 'Не удалось удалить. Попробуйте ещё раз.');
-    if (form.matches('.task-comment-delete-form')) {
+    if (form.matches('.worker-comment-delete-form')) {
+      const card = form.closest('[data-worker-task-card]');
+      const comments = form.closest('[data-worker-own-comments]');
+      form.closest('.worker-task-comment-entry').remove();
+      comments.hidden = !comments.querySelector('.worker-task-comment-entry');
+      card.querySelector('[data-worker-comment-toggle]').focus();
+    } else if (form.matches('.task-comment-delete-form')) {
       const card = form.closest('.task-detail-comments-card');
       form.closest('.comment-item')?.remove();
       if (card && !card.querySelector('.comment-item')) {
@@ -9270,3 +9359,52 @@ document.addEventListener('submit', async event => {
     }
   }
 }, true);
+
+// Search fields submit on Enter; discrete filters apply as soon as selected.
+(() => {
+  const pending = new WeakMap();
+  const filterForm = field => {
+    const form = field?.form;
+    if (!form || form.method.toLowerCase() !== 'get') return null;
+    if (form.matches('[data-appeals-filter]')) return null;
+    if (!form.matches('.crm-filter-form, .apartments-filter-form, .assignment-search-form, .assignment-report-filter-form, .contractor-points-filter') &&
+        !form.querySelector('input[name="q"]:not([type="hidden"]), input[type="search"]')) return null;
+    const target = new URL(form.action || location.href, location.href);
+    return target.origin === location.origin && target.pathname === location.pathname ? form : null;
+  };
+  const apply = form => {
+    clearTimeout(pending.get(form));
+    const page = form.querySelector('input[name="page"]');
+    if (page) page.value = '1';
+    form.requestSubmit();
+  };
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' || event.isComposing || event.keyCode === 229 || event.defaultPrevented) return;
+    const field = event.target;
+    if (!(field instanceof HTMLInputElement) || !['text', 'search', 'number', 'tel'].includes(field.type)) return;
+    const form = filterForm(field);
+    if (!form) return;
+    event.preventDefault();
+    apply(form);
+  });
+  document.addEventListener('change', event => {
+    const field = event.target;
+    if (!(field instanceof HTMLSelectElement) &&
+        !(field instanceof HTMLInputElement && ['checkbox', 'radio', 'date'].includes(field.type))) return;
+    const form = filterForm(field);
+    if (!form) return;
+    clearTimeout(pending.get(form));
+    pending.set(form, setTimeout(() => { if (form.isConnected) apply(form); }, 120));
+  });
+})();
+
+// A project-wide manual task deliberately has no premise selection.
+document.addEventListener('change', event => {
+  const toggle = event.target.closest?.('[data-assignment-without-premise]');
+  if (!toggle) return;
+  const field = toggle.form.querySelector('[data-assignment-premise-field]');
+  const select = field.querySelector('[name=apartment_id]');
+  field.hidden = toggle.checked;
+  select.disabled = toggle.checked;
+  select.required = !toggle.checked;
+});

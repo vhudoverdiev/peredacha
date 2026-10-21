@@ -48,7 +48,7 @@
       </button>
       {% endif %}
     {% else %}
-      {% if current_user.role in ['admin', 'manager', 'supervisor', 'office'] %}
+      {% if current_user.role in ['admin', 'manager', 'supervisor', 'office', 'office_manager'] %}
       <a class="btn btn-success remarks-page-primary-btn contractor-directory-btn" href="{{ url_for('main.contractor_directory') }}">
         <i class="bi bi-people me-2"></i>Список подрядчиков
       </a>

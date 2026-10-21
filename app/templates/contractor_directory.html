@@ -10,7 +10,7 @@
       <h1 class="page-title">Список подрядчиков</h1>
     </div>
     <div class="contractor-directory-actions">
-      {% if current_user.role in ['admin', 'manager', 'supervisor', 'office'] %}
+      {% if current_user.role in ['admin', 'manager', 'supervisor', 'office', 'office_manager'] %}
       <a class="btn btn-success remarks-page-primary-btn contractor-points-link" href="{{ url_for('main.contractor_points') }}">
         <i class="bi bi-list-check me-2"></i>Пункты
       </a>
@@ -57,7 +57,7 @@
         <span>+{{ row.point_labels|length - 6 }}</span>
         {% endif %}
       </div>
-      {% if current_user.role in ['admin', 'manager', 'supervisor', 'office'] %}
+      {% if current_user.role in ['admin', 'manager', 'supervisor', 'office', 'office_manager'] %}
       <div class="contractor-directory-card-actions">
         <a class="btn btn-success remarks-page-primary-btn contractor-directory-edit-btn" href="{{ url_for('main.contractor_edit', contractor_id=contractor.id) }}">
           <i class="bi bi-pencil-square me-2"></i>Редактировать
@@ -78,7 +78,7 @@
     <span><i class="bi bi-person-plus"></i></span>
     <h2>Подрядчиков пока нет</h2>
     <p>Создайте первого подрядчика и выберите, за какие пункты и помещения он отвечает.</p>
-    {% if current_user.role in ['admin', 'manager', 'supervisor', 'office'] %}
+    {% if current_user.role in ['admin', 'manager', 'supervisor', 'office', 'office_manager'] %}
     <a class="btn btn-success remarks-page-primary-btn" href="{{ url_for('main.contractor_new') }}">
       <i class="bi bi-person-plus me-2"></i>Создать подрядчика
     </a>

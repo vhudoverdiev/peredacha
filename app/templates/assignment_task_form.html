@@ -11,13 +11,17 @@
 <form method="post" class="card content-card task-manual-form assignment-manual-task-form mobile-fill-card">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="card-body">
+    <label class="form-check mb-3" for="assignmentWithoutPremise">
+      <input class="form-check-input" id="assignmentWithoutPremise" type="checkbox" name="without_premise" value="1" data-assignment-without-premise {% if request.form.get('without_premise') == '1' %}checked{% endif %}>
+      <span class="form-check-label">Не прикреплять к помещению</span>
+    </label>
     <div class="row g-3">
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-md-4" data-assignment-premise-field {% if request.form.get('without_premise') == '1' %}hidden{% endif %}>
         <label class="form-label">Помещение</label>
-        <select class="form-select" name="apartment_id" required>
+        <select class="form-select" name="apartment_id" {% if request.form.get('without_premise') == '1' %}disabled{% else %}required{% endif %}>
           <option value="">Выберите квартиру / коммерцию</option>
           {% for apartment in apartments %}
-            <option value="{{ apartment.id }}">{{ apartment.label() }}</option>
+            <option value="{{ apartment.id }}" {% if request.form.get('apartment_id') == apartment.id|string %}selected{% endif %}>{{ apartment.label() }}</option>
           {% endfor %}
         </select>
       </div>
@@ -26,17 +30,17 @@
         <select class="form-select" name="responsible_id">
           <option value="">Пока не назначать</option>
           {% for user in users %}
-            <option value="{{ user.id }}">{{ user.full_name or user.username }} — {{ ROLE_LABELS.get(user.role, user.role) }}</option>
+            <option value="{{ user.id }}" {% if request.form.get('responsible_id') == user.id|string %}selected{% endif %}>{{ user.full_name or user.username }} — {{ ROLE_LABELS.get(user.role, user.role) }}</option>
           {% endfor %}
         </select>
       </div>
       <div class="col-12 col-md-4">
         <label class="form-label">Дата выполнения</label>
-        <input class="form-control" type="date" name="planned_date">
+        <input class="form-control" type="date" name="planned_date" value="{{ request.form.get('planned_date', '') }}">
       </div>
       <div class="col-12">
         <label class="form-label">Наименование задачи</label>
-        <textarea class="form-control" name="description" rows="4" required placeholder="Например: проверить регулировку окна после устранения"></textarea>
+        <textarea class="form-control" name="description" rows="4" required placeholder="Например: проверить регулировку окна после устранения">{{ request.form.get('description', '') }}</textarea>
       </div>
     </div>
     <div class="material-form-footer mt-4">

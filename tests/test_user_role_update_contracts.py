@@ -8,6 +8,7 @@ from app.models import (
     ROLE_GLAZIER,
     ROLE_MANAGER,
     ROLE_OFFICE,
+    ROLE_OFFICE_MANAGER,
     ROLE_PAINTER,
     ROLE_SUPERVISOR,
     ChatMessage,
@@ -142,6 +143,22 @@ class UserRoleUpdateContractsTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["role"], ROLE_OFFICE)
         self.assertEqual(db.session.get(User, user.id).role, ROLE_OFFICE)
+
+    def test_admin_can_create_and_assign_office_manager_role(self):
+        admin = self._user("admin-office-manager", ROLE_ADMIN)
+        user = self._user("office-manager-candidate", ROLE_MANAGER)
+        self._login(admin)
+
+        response = self.client.post(
+            f"/users/{user.id}/role",
+            data={"role": ROLE_OFFICE_MANAGER},
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["role"], ROLE_OFFICE_MANAGER)
+        self.assertEqual(response.get_json()["label"], "Офис-Менеджер")
+        self.assertEqual(db.session.get(User, user.id).role, ROLE_OFFICE_MANAGER)
 
     def test_admin_can_update_user_to_supervisor_role(self):
         admin = self._user("admin-supervisor", ROLE_ADMIN)

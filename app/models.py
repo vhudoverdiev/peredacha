@@ -14,6 +14,8 @@ ROLE_ADMIN = "admin"
 ROLE_MANAGER = "manager"
 ROLE_SUPERVISOR = "supervisor"
 ROLE_OFFICE = "office"
+ROLE_OFFICE_MANAGER = "office_manager"
+OFFICE_ROLES = {ROLE_OFFICE, ROLE_OFFICE_MANAGER}
 ROLE_EXECUTOR = "executor"
 ROLE_PAINTER = "painter"
 ROLE_HANDYMAN = "handyman"
@@ -26,6 +28,7 @@ ROLE_LABELS = {
     ROLE_MANAGER: "Инженер",
     ROLE_SUPERVISOR: "Руководитель",
     ROLE_OFFICE: "Передача(Офис)",
+    ROLE_OFFICE_MANAGER: "Офис-Менеджер",
     ROLE_EXECUTOR: "Маляр",
     ROLE_PAINTER: "Маляр",
     ROLE_HANDYMAN: "Разнорабочий",
@@ -36,11 +39,12 @@ USER_ROLE_CHOICES = [
     (ROLE_MANAGER, "Инженер"),
     (ROLE_SUPERVISOR, "Руководитель"),
     (ROLE_OFFICE, "Передача(Офис)"),
+    (ROLE_OFFICE_MANAGER, "Офис-Менеджер"),
     (ROLE_PAINTER, "Маляр"),
     (ROLE_HANDYMAN, "Разнорабочий"),
     (ROLE_GLAZIER, "Витражник"),
 ]
-ROLES = [ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_OFFICE, ROLE_EXECUTOR, ROLE_PAINTER, ROLE_HANDYMAN, ROLE_GLAZIER, ROLE_VIEWER]
+ROLES = [ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_OFFICE, ROLE_OFFICE_MANAGER, ROLE_EXECUTOR, ROLE_PAINTER, ROLE_HANDYMAN, ROLE_GLAZIER, ROLE_VIEWER]
 
 STATUS_NOT_STARTED = "not_started"
 STATUS_IN_PROGRESS = "in_progress"
@@ -54,6 +58,7 @@ STATUS_REVIEW = "review"
 STATUS_POSTPONED = "postponed"
 
 TASK_STATUSES = {
+    STATUS_IN_PROGRESS: {"label": "В работе", "class": "primary"},
     STATUS_DONE: {"label": "Выполнено", "class": "success"},
     STATUS_FINISHERS: {"label": "Чистовики", "class": "info"},
     STATUS_CONTRACTOR: {"label": "Подрядчик", "class": "warning"},
@@ -188,7 +193,7 @@ class User(UserMixin, TimestampMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
     def can(self, *roles: str) -> bool:
-        return self.role in roles or self.role == ROLE_ADMIN or (ROLE_MANAGER in roles and self.role in {ROLE_OFFICE, ROLE_SUPERVISOR})
+        return self.role in roles or self.role == ROLE_ADMIN or (ROLE_MANAGER in roles and self.role in {ROLE_OFFICE, ROLE_OFFICE_MANAGER, ROLE_SUPERVISOR})
 
     def __repr__(self):
         return f"<User {self.username}>"
@@ -299,6 +304,7 @@ class Apartment(TimestampMixin, db.Model):
     app_deadline_raw = db.Column(db.String(255), nullable=True)
     app_deadline_status = db.Column(db.String(30), default="normal", nullable=False, index=True)
     comment = db.Column(db.Text, nullable=True)
+    office_manager_comment = db.Column(db.Text, nullable=True)
     source_row_id = db.Column(db.String(180), nullable=True, index=True)
 
     project = db.relationship("Project", back_populates="apartments")
@@ -505,7 +511,7 @@ class Task(TimestampMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     source_uid = db.Column(db.String(64), unique=True, nullable=False, index=True)
     project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False, index=True)
-    apartment_id = db.Column(db.Integer, db.ForeignKey("apartments.id"), nullable=False, index=True)
+    apartment_id = db.Column(db.Integer, db.ForeignKey("apartments.id"), nullable=True, index=True)
     work_point_id = db.Column(db.Integer, db.ForeignKey("work_points.id"), nullable=False, index=True)
     title = db.Column(db.String(255), nullable=True)
     description = db.Column(db.Text, nullable=True)
@@ -906,3 +912,89 @@ class AppSetting(TimestampMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(120), unique=True, nullable=False, index=True)
     value = db.Column(db.Text, nullable=True)
+
+
+class Appeal(TimestampMixin, db.Model):
+    __tablename__ = 'appeals'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False, index=True)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartments.id'), nullable=False, index=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    body = db.Column(db.Text, nullable=False)
+    caller_name = db.Column(db.String(180), nullable=False, default='')
+    caller_phone = db.Column(db.String(100), nullable=False, default='')
+    status = db.Column(db.String(24), nullable=False, default='required', index=True)
+    project = db.relationship('Project', backref=db.backref('appeals', cascade='all, delete-orphan'))
+    apartment = db.relationship('Apartment', backref=db.backref('appeals', cascade='all, delete-orphan'))
+    created_by = db.relationship('User')
+    comments = db.relationship('AppealComment', back_populates='appeal', cascade='all, delete-orphan', order_by='AppealComment.created_at')
+    attachment = db.relationship('AppealAttachment', back_populates='appeal', cascade='all, delete-orphan', uselist=False)
+
+
+class InspectionCallNote(TimestampMixin, db.Model):
+    __tablename__ = 'inspection_call_notes'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False, index=True)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartments.id'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    body = db.Column(db.Text, nullable=False)
+    apartment = db.relationship('Apartment')
+    user = db.relationship('User')
+
+
+class AppealAttachment(TimestampMixin, db.Model):
+    __tablename__ = 'appeal_attachments'
+    id = db.Column(db.Integer, primary_key=True)
+    appeal_id = db.Column(db.Integer, db.ForeignKey('appeals.id'), nullable=False, unique=True, index=True)
+    original_name = db.Column(db.String(255), nullable=False)
+    stored_name = db.Column(db.String(255), nullable=False, unique=True)
+    mime_type = db.Column(db.String(80), nullable=False)
+    size_bytes = db.Column(db.Integer, nullable=False)
+    appeal = db.relationship('Appeal', back_populates='attachment')
+
+
+class AppealComment(TimestampMixin, db.Model):
+    __tablename__ = 'appeal_comments'
+    id = db.Column(db.Integer, primary_key=True)
+    appeal_id = db.Column(db.Integer, db.ForeignKey('appeals.id'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    body = db.Column(db.Text, nullable=False)
+    is_system = db.Column(db.Boolean, nullable=False, default=False)
+    appeal = db.relationship('Appeal', back_populates='comments')
+    user = db.relationship('User')
+
+
+class InspectionSlot(TimestampMixin, db.Model):
+    __tablename__ = 'inspection_slots'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False, index=True)
+    day = db.Column(db.Date, nullable=False, index=True)
+    start_time = db.Column(db.Time, nullable=False)
+    duration_minutes = db.Column(db.Integer, nullable=False, default=30)
+    is_open = db.Column(db.Boolean, nullable=False, default=True)
+    closed_reason = db.Column(db.String(300), nullable=True)
+    closed_by_interval = db.Column(db.Boolean, nullable=False, default=False)
+    closed_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
+    project = db.relationship('Project', backref=db.backref('inspection_slots', cascade='all, delete-orphan'))
+    bookings = db.relationship('InspectionBooking', foreign_keys='InspectionBooking.slot_id', back_populates='slot', cascade='all, delete-orphan')
+    __table_args__ = (db.UniqueConstraint('project_id', 'day', 'start_time', name='uq_inspection_slot_time'),)
+
+
+class InspectionBooking(TimestampMixin, db.Model):
+    __tablename__ = 'inspection_bookings'
+    id = db.Column(db.Integer, primary_key=True)
+    slot_id = db.Column(db.Integer, db.ForeignKey('inspection_slots.id'), nullable=False, index=True)
+    # NULL after cancellation: the history remains, while the unique slot becomes free.
+    active_slot_id = db.Column(db.Integer, db.ForeignKey('inspection_slots.id'), nullable=True, unique=True)
+    appointment_time = db.Column(db.Time, nullable=True)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartments.id'), nullable=False, index=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    contact = db.Column(db.String(255), nullable=False, default='')
+    contact_phone = db.Column(db.String(255), nullable=False, default='')
+    note = db.Column(db.Text, nullable=False, default='')
+    status = db.Column(db.String(24), nullable=False, default='booked')
+    slot = db.relationship('InspectionSlot', foreign_keys=[slot_id], back_populates='bookings')
+    apartment = db.relationship('Apartment', backref=db.backref('inspection_bookings', cascade='all, delete-orphan'))
+    created_by = db.relationship('User', foreign_keys=[created_by_id])
+    staff = db.relationship('User', foreign_keys=[staff_id])

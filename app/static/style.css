@@ -409,6 +409,17 @@ body.auth-body #iosInstallModal .ios-install-actions::before {
   }
 }
 
+/* Keep the original field alignment and fit each owner's name on one line. */
+@media (min-width: 768px) {
+  html body.app-body .apartment-detail-page .apartment-owner-names-control[name="owner_name"] {
+    white-space: pre !important;
+    overflow-x: auto !important;
+    overflow-wrap: normal !important;
+    font-size: .78rem !important;
+    letter-spacing: -.015em;
+  }
+}
+
 
 /* Desktop users: compact project picker, autosave fields and aligned actions. */
 .users-page .users-role-option {
@@ -39994,8 +40005,7 @@ html.desktop-like-pointer body.auth-body {
   background-color: #fefdfe !important;
 }
 
-html.desktop-like-pointer body.app-body:has(.app-layout),
-html.desktop-like-pointer body.app-body:has(.worker-layout) {
+html.desktop-like-pointer.desktop-shell-with-sidebar body.app-body:has(.app-layout) {
   background-image:
     var(--crm-shell-sidebar-surface-stable),
     linear-gradient(180deg, #fefdfe 0%, #fefdfe 100%) !important;
@@ -58699,9 +58709,25 @@ html body.app-body .apartment-detail-page .apartment-data-note > p {
   font-size: .86rem !important;
   font-weight: 400 !important;
   line-height: 1.25 !important;
-  white-space: normal !important;
+  white-space: pre-wrap !important;
   overflow-wrap: anywhere !important;
   word-break: normal !important;
+}
+
+html body.app-body .apartment-detail-page .apartment-comment-entries {
+  min-width: 0;
+  display: grid;
+  gap: .55rem;
+}
+html body.app-body .apartment-detail-page .apartment-comment-entry p {
+  margin: 0 0 .12rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: .86rem;
+}
+html body.app-body .apartment-detail-page .apartment-comment-entry small {
+  color: #7a8490;
+  font-size: .69rem;
 }
 
 html body.app-body .apartment-detail-page .apartment-owner-names-control {
@@ -59728,3 +59754,160 @@ html body.app-body .task-detail-comments-card .task-comment-delete-form {
   align-self: center;
   margin: 0;
 }
+
+/* Worker tasks have no desktop navigation rail. */
+html.desktop-like-pointer:not(.desktop-shell-with-sidebar) body.app-body:has(.worker-layout) {
+  background-image: none !important;
+}
+.worker-task-status-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.worker-task-discussion { grid-column:1 / -1; width:100%; min-width:0; margin-top:14px; }
+.worker-task-comment-form label { display:block; margin-bottom:6px; }
+.worker-task-comment-form textarea { width:100%; resize:vertical; font-size:16px; min-height:80px; margin-top:2px; }
+.worker-task-comments { max-height:260px; overflow-y:auto; margin:10px 0; }
+.worker-task-comment-entry { padding:8px 0; border-bottom:1px solid #e5e7eb; overflow-wrap:anywhere; }
+.worker-task-comment-entry p { white-space:pre-wrap; margin:4px 0; }
+.worker-action-error { color:#b42318; margin-top:8px; }
+
+html.desktop-like-pointer body.app-body .worker-layout {
+  --desktop-sidebar-width:0px;
+  grid-template-columns:minmax(0, 1fr) !important;
+}
+html.desktop-like-pointer body.app-body .worker-layout > .app-main {
+  margin-left:0 !important;
+  grid-column:1 / -1 !important;
+}
+@media (max-width:767.98px) {
+  html body.app-body .worker-page-minimal .worker-day-head {
+    display:flex !important; flex-direction:column !important; align-items:stretch !important; gap:12px !important;
+  }
+  html body.app-body .worker-page-minimal .worker-day-head > div { width:100% !important; min-width:0; }
+  html body.app-body .worker-page-minimal .worker-day-head h1 { font-size:24px !important; }
+}
+
+.worker-project-group { display: grid; gap: 12px; min-width: 0; }
+.worker-project-heading {
+  display: flex; align-items: center; gap: 12px;
+  margin: 14px 0 2px; padding: 16px 18px;
+  font-size: 22px; line-height: 1.3;
+  background: #fff;
+  border: 1px solid #e2e6eb;
+  border-radius: 18px; box-shadow: 0 6px 20px rgba(39, 63, 16, .05);
+}
+.worker-project-heading > span { min-width: 0; overflow-wrap: anywhere; }
+.worker-project-heading > i {
+  display: inline-grid; place-items: center; flex: 0 0 36px;
+  width: 36px; height: 36px; border-radius: 11px;
+  background: #f1f3f5; color: #20252a; font-size: 20px;
+}
+html body.app-body .worker-page .worker-progress-action {
+  background: #fff !important;
+  border: 1px solid #d9dee3 !important;
+  color: #000 !important;
+  box-shadow: none !important;
+}
+html body.app-body .worker-page .worker-progress-action.is-active {
+  background: #e3e6e9 !important;
+  border-color: #8b949d !important;
+  color: #1f252b !important;
+}
+html body.app-body .worker-page .worker-progress-action:focus-visible {
+  outline: 3px solid #7b858f !important;
+  outline-offset: 3px;
+}
+@media (max-width:767.98px) {
+  .worker-project-heading { font-size: 20px; }
+}
+
+.worker-task-discussion[hidden], .worker-comment-feedback[hidden] { display: none !important; }
+.worker-comment-form-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.worker-comment-feedback { grid-column: 1 / -1; color: #3b6814; font-size: 14px; margin-top: 10px; }
+.worker-comment-action { white-space: nowrap; }
+
+.worker-own-comments { grid-column: 1 / -1; width: 100%; min-width: 0; }
+.worker-own-comments[hidden] { display: none !important; }
+html body.app-body .worker-page :is(.worker-comment-action, [data-worker-comment-close]),
+html body.app-body .worker-page :is(.worker-comment-action, [data-worker-comment-close]) i {
+  color: #000 !important;
+}
+
+html body.app-body .worker-page .worker-done-action {
+  background: #fff !important;
+  border: 1px solid #d9dee3 !important;
+  color: #000 !important;
+  box-shadow: none !important;
+}
+html body.app-body .worker-page .worker-done-action.is-active {
+  background: linear-gradient(180deg, var(--peredacha-action-green), var(--peredacha-action-green-hover)) !important;
+  border-color: var(--peredacha-action-green-hover) !important;
+  color: #fff !important;
+}
+html body.app-body .worker-page .worker-done-action:focus-visible {
+  outline: 3px solid #5a921d !important;
+  outline-offset: 3px;
+}
+
+html body.app-body .worker-layout .worker-brand-link,
+html body.app-body .worker-layout .worker-brand-link .brand-text { color: #fff !important; }
+
+/* A consistent reading order: remark, controls, then personal comments. */
+html body.app-body .worker-page .worker-task-card-minimal {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 14px !important; padding: 20px !important; border-radius: 20px !important;
+  box-shadow: 0 8px 24px rgba(31, 45, 35, .055) !important;
+}
+html body.app-body .worker-page .worker-task-card-minimal.done::after { display: none; }
+html body.app-body .worker-page .worker-task-text { font-size: 16px !important; line-height: 1.5 !important; }
+html body.app-body .worker-page .worker-task-status-zone {
+  display: flex !important; flex-wrap: wrap; justify-content: space-between; align-items: center;
+  min-width: 0 !important; gap: 10px !important;
+  border-top: 1px solid #edf0e9; padding-top: 12px;
+}
+html body.app-body .worker-page .worker-task-status-actions { margin: 0; gap: 8px; }
+html body.app-body .worker-page .worker-task-status-actions .btn {
+  min-height: 38px; border-radius: 10px !important; font-size: 14px !important; padding: 7px 12px !important;
+}
+html body.app-body .worker-page .worker-own-comments {
+  margin: 0; max-height: 280px; padding: 0 14px;
+  border: 1px solid #e6ebdf; border-radius: 12px; background: #fff;
+}
+html body.app-body .worker-page .worker-task-comment-entry {
+  display: grid; grid-template-columns: minmax(0, 1fr) 32px;
+  gap: 4px 10px; padding: 12px 0;
+}
+.worker-task-comment-entry > small { align-self: center; color: #636b61; font-size: 13px; }
+.worker-task-comment-entry > p { grid-column: 1 / -1; font-size: 14px; }
+.worker-task-comment-entry:last-child { border-bottom: 0; }
+.worker-comment-delete-form { margin: 0; }
+html body.app-body .worker-page .worker-comment-delete-button {
+  display: inline-grid; place-items: center; width: 32px !important; height: 32px !important;
+  min-width: 32px !important; padding: 0 !important; border-radius: 9px !important;
+}
+html body.app-body .worker-page .worker-task-discussion { margin-top: 0; }
+html body.app-body .worker-page .worker-comment-feedback { margin-top: 0; }
+@media (max-width:767.98px) {
+  html body.app-body .worker-page .worker-task-card-minimal { padding: 18px !important; }
+  html body.app-body .worker-page .worker-task-status-zone { align-items: stretch; flex-direction: column; }
+  html body.app-body .worker-page .worker-status-pill { align-self: flex-start; }
+  html body.app-body .worker-page .worker-task-status-actions {
+    display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); width: 100%;
+  }
+  html body.app-body .worker-page .worker-comment-action { grid-column: 1 / -1; }
+}
+
+html body.app-body .worker-page .worker-task-card-minimal.done .worker-task-text {
+  color: #000 !important;
+  -webkit-text-fill-color: #000 !important;
+  text-decoration-color: #000 !important;
+}
+.appeal-status-required { color:#b42318 !important; background:#fff1f0 !important; border-color:#f3b4ae !important; font-weight:700; }
+.apartment-inspection-action-btn { width:auto !important; min-width:0 !important; padding:6px 12px !important; white-space:nowrap; }
+.appeal-back-button, .appeal-back-button i { color:#111827 !important; }
+.appeal-list-info-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:16px 0; }
+.appeal-list-info-grid > div, .appeal-list-body { display:flex; flex-direction:column; gap:8px; }
+.appeal-list-info-grid small, .appeal-list-body > small { color:#6b7280; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+.appeal-list-info-grid > div { padding:10px 12px; border:1px solid #edf0e9; border-radius:10px; background:#fbfcfa; }
+.appeal-list-info-grid span { display:flex; gap:10px; align-items:flex-start; white-space:pre-line; line-height:1.45; }
+.appeal-list-body { border-top:1px solid #edf0e9; padding-top:12px; }
+.appeal-list-body p { margin:0; }
+.appeal-list-author { display:block; margin-top:14px; color:#6b7280; }
+@media (max-width:767.98px) { .appeal-list-info-grid { grid-template-columns:1fr; gap:10px; } }

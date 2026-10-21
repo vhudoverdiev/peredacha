@@ -375,5 +375,7 @@ def validate_upload(file: FileStorage, allowed: Iterable[str], max_size: int | N
         raise ValueError("Файл повреждён или не соответствует расширению")
     if lower.endswith(".pdf") and not header.startswith(b"%PDF"):
         raise ValueError("Файл повреждён или не соответствует расширению")
+    if lower.endswith((".jpg", ".jpeg")) and not header.startswith(b"\xff\xd8\xff"):
+        raise ValueError("Файл повреждён или не соответствует расширению")
     if lower.endswith(".doc") and not header.startswith(bytes.fromhex("D0CF11E0")):
         raise ValueError("Файл повреждён или не соответствует расширению")

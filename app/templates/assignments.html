@@ -40,7 +40,7 @@
           {% for row in group.rows %}
           {% set task = row.task %}
           <tr class="assignment-issued-row {% if task.is_done %}done-task{% endif %}" data-task-id="{{ task.id }}">
-            <td><span class="assignment-room-pill"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else '—' }}</span></td>
+            <td><span class="assignment-room-pill"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else 'Без помещения' }}</span></td>
             <td class="task-text"><a class="assignment-task-text assignment-task-open-link" href="{{ url_for('main.task_detail', task_id=task.id) }}">{{ remark_text(task.description or task.source_cell_value) }}</a></td>
             <td class="assignment-issued-date-cell">
               <span>{{ task.planned_date|ru_date if task.planned_date else '—' }}</span>
@@ -59,7 +59,7 @@
                   <input type="hidden" name="update_date_task_id" value="{{ task.id }}">
                   <button class="btn btn-sm btn-outline-primary js-assignment-date-open" type="button" data-task-id="{{ task.id }}" data-current-date="{{ (task.planned_date or today).isoformat() }}" title="Изменить дату выполнения задачи" aria-label="Изменить дату выполнения задачи"><i class="bi bi-calendar-check"></i><span class="assignment-date-action-text d-none">Дата</span></button>
                 </form>
-                <button class="btn btn-sm assignment-change-assignee-btn js-assignment-change-assignee-open" type="button" title="Сменить исполнителя" aria-label="Сменить исполнителя" data-bs-toggle="modal" data-bs-target="#assignmentChangeAssigneeModal" data-task-id="{{ task.id }}" data-room="{{ task.apartment.label() if task.apartment else '—' }}" data-task-text="{{ (task.description or task.source_cell_value or '')|striptags }}" data-current-responsible-id="{{ task.responsible_id or '' }}" data-current-responsible-name="{{ (task.responsible.full_name or task.responsible.username) if task.responsible else '—' }}">
+                <button class="btn btn-sm assignment-change-assignee-btn js-assignment-change-assignee-open" type="button" title="Сменить исполнителя" aria-label="Сменить исполнителя" data-bs-toggle="modal" data-bs-target="#assignmentChangeAssigneeModal" data-task-id="{{ task.id }}" data-room="{{ task.apartment.label() if task.apartment else 'Без помещения' }}" data-task-text="{{ (task.description or task.source_cell_value or '')|striptags }}" data-current-responsible-id="{{ task.responsible_id or '' }}" data-current-responsible-name="{{ (task.responsible.full_name or task.responsible.username) if task.responsible else '—' }}">
                   <i class="bi bi-person-gear"></i><span class="assignment-change-assignee-text">Сменить</span>
                 </button>
                 <form method="post" action="{{ url_for('main.assignment_delete_from_employee', task_id=task.id) }}" class="assignment-remove-user-form">
@@ -348,7 +348,7 @@
             <td class="assignment-check-cell">
               <input class="form-check-input assignment-task-check js-bulk-check" type="checkbox" name="task_ids" value="{{ task.id }}" {% if smart_mode or task.id in selected_task_ids %}checked{% endif %}>
             </td>
-            <td><span class="assignment-room-pill js-highlight-text"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else '—' }}</span></td>
+            <td><span class="assignment-room-pill js-highlight-text"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else 'Без помещения' }}</span></td>
             <td class="task-text">
               <div class="d-flex align-items-start gap-2 inline-editor-anchor assignment-task-inline-anchor">
                 <span class="assignment-task-text inline-text js-highlight-text" data-task-id="{{ task.id }}" title="{{ task.description or task.source_cell_value }}">{{ remark_text(task.description or task.source_cell_value) }}</span>

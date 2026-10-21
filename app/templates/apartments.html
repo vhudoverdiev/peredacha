@@ -16,7 +16,7 @@
     <form method="get" class="row g-2 align-items-end apartments-filter-form">
       <div class="col-12 col-lg-2">
         <label class="form-label">Поиск</label>
-        <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите цифры или текст">
+        <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Номер, фамилия или имя">
       </div>
       <div class="col-12 col-sm-6 col-lg-2">
         <label class="form-label">Осмотр</label>
@@ -150,8 +150,9 @@
       </span>
       {% endif %}
       <span><i class="bi bi-list-check"></i>Замечаний: {{ row.total }}</span>
-      <span><i class="bi bi-chat-left-text"></i>Комментарий(передача): {{ row.manual_comment or '—' }}</span>
-      <span><i class="bi bi-chat-left-text"></i>Комментарий(устранение замечаний): {{ row.inspection_comment or '—' }}</span>
+      <span><i class="bi bi-chat-left-text"></i>Комментарий (Офис): {{ row.manual_comment or '—' }}</span>
+      <span><i class="bi bi-chat-left-text"></i>Комментарий (Инженеры): {{ row.inspection_comment or '—' }}</span>
+      <span><i class="bi bi-chat-left-text"></i>Комментарий (Офис-Менеджер): {{ row.office_manager_comment or '—' }}</span>
     </div>
     </a>
 

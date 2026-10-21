@@ -2275,3 +2275,34 @@
     overscroll-behavior-y: contain !important;
   }
 }
+
+/* Paint the Android gesture area in the same colour as the navigation dock. */
+@media (max-width: 767.98px) {
+  html.app-root.android-touch-device { --android-dock-inset:env(safe-area-inset-bottom, 0px); color-scheme: dark; background-color:#111820 !important; }
+  html.android-touch-device body.app-body { color-scheme: light; }
+  html.android-touch-device body.app-body.app-body.app-body > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    height:calc(72px + var(--android-dock-inset)) !important;
+    min-height:calc(72px + var(--android-dock-inset)) !important;
+    max-height:calc(72px + var(--android-dock-inset)) !important;
+    padding-bottom:calc(3px + var(--android-dock-inset)) !important;
+  }
+}
+
+/* Settings use a phone layout instead of squeezing the desktop columns. */
+@media (max-width: 767.98px) {
+  html body.app-body .settings-standalone-layout .settings-grid,
+  html body.app-body .settings-standalone-layout .settings-section-lock-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  html body.app-body .settings-standalone-layout .settings-card {
+    grid-column: 1 / -1 !important;
+    min-width: 0;
+  }
+  html body.app-body .settings-standalone-layout .settings-switch {
+    flex: 0 0 3.05rem !important;
+  }
+  html body.app-body .settings-standalone-layout .settings-switch-row > span,
+  html body.app-body .settings-standalone-layout .settings-card-head > div:last-child {
+    min-width: 0;
+  }
+}

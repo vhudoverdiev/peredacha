@@ -14,31 +14,53 @@
     </div>
   </div>
 
-  <div class="worker-task-list worker-task-list-minimal" data-worker-task-list>
-    {% for task in tasks %}
+  <div class="worker-task-list worker-task-list-minimal" data-worker-task-list data-next-day="{{ next_day.isoformat() }}">
+    {% for group in task_groups %}
+    <section class="worker-project-group" data-worker-project-group data-project-id="{{ group.project.id }}">
+      <h2 class="worker-project-heading"><i class="bi bi-buildings" aria-hidden="true"></i><span>{{ group.project.name }}</span></h2>
+    {% for task in group.tasks %}
     <article class="worker-task-card worker-task-card-minimal {% if task.status == STATUS_DONE %}done{% endif %}" data-worker-task-card data-task-id="{{ task.id }}">
       <div class="worker-task-main">
         <div class="worker-task-meta-minimal">
-          <span class="worker-room">{{ task.apartment.label() if task.apartment else '—' }}</span>
+          <span class="worker-room">{{ task.apartment.label()|upper if task.apartment else 'Без помещения' }}</span>
           {% if task.planned_date %}<span>{{ task.planned_date|ru_date }}</span>{% endif %}
         </div>
         <div class="worker-task-text">{{ remark_text(task.description or task.source_cell_value) }}</div>
       </div>
       <div class="worker-task-status-zone">
-        <span class="worker-status-pill badge bg-{{ task.status_class() }}" data-worker-status-pill>{{ task.status_label() }}</span>
-        {% if task.status != STATUS_DONE %}
-        <form method="post" action="{{ url_for('main.my_task_done', task_id=task.id) }}" class="worker-status-form worker-status-form-minimal" data-worker-status-form data-next-action="return" data-next-url="{{ url_for('main.my_task_return', task_id=task.id) }}">
+        <span class="worker-status-pill badge bg-{{ 'secondary' if task.status == 'in_progress' else task.status_class() }}" data-worker-status-pill>{{ task.status_label() }}</span>
+        <form method="post" action="{{ url_for('main.my_task_status', task_id=task.id) }}" class="worker-task-status-actions" data-worker-status-form>
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn worker-status-btn worker-status-btn-done" type="submit"><i class="bi bi-check2"></i><span>Выполнено</span></button>
+          <button class="btn btn-sm worker-done-action{{ ' is-active' if task.status == STATUS_DONE else '' }}" type="submit" name="status" value="{{ 'not_started' if task.status == STATUS_DONE else 'done' }}" data-worker-done-toggle aria-pressed="{{ 'true' if task.status == STATUS_DONE else 'false' }}">{{ 'Не выполнено' if task.status == STATUS_DONE else 'Выполнено' }}</button>
+          <button class="btn btn-sm worker-progress-action{{ ' is-active' if task.status == 'in_progress' else '' }}" type="submit" name="status" value="in_progress" aria-pressed="{{ 'true' if task.status == 'in_progress' else 'false' }}">В работе</button>
+          <button class="btn btn-sm btn-outline-secondary worker-comment-action" type="button" data-worker-comment-toggle aria-expanded="false" aria-controls="workerComposer{{ task.id }}"><i class="bi bi-chat-left-text" aria-hidden="true"></i> Комментарий</button>
         </form>
-        {% else %}
-        <form method="post" action="{{ url_for('main.my_task_return', task_id=task.id) }}" class="worker-status-form worker-status-form-minimal" data-worker-status-form data-next-action="done" data-next-url="{{ url_for('main.my_task_done', task_id=task.id) }}">
+        <div class="worker-action-error" role="alert" data-worker-status-error hidden></div>
+      </div>
+      <div class="worker-task-comments worker-own-comments" data-worker-own-comments {% if not own_comments.get(task.id) %}hidden{% endif %}>
+        {% for comment in own_comments.get(task.id, []) %}
+        <div class="worker-task-comment-entry">
+          <small>{{ comment.created_at|ru_datetime }}</small>
+          <form method="post" action="{{ url_for('main.my_task_comment_delete', task_id=task.id, comment_id=comment.id) }}" class="worker-comment-delete-form" data-confirm="Удалить этот комментарий?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-danger worker-comment-delete-button" type="submit" title="Удалить комментарий" aria-label="Удалить комментарий"><i class="bi bi-trash" aria-hidden="true"></i></button>
+          </form>
+          <p>{{ comment.body }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="worker-task-discussion" id="workerComposer{{ task.id }}" hidden>
+        <form method="post" action="{{ url_for('main.my_task_comment', task_id=task.id) }}" data-worker-comment-form class="worker-task-comment-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn worker-status-btn worker-status-btn-return" type="submit"><i class="bi bi-arrow-counterclockwise"></i><span>Не выполнено</span></button>
+          <label for="workerComment{{ task.id }}">Комментарий к задаче</label>
+          <textarea id="workerComment{{ task.id }}" class="form-control mb-2" name="body" maxlength="4000" rows="2" required></textarea>
+          <div class="worker-comment-form-actions"><button class="btn btn-primary btn-sm" type="submit">Отправить</button><button class="btn btn-outline-secondary btn-sm" type="button" data-worker-comment-close>Закрыть</button></div>
+          <div class="worker-action-error" role="alert" data-worker-comment-error hidden></div>
         </form>
-        {% endif %}
       </div>
     </article>
+    {% endfor %}
+    </section>
     {% else %}
     <div class="worker-empty-card mobile-empty-state-card">
       <i class="bi bi-check2-circle"></i>

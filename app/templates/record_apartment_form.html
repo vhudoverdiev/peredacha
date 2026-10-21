@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Записать на осмотр{% endblock %}
+{% block content %}
+<section class="workflow-page record-apartment-page">
+  <div class="workflow-head"><div><h1 class="page-title">Записать на осмотр</h1><p class="text-muted">{{ apartment.label() }}</p></div><a class="btn btn-outline-secondary" href="{{ url_for('main.apartment_detail', apartment_id=apartment.id) }}">Назад к помещению</a></div>
+  <div class="card content-card workflow-editor">
+    <div class="record-apartment-contact"><div><small>Помещение</small><b>{{ apartment.label() }}</b></div><div><small>ФИО</small><b>{{ inspection_contact_lines(apartment.owner_name) if apartment.owner_name else 'Не указано' }}</b></div><div><small>Телефон</small><b>{{ apartment.phone or 'Не указан' }}</b></div></div>
+    <form method="get" id="record-apartment-date-form"><label>Дата осмотра<input class="form-control" type="date" name="date" value="{{ selected_day.isoformat() if selected_day else '' }}" required></label></form>
+    {% if selected_day %}
+    <form method="post" class="record-apartment-booking-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="date" value="{{ selected_day.isoformat() }}">
+      <fieldset class="record-apartment-times" id="record-apartment-times"><legend>Свободное время на {{ selected_day|ru_date }}</legend>
+        {% for slot in available %}<label class="record-apartment-time"><input type="radio" name="slot_id" value="{{ slot.id }}" data-slot-time="{{ slot.start_time.strftime('%H:%M') }}" {% if request.form.get('slot_id') == slot.id|string %}checked{% endif %}><span>{{ slot.start_time.strftime('%H:%M') }} <small>· {{ slot.duration_minutes }} мин.</small></span></label>{% else %}<p class="text-muted">На эту дату свободного времени нет. Выберите другую дату.</p>{% endfor %}
+      </fieldset><p class="record-apartment-time-error" id="record-apartment-time-error" hidden>Выберите время осмотра.</p>
+      {% if available %}<label>Время осмотра<select class="form-select workflow-time-select" name="appointment_time" id="record-apartment-time" required data-force-custom-select>{% set selected_time = request.form.get('appointment_time', available[0].start_time.strftime('%H:%M')) %}{% for minute in range(0, 1440, 5) %}{% set value = '%02d:%02d'|format(minute // 60, minute % 60) %}<option value="{{ value }}" {% if value == selected_time %}selected{% endif %}>{{ value }}</option>{% endfor %}</select><small class="text-muted">При необходимости можно немного сместить время. Занятое время выбрать нельзя.</small></label>
+      <label>ФИО<textarea class="form-control" name="contact" rows="2" maxlength="255" placeholder="Каждое ФИО с новой строки">{{ request.form.get('contact', inspection_contact_lines(apartment.owner_name)) }}</textarea></label>
+      <label>Телефон<textarea class="form-control" name="contact_phone" rows="2" maxlength="255">{{ request.form.get('contact_phone', apartment.phone or '') }}</textarea></label>
+      <label>Примечание<textarea class="form-control" name="note" rows="3" maxlength="4000">{{ request.form.get('note', '') }}</textarea></label>
+      <div class="workflow-actions"><button class="btn btn-primary" type="submit">Записать на осмотр</button></div>{% endif %}
+    </form>
+    {% endif %}
+  </div>
+</section>
+<script>(()=>{const date=document.querySelector('#record-apartment-date-form input[name="date"]');date?.addEventListener('change',()=>date.form.requestSubmit());const time=document.getElementById('record-apartment-time'),form=document.querySelector('.record-apartment-booking-form'),times=document.getElementById('record-apartment-times'),error=document.getElementById('record-apartment-time-error');document.querySelectorAll('[data-slot-time]').forEach(input=>input.addEventListener('change',()=>{times?.classList.remove('is-invalid');if(error)error.hidden=true;if(time){time.value=input.dataset.slotTime;time.dispatchEvent(new Event('change',{bubbles:true}));}}));form?.addEventListener('submit',event=>{if(!form.querySelector('[name="slot_id"]:checked')){event.preventDefault();times?.classList.add('is-invalid');if(error)error.hidden=false;times?.scrollIntoView({block:'center',behavior:'smooth'});}})})();</script>
+{% endblock %}

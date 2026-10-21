@@ -1,3 +1,6 @@
+from io import BytesIO
+from unittest.mock import patch
+
 import hashlib
 import unittest
 
@@ -34,6 +37,9 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
         self.context.push()
         db.create_all()
         self.client = self.app.test_client()
+        if self._testMethodName.startswith("test_pdf_only_"):
+            octet = int(hashlib.sha1(self._testMethodName.encode()).hexdigest()[:2], 16)
+            self.client.environ_base["REMOTE_ADDR"] = f"198.18.{octet}.1"
         self.project = Project(name="Recognition PO project")
         db.session.add(self.project)
         db.session.flush()
@@ -74,6 +80,60 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         with self.client.session_transaction() as sess:
             sess["current_project_id"] = self.project.id
+
+    def test_pdf_only_recognition_is_unavailable_on_phones(self):
+        self._login()
+        before = Task.query.count()
+        for agent in (
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile Safari/604.1",
+            "Mozilla/5.0 (Linux; Android 14) Chrome/132.0 Mobile YaBrowser/25.2",
+        ):
+            headers = {"User-Agent": agent}
+            with patch("app.routes.recognize_pdf_act") as pdf:
+                for method in ("get", "post"):
+                    response = getattr(self.client, method)("/tasks/recognition", headers=headers)
+                    self.assertEqual(response.status_code, 302)
+                    self.assertIn("mode=manual", response.location)
+                pdf.assert_not_called()
+            for mode in ("manual", "auto"):
+                response = self.client.get("/tasks/new?mode=" + mode, headers=headers)
+                self.assertNotIn('/tasks/recognition', response.get_data(as_text=True))
+        self.assertEqual(Task.query.count(), before)
+
+    def test_pdf_only_upload_has_no_mode_selector(self):
+        self._login()
+        html = self.client.get("/tasks/recognition").get_data(as_text=True)
+        self.assertIn('accept=".pdf,application/pdf"', html)
+        self.assertIn('multiple required', html)
+        self.assertNotIn('recognition_mode', html)
+        self.assertNotIn('Рукописный', html)
+
+    def test_pdf_only_rejects_images_even_with_legacy_mode_parameter(self):
+        self._login()
+        before = Task.query.count()
+        with patch("app.routes.recognize_pdf_act") as recognize:
+            response = self.client.post("/tasks/recognition", data={
+                "action": "preview", "recognition_mode": "handwriting",
+                "pdf_files": (BytesIO(b"not a PDF"), "act.jpg"),
+            }, content_type="multipart/form-data")
+        self.assertEqual(response.status_code, 200)
+        recognize.assert_not_called()
+        self.assertEqual(Task.query.count(), before)
+
+    def test_pdf_only_preview_still_uses_pdf_recognizer(self):
+        from app.services.pdf_recognition import PdfActPreview
+        self._login()
+        before = Task.query.count()
+        preview = PdfActPreview(filename="act.pdf", template_ok=True, project_ok=True, project_prefix="",
+                                apartment_number="59")
+        with patch("app.routes.recognize_pdf_act", return_value=preview) as recognize:
+            response = self.client.post("/tasks/recognition", data={
+                "action": "preview", "pdf_files": (BytesIO(b"%PDF-1.4\n"), "act.pdf"),
+            }, content_type="multipart/form-data")
+        self.assertEqual(response.status_code, 200)
+        recognize.assert_called_once()
+        self.assertIn("Квартира из PDF: 59", response.get_data(as_text=True))
+        self.assertEqual(Task.query.count(), before)
 
     def test_manual_single_form_requires_and_uses_selected_point(self):
         self._login()

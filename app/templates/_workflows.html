@@ -1,0 +1,6 @@
+{% macro navigation(active) %}
+<nav class="workflow-nav" aria-label="Обращения и осмотры">
+  <a href="{{ url_for('main.appeals') }}" class="{{ 'is-active' if active == 'appeals' else '' }}"><i class="bi bi-chat-square-text" aria-hidden="true"></i>Обращения{% if new_appeals_count %}<span class="workflow-count">{{ new_appeals_count }}</span>{% endif %}</a>
+  <a href="{{ url_for('main.records') }}" class="{{ 'is-active' if active == 'records' else '' }}"><i class="bi bi-calendar2-week" aria-hidden="true"></i>Записи</a>
+</nav>
+{% endmacro %}

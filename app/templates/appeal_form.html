@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Редактировать обращение' if edit_mode else 'Создать обращение' }}{% endblock %}
+{% block content %}
+<section class="workflow-page appeal-form-page">
+  <div class="workflow-head"><h1 class="page-title">{{ 'Редактировать обращение' if edit_mode else 'Создать обращение' }}</h1><a class="btn btn-outline-secondary" href="{{ url_for('main.appeal_detail', appeal_id=appeal.id) if edit_mode else url_for('main.appeals') }}">Назад</a></div>
+  <form method="post" enctype="multipart/form-data" class="card content-card workflow-editor">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Помещение<select class="form-select" name="apartment_id" required><option value="">Выберите помещение</option>{% for apartment in apartments %}<option value="{{ apartment.id }}" {% if (request.form.get('apartment_id') or (appeal.apartment_id if appeal else ''))|string==apartment.id|string %}selected{% endif %}>{{ apartment.label() }}</option>{% endfor %}</select></label>
+    <fieldset class="appeal-caller-fields"><legend>От кого поступил звонок</legend>
+      <label>Имя или ФИО позвонившего<input class="form-control" type="text" name="caller_name" maxlength="180" required value="{{ request.form.get('caller_name', appeal.caller_name if appeal else '') }}" autocomplete="off" placeholder="Например, Иванов Иван Иванович"></label>
+      <label>Телефон позвонившего<input class="form-control" type="tel" name="caller_phone" maxlength="100" required value="{{ request.form.get('caller_phone', appeal.caller_phone if appeal else '') }}" autocomplete="off" placeholder="+7 …"></label>
+    </fieldset>
+    <label>Текст обращения<textarea class="form-control" name="body" rows="6" maxlength="4000" required placeholder="Опишите вопрос по квартире">{{ request.form.get('body', appeal.body if appeal else '') }}</textarea></label>
+    <label class="appeal-upload-field">Файл к обращению<input class="form-control" type="file" name="attachment" accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg"><small>Можно прикрепить один PDF или JPEG. Максимальный размер — 25 МБ.</small></label>
+    <div class="workflow-actions"><button class="btn btn-primary" type="submit">{{ 'Сохранить изменения' if edit_mode else 'Создать обращение' }}</button><a class="btn btn-outline-secondary" href="{{ url_for('main.appeal_detail', appeal_id=appeal.id) if edit_mode else url_for('main.appeals') }}">Отмена</a></div>
+  </form>
+</section>
+{% endblock %}

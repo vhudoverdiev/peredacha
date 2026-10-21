@@ -15,23 +15,6 @@
     <article class="card content-card settings-card">
       <div class="card-body">
         <div class="settings-card-head">
-          <div class="settings-card-icon"><i class="bi bi-files"></i></div>
-          <div>
-            <h2 class="section-title mb-1">Документы</h2>
-          </div>
-        </div>
-        <label class="settings-switch-row mt-3" for="hide-documents-setting">
-          <span>
-            <b>Скрыть раздел документы</b>
-          </span>
-          <input class="form-check-input settings-switch" id="hide-documents-setting" type="checkbox" name="hide_documents_section" value="1" {% if hide_documents_section %}checked{% endif %}>
-        </label>
-      </div>
-    </article>
-
-    <article class="card content-card settings-card">
-      <div class="card-body">
-        <div class="settings-card-head">
           <div class="settings-card-icon"><i class="bi bi-phone"></i></div>
           <div>
             <h2 class="section-title mb-1">Мобильная версия</h2>
@@ -39,7 +22,7 @@
         </div>
         <label class="settings-switch-row mt-3" for="mobile-dev-setting">
           <span>
-            <b>Статус - в разработке</b>
+            <b>Закрыть мобильную версию</b>
           </span>
           <input class="form-check-input settings-switch" id="mobile-dev-setting" type="checkbox" name="mobile_version_under_development" value="1" {% if mobile_version_under_development %}checked{% endif %}>
         </label>
@@ -86,7 +69,7 @@
           <div class="settings-card-icon"><i class="bi bi-lock"></i></div>
           <div>
             <h2 class="section-title mb-1">Заблокировать отдельные разделы</h2>
-            <p class="text-muted mb-0">Можно временно закрыть любой раздел сайта для всех пользователей</p>
+            <p class="text-muted mb-0">Закрывается основной раздел вместе с вложенными страницами, действиями и выгрузками. Ограничения действуют для всех, кроме разработчика.</p>
           </div>
         </div>
 

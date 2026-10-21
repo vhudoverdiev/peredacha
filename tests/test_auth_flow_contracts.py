@@ -134,6 +134,22 @@ class AuthFlowContractsTests(unittest.TestCase):
             self.assertEqual(session.get("pending_login_user_id"), user.id)
             self.assertNotIn("_user_id", session)
 
+    def test_every_login_setting_exempts_developer_but_keeps_ip_based_2fa(self):
+        from app.auth import _needs_two_factor_for_ip
+        user = self._user(captcha_disabled=True)
+        user.two_factor_enabled = True
+        user.two_factor_secret = "secret"
+        user.last_login_ip = "127.0.0.1"
+        db.session.add(AppSetting(key="two_factor_every_login", value="1"))
+        db.session.commit()
+        with self.app.test_request_context("/", environ_base={"REMOTE_ADDR": "127.0.0.1"}):
+            user.role = ROLE_MANAGER
+            self.assertTrue(_needs_two_factor_for_ip(user))
+            user.role = ROLE_ADMIN
+            self.assertFalse(_needs_two_factor_for_ip(user))
+        with self.app.test_request_context("/", environ_base={"REMOTE_ADDR": "198.51.100.2"}):
+            self.assertTrue(_needs_two_factor_for_ip(user))
+
     def test_two_factor_step_requires_valid_code_before_login_completion(self):
         user = self._user(captcha_disabled=True)
         user.two_factor_enabled = True

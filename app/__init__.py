@@ -253,6 +253,25 @@ def create_app(config_class=Config):
             db.create_all()
             _ensure_mysql_utf8mb4()
 
+        # Additive migration: old appeals remain readable with unknown caller data.
+        if _is_sqlite_database_uri(uri) or _is_mysql_database_uri(uri):
+            appeal_columns = {column["name"] for column in inspect(db.engine).get_columns("appeals")}
+            for column, length in (("caller_name", 180), ("caller_phone", 100)):
+                if column not in appeal_columns:
+                    db.session.execute(text(f"ALTER TABLE appeals ADD COLUMN {column} VARCHAR({length}) NOT NULL DEFAULT ''"))
+            slot_columns = {column["name"] for column in inspect(db.engine).get_columns("inspection_slots")}
+            if "closed_reason" not in slot_columns:
+                db.session.execute(text("ALTER TABLE inspection_slots ADD COLUMN closed_reason VARCHAR(300)"))
+            if "closed_by_interval" not in slot_columns:
+                db.session.execute(text("ALTER TABLE inspection_slots ADD COLUMN closed_by_interval BOOLEAN NOT NULL DEFAULT 0"))
+                db.session.execute(text("UPDATE inspection_slots SET closed_by_interval = 1 WHERE is_open = 0 AND closed_reason IS NOT NULL"))
+            if "closed_by_user_id" not in slot_columns:
+                db.session.execute(text("ALTER TABLE inspection_slots ADD COLUMN closed_by_user_id INTEGER"))
+            booking_columns = {column["name"] for column in inspect(db.engine).get_columns("inspection_bookings")}
+            if "appointment_time" not in booking_columns:
+                db.session.execute(text("ALTER TABLE inspection_bookings ADD COLUMN appointment_time TIME"))
+            db.session.commit()
+
         if _is_mysql_database_uri(uri):
             inspector = inspect(db.engine)
             if "projects" in inspector.get_table_names():
@@ -380,6 +399,8 @@ def create_app(config_class=Config):
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN app_deadline_raw VARCHAR(255)"))
                 if "app_deadline_status" not in apartment_columns:
                     db.session.execute(text("ALTER TABLE apartments ADD COLUMN app_deadline_status VARCHAR(30) NOT NULL DEFAULT 'normal'"))
+                if "office_manager_comment" not in apartment_columns:
+                    db.session.execute(text("ALTER TABLE apartments ADD COLUMN office_manager_comment TEXT"))
                 db.session.commit()
 
             if "site_error_reports" in inspector.get_table_names():
@@ -471,6 +492,10 @@ def create_app(config_class=Config):
                 db.session.commit()
 
             if "tasks" in inspector.get_table_names():
+                task_column_info = {column["name"]: column for column in inspector.get_columns("tasks")}
+                task_columns = set(task_column_info)
+                if not task_column_info["apartment_id"]["nullable"]:
+                    db.session.execute(text("ALTER TABLE tasks MODIFY COLUMN apartment_id INTEGER NULL"))
                 task_columns = {column["name"] for column in inspector.get_columns("tasks")}
                 if "glass_parent_task_id" not in task_columns:
                     db.session.execute(text("ALTER TABLE tasks ADD COLUMN glass_parent_task_id INTEGER"))

@@ -40,7 +40,7 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             self.assertNotIn("inset:", nav_tag)
             self.assertNotIn("position:", nav_tag)
             self.assertIn("width: 100vw !important", nav_tag)
-            self.assertIn("height: 72px !important", nav_tag)
+            self.assertIn("height: calc(72px + var(--android-dock-inset, 0px)) !important", nav_tag)
 
     def test_mobile_safari_web_topbar_matches_the_solid_bottom_nav(self):
         topbar_selector = (
@@ -402,7 +402,7 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         worker_nav_markup = worker_nav.group(0)
         self.assertIn("--mobile-nav-count: 2", worker_nav_markup)
         self.assertIn("width: 100vw !important", worker_nav_markup)
-        self.assertIn("height: 72px !important", worker_nav_markup)
+        self.assertIn("height: calc(72px + var(--android-dock-inset, 0px)) !important", worker_nav_markup)
 
     def test_all_worker_pages_override_the_dark_root_canvas(self):
         selector = (

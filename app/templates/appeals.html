@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Обращения{% endblock %}
+{% block content %}
+<section class="workflow-page">
+  <div class="workflow-head"><div><h1 class="page-title">Обращения</h1></div>{% if can_create_appeal %}<a class="btn btn-primary" href="{{ url_for('main.appeal_new') }}"><i class="bi bi-plus-lg me-2"></i>Создать обращение</a>{% endif %}</div>
+  <form method="get" class="workflow-filter crm-filter-form card content-card" data-appeals-filter>
+    <label>Поиск<input class="form-control" name="q" value="{{ q }}" placeholder="Квартира или текст обращения"></label>
+    <label>Статус<select class="form-select" name="status"><option value="">Все</option>{% for value,label in statuses.items() %}<option value="{{ value }}" {% if status==value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <button class="btn btn-primary" type="submit">Найти</button><a class="btn btn-outline-secondary" href="{{ url_for('main.appeals') }}">Сброс</a>
+  </form>
+  <div class="workflow-card-list" data-appeals-list>
+    {% for appeal in pagination.items %}
+    <a class="card content-card workflow-appeal-card" href="{{ url_for('main.appeal_detail',appeal_id=appeal.id) }}">
+      <div class="workflow-card-top"><b>{{ appeal.apartment.detail_label() }}</b><span class="workflow-status appeal-status-{{ appeal.status }}" data-status="{{ appeal.status }}">{{ statuses[appeal.status] }}</span></div>
+      <div class="appeal-list-info-grid"><div><small>Собственники</small><span><i class="bi bi-person" aria-hidden="true"></i>{{ appeal.apartment.owner_name or 'Собственник не указан' }}</span></div><div><small>Телефоны</small><span><i class="bi bi-telephone" aria-hidden="true"></i>{{ appeal.apartment.phone or 'Телефон не указан' }}</span></div><div><small>Звонивший</small><span><i class="bi bi-person-lines-fill" aria-hidden="true"></i>{{ appeal.caller_name }} · {{ appeal.caller_phone }}</span></div></div>
+      <div class="appeal-list-body"><small>Суть вопроса</small><p class="workflow-prewrap">{{ appeal.body }}</p></div><small class="appeal-list-author">Создал: {{ appeal.created_by.full_name or appeal.created_by.username if appeal.created_by else 'Удалённый пользователь' }} · {{ appeal.created_at|ru_date }}</small>
+    </a>
+    {% else %}<div class="card content-card workflow-empty"><i class="bi bi-chat-square-text"></i><h2>Обращений пока нет</h2><p>{{ 'Создайте обращение или измените фильтры.' if can_create_appeal else 'Измените фильтры или дождитесь нового обращения.' }}</p></div>{% endfor %}
+  </div>
+  {% if pagination.pages>1 %}<nav class="workflow-pagination" aria-label="Страницы обращений" data-appeals-pagination>{% if pagination.has_prev %}<a class="btn btn-outline-secondary" href="{{ url_for('main.appeals',page=pagination.prev_num,q=q,status=status) }}">Назад</a>{% endif %}<span>{{ pagination.page }} / {{ pagination.pages }}</span>{% if pagination.has_next %}<a class="btn btn-outline-secondary" href="{{ url_for('main.appeals',page=pagination.next_num,q=q,status=status) }}">Далее</a>{% endif %}</nav>{% endif %}
+</section>
+<script>
+(() => {
+  const form = document.querySelector('[data-appeals-filter]');
+  if (!form || !document.querySelector('[data-appeals-list]') || form.dataset.bound === '1') return;
+  form.dataset.bound = '1';
+  const load = async (url, push = true) => {
+    form.classList.add('is-loading');
+    try {
+      const response = await fetch(url, {headers: {'Accept': 'text/html'}, credentials: 'same-origin'});
+      if (!response.ok) throw new Error('Не удалось обновить обращения.');
+      const html = await response.text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const currentList = document.querySelector('[data-appeals-list]');
+      const nextList = doc.querySelector('[data-appeals-list]');
+      if (currentList && nextList) currentList.replaceWith(nextList);
+      const currentPagination = document.querySelector('[data-appeals-pagination]');
+      const nextPagination = doc.querySelector('[data-appeals-pagination]');
+      if (currentPagination && nextPagination) currentPagination.replaceWith(nextPagination);
+      else if (currentPagination && !nextPagination) currentPagination.remove();
+      else if (!currentPagination && nextPagination) form.closest('.workflow-page')?.append(nextPagination);
+      if (push) history.pushState({}, '', url);
+    } catch (error) {
+      if (window.showCrmNotice) window.showCrmNotice(error.message, 'danger');
+    } finally { form.classList.remove('is-loading'); }
+  };
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const params = new URLSearchParams(new FormData(form));
+    params.delete('page');
+    const target = new URL(form.getAttribute('action') || window.location.pathname, window.location.origin);
+    target.search = params.toString();
+    load(target.href);
+  });
+  form.querySelectorAll('select').forEach((select) => select.addEventListener('change', () => form.requestSubmit()));
+  document.addEventListener('click', (event) => {
+    const link = event.target.closest('[data-appeals-pagination] a');
+    if (!link) return;
+    event.preventDefault();
+    load(link.href);
+  });
+  window.addEventListener('popstate', () => load(window.location.href, false));
+})();
+</script>
+{% endblock %}

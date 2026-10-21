@@ -13,11 +13,12 @@ from openpyxl.cell import WriteOnlyCell
 from openpyxl.cell.rich_text import CellRichText, TextBlock
 from openpyxl.cell.text import InlineFont
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
-from openpyxl.utils import get_column_letter
+from openpyxl.utils import column_index_from_string, get_column_letter
 from app.models import Apartment, SyncLog, Task, STATUS_DONE, STATUS_FINISHERS, STATUS_CONTRACTOR, STATUS_GUARANTEE, STATUS_CONCESSION
 from app.services.excel_import import inspect_remarks_workbook
 from app.services.filename import safe_filename_part
 from app.services.task_service import get_setting
+from app.services.uid_service import extract_point_number
 from app.work_points import WORK_POINT_LABELS
 
 
@@ -165,6 +166,8 @@ EXPORT_STATUS_SUFFIXES = {
     STATUS_DONE: "(лб)",
     STATUS_FINISHERS: "(чистовики)",
     STATUS_CONTRACTOR: "(подрядчик)",
+    STATUS_CONCESSION: "(отступное)",
+    STATUS_GUARANTEE: "(гарантия)",
 }
 
 
@@ -180,10 +183,10 @@ def export_tasks_to_excel(tasks: Iterable[Task], filename_prefix: str = "tasks_e
         ws.append(
             [
                 (_excel_premise_label(task.apartment) if task.apartment else ""),
-                task.apartment.construction_number,
-                task.apartment.owner_name,
-                task.apartment.phone,
-                task.apartment.finishing_type,
+                task.apartment.construction_number if task.apartment else "",
+                task.apartment.owner_name if task.apartment else "",
+                task.apartment.phone if task.apartment else "",
+                task.apartment.finishing_type if task.apartment else "",
                 task.work_point.point_number,
                 task.work_point.display_name,
                 task.description or task.source_cell_value,
@@ -682,12 +685,29 @@ def _prefix_dash_for_struck_cell(value: object) -> str:
     return text if text.startswith("-") else f"- {text}"
 
 
-def _task_export_value(task: Task, current_cell_value: object) -> str:
+def _task_export_value(task: Task, current_cell_value: object, *, prefix_dash: bool = True) -> str:
     # Если текст правили в CRM — выгружаем именно актуальный текст из CRM.
     base = task.description or task.source_cell_value or current_cell_value or ""
     suffix = EXPORT_STATUS_SUFFIXES.get(task.status)
     value = _append_status_suffix(base, suffix) if suffix else str(base)
-    return _prefix_dash_for_struck_cell(value)
+    return _prefix_dash_for_struck_cell(value) if prefix_dash else value
+
+
+def _apartment_task_export_value(task: Task) -> str:
+    """Keep the one-premise workbook markers identical to the source-table convention."""
+    text = str(task.description or task.source_cell_value or "").strip()
+    suffixes = {
+        STATUS_FINISHERS: "(чистовики)",
+        STATUS_CONCESSION: "(отступное)",
+        STATUS_GUARANTEE: "(гарантия)",
+        STATUS_CONTRACTOR: "(подрядчик)",
+    }
+    suffix = suffixes.get(task.status)
+    if suffix:
+        return _append_status_suffix(text, suffix)
+    if task.status == STATUS_DONE:
+        return _prefix_dash_for_struck_cell(text)
+    return text
 
 
 def _is_tmc_column(ws, column_index: int) -> bool:
@@ -976,4 +996,167 @@ def export_glass_measurements_excel(rows: Iterable[dict], filename_prefix: str =
         ])
     apply_worksheet_style(ws, [20, 14, 16, 100, 30, 22, 14, 14, 14, 28, 42])
     wb.save(path)
+    return path
+
+
+def export_apartment_source_table(apartments: Iterable[Apartment], tasks: Iterable[Task], filename_prefix: str) -> Path:
+    """One premise row in the source workbook's column layout, with current CRM remarks.
+
+    Only header cells and formatting are copied from the source. No other
+    apartment's values, hidden worksheets or cached formulas enter this export.
+    """
+    from collections import Counter
+    from app.services.task_service import (find_header_row, is_index_number_row, is_work_point_header,
+                                          map_base_columns, map_work_point_columns, merge_header_rows,
+                                          normalize_header_row)
+    apartments=list(apartments); tasks=list(tasks)
+    if not apartments:
+        raise ValueError('Помещение не найдено.')
+    apartment=apartments[0]
+    workbook=Workbook(); output=workbook.active
+    template=None; source=None; base_mapping={}; point_columns={}; header_count=1; table_last_column=None
+    try:
+        source_path=resolve_source_excel_with_strikes_path(
+            source_path=get_setting(f'latest_excel_path_project_{apartment.project_id}'),project_id=apartment.project_id)
+        source=load_workbook(source_path)
+        _normalize_source_work_point_headers(source)
+        preferred=Counter(task.source_sheet_name for task in tasks if task.source_sheet_name in source.sheetnames)
+        sheets=sorted(source.worksheets,key=lambda ws:-preferred[ws.title])
+        for sheet in sheets:
+            rows=[[cell.value for cell in row] for row in sheet.iter_rows(min_row=1,max_row=min(sheet.max_row,32))]
+            header_index=find_header_row(rows)
+            if header_index>0 and is_index_number_row(rows[header_index]):
+                header_index-=1
+            headers=normalize_header_row(rows[header_index])
+            if header_index>0:
+                headers=merge_header_rows(rows[header_index-1],rows[header_index])
+            # Locate the first numbered work-point column before mapping base
+            # fields.  Summary blocks above/right of the table may contain
+            # words such as «квартир» and must not be mistaken for a base field.
+            first_point = next(
+                (idx for idx, header in enumerate(headers)
+                 if is_work_point_header(header, idx) and extract_point_number(header, idx + 1).isdigit()),
+                None,
+            )
+            mapping=map_base_columns(headers, anchor_before_col=first_point)
+            points={column: extract_point_number(header,column+1)
+                    for column,header in map_work_point_columns(headers,mapping).items()}
+            points={column: number for column, number in points.items()
+                    if number.isdigit() and int(number) <= 34}
+            count=header_index+1
+            if count<len(rows) and is_index_number_row(rows[count]):
+                numbered_columns = {
+                    str(value or '').removesuffix('.0').strip(): column
+                    for column, value in enumerate(rows[count])
+                }
+                if '34' in numbered_columns:
+                    table_last_column = numbered_columns['34'] + 1
+                for column,value in enumerate(rows[count]):
+                    key=str(value or '').removesuffix('.0').strip()
+                    if column not in mapping.values() and key in WORK_POINT_LABELS:
+                        points[column]=key
+                count+=1
+            points={column: number for column, number in points.items()
+                    if str(number).isdigit() and int(number) <= 34}
+            if mapping.get('apartment_number') is not None and points:
+                template=sheet; base_mapping=mapping; point_columns=points; header_count=count; break
+    except (FileNotFoundError,ValueError):
+        template=None
+    if template is not None:
+        output.title=template.title
+        # The source workbook often contains formatting and filter buttons far
+        # to the right of the actual table.  Copy only mapped business columns;
+        # otherwise a one-premise export appears to continue after point 34.
+        last_template_column=table_last_column or (max([*base_mapping.values(), *point_columns.keys()])+1)
+        for row in template.iter_rows(min_row=1,max_row=header_count,max_col=last_template_column):
+            for cell in row:
+                target=output.cell(cell.row,cell.column,cell.value)
+                if cell.has_style:
+                    target.font=copy(cell.font)
+                    target.fill=copy(cell.fill)
+                    target.border=copy(cell.border)
+                    target.alignment=copy(cell.alignment)
+                    target.number_format=cell.number_format
+                    target.protection=copy(cell.protection)
+                if cell.data_type=='f':
+                    target.value=str(cell.value); target.data_type='s'
+        for merged in template.merged_cells.ranges:
+            if merged.max_row<=header_count and merged.min_col<=last_template_column:
+                output.merge_cells(
+                    start_row=merged.min_row,
+                    start_column=merged.min_col,
+                    end_row=merged.max_row,
+                    end_column=min(merged.max_col,last_template_column),
+                )
+        for key,dimension in template.column_dimensions.items():
+            if column_index_from_string(key)>last_template_column:
+                continue
+            target_dimension=output.column_dimensions[key]
+            for attribute in ('width','hidden','bestFit','outlineLevel','collapsed','min','max'):
+                setattr(target_dimension,attribute,getattr(dimension,attribute))
+        for row in range(1,header_count+1):
+            output.row_dimensions[row].height=template.row_dimensions[row].height
+        output.freeze_panes=f'A{header_count+1}'
+        output.sheet_view.zoomScale=template.sheet_view.zoomScale
+    else:
+        output.title='Таблица помещения'
+        base_mapping={'apartment_number':0,'construction_number':1,'owner_name':2,'phone':3,'finishing_type':4}
+        headers=['№ квартиры / помещения','Строительный номер','Собственник','Телефон','Отделка']
+        for number,label in WORK_POINT_LABELS.items():
+            point_columns[len(headers)]=number; headers.append(f'{number}. {label}')
+        output.append(headers)
+        apply_worksheet_style(output,[18,18,28,22,20]+[45]*len(point_columns))
+    data_row=header_count+1
+    def literal(column,value):
+        cell=output.cell(data_row,column+1,value)
+        if isinstance(value,str):
+            cell.data_type='s'
+        return cell
+    for field,column in base_mapping.items():
+        values=[]
+        for member in apartments:
+            value=getattr(member,field,None)
+            if value is not None and str(value).strip() and value not in values:
+                values.append(value)
+        value=values[0] if len(values)==1 else '\n'.join(map(str,values))
+        literal(column,value if values else '')
+    by_point={}
+    for task in tasks:
+        if task.work_point:
+            by_point.setdefault(str(task.work_point.point_number),[]).append(task)
+    reverse={number:column for column,number in point_columns.items()}
+    for number,point_tasks in by_point.items():
+        column=reverse.get(number)
+        if column is None:
+            continue
+        lines=[];seen=set()
+        for task in point_tasks:
+            value=_apartment_task_export_value(task)
+            struck=task.status == STATUS_DONE
+            key=(value,struck)
+            if key not in seen:
+                seen.add(key);lines.append((value,struck))
+        cell=literal(column,'\n'.join(value for value,_ in lines))
+        if lines and all(done for _,done in lines):
+            cell.font=Font(name='Arial',size=11,color='000000',strike=True)
+        elif any(done for _,done in lines):
+            parts=[]
+            for index,(value,done) in enumerate(lines):
+                if index: parts.append('\n')
+                parts.append(TextBlock(InlineFont(strike=done,color='000000'),value))
+            cell.value=CellRichText(parts)
+    for cell in output[data_row]:
+        cell.alignment=Alignment(vertical='top',wrap_text=True)
+        cell.border=THIN_BORDER
+    widths=[output.column_dimensions[get_column_letter(column)].width or 20 for column in range(1,output.max_column+1)]
+    output.row_dimensions[data_row].height=estimate_excel_row_height([str(cell.value or '') for cell in output[data_row]],widths,minimum=52)
+    output.auto_filter.ref=f'A{header_count}:{get_column_letter(output.max_column)}{data_row}'
+    output.print_area=f'A1:{get_column_letter(output.max_column)}{data_row}'
+    output.print_options.horizontalCentered=True
+    output.page_setup.orientation='landscape';output.page_setup.fitToWidth=1;output.page_setup.fitToHeight=0
+    output.sheet_properties.pageSetUpPr.fitToPage=True
+    path=build_export_path(filename_prefix)
+    workbook.save(path)
+    if source is not None: source.close()
+    workbook.close()
     return path

@@ -19,6 +19,7 @@ from app.models import (
     Project,
     ROLE_ADMIN,
     ROLE_MANAGER,
+    ROLE_OFFICE_MANAGER,
     STATUS_DONE,
     STATUS_NOT_STARTED,
     STATUS_PROBLEM,
@@ -72,6 +73,15 @@ def seed_database() -> None:
         captcha_disabled=True,
     )
     developer.set_password("E2E-developer-password-2026!")
+    office_manager = User(
+        username="e2e-office-manager",
+        full_name="Офис Менеджер",
+        role=ROLE_OFFICE_MANAGER,
+        project=project,
+        all_projects_access=False,
+        captcha_disabled=True,
+    )
+    office_manager.set_password("E2E-office-password-2026!")
 
     work_point = WorkPoint(
         point_number="10",
@@ -96,7 +106,7 @@ def seed_database() -> None:
     all_category.work_points.append(work_point)
     qa_category.work_points.append(work_point)
 
-    db.session.add_all([project, user, developer, work_point, all_category, qa_category])
+    db.session.add_all([project, user, developer, office_manager, work_point, all_category, qa_category])
     db.session.flush()
 
     apartments = []
@@ -153,6 +163,24 @@ def seed_database() -> None:
                 point = WorkPoint(point_number=number, short_name=f"QA point {number}", source_sheet_name=sheet)
                 db.session.add(Task(source_uid=f"mapping-{number}-{sheet}", project=project,
                                     apartment=apartments[0], work_point=point, description="Mapping QA remark"))
+    if os.environ.get("E2E_WORKER_FIXTURES") == "1":
+        second_project = Project(name="Второй объект — длинное название для проверки переноса")
+        second_apartment = Apartment(project=second_project, apartment_number="173")
+        db.session.add_all([second_project, second_apartment]); db.session.flush()
+        for role in ("painter", "handyman", "glazier"):
+            worker = User(username="qa-" + role, role=role, full_name="Петров Пётр Петрович",
+                          project=project, captcha_disabled=True)
+            worker.set_password("Worker-qa-password-2026!")
+            worker.set_project_access([project.id, second_project.id])
+            db.session.add(worker)
+            db.session.add(Task(source_uid=f"worker-{role}-second", project=second_project,
+                                apartment=second_apartment, work_point=work_point, responsible=worker,
+                                planned_date=date.today(), description="Замечание на втором объекте"))
+            for index in range(5):
+                db.session.add(Task(source_uid=f"worker-{role}-{index}", project=project,
+                                    apartment=apartments[0], work_point=work_point, responsible=worker,
+                                    planned_date=date.today(), description=f"Работа {index + 1}: устранить замечание и проверить результат."))
+
     db.session.commit()
 
 

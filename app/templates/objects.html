@@ -2,6 +2,8 @@
 {% block layout_mode %}objects{% endblock %}
 {% block title %}Объекты{% endblock %}
 {% block content %}
+{% if can_use_project_workflows %}<nav class="workflow-mobile-shortcuts" aria-label="Обращения и осмотры"><a href="{{ url_for('main.appeals') }}"><i class="bi bi-chat-square-text"></i>Обращения{% if new_appeals_count %}<span class="workflow-count">{{ new_appeals_count }}</span>{% endif %}</a><a href="{{ url_for('main.records') }}"><i class="bi bi-calendar2-week"></i>Записи</a></nav>{% endif %}
+
 <section class="objects-page">
   <div class="objects-mobile-hero">
     {% if not is_mobile_phone_request %}
@@ -27,7 +29,7 @@
     {% set stats = item.stats %}
     {% set has_object_details = project.technical_customer or project.developer_name or project.developer_representative or project.developer_representative_phone %}
     <article class="object-card" role="link" tabindex="0" data-href="{{ url_for('main.object_open', project_id=project.id) }}">
-      {% if current_user.role in ['admin', 'manager', 'supervisor', 'office'] and not is_mobile_phone_request %}
+      {% if current_user.role in ['admin', 'manager', 'supervisor', 'office', 'office_manager'] and not is_mobile_phone_request %}
       <div class="object-card-actions">
         <a class="object-action" href="{{ url_for('main.object_edit', project_id=project.id) }}" title="Редактировать объект">
           <i class="bi bi-pencil"></i>

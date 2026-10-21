@@ -19,7 +19,7 @@
           <dt class="col-sm-3">Помещение</dt>
           <dd class="col-sm-9">{{ task.apartment.label() if task.apartment else '—' }}</dd>
           <dt class="col-sm-3">Вид отделки</dt>
-          <dd class="col-sm-9">{{ task.apartment.finishing_type or '—' }}</dd>
+          <dd class="col-sm-9">{{ (task.apartment.finishing_type or '—') if task.apartment else '—' }}</dd>
           <dt class="col-sm-3">Пункт</dt>
           <dd class="col-sm-9">
             {% if current_user.role != 'viewer' %}
@@ -72,10 +72,11 @@
       </div>
     </div>
 
+    {% if can_view_task_comments %}
     <div class="card content-card mb-3 task-detail-comments-card">
       <div class="card-body">
         <h2 class="section-title">Комментарии</h2>
-        {% for comment in task.comments %}
+        {% for comment in visible_comments %}
         <div class="comment-item mb-2">
           <div class="comment-meta">{{ comment.user.full_name or comment.user.username }} · {{ comment.created_at|ru_datetime }}</div>
           <div class="comment-body">{{ comment.body }}</div>
@@ -89,7 +90,7 @@
         {% else %}
         <div class="text-muted">Комментариев пока нет</div>
         {% endfor %}
-        {% if current_user.role not in ['viewer', 'office'] %}
+        {% if current_user.role not in ['viewer', 'office', 'office_manager'] %}
         <form method="post" action="{{ url_for('main.add_task_comment', task_id=task.id) }}" class="mt-3" data-task-comment-async="1">
           {{ comment_form.hidden_tag() }}
           {{ comment_form.body(class="form-control mb-2", rows=3, placeholder="Комментарий") }}
@@ -99,6 +100,7 @@
       </div>
     </div>
 
+    {% endif %}
     <div class="card content-card task-detail-history-card">
       <div class="card-body">
         <h2 class="section-title">История изменений</h2>

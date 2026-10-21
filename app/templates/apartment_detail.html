@@ -4,13 +4,15 @@
 <div class="apartment-detail-page" data-ajax-pagination-page="apartment-history">
 {% set status_labels = {'not_started': 'не выполнено', 'done': 'выполнено', 'finishers': 'чистовики', 'contractor': 'подрядчик', 'guarantee': 'гарантия', 'concession': 'отступные', 'problem': 'проблема'} %}
 {% set status_classes = {'not_started': 'status-pill-muted', 'done': 'status-pill-success', 'finishers': 'status-pill-info', 'contractor': 'status-pill-warning', 'guarantee': 'status-pill-primary', 'concession': 'status-pill-muted', 'problem': 'status-pill-danger'} %}
-{% set field_labels = {'status': 'Статус', 'comment': 'Комментарий', 'description': 'Текст замечания', 'responsible_id': 'Исполнитель', 'planned_date': 'Плановая дата', 'is_missing_in_latest_sync': 'Отсутствует в последней синхронизации', 'owner_name': 'ФИО собственника', 'phone': 'Номер телефона', 'contract_number': 'По договору', 'finishing_type': 'Отделка', 'apartment_mode': 'Режим'} %}
+{% set field_labels = {'status': 'Статус', 'comment': 'Комментарий', 'description': 'Текст замечания', 'responsible_id': 'Исполнитель', 'planned_date': 'Плановая дата', 'is_missing_in_latest_sync': 'Отсутствует в последней синхронизации', 'owner_name': 'ФИО', 'phone': 'Номер телефона', 'contract_number': 'По договору', 'finishing_type': 'Отделка', 'apartment_mode': 'Режим'} %}
 
 <div class="page-head apartment-detail-head">
   <div>
     <h1 class="page-title">{{ apartment.detail_label() }}</h1>
   </div>
   <div class="apartment-detail-head-actions">
+    {% if can_export_data %}<a class="btn btn-success apartment-source-export-btn" href="{{ url_for('main.apartment_source_export',apartment_id=apartment.id) }}" aria-label="Скачать Excel по шаблону общей таблицы для этого помещения"><i class="bi bi-table" aria-hidden="true"></i></a>{% endif %}
+
     <a class="btn btn-success apartment-detail-export-btn d-none d-md-inline-flex align-items-center" href="{{ url_for('main.apartment_remarks_export', apartment_id=apartment.id) }}">
       <i class="bi bi-file-earmark-excel me-2" aria-hidden="true"></i><span>Скачать Excel</span>
     </a>
@@ -41,13 +43,13 @@
           {% if current_user.role != 'viewer' %}
           <form id="apartment-details-form-{{ apartment.id }}" method="post" action="{{ url_for('main.update_apartment_details', apartment_id=apartment.id) }}" class="apartment-details-edit-form mb-3" data-apartment-details-autosave="1">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="apartment-data-row apartment-data-edit-row">
-              <label for="apartment-owner-{{ apartment.id }}">ФИО собственника</label>
+            <div class="apartment-data-row apartment-data-edit-row apartment-owner-row">
+<label for="apartment-owner-{{ apartment.id }}">ФИО</label>
               <textarea class="form-control form-control-sm apartment-owner-names-control" id="apartment-owner-{{ apartment.id }}" name="owner_name" rows="{{ [row.owner_names|length, 1]|max }}" maxlength="255" autocomplete="name">{{ row.owner_names|join('\n') if row.owner_names else '' }}</textarea>
             </div>
             <div class="apartment-data-row apartment-data-edit-row">
               <label for="apartment-phone-{{ apartment.id }}">Номер телефона</label>
-              <input class="form-control form-control-sm" id="apartment-phone-{{ apartment.id }}" name="phone" type="text" value="{{ row.phones|join('\n') if row.phones else '' }}" maxlength="255" autocomplete="tel">
+              <textarea class="form-control form-control-sm apartment-owner-names-control" id="apartment-phone-{{ apartment.id }}" name="phone" rows="{{ [row.phones|length, 2]|max }}" maxlength="255" autocomplete="tel">{{ row.phones|join('\n') if row.phones else '' }}</textarea>
             </div>
             {% if apartment.premise_type != 'commercial' %}
             <div class="apartment-data-row apartment-data-edit-row">
@@ -68,12 +70,12 @@
           </form>
           {% else %}
           <div class="apartment-data-row">
-            <span>ФИО собственника</span>
+              <span>ФИО</span>
             <b>{{ row.owner_names|join(', ') if row.owner_names else '—' }}</b>
           </div>
           <div class="apartment-data-row">
             <span>Номер телефона</span>
-            <b>{{ row.phones|join(', ') if row.phones else '—' }}</b>
+            <b>{% for phone in row.phones %}{{ phone }}{% if not loop.last %}<br>{% endif %}{% else %}—{% endfor %}</b>
           </div>
           {% if apartment.premise_type != 'commercial' %}
           <div class="apartment-data-row">
@@ -91,7 +93,7 @@
           </div>
           {% endif %}
           {% if row.mode != 'не продана' %}
-          {% set can_manage_inspection = current_user.role != 'viewer' and row.mode not in ['не продана', 'АПП'] %}
+          {% set can_manage_inspection = current_user.role not in ['viewer', 'office_manager'] and row.mode not in ['не продана', 'АПП'] %}
           {% set can_edit_inspection_date = can_manage_inspection %}
           {% set can_reset_inspection = can_manage_inspection and row.inspection_status == 'Был' %}
           {% set can_reset_future_inspection_mobile = can_manage_inspection and row.inspection_status == 'Будет' %}
@@ -134,6 +136,10 @@
                 <button class="btn btn-outline-primary btn-sm apartment-inspection-action-btn apartment-inspection-reset-btn" type="submit">Не был</button>
               </form>
               {% endif %}
+            </div>
+            {% elif current_user.role != 'viewer' %}
+            <div class="apartment-inline-controls">
+              <a class="btn btn-sm btn-primary apartment-inspection-action-btn" href="{{ url_for('main.record_apartment_new', apartment_id=apartment.id) }}">Записать на осмотр</a>
             </div>
             {% endif %}
           </div>
@@ -276,34 +282,55 @@
           {% set has_manual_comment = manual_comment_text and manual_comment_text not in ['-', '—'] %}
           {% set inspection_comment_text = (row.inspection_comment or '')|trim %}
           {% set has_inspection_comment = inspection_comment_text and inspection_comment_text not in ['-', '—'] %}
+          {% set office_manager_comment_text = (row.office_manager_comment or '')|trim %}
+          {% set has_office_manager_comment = office_manager_comment_text and office_manager_comment_text not in ['-', '—'] %}
           <div class="apartment-data-note apartment-data-note-with-action">
-            <span>Комментарий(передача)</span>
-            <p data-apartment-comment-display>{{ manual_comment_text if has_manual_comment else '—' }}</p>
-            {% if current_user.role not in ['viewer', 'office'] %}
+            <span>Комментарий (Офис)</span>
+            <div class="apartment-comment-entries" data-apartment-comment-display>{% for entry in apartment_comment_entries.office %}<div class="apartment-comment-entry"><p>{{ entry.body }}</p><small>{{ entry.author }}{% if entry.date %} · {{ entry.date }}{% endif %}</small></div>{% else %}—{% endfor %}</div>
+            {% if current_user.role not in ['viewer', 'office', 'office_manager', 'supervisor'] %}
             <button class="btn btn-sm btn-outline-danger apartment-note-clear-btn" type="button" data-clear-note-button data-clear-note-form="apartment-comment-form-{{ apartment.id }}" title="Удалить комментарий" aria-label="Удалить комментарий"{% if not has_manual_comment %} hidden{% endif %}><i class="bi bi-trash"></i></button>
             {% endif %}
           </div>
           <div class="apartment-data-note apartment-data-note-with-action">
-            <span>Комментарий(устранение замечаний)</span>
-            <p data-apartment-inspection-note-display>{{ inspection_comment_text if has_inspection_comment else '—' }}</p>
-            {% if current_user.role not in ['viewer', 'office'] %}
+            <span>Комментарий (Инженеры)</span>
+            <div class="apartment-comment-entries" data-apartment-inspection-note-display>{% for entry in apartment_comment_entries.engineers %}<div class="apartment-comment-entry"><p>{{ entry.body }}</p><small>{{ entry.author }}{% if entry.date %} · {{ entry.date }}{% endif %}</small></div>{% else %}—{% endfor %}</div>
+            {% if current_user.role not in ['viewer', 'office', 'office_manager', 'supervisor'] %}
             <button class="btn btn-sm btn-outline-danger apartment-note-clear-btn" type="button" data-clear-note-button data-clear-note-form="inspection-note-form-{{ apartment.id }}" title="Удалить устранение" aria-label="Удалить устранение"{% if not has_inspection_comment %} hidden{% endif %}><i class="bi bi-trash"></i></button>
             {% endif %}
           </div>
-          {% if current_user.role not in ['viewer', 'office'] %}
-          <form method="post" action="{{ url_for('main.update_apartment_comment', apartment_id=apartment.id) }}" class="inspection-note-form" data-apartment-async="1" id="apartment-comment-form-{{ apartment.id }}">
+          <div class="apartment-data-note apartment-data-note-with-action">
+            <span>Комментарий (Офис-Менеджер)</span>
+            <div class="apartment-comment-entries" data-apartment-office-manager-comment-display>{% for entry in apartment_comment_entries.office_manager %}<div class="apartment-comment-entry"><p>{{ entry.body }}</p><small>{{ entry.author }}{% if entry.date %} · {{ entry.date }}{% endif %}</small></div>{% else %}—{% endfor %}</div>
+            {% if current_user.role in ['admin', 'office_manager'] %}
+            <button class="btn btn-sm btn-outline-danger apartment-note-clear-btn" type="button" data-clear-note-button data-clear-note-form="office-manager-comment-form-{{ apartment.id }}" title="Удалить комментарий" aria-label="Удалить комментарий Офис-Менеджера"{% if not has_office_manager_comment %} hidden{% endif %}><i class="bi bi-trash"></i></button>
+            {% endif %}
+          </div>
+          {% if current_user.role not in ['viewer', 'office', 'office_manager', 'supervisor'] %}
+          <form method="post" action="{{ url_for('main.update_apartment_comment', apartment_id=apartment.id) }}" class="inspection-note-form apartment-comment-append-form" data-apartment-async="1" id="apartment-comment-form-{{ apartment.id }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="apartment-note-form-head">
-              <label class="form-label" for="apartment-comment-{{ apartment.id }}">Комментарий(передача)</label>
+              <label class="form-label" for="apartment-comment-{{ apartment.id }}">Комментарий (Офис)</label>
             </div>
-            <textarea class="form-control" id="apartment-comment-{{ apartment.id }}" name="apartment_comment" rows="3" placeholder="Например: Собственник не подписывает АВР">{{ manual_comment_text if has_manual_comment else '' }}</textarea>
+            <textarea class="form-control" id="apartment-comment-{{ apartment.id }}" name="apartment_comment" rows="3" placeholder="Новый комментарий"></textarea>
+            <button class="btn btn-sm btn-primary" type="submit">Добавить комментарий</button>
           </form>
-          <form method="post" action="{{ url_for('main.update_apartment_inspection_note', apartment_id=apartment.id) }}" class="inspection-note-form" data-apartment-async="1" id="inspection-note-form-{{ apartment.id }}">
+          <form method="post" action="{{ url_for('main.update_apartment_inspection_note', apartment_id=apartment.id) }}" class="inspection-note-form apartment-comment-append-form" data-apartment-async="1" id="inspection-note-form-{{ apartment.id }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="apartment-note-form-head">
-              <label class="form-label" for="inspection-note-{{ apartment.id }}">Комментарий(устранение замечаний)</label>
+              <label class="form-label" for="inspection-note-{{ apartment.id }}">Комментарий (Инженеры)</label>
             </div>
-            <textarea class="form-control" id="inspection-note-{{ apartment.id }}" name="inspection_note" rows="3">{{ inspection_comment_text if has_inspection_comment else '' }}</textarea>
+            <textarea class="form-control" id="inspection-note-{{ apartment.id }}" name="inspection_note" rows="3" placeholder="Новый комментарий"></textarea>
+            <button class="btn btn-sm btn-primary" type="submit">Добавить комментарий</button>
+          </form>
+          {% endif %}
+          {% if current_user.role in ['admin', 'office_manager'] %}
+          <form method="post" action="{{ url_for('main.update_apartment_office_manager_comment', apartment_id=apartment.id) }}" class="inspection-note-form apartment-comment-append-form" data-apartment-async="1" id="office-manager-comment-form-{{ apartment.id }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="apartment-note-form-head">
+              <label class="form-label" for="office-manager-comment-{{ apartment.id }}">Комментарий (Офис-Менеджер)</label>
+            </div>
+            <textarea class="form-control" id="office-manager-comment-{{ apartment.id }}" name="office_manager_comment" rows="3" maxlength="4000" placeholder="Новый комментарий"></textarea>
+            <button class="btn btn-sm btn-primary" type="submit">Добавить комментарий</button>
           </form>
           {% endif %}
           {% if row.po_status and current_user.role != 'office' %}
@@ -356,10 +383,10 @@
           {% for task in row.tasks %}
           {% set point_name = task.work_point.display_name | replace(task.work_point.point_number ~ '. ', '') | replace(task.work_point.point_number ~ '.', '') if task.work_point else 'Без пункта' %}
           {% set is_returnable_status = task.status in ['done', 'finishers', 'contractor', 'guarantee', 'concession'] %}
-          <div class="apartment-task-item task-row-link {% if task.is_done %}is-done{% endif %}" data-href="{{ url_for('main.task_detail', task_id=task.id, back=request.full_path) }}" data-open-on-click="1" data-task-status="{{ task.status }}">
+          <div class="apartment-task-item {% if current_user.role != 'office_manager' %}task-row-link{% endif %} {% if task.is_done %}is-done{% endif %}"{% if current_user.role != 'office_manager' %} data-href="{{ url_for('main.task_detail', task_id=task.id, back=request.full_path) }}" data-open-on-click="1"{% endif %} data-task-status="{{ task.status }}">
             <div class="apartment-task-head">
               <span class="apartment-task-point">{{ point_name }}</span>
-              {% if current_user.role != 'viewer' %}
+              {% if current_user.role not in ['viewer', 'office_manager'] %}
               <div class="apartment-task-status-desktop actions-cell" data-current-status="{{ task.status }}">
                 <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }}" data-status-pill>{{ task.status_label() }}</span>
                 <form class="apartment-task-status-form status-action-form binary-status-toggle-form" method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started' if is_returnable_status else 'done') }}" data-status-action="{{ 'not_started' if is_returnable_status else 'done' }}" data-binary-status-toggle data-is-done="{{ '1' if is_returnable_status else '0' }}" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-done-label="Выполнено" data-not-done-label="Не выполнено">
@@ -378,7 +405,7 @@
             <div class="apartment-task-text">{{ remark_text(task.description or task.source_cell_value or '—') }}</div>
             <div class="apartment-task-status-mobile">
               <span class="status-pill {{ status_classes.get(task.status, 'status-pill-muted') }} apartment-task-status-current-mobile">{{ task.status_label() }}</span>
-              {% if current_user.role != 'viewer' %}
+              {% if current_user.role not in ['viewer', 'office_manager'] %}
               <div class="apartment-task-actions actions-cell{% if task.status != 'problem' %} has-delete-action{% endif %}" data-current-status="{{ task.status }}">
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='not_started' if is_returnable_status else 'done') }}" class="apartment-task-action-form status-action-form binary-status-toggle-form" data-status-action="{{ 'not_started' if is_returnable_status else 'done' }}" data-binary-status-toggle data-is-done="{{ '1' if is_returnable_status else '0' }}" data-done-url="{{ url_for('main.quick_status', task_id=task.id, status='done') }}" data-not-started-url="{{ url_for('main.quick_status', task_id=task.id, status='not_started') }}" data-done-label="Выполнено" data-not-done-label="Не выполнено"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm {{ 'btn-outline-secondary' if is_returnable_status else 'btn-outline-success' }} apartment-task-action-btn" type="submit" data-binary-status-toggle-button><span data-binary-status-toggle-label>{{ 'Не выполнено' if is_returnable_status else 'Выполнено' }}</span></button></form>
                 <form method="post" action="{{ url_for('main.quick_status', task_id=task.id, status='finishers') }}" class="apartment-task-action-form status-action-form {% if task.status == 'finishers' %}d-none{% endif %}" data-status-action="finishers"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-info apartment-task-action-btn task-stage-action-btn" type="submit">Чистовики</button></form>
@@ -411,6 +438,7 @@
       </div>
     </div>
 
+    {% if can_view_task_comments %}
     <div class="card content-card mb-3">
       <div class="card-body">
         <h2 class="section-title">Комментарии по замечаниям</h2>
@@ -432,6 +460,7 @@
       </div>
     </div>
 
+    {% endif %}
     <div class="card content-card" data-apartment-history-card data-ajax-pagination-content data-ajax-items-selector=".timeline-item">
       <div class="card-body">
         <h2 class="section-title">История изменений по помещению</h2>
@@ -439,7 +468,7 @@
           {% for entry in history_entries %}
           <div class="timeline-item">
             <div class="small text-muted">{{ entry.timestamp }} · {{ entry.actor }}{% if entry.point_label %} · {{ entry.point_label }}{% endif %}</div>
-            <div{% if entry.summary_class %} class="{{ entry.summary_class }}"{% endif %}>{{ entry.summary }}</div>
+            <div{% if entry.summary_class %} class="{{ entry.summary_class }}"{% endif %}>{{ entry.summary|replace('Office Manager', 'Офис-менеджер')|replace('Офис-Менеджера', 'Офис-менеджера') }}</div>
           </div>
           {% endfor %}
         </div>

@@ -14,10 +14,13 @@ SCRIPT = (ROOT / "app" / "static" / "script.js").read_text(encoding="utf-8")
 
 class ApartmentDetailContactsTests(unittest.TestCase):
     def test_detail_shows_owner_and_phone_for_desktop_and_mobile(self):
-        self.assertIn("ФИО собственника", TEMPLATE)
+        self.assertIn("ФИО", TEMPLATE)
         self.assertIn("Номер телефона", TEMPLATE)
         self.assertIn("row.owner_names|join(', ') if row.owner_names else '—'", TEMPLATE)
-        self.assertIn("row.phones|join(', ') if row.phones else '—'", TEMPLATE)
+        self.assertIn("{% for phone in row.phones %}", TEMPLATE)
+        self.assertIn("{% if not loop.last %}<br>{% endif %}", TEMPLATE)
+        self.assertIn('name="phone" rows="{{ [row.phones|length, 2]|max }}"', TEMPLATE)
+        self.assertNotIn('name="phone" type="text"', TEMPLATE)
 
     def test_detail_renders_contract_number_and_multiline_owner_editor(self):
         self.assertIn('"contract_number": _apartment_contract_number(apartment)', ROUTES)
@@ -46,20 +49,19 @@ class ApartmentDetailContactsTests(unittest.TestCase):
         self.assertNotIn("AbortController", TEMPLATE)
 
     def test_office_role_cannot_edit_apartment_comments_or_see_internal_status(self):
-        self.assertIn("current_user.role not in ['viewer', 'office']", TEMPLATE)
-        self.assertIn("current_user.role not in ['viewer', 'office']", APARTMENTS_TEMPLATE)
-        self.assertIn("current_user.role != 'office'", TEMPLATE)
-        self.assertIn("current_user.role != 'office'", APARTMENTS_TEMPLATE)
+        self.assertIn("current_user.role not in ['viewer', 'office', 'office_manager']", TEMPLATE)
+        self.assertIn("current_user.role not in ['viewer', 'office', 'office_manager']", APARTMENTS_TEMPLATE)
+        self.assertIn("current_user.role not in ['office', 'office_manager']", TEMPLATE)
+        self.assertIn("current_user.role not in ['office', 'office_manager']", APARTMENTS_TEMPLATE)
         self.assertIn("update_apartment_comment", TEMPLATE)
         self.assertIn("update_apartment_inspection_note", TEMPLATE)
         self.assertIn("update_apartment_po_status", TEMPLATE)
         self.assertIn("update_apartment_po_status", APARTMENTS_TEMPLATE)
 
     def test_apartment_comments_have_separate_labels(self):
-        self.assertIn("Комментарий(передача)", TEMPLATE)
-        self.assertIn("Комментарий(устранение замечаний)", TEMPLATE)
-        self.assertIn("Комментарий(передача)", APARTMENTS_TEMPLATE)
-        self.assertIn("Комментарий(устранение замечаний)", APARTMENTS_TEMPLATE)
+        for label in ("Комментарий (Офис)", "Комментарий (Инженеры)", "Комментарий (Офис-Менеджер)"):
+            self.assertIn(label, TEMPLATE)
+            self.assertIn(label, APARTMENTS_TEMPLATE)
         self.assertNotIn("row.mode == 'АПП' and current_user.role", TEMPLATE)
         self.assertNotIn("row.mode == 'не принята' and current_user.role", TEMPLATE)
 
