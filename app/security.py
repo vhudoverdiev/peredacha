@@ -65,9 +65,9 @@ def _bucket_key(scope: str) -> str:
     return f"{scope}:{ip_limit_key()}"
 
 
-def hit_rate_limit(scope: str, limit: int, window_seconds: int) -> bool:
+def hit_rate_limit(scope: str, limit: int, window_seconds: int, *, subject: str | None = None) -> bool:
     now = time.time()
-    key = _bucket_key(scope)
+    key = f"{scope}:subject:{subject}" if subject is not None else _bucket_key(scope)
     bucket = _BUCKETS[key]
     while bucket and bucket[0] <= now - window_seconds:
         bucket.popleft()
@@ -77,7 +77,7 @@ def hit_rate_limit(scope: str, limit: int, window_seconds: int) -> bool:
     return False
 
 
-def site_error_daily_ip_limit_reached(kind: str, limit: int, *, ip_address: str | None = None) -> bool:
+def site_error_daily_ip_limit_reached(kind: str, limit: int, *, ip_address: str | None = None, anonymous_only: bool = False) -> bool:
     from app.models import SiteErrorReport
 
     normalized_ip = (ip_address or client_ip() or "unknown")[:80]
@@ -88,10 +88,24 @@ def site_error_daily_ip_limit_reached(kind: str, limit: int, *, ip_address: str 
             SiteErrorReport.kind == kind,
             _ip_bucket_filter(SiteErrorReport.ip_address, normalized_ip),
             SiteErrorReport.created_at >= since,
+            *([SiteErrorReport.user_id.is_(None)] if anonymous_only else []),
         )
         .count()
     )
     return count >= limit
+
+
+def site_error_daily_user_limit_reached(user_id: int, limit: int) -> bool:
+    from app.models import SiteErrorReport, User
+
+    # Serialise submissions for an account across production DB workers. The
+    # report query is a locking/current read, including on MySQL REPEATABLE READ.
+    db.session.execute(select(User.id).where(User.id == user_id).with_for_update()).first()
+    reports = db.session.execute(select(SiteErrorReport.id).where(
+        SiteErrorReport.kind == "user", SiteErrorReport.user_id == user_id,
+        SiteErrorReport.created_at >= utc_now() - timedelta(days=1),
+    ).limit(limit).with_for_update()).all()
+    return len(reports) >= limit
 
 
 def login_ip_password_limit_reached(*, ip_address: str | None = None) -> bool:
@@ -191,7 +205,7 @@ def should_record_site_visit() -> bool:
     path = request.path or ""
     if request.method == "OPTIONS":
         return False
-    if path.startswith("/static/"):
+    if path.startswith("/static/") or path in {"/favicon.ico", "/apple-touch-icon.png", "/robots.txt"}:
         return False
     if path == "/service-worker.js" or endpoint == "main.service_worker":
         return False

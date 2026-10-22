@@ -203,6 +203,13 @@ def seed_database() -> None:
                                     apartment=apartments[0], work_point=work_point, responsible=worker,
                                     planned_date=date.today(), description=f"Работа {index + 1}: устранить замечание и проверить результат."))
 
+    if os.environ.get('E2E_REMARK_REVIEW_FIXTURES') == '1':
+        from app.work_points import WORK_POINT_LABELS
+        wrong = WorkPoint(point_number='99',short_name=WORK_POINT_LABELS['11'],source_sheet_name='review-qa')
+        db.session.add(wrong)
+        for index in range(2):
+            db.session.add(Task(source_uid=f'review-qa-{index}',project=project,apartment=apartments[index],
+                                work_point=wrong,description='Регулировка ПВХ',status=STATUS_NOT_STARTED))
     db.session.commit()
 
 

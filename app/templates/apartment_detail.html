@@ -11,7 +11,7 @@
     <h1 class="page-title">{{ apartment.detail_label() }}</h1>
   </div>
   <div class="apartment-detail-head-actions">
-    {% if can_export_data %}<a class="btn btn-success apartment-source-export-btn d-none d-md-inline-flex" href="{{ url_for('main.apartment_source_export',apartment_id=apartment.id) }}" aria-label="Скачать Excel по шаблону общей таблицы для этого помещения"><i class="bi bi-table" aria-hidden="true"></i></a>{% endif %}
+    {% if can_export_data %}<a class="btn btn-success apartment-source-export-btn download-excel-btn d-none d-md-inline-flex" href="{{ url_for('main.apartment_source_export',apartment_id=apartment.id) }}" data-download-mode="fetch" data-no-loader="1" download aria-label="Скачать Excel по шаблону общей таблицы для этого помещения"><i class="bi bi-table" aria-hidden="true"></i></a>{% endif %}
 
     <a class="btn btn-success apartment-detail-export-btn d-none d-md-inline-flex align-items-center" href="{{ url_for('main.apartment_remarks_export', apartment_id=apartment.id) }}">
       <i class="bi bi-file-earmark-excel me-2" aria-hidden="true"></i><span>Скачать Excel</span>
@@ -145,14 +145,23 @@
                 <button class="btn btn-outline-primary btn-sm apartment-inspection-action-btn apartment-inspection-reset-btn" type="submit">Не был</button>
               </form>
               {% endif %}
-            </div>
-            {% elif current_user.role != 'viewer' %}
-            <div class="apartment-inline-controls">
-              <a class="btn btn-sm btn-primary apartment-inspection-action-btn" href="{{ url_for('main.record_apartment_new', apartment_id=apartment.id) }}">Записать на осмотр</a>
+          {% if can_use_project_workflows and current_user.role != 'viewer' and row.mode not in ['не продана', 'АПП'] %}
+          <div class="apartment-inspection-book-form" data-apartment-book-inspection-controls {% if row.inspection_status == 'Будет' %}hidden{% endif %}>
+            <a class="btn btn-sm btn-primary apartment-inspection-action-btn" data-apartment-book-inspection href="{{ url_for('main.record_apartment_new', apartment_id=apartment.id) }}">Записать на осмотр</a>
+          </div>
+          {% endif %}
             </div>
             {% endif %}
           </div>
           {% endif %}
+
+{% if not can_edit_inspection_date or row.mode == 'не продана' %}
+          {% if can_use_project_workflows and current_user.role != 'viewer' and row.mode not in ['не продана', 'АПП'] %}
+          <div class="apartment-inspection-book-form" data-apartment-book-inspection-controls {% if row.inspection_status == 'Будет' %}hidden{% endif %}>
+            <a class="btn btn-sm btn-primary apartment-inspection-action-btn" data-apartment-book-inspection href="{{ url_for('main.record_apartment_new', apartment_id=apartment.id) }}">Записать на осмотр</a>
+          </div>
+          {% endif %}
+{% endif %}
 
           {% if row.mode == 'АПП' %}
           {% if current_user.role != 'viewer' %}

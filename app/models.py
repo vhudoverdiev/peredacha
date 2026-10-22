@@ -586,6 +586,30 @@ class Task(TimestampMixin, db.Model):
         return TASK_STATUSES.get(self.status, {}).get("class", "secondary")
 
 
+class RemarkLibraryEntry(TimestampMixin, db.Model):
+    __tablename__='remark_library_entries'
+    id=db.Column(db.Integer,primary_key=True)
+    normalized_hash=db.Column(db.String(64),nullable=False)
+    point_key=db.Column(db.String(80),nullable=False)
+    text=db.Column(db.Text,nullable=False)
+    points_json=db.Column(db.Text,nullable=False)
+    occurrences=db.Column(db.Integer,nullable=False,default=1)
+    __table_args__=(db.UniqueConstraint('normalized_hash','point_key',name='uq_remark_library_text_point'),)
+
+
+class RemarkPointReview(TimestampMixin, db.Model):
+    """Human review and explicit import override, independent of source coordinates."""
+    __tablename__ = 'remark_point_reviews'
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('tasks.id', ondelete='CASCADE'), nullable=False, unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    fingerprint = db.Column(db.String(64), nullable=False)
+    catalog_version = db.Column(db.String(32), nullable=False)
+    action = db.Column(db.String(20), nullable=False)
+    corrected_point_id = db.Column(db.Integer, db.ForeignKey('work_points.id'), nullable=True)
+    task = db.relationship('Task', backref=db.backref('remark_point_review', uselist=False, cascade='all, delete-orphan'))
+
+
 class MaterialRequest(TimestampMixin, db.Model):
     __tablename__ = "material_requests"
 

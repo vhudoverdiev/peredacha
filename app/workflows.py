@@ -5,7 +5,7 @@ from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 
-from flask import abort, current_app, flash, jsonify, redirect, render_template, request, send_file, url_for
+from flask import abort, current_app, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
@@ -32,9 +32,13 @@ def project_context():
 
 
 def project_item(model, item_id, project):
-    item = db.session.get(model, item_id) or abort(404)
+    item = db.session.get(model, item_id)
+    if item is None:
+        g.http_error_reason = "workflow_item_not_found"
+        abort(404)
     item_project = item.slot.project_id if isinstance(item, InspectionBooking) else item.project_id
     if not project or item_project != project.id or not current_user.can_access_project(project):
+        g.http_error_reason = "workflow_project_mismatch_or_denied"
         abort(404)
     return item
 
@@ -422,16 +426,6 @@ def records():
     start, end, previous, following = calendar_period(value, view)
     slots = InspectionSlot.query.filter(InspectionSlot.project_id == project.id, InspectionSlot.day.between(start, end)).order_by(InspectionSlot.day, InspectionSlot.start_time).all()
     bookings = InspectionBooking.query.filter(InspectionBooking.active_slot_id.in_([slot.id for slot in slots])).options(selectinload(InspectionBooking.apartment), selectinload(InspectionBooking.staff)).all() if slots else []
-    now = to_moscow_datetime(utc_now())
-    if getattr(now, 'tzinfo', None):
-        now = now.replace(tzinfo=None)
-    changed = False
-    for booking in bookings:
-        finish = datetime.combine(booking.slot.day, booking.appointment_time or booking.slot.start_time) + timedelta(minutes=booking.slot.duration_minutes + 60)
-        if booking.status == 'booked' and now >= finish:
-            booking.status = 'completed'; changed = True
-    if changed:
-        db.session.commit()
     booked = {booking.slot_id: booking for booking in bookings}
     occupied_intervals = [(datetime.combine(booking.slot.day, booking.appointment_time or booking.slot.start_time),
                            datetime.combine(booking.slot.day, booking.appointment_time or booking.slot.start_time) + timedelta(minutes=booking.slot.duration_minutes)) for booking in bookings]
@@ -730,7 +724,11 @@ def record_status(booking_id):
         abort(400)
     if hit_rate_limit('inspection-status', 60, 300):
         abort(429)
-    booking.status=status
+    if status=='completed' and booking.status!='completed':
+        from app.services.inspection_completion import complete_inspection
+        complete_inspection(booking)
+    else:
+        booking.status=status
     if status=='cancelled':
         booking.active_slot_id=None
         if booking.apartment.inspection_note and booking.apartment.inspection_note.startswith('__inspection_schedule__:'):
@@ -757,3 +755,13 @@ def records_download():
         flash(str(error), 'warning')
         return redirect(url_for('main.records',date=day.isoformat()))
     return send_file(BytesIO(output),mimetype='image/png',as_attachment=True,download_name=f'Записи на осмотр {day.strftime("%d.%m.%Y")}.png')
+
+
+@bp.before_request
+def settle_elapsed_inspection_appointments():
+    if request.method not in {'GET','HEAD'} or not current_user.is_authenticated or not request.endpoint:
+        return
+    project=selected_project()
+    if project is not None and current_user.can_access_project(project):
+        from app.services.inspection_completion import complete_elapsed_inspections
+        complete_elapsed_inspections(project.id)

@@ -172,9 +172,10 @@ class ProjectWorkflowsTests(unittest.TestCase):
         self.login(self.manager)
         response = self.client.get('/records/availability')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.text.count('class="form-select workflow-time-select"'), 6)
+        self.assertEqual(response.text.count('data-time-field'), 6)
         self.assertNotIn('type="time"', response.text)
-        self.assertIn('<option value="17:00" selected>17:00</option>', response.text)
+        self.assertIn('name="end_time" value="17:00"', response.text)
+        self.assertIn('Выбрать время из списка', response.text)
 
     def test_allowed_roles_and_worker_exclusion(self):
         for role in ('admin','manager','supervisor','office','office_manager','viewer','painter','glazier','handyman','executor'):
@@ -416,6 +417,148 @@ class ProjectWorkflowsTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['label'], 'Свободно')
         self.assertIsNone(slot.closed_reason)
+
+    def test_apartment_booking_button_depends_on_inspection_status_not_date_editing(self):
+        from datetime import timedelta
+        for role in ('admin','manager','office','office_manager','supervisor'):
+            self.manager.role=role;db.session.commit();self.login(self.manager)
+            for future in (False,True):
+                self.apartment.inspection_date=date.today()+timedelta(days=2) if future else None
+                self.apartment.inspection_note=None
+                self.apartment.first_inspection_present=False
+                db.session.commit()
+                for agent in ('Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148 Safari/604.1'):
+                    response=self.client.get(f'/apartments/{self.apartment.id}',headers={'User-Agent':agent})
+                    self.assertEqual(response.status_code,200)
+                    import re
+                    tag=re.search(r'<div[^>]*data-apartment-book-inspection-controls[^>]*>',response.text).group()
+                    self.assertEqual('hidden' in tag,future,(role,future,agent))
+
+    def test_booking_button_is_absent_for_unsold_and_app_on_desktop_and_mobile(self):
+        for role in ('admin','office_manager'):
+            self.manager.role=role;db.session.commit();self.login(self.manager)
+            for mode in ('unsold','app','not_accepted'):
+                self.apartment.is_unsold=mode=='unsold'
+                self.apartment.is_app_mode=mode=='app'
+                self.apartment.app_signed_date=date(2026,10,20) if mode=='app' else None
+                self.apartment.inspection_date=None;self.apartment.reinspection_date=None
+                self.apartment.first_inspection_date=None;self.apartment.inspection_note=None
+                self.apartment.first_inspection_present=False
+                db.session.commit()
+                for agent in ('Mozilla/5.0 (Windows NT 10.0; Win64; x64)','Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148 Safari/604.1'):
+                    response=self.client.get(f'/apartments/{self.apartment.id}',headers={'User-Agent':agent})
+                    self.assertEqual(response.status_code,200)
+                    self.assertEqual('data-apartment-book-inspection href=' in response.text,mode=='not_accepted',(role,mode,agent))
+
+    def test_booking_then_repeated_manual_act_on_same_day_has_one_inspection_date(self):
+        from app.routes import _apartment_inspection_values
+        self.login(self.manager);self.availability()
+        slot=InspectionSlot.query.first()
+        response=self.client.post(f'/records/slots/{slot.id}/book',data={'apartment_id':self.apartment.id})
+        self.assertEqual(response.status_code,302)
+        self.assertEqual(InspectionBooking.query.count(),1)
+        for attempt in range(2):
+            response=self.client.post('/tasks/new',data={'add_mode':'manual','manual_kind':'act',
+                'apartment_id':str(self.apartment.id),'inspection_date':'2026-10-21',
+                'act_point':'17','act_description':'Регулировка оконного блока в комнате'})
+            self.assertIn(response.status_code,(302,303) if attempt==0 else (200,302,303))
+            db.session.refresh(self.apartment)
+            self.assertEqual(_apartment_inspection_values(self.apartment),[date(2026,10,21)])
+            self.assertNotIn('Дополнительный осмотр:',self.apartment.inspection_note or '')
+
+    def test_booking_then_excel_and_act_same_date_does_not_duplicate(self):
+        from datetime import datetime
+        from app.routes import _apartment_inspection_values,_apply_inspection_date_to_group
+        from app.services.task_service import sync_rows
+        self.login(self.manager);self.availability()
+        slot=InspectionSlot.query.first()
+        self.client.post(f'/records/slots/{slot.id}/book',data={'apartment_id':self.apartment.id})
+        for value in (date(2026,10,21),datetime(2026,10,21,10,30)):
+            rows=[['№ кв. проект','стр. №','Дата осмотра','10. Вентиляция'],
+                  [self.apartment.apartment_number,self.apartment.construction_number,value,'Проверка вентиляции']]
+            sync_rows(rows,'Таблица',self.project.name);db.session.commit()
+            self.assertFalse(_apply_inspection_date_to_group([self.apartment],date(2026,10,21)))
+            db.session.commit();db.session.refresh(self.apartment)
+            self.assertEqual(len(_apartment_inspection_values(self.apartment)),1)
+            self.assertEqual(_apartment_inspection_values(self.apartment)[0].date() if isinstance(_apartment_inspection_values(self.apartment)[0],datetime) else _apartment_inspection_values(self.apartment)[0],date(2026,10,21))
+
+    def test_elapsed_booking_sets_not_ready_once_at_end_of_moscow_interval(self):
+        from datetime import datetime
+        from unittest.mock import patch
+        from app.routes import _apartment_inspection_status,_apartment_inspection_values
+        self.login(self.manager);self.availability()
+        slot=InspectionSlot.query.first()
+        self.client.post(f'/records/slots/{slot.id}/book',data={'apartment_id':self.apartment.id})
+        self.apartment.po_status='thrown';self.apartment.po_status_manual=True;db.session.commit()
+        with patch('app.services.inspection_completion.utc_now',return_value=datetime(2026,10,21,6,29,59)):
+            self.client.get(f'/apartments/{self.apartment.id}')
+        self.assertEqual(self.apartment.po_status,'thrown')
+        with patch('app.services.inspection_completion.utc_now',return_value=datetime(2026,10,21,6,30)):
+            self.client.get(f'/apartments/{self.apartment.id}')
+        db.session.refresh(self.apartment)
+        self.assertEqual(InspectionBooking.query.one().status,'completed')
+        self.assertEqual(self.apartment.po_status,'not_ready')
+        self.assertEqual(_apartment_inspection_values(self.apartment),[date(2026,10,21)])
+        self.assertEqual(_apartment_inspection_status([self.apartment]),'Был')
+        self.apartment.po_status='to_throw';db.session.commit()
+        self.client.get(f'/apartments/{self.apartment.id}')
+        self.assertEqual(self.apartment.po_status,'to_throw')
+
+    def test_elapsed_booking_uses_custom_time_and_does_not_touch_other_projects(self):
+        from datetime import datetime,time
+        from app.services.inspection_completion import complete_elapsed_inspections
+        self.login(self.manager);self.availability()
+        slot=InspectionSlot.query.first()
+        self.client.post(f'/records/slots/{slot.id}/book',data={'apartment_id':self.apartment.id,'appointment_time':'09:20'})
+        other=Project(name='Other inspection project');db.session.add(other);db.session.flush()
+        other_apartment=Apartment(project=other,apartment_number='1',po_status='thrown',po_status_manual=True)
+        other_slot=InspectionSlot(project=other,day=date(2026,10,21),start_time=time(8),duration_minutes=30)
+        other_booking=InspectionBooking(slot=other_slot,apartment=other_apartment,status='booked')
+        db.session.add_all([other_apartment,other_slot,other_booking]);db.session.commit()
+        self.assertEqual(complete_elapsed_inspections(self.project.id,datetime(2026,10,21,6,30)),0)
+        self.assertEqual(complete_elapsed_inspections(self.project.id,datetime(2026,10,21,6,50)),1)
+        self.assertEqual(other_booking.status,'booked')
+        self.assertEqual(other_apartment.po_status,'thrown')
+
+    def test_cancelled_booking_does_not_reset_internal_status(self):
+        from app.services.inspection_completion import complete_elapsed_inspections
+        self.login(self.manager);self.availability()
+        slot=InspectionSlot.query.first()
+        self.client.post(f'/records/slots/{slot.id}/book',data={'apartment_id':self.apartment.id})
+        booking=InspectionBooking.query.one();booking.status='cancelled';booking.active_slot_id=None
+        self.apartment.po_status='thrown';self.apartment.po_status_manual=True;db.session.commit()
+        self.assertEqual(complete_elapsed_inspections(self.project.id),0)
+        self.assertEqual(self.apartment.po_status,'thrown')
+
+    def test_mobile_can_delete_inspection_date_with_existing_permissions(self):
+        headers={'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148 Safari/604.1'}
+        self.manager.role='admin';db.session.commit();self.login(self.manager)
+        self.apartment.inspection_date=date(2030,1,2);db.session.commit()
+        response=self.client.post(f'/apartments/{self.apartment.id}/inspection-date/delete',data={'inspection_date':'2030-01-02'},headers=headers)
+        self.assertEqual(response.status_code,302)
+        db.session.refresh(self.apartment)
+        self.assertIsNone(self.apartment.inspection_date)
+        self.manager.role='viewer';db.session.commit()
+        self.assertEqual(self.client.post(f'/apartments/{self.apartment.id}/inspection-date/delete',data={'inspection_date':'2030-01-02'},headers=headers).status_code,403)
+
+    def test_each_free_slot_has_visible_close_icon_in_day_and_week(self):
+        import re
+        self.login(self.manager)
+        self.availability()
+        for view in ('day', 'week'):
+            page=self.client.get(f'/records?date=2026-10-21&view={view}').text
+            forms=re.findall(r'<form[^>]*data-slot-toggle[^>]*>.*?</form>', page, re.S)
+            self.assertEqual(len(forms), 2)
+            for form in forms:
+                self.assertNotIn('hidden', form.split('>')[0])
+                self.assertIn('aria-label="Закрыть время"', form)
+                self.assertIn('bi-lock', form)
+        slot=InspectionSlot.query.first()
+        self.client.post(f'/records/slots/{slot.id}/toggle', headers={'Accept':'application/json'})
+        page=self.client.get('/records?date=2026-10-21').text
+        form=re.search(rf'<form[^>]*action="/records/slots/{slot.id}/toggle"[^>]*>.*?</form>', page, re.S).group()
+        self.assertNotIn('hidden', form.split('>')[0])
+        self.assertIn('aria-label="Открыть время"', form)
 
     def test_close_interval_stores_reason_without_showing_it_in_slots(self):
         self.login(self.manager)

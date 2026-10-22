@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Записи на осмотры{% endblock %}
+{% from '_time_field.html' import time_field %}
 {% block content %}
 <section class="workflow-page records-page" data-ajax-pagination-page="records" data-records-view="{{ view }}" data-records-date="{{ selected.isoformat() }}">
   <div class="workflow-head"><div class="workflow-heading-copy"><h1 class="page-title">Записи на осмотры</h1><p class="text-muted">{{ project.name }} · Расписание осмотров</p></div><div class="workflow-actions records-header-actions"><a class="btn btn-outline-secondary workflow-mobile-back" href="{{ url_for('main.dashboard') }}" aria-label="Назад" title="Назад"><i class="bi bi-arrow-left" aria-hidden="true"></i></a><a class="btn btn-outline-secondary records-icon-action" data-records-desktop-action aria-label="Обзвонить" title="Обзвонить" href="{{ url_for('main.records_call_list') }}"><i class="bi bi-telephone-outbound me-2"></i><span class="records-action-label">Обзвонить</span>{% if call_list_count %}<span class="nav-count-badge ms-2" aria-label="Помещений для обзвона: {{ call_list_count }}">{{ call_list_count }}</span>{% endif %}</a>{% if can_configure_inspections %}<a class="btn btn-primary records-icon-action" aria-label="Настроить время" title="Настроить время" href="{{ url_for('main.records_availability') }}"><i class="bi bi-clock me-2"></i><span class="records-action-label">Настроить время</span></a>{% endif %}{% if can_configure_inspections %}<button class="btn btn-outline-secondary records-icon-action" aria-label="Закрыть интервал" title="Закрыть интервал" type="button" data-close-interval-open data-records-day-action="close" {% if view!='day' %}hidden{% endif %}><i class="bi bi-lock me-2"></i><span class="records-action-label">Закрыть интервал</span></button>{% endif %}<a class="btn btn-outline-secondary records-icon-action" data-records-desktop-action aria-label="Скачать" title="Скачать" data-records-day-action="download" {% if view!='day' %}hidden{% endif %} href="{{ url_for('main.records_download',date=selected.isoformat()) }}"><i class="bi bi-download me-2"></i><span class="records-action-label">Скачать</span></a></div></div>
@@ -32,7 +33,7 @@
           <div class="workflow-slot {{ 'is-booked' if item.booking else '' }} {{ 'is-closed' if not item.slot.is_open else '' }}" data-record-slot data-slot-id="{{ item.slot.id }}">
             <div class="workflow-slot-time"><b>{{ (item.booking.appointment_time if item.booking and item.booking.appointment_time else item.slot.start_time).strftime('%H:%M') }}</b><small>{{ item.slot.duration_minutes }} мин.</small></div>
             {% if item.booking %}<a class="workflow-booking-link" href="{{ url_for('main.record_detail',booking_id=item.booking.id) }}"><b>{{ 'Квартира ' ~ item.booking.apartment.display_number() if view == 'week' and item.booking.apartment.premise_type not in ('commercial', 'storeroom', 'parking') else item.booking.apartment.label() }}</b>{% if view != 'week' %}<span class="workflow-contact-names">{{ inspection_contact_lines(item.booking.contact or item.booking.apartment.owner_name) }}{% if has_prior_inspection(item.booking.apartment, item.slot.day) %} (ПО){% endif %}</span>{% if item.booking.contact_phone or item.booking.apartment.phone %}<span class="workflow-contact-phones">{{ inspection_phone_lines(item.booking.contact_phone or item.booking.apartment.phone) }}</span>{% endif %}{% if item.booking.note %}<span class="workflow-note-preview">{{ item.booking.note }}</span>{% endif %}{% endif %}</a>
-            {% else %}<div class="workflow-slot-description"><span class="workflow-slot-label {{ 'text-muted' if item.slot.is_open else '' }}" data-slot-label>{{ 'Свободно' if item.slot.is_open else 'Закрыто' }}</span><small class="workflow-closed-reason" data-slot-reason {% if item.slot.is_open or not item.slot.closed_reason or not can_manage_closed_interval %}hidden{% endif %}>{{ item.slot.closed_reason if can_manage_closed_interval else '' }}</small></div><div class="workflow-actions"><a class="btn btn-sm btn-primary" data-slot-book href="{{ url_for('main.record_new',slot_id=item.slot.id,apartment_id=request.args.get('apartment_id')) }}" {% if not item.slot.is_open %}hidden{% endif %}>Записать</a>{% if can_configure_inspections %}<form method="post" action="{{ url_for('main.record_slot_toggle',slot_id=item.slot.id) }}" data-slot-toggle {% if item.slot.is_open or (item.slot.closed_by_interval and not can_manage_closed_interval) %}hidden{% endif %}><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-secondary" type="submit" title="Открыть время" aria-label="Открыть время"><i class="bi bi-unlock"></i></button></form>{% endif %}</div>{% endif %}
+            {% else %}<div class="workflow-slot-description"><span class="workflow-slot-label {{ 'text-muted' if item.slot.is_open else '' }}" data-slot-label>{{ 'Свободно' if item.slot.is_open else 'Закрыто' }}</span><small class="workflow-closed-reason" data-slot-reason {% if item.slot.is_open or not item.slot.closed_reason or not can_manage_closed_interval %}hidden{% endif %}>{{ item.slot.closed_reason if can_manage_closed_interval else '' }}</small></div><div class="workflow-actions"><a class="btn btn-sm btn-primary" data-slot-book href="{{ url_for('main.record_new',slot_id=item.slot.id,apartment_id=request.args.get('apartment_id')) }}" {% if not item.slot.is_open %}hidden{% endif %}>Записать</a>{% if can_configure_inspections %}<form method="post" action="{{ url_for('main.record_slot_toggle',slot_id=item.slot.id) }}" data-slot-toggle {% if not item.slot.is_open and item.slot.closed_by_interval and not can_manage_closed_interval %}hidden{% endif %}><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-secondary record-slot-toggle-btn" type="submit" title="{{ 'Закрыть время' if item.slot.is_open else 'Открыть время' }}" aria-label="{{ 'Закрыть время' if item.slot.is_open else 'Открыть время' }}"><i class="bi {{ 'bi-lock' if item.slot.is_open else 'bi-unlock' }}" aria-hidden="true"></i></button></form>{% endif %}</div>{% endif %}
           </div>
         {% else %}<p class="text-muted workflow-day-empty">Нет доступного времени. Добавьте интервалы для записи.</p>{% endfor %}
         </div>
@@ -47,7 +48,7 @@
       <form method="post" action="{{ url_for('main.record_slots_close_interval') }}" data-close-interval-form>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>Дата<input class="form-control" type="date" name="day" value="{{ selected.isoformat() }}" required></label>
-        <div class="workflow-interval-times"><label>С<select class="form-select" name="start_time" data-force-custom-select required>{% for hour in range(24) %}{% for minute in [0,15,30,45] %}<option value="{{ '%02d:%02d'|format(hour,minute) }}" {{ 'selected' if hour==9 and minute==0 else '' }}>{{ '%02d:%02d'|format(hour,minute) }}</option>{% endfor %}{% endfor %}</select></label><label>До<select class="form-select" name="end_time" data-force-custom-select required>{% for hour in range(24) %}{% for minute in [0,15,30,45] %}<option value="{{ '%02d:%02d'|format(hour,minute) }}" {{ 'selected' if hour==10 and minute==0 else '' }}>{{ '%02d:%02d'|format(hour,minute) }}</option>{% endfor %}{% endfor %}<option value="23:59">23:59</option></select></label></div>
+        <div class="workflow-interval-times"><label>С{{ time_field('start_time','09:00') }}</label><label>До{{ time_field('end_time','10:00') }}</label></div>
         <label>Причина закрытия (необязательно)<textarea class="form-control" name="closed_reason" rows="3" maxlength="300" placeholder="Например, обед или служебная встреча"></textarea></label>
         <div class="workflow-actions"><button class="btn btn-primary" type="submit">Закрыть интервал</button><button class="btn btn-outline-secondary" type="button" data-close-interval-dismiss>Отмена</button></div>
       </form>
@@ -88,16 +89,29 @@
   modal?.querySelectorAll('[data-close-interval-dismiss]').forEach(button => button.addEventListener('click', closeModal));
   modal?.addEventListener('click', event => { if (event.target === modal) closeModal(); });
   document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
-  const updateSlot = (slot, isOpen, reason = '') => {
+  const updateSlot = (slot, isOpen, reason = '', closedByInterval = false) => {
     slot.classList.toggle('is-closed', !isOpen);
     const label = slot.querySelector('[data-slot-label]');
     label.textContent = isOpen ? 'Свободно' : 'Закрыто';
     label.classList.toggle('text-muted', isOpen);
     const reasonLabel = slot.querySelector('[data-slot-reason]');
     reasonLabel.textContent = isOpen ? '' : reason;
-    reasonLabel.hidden = isOpen || !reason;
+    reasonLabel.hidden = isOpen || !reason || !canManageClosedInterval;
     slot.querySelector('[data-slot-book]').hidden = !isOpen;
-    slot.querySelector('[data-slot-toggle]').hidden = isOpen || !canManageClosedInterval;
+    const toggle = slot.querySelector('[data-slot-toggle]');
+    if (toggle) {
+      toggle.hidden = !isOpen && closedByInterval && !canManageClosedInterval;
+      const button = toggle.querySelector('button');
+      const label = isOpen ? 'Закрыть время' : 'Открыть время';
+      button.title = label; button.setAttribute('aria-label', label);
+      const tooltip = window.bootstrap?.Tooltip?.getInstance(button);
+      if (tooltip) {
+        button.setAttribute('data-bs-original-title', label);
+        tooltip.setContent({ '.tooltip-inner': label });
+        tooltip.hide();
+      }
+      button.querySelector('i').className = `bi ${isOpen ? 'bi-lock' : 'bi-unlock'}`;
+    }
   };
   document.querySelector('[data-close-interval-form]')?.addEventListener('submit', async event => {
     event.preventDefault();
@@ -108,7 +122,7 @@
       const response = await fetch(form.action, {method: 'POST', body: new FormData(form), headers: {Accept: 'application/json'}, credentials: 'same-origin'});
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Не удалось закрыть интервал.');
-      result.closed_slot_ids.forEach(id => { const slot = document.querySelector(`[data-record-slot][data-slot-id="${id}"]`); if (slot) updateSlot(slot, false, result.closed_reason); });
+      result.closed_slot_ids.forEach(id => { const slot = document.querySelector(`[data-record-slot][data-slot-id="${id}"]`); if (slot) updateSlot(slot, false, result.closed_reason, true); });
       closeModal();
       form.querySelector('[name="closed_reason"]').value = '';
       window.showCrmNotice?.(`Закрыто интервалов: ${result.count}`, 'success');
@@ -124,7 +138,7 @@
       try {
         const response = await fetch(form.action, {method: 'POST', body: new FormData(form), headers: {Accept: 'application/json'}, credentials: 'same-origin'});
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Не удалось открыть время.');
+        if (!response.ok) throw new Error(result.error || 'Не удалось изменить доступность времени.');
         updateSlot(form.closest('[data-record-slot]'), result.is_open);
       } catch (error) { window.showCrmNotice?.(error.message, 'danger'); }
       finally { delete form.dataset.pending; }

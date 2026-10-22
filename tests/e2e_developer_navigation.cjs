@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
 
 // Use the disposable database seeded by tests/e2e_visual_server.py.
 (async () => {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.E2E_VISUAL_BROWSER_EXECUTABLE });
   const base = process.env.E2E_VISUAL_BASE_URL || 'http://127.0.0.1:5098';
   const output = process.env.E2E_ARTIFACT_DIR || path.resolve(__dirname, '../_codex_chat_files/developer-navigation');
   fs.mkdirSync(output, { recursive: true });
@@ -19,7 +19,6 @@ const { chromium } = require('playwright');
       await page.goto(`${base}/login`);
       await page.fill('[name=username]', 'e2e-developer');
       await page.fill('[name=password]', 'E2E-developer-password-2026!');
-      await page.locator('.login-form').evaluate(form => { form.dataset.csrfReady = '1'; });
       await Promise.all([page.waitForURL(url => !url.pathname.startsWith('/login')), page.locator('.login-submit').click()]);
       await page.goto(`${base}/site-errors`);
       await page.waitForLoadState('networkidle');
@@ -57,7 +56,6 @@ const { chromium } = require('playwright');
     await page.goto(`${base}/login`);
     await page.fill('[name=username]', 'e2e-developer');
     await page.fill('[name=password]', 'E2E-developer-password-2026!');
-    await page.locator('.login-form').evaluate(form => { form.dataset.csrfReady = '1'; });
     await Promise.all([page.waitForURL(url => !url.pathname.startsWith('/login')), page.locator('.login-submit').click()]);
     await page.goto(`${base}/developer/delete-logs`);
     assert.ok(!new URL(page.url()).pathname.startsWith('/developer'));

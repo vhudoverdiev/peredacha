@@ -12,7 +12,7 @@
     </div>
   </div>
 
-  <form method="post" enctype="multipart/form-data" class="card content-card mb-3 task-recognition-upload-form">
+  <form data-refresh-csrf method="post" enctype="multipart/form-data" class="card content-card mb-3 task-recognition-upload-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="preview">
     <div class="card-body">
@@ -34,7 +34,7 @@
   </form>
 
   {% if previews %}
-  <form method="post" class="card content-card task-recognition-preview-form">
+  <form data-refresh-csrf method="post" class="card content-card task-recognition-preview-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="save">
     <input type="hidden" name="act_count" value="{{ previews|length }}">

@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v221-ios-workflow-scroll-shell';
+const STATIC_CACHE = 'peredacha-static-v233-inspection-completion';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -14,10 +14,15 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v720-worker-navigation-reference',
-  '/static/workflows.css?v=26-matching-mobile-back',
+  '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v96-ios-workflow-scroll-shell',
   '/static/desktop-only.css?v=v76-objects-three-columns',
-  '/static/script.js?v=v704-apartment-comment-meta',
+  '/static/script.js?v=v708-remark-library',
+  '/static/navigation-state.js?v=1',
+  '/static/form-csrf.js?v=1',
+  '/static/remark-suggestions.js?v=4',
+  '/static/time-entry.js?v=3',
+  '/static/remark-suggestions.css?v=1',
 ];
 
 const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;
@@ -240,6 +245,9 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  // File generation must not use the three-second HTML/offline fallback.
+  if (/\/(?:export|download)(?:\/|$)/.test(url.pathname)) return;
 
   if (request.mode === 'navigate') {
     const isHomescreenLaunch = url.searchParams.get('source') === 'homescreen';

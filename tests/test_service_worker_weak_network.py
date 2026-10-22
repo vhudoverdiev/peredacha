@@ -16,6 +16,12 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         cls.template = BASE_TEMPLATE.read_text(encoding="utf-8")
         cls.worker = SERVICE_WORKER.read_text(encoding="utf-8")
 
+    def test_exports_bypass_html_navigation_offline_timeout(self):
+        start = self.worker.index("self.addEventListener('fetch'")
+        handler = self.worker[start:]
+        bypass = handler.index("if (/\\/(?:export|download)(?:\\/|$)/.test(url.pathname)) return;")
+        self.assertLess(bypass, handler.index("if (request.mode === 'navigate')"))
+
     def test_navigation_has_a_bounded_network_wait(self):
         self.assertIn("const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;", self.worker)
         navigation_start = self.worker.index(

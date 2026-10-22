@@ -6,6 +6,7 @@ from math import ceil
 from pathlib import Path
 import re
 from typing import Iterable
+from uuid import uuid4
 
 from flask import current_app
 from openpyxl import Workbook, load_workbook
@@ -999,27 +1000,42 @@ def export_glass_measurements_excel(rows: Iterable[dict], filename_prefix: str =
     return path
 
 
-def export_apartment_source_table(apartments: Iterable[Apartment], tasks: Iterable[Task], filename_prefix: str) -> Path:
-    """One premise row in the source workbook's column layout, with current CRM remarks.
+def _export_point_name(value) -> str:
+    """Compare semantic labels across imports without using their changing numbers."""
+    text = str(value or '').casefold().replace('ё', 'е')
+    text = re.sub(r'^\s*(?:(?:пункт|п\.)\s*)?№?\s*\d+(?:[.,]\d+)*\s*[.):\-–—]?\s*', '', text)
+    return re.sub(r'[^\w]+', ' ', text).strip()
 
-    Only header cells and formatting are copied from the source. No other
-    apartment's values, hidden worksheets or cached formulas enter this export.
-    """
+
+def _is_premise_export_summary(value) -> bool:
+    name = _export_point_name(value)
+    return bool(re.match(r'^(?:всего|итого|передано|не передано|непередано)(?:\s|$)', name))
+
+
+def export_apartment_source_table(apartments: Iterable[Apartment], tasks: Iterable[Task], filename_prefix: str) -> Path:
+    """Export current remarks by point name, without workbook summary blocks."""
     from collections import Counter
     from app.services.task_service import (find_header_row, is_index_number_row, is_work_point_header,
-                                          map_base_columns, map_work_point_columns, merge_header_rows,
+                                          map_base_columns, map_work_point_columns,
                                           normalize_header_row)
     apartments=list(apartments); tasks=list(tasks)
     if not apartments:
         raise ValueError('Помещение не найдено.')
     apartment=apartments[0]
     workbook=Workbook(); output=workbook.active
-    template=None; source=None; base_mapping={}; point_columns={}; header_count=1; table_last_column=None
+    template=None; source=None; base_mapping={}; point_columns={}; header_count=1
+    known_names = {_export_point_name(label) for label in WORK_POINT_LABELS.values()}
+    for task in tasks:
+        if task.work_point:
+            known_names.update(_export_point_name(value) for value in
+                               (task.work_point.short_name, task.work_point.original_column_name) if value)
+    known_names.discard('')
     try:
         source_path=resolve_source_excel_with_strikes_path(
             source_path=get_setting(f'latest_excel_path_project_{apartment.project_id}'),project_id=apartment.project_id)
         source=load_workbook(source_path)
-        _normalize_source_work_point_headers(source)
+        # Do not rewrite source labels from canonical numbers: their numbering
+        # may belong to a different import than the CRM work points.
         preferred=Counter(task.source_sheet_name for task in tasks if task.source_sheet_name in source.sheetnames)
         sheets=sorted(source.worksheets,key=lambda ws:-preferred[ws.title])
         for sheet in sheets:
@@ -1027,83 +1043,89 @@ def export_apartment_source_table(apartments: Iterable[Apartment], tasks: Iterab
             header_index=find_header_row(rows)
             if header_index>0 and is_index_number_row(rows[header_index]):
                 header_index-=1
-            headers=normalize_header_row(rows[header_index])
+            # The shared importer heuristic can select a small table's data
+            # row (a premise number also looks like a point number). Require
+            # named point headers and a premise field to accept its result.
+            for candidate in [header_index, *range(len(rows))]:
+                candidate_headers=normalize_header_row(rows[candidate])
+                candidate_base=set(map_base_columns(candidate_headers).values())
+                named_columns=[col for col,label in enumerate(candidate_headers)
+                               if _export_point_name(label) and
+                               (is_work_point_header(label,col) or
+                                (col not in candidate_base and _export_point_name(label) in known_names))]
+                if named_columns and 'apartment_number' in map_base_columns(candidate_headers, anchor_before_col=min(named_columns)):
+                    header_index=candidate
+                    break
+            headers=['' if _is_premise_export_summary(value) else value
+                     for value in normalize_header_row(rows[header_index])]
             if header_index>0:
-                headers=merge_header_rows(rows[header_index-1],rows[header_index])
-            # Locate the first numbered work-point column before mapping base
-            # fields.  Summary blocks above/right of the table may contain
-            # words such as «квартир» and must not be mistaken for a base field.
-            first_point = next(
-                (idx for idx, header in enumerate(headers)
-                 if is_work_point_header(header, idx) and extract_point_number(header, idx + 1).isdigit()),
-                None,
-            )
+                # Only fill absent business labels from a preceding header row;
+                # never copy the report's totals/status block above the table.
+                upper=['' if _is_premise_export_summary(value) else value
+                       for value in normalize_header_row(rows[header_index-1])]
+                upper_base=set(map_base_columns(upper).values())
+                headers=[value or (upper[col] if col in upper_base else '')
+                         for col,value in enumerate(headers)]
+            base_candidates=set(map_base_columns(headers).values())
+            first_point = next((idx for idx, header in enumerate(headers)
+                                if is_work_point_header(header, idx)
+                                or (idx not in base_candidates and _export_point_name(header) in known_names)), None)
             mapping=map_base_columns(headers, anchor_before_col=first_point)
-            points={column: extract_point_number(header,column+1)
-                    for column,header in map_work_point_columns(headers,mapping).items()}
-            points={column: number for column, number in points.items()
-                    if number.isdigit() and int(number) <= 34}
-            count=header_index+1
-            if count<len(rows) and is_index_number_row(rows[count]):
-                numbered_columns = {
-                    str(value or '').removesuffix('.0').strip(): column
-                    for column, value in enumerate(rows[count])
-                }
-                if '34' in numbered_columns:
-                    table_last_column = numbered_columns['34'] + 1
-                for column,value in enumerate(rows[count]):
-                    key=str(value or '').removesuffix('.0').strip()
-                    if column not in mapping.values() and key in WORK_POINT_LABELS:
-                        points[column]=key
-                count+=1
-            points={column: number for column, number in points.items()
-                    if str(number).isdigit() and int(number) <= 34}
+            points=map_work_point_columns(headers,mapping)
+            for column,header in enumerate(headers):
+                if column not in mapping.values() and _export_point_name(header) in known_names:
+                    points[column]=header
+            if header_index+1<len(rows) and is_index_number_row(rows[header_index+1]):
+                for column,value in enumerate(rows[header_index+1]):
+                    if column not in mapping.values() and str(value or '').removesuffix('.0').isdigit() and headers[column]:
+                        if _export_point_name(headers[column]):
+                            points[column]=headers[column]
+            points={column:header for column,header in points.items() if _export_point_name(header)}
             if mapping.get('apartment_number') is not None and points:
-                template=sheet; base_mapping=mapping; point_columns=points; header_count=count; break
+                template=sheet
+                # Copy only business columns and one header row. Summary rows,
+                # summary columns, other premises and formulas stay out.
+                selected=sorted(set(mapping.values()) | set(points))
+                remap={old:new for new,old in enumerate(selected)}
+                base_mapping={field:remap[col] for field,col in mapping.items()}
+                point_columns={remap[col]:header for col,header in points.items()}
+                output.title=sheet.title
+                for old,new in remap.items():
+                    original=sheet.cell(header_index+1,old+1)
+                    # A vertically merged header stores its fill/font in the
+                    # top-left anchor, not in the empty lower MergedCell.
+                    for merged in sheet.merged_cells.ranges:
+                        if merged.min_row <= header_index+1 <= merged.max_row and merged.min_col <= old+1 <= merged.max_col:
+                            original=sheet.cell(merged.min_row,merged.min_col)
+                            break
+                    target=output.cell(1,new+1,headers[old])
+                    if original.has_style:
+                        for attribute in ('font','fill','border','alignment','protection'):
+                            setattr(target,attribute,copy(getattr(original,attribute)))
+                        target.number_format=original.number_format
+                    target.data_type='s'
+                    output.column_dimensions[get_column_letter(new+1)].width=sheet.column_dimensions[get_column_letter(old+1)].width
+                output.row_dimensions[1].height=sheet.row_dimensions[header_index+1].height
+                if header_index+1<len(rows) and is_index_number_row(rows[header_index+1]):
+                    header_count=2
+                    for old,new in remap.items():
+                        original=sheet.cell(header_index+2,old+1)
+                        target=output.cell(2,new+1,new+1)
+                        for attribute in ('font','fill','border','alignment','protection'):
+                            setattr(target,attribute,copy(getattr(original,attribute)))
+                        target.number_format=original.number_format
+                    output.row_dimensions[2].height=sheet.row_dimensions[header_index+2].height
+                output.freeze_panes=f'A{header_count+1}'
+                output.sheet_view.zoomScale=sheet.sheet_view.zoomScale
+                break
     except (FileNotFoundError,ValueError):
         template=None
-    if template is not None:
-        output.title=template.title
-        # The source workbook often contains formatting and filter buttons far
-        # to the right of the actual table.  Copy only mapped business columns;
-        # otherwise a one-premise export appears to continue after point 34.
-        last_template_column=table_last_column or (max([*base_mapping.values(), *point_columns.keys()])+1)
-        for row in template.iter_rows(min_row=1,max_row=header_count,max_col=last_template_column):
-            for cell in row:
-                target=output.cell(cell.row,cell.column,cell.value)
-                if cell.has_style:
-                    target.font=copy(cell.font)
-                    target.fill=copy(cell.fill)
-                    target.border=copy(cell.border)
-                    target.alignment=copy(cell.alignment)
-                    target.number_format=cell.number_format
-                    target.protection=copy(cell.protection)
-                if cell.data_type=='f':
-                    target.value=str(cell.value); target.data_type='s'
-        for merged in template.merged_cells.ranges:
-            if merged.max_row<=header_count and merged.min_col<=last_template_column:
-                output.merge_cells(
-                    start_row=merged.min_row,
-                    start_column=merged.min_col,
-                    end_row=merged.max_row,
-                    end_column=min(merged.max_col,last_template_column),
-                )
-        for key,dimension in template.column_dimensions.items():
-            if column_index_from_string(key)>last_template_column:
-                continue
-            target_dimension=output.column_dimensions[key]
-            for attribute in ('width','hidden','bestFit','outlineLevel','collapsed','min','max'):
-                setattr(target_dimension,attribute,getattr(dimension,attribute))
-        for row in range(1,header_count+1):
-            output.row_dimensions[row].height=template.row_dimensions[row].height
-        output.freeze_panes=f'A{header_count+1}'
-        output.sheet_view.zoomScale=template.sheet_view.zoomScale
-    else:
+    if template is None:
         output.title='Таблица помещения'
         base_mapping={'apartment_number':0,'construction_number':1,'owner_name':2,'phone':3,'finishing_type':4}
         headers=['№ квартиры / помещения','Строительный номер','Собственник','Телефон','Отделка']
         for number,label in WORK_POINT_LABELS.items():
-            point_columns[len(headers)]=number; headers.append(f'{number}. {label}')
+            point_columns[len(headers)]=label; headers.append(f'{number}. {label}')
         output.append(headers)
         apply_worksheet_style(output,[18,18,28,22,20]+[45]*len(point_columns))
     data_row=header_count+1
@@ -1120,15 +1142,66 @@ def export_apartment_source_table(apartments: Iterable[Apartment], tasks: Iterab
                 values.append(value)
         value=values[0] if len(values)==1 else '\n'.join(map(str,values))
         literal(column,value if values else '')
-    by_point={}
+    by_column={}
+    unmatched_columns={}
+    canonical_order={_export_point_name(label):int(number) for number,label in WORK_POINT_LABELS.items()
+                     if _export_point_name(label)}
+
+    def insert_point_column(label):
+        nonlocal point_columns, by_column, unmatched_columns
+        rank=canonical_order.get(_export_point_name(label))
+        ranked=[(col,canonical_order[_export_point_name(header)]) for col,header in point_columns.items()
+                if _export_point_name(header) in canonical_order]
+        following=[col for col,order in ranked if rank is not None and order>rank]
+        column=min(following) if following else (max(col for col,_ in ranked)+1 if rank is not None and ranked else output.max_column)
+        # Insert missing named work points among the work columns, before the
+        # administrative register fields. Never use a source point number.
+        if column < output.max_column:
+            widths={i:output.column_dimensions[get_column_letter(i)].width for i in range(1,output.max_column+1)}
+            output.insert_cols(column+1)
+            for old,width in widths.items():
+                output.column_dimensions[get_column_letter(old+1 if old>column else old)].width=width
+            point_columns={col+(col>=column):value for col,value in point_columns.items()}
+            by_column={col+(col>=column):value for col,value in by_column.items()}
+            unmatched_columns={key:col+(col>=column) for key,col in unmatched_columns.items()}
+        target=output.cell(1,column+1,label)
+        target.data_type='s'
+        neighbour=output.cell(1,column if column else column+2)
+        for attribute in ('font','fill','border','alignment','protection'):
+            setattr(target,attribute,copy(getattr(neighbour,attribute)))
+        if header_count==2:
+            number=output.cell(2,column+1)
+            for attribute in ('font','fill','border','alignment','protection'):
+                setattr(number,attribute,copy(getattr(target,attribute)))
+        output.column_dimensions[get_column_letter(column+1)].width=45
+        return column
+
     for task in tasks:
-        if task.work_point:
-            by_point.setdefault(str(task.work_point.point_number),[]).append(task)
-    reverse={number:column for column,number in point_columns.items()}
-    for number,point_tasks in by_point.items():
-        column=reverse.get(number)
-        if column is None:
+        point=task.work_point
+        if not point:
             continue
+        column=None
+        # Prefer the CRM display label; use the imported full label as an alias.
+        for label in (point.display_name, point.original_column_name):
+            name=_export_point_name(label)
+            matches=[col for col,header in point_columns.items() if name and _export_point_name(header)==name]
+            if len(matches)==1:
+                column=matches[0]
+                break
+        if column is None:
+            # A renamed/missing/ambiguous template column must not lose remarks
+            # or silently assign them to a different point with the same number.
+            key=_export_point_name(point.display_name) or ('point', point.id if point.id is not None else id(point))
+            column=unmatched_columns.get(key)
+            if column is None:
+                label=point.display_name
+                column=insert_point_column(label)
+                unmatched_columns[key]=column
+        by_column.setdefault(column,[]).append(task)
+    if header_count==2:
+        for column in range(1,output.max_column+1):
+            output.cell(2,column,column)
+    for column,point_tasks in by_column.items():
         lines=[];seen=set()
         for task in point_tasks:
             value=_apartment_task_export_value(task)
@@ -1155,7 +1228,10 @@ def export_apartment_source_table(apartments: Iterable[Apartment], tasks: Iterab
     output.print_options.horizontalCentered=True
     output.page_setup.orientation='landscape';output.page_setup.fitToWidth=1;output.page_setup.fitToHeight=0
     output.sheet_properties.pageSetUpPr.fitToPage=True
-    path=build_export_path(filename_prefix)
+    # Keep the physical UTF-8 filename below filesystem limits, including
+    # the date and per-request suffix for simultaneous downloads.
+    safe_prefix = _safe_filename_part(filename_prefix).encode('utf-8')[:160].decode('utf-8', errors='ignore')
+    path=build_export_path(safe_prefix, cache_key=uuid4().hex)
     workbook.save(path)
     if source is not None: source.close()
     workbook.close()

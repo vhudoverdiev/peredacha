@@ -1,0 +1,7 @@
+.remark-suggestion-list { border:1px solid #dce6d5; border-radius:12px; background:#fff; margin-top:6px; max-height:250px; overflow-y:auto; overscroll-behavior:contain; padding:5px; }
+.remark-suggestion-list[hidden] { display:none!important; }
+.remark-suggestion-option { display:block; width:100%; text-align:left; border:0; background:#fff; border-radius:8px; padding:10px; font-size:14px; color:#172027; line-height:1.4; }
+.remark-suggestion-option small { display:block; color:#62725c; font-size:12px; }
+.remark-suggestion-option:is(:hover,:focus-visible),.remark-suggestion-option[aria-selected=true] { background:#eef5e7; outline:2px solid #a3c580; outline-offset:-2px; }
+.remark-suggestion-status { font-size:12px; color:#687563; margin-top:4px; }
+@media(prefers-reduced-motion:reduce) { .remark-suggestion-option { transition:none!important; } }

@@ -21,6 +21,13 @@ def register_cli(app):
             capture_output=True,
         )
 
+    @app.cli.command("export-remark-library")
+    @click.option("--output", type=click.Path(path_type=Path), default=None, help="Файл только с формулировками и пунктами.")
+    def export_remark_library_command(output):
+        from app.services.remark_library_file import export_library, LIBRARY_PATH
+        count=export_library(output or LIBRARY_PATH)
+        click.echo(f"Экспортировано формулировок: {count}. Файл: {output or LIBRARY_PATH}")
+
     @app.cli.command("seed-defaults")
     def seed_defaults_command():
         """Create default CRM tabs/categories."""

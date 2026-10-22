@@ -15,7 +15,7 @@ from uuid import uuid4
 from sqlalchemy import or_, and_, exists
 from werkzeug.exceptions import HTTPException
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, session, url_for, jsonify
+from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, send_file, session, url_for, jsonify
 from flask_login import current_user, login_required
 from sqlalchemy import Integer, case, cast, distinct, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -99,6 +99,7 @@ from app.security import (
     resolve_site_visit_project_id,
     security_event,
     site_error_daily_ip_limit_reached,
+    site_error_daily_user_limit_reached,
     validate_upload,
 )
 from app.services.changelog_service import log_change
@@ -267,7 +268,7 @@ SECTION_LOCK_CHOICES = [
         "label": "Замечания",
         "icon": "bi-card-checklist",
         "endpoints": {
-            "main.task_list", "main.task_detail", "main.task_new", "main.task_delete",
+            "main.task_list", "main.task_detail", "main.task_new", "main.task_delete", "main.remark_suggestions",
             "main.task_recognition", "main.update_task", "main.add_task_comment", "main.delete_task_comment", "main.quick_status",
             "main.inline_update_text", "main.split_task_remark",
             "main.remarks_excel_selection", "main.export_tasks", "main.export_category_tasks",
@@ -1498,6 +1499,7 @@ def enforce_role_access():
         and locked_section
         and locked_section["key"] == "service"
     ):
+        g.http_error_reason = "administrative_section_required"
         abort(403)
 
     if _setting_bool("site_maintenance_mode") and current_user.role != ROLE_ADMIN:
@@ -2345,13 +2347,18 @@ def dashboard_legacy():
 
 @bp.route("/report-error", methods=["POST"])
 def report_error():
-    if hit_rate_limit("report-error", 6, 300):
+    authenticated = current_user.is_authenticated
+    subject = f"user:{current_user.id}" if authenticated else None
+    if hit_rate_limit("report-error", 6, 300, subject=subject):
         security_event("report_error_rate_limited", "Слишком много сообщений об ошибке", severity="warning")
         abort(429)
     message = (request.form.get("message") or "").strip()
     if not message:
         flash("Опишите ошибку текстом", "warning")
-    elif site_error_daily_ip_limit_reached("user", 3):
+    elif authenticated and site_error_daily_user_limit_reached(current_user.id, 3):
+        security_event("report_error_daily_user_limited", "Достигнут суточный лимит сообщений пользователя", severity="warning")
+        flash("Вы уже отправили 3 сообщения об ошибке за сутки. Повторить можно позже.", "warning")
+    elif not authenticated and site_error_daily_ip_limit_reached("user", 3, anonymous_only=True):
         security_event("report_error_daily_ip_limited", "Достигнут суточный лимит сообщений об ошибке с IP", severity="warning")
         flash("С этого IP адреса уже отправлено 3 сообщения об ошибке за сутки. Повторить можно позже.", "warning")
     else:
@@ -2436,6 +2443,7 @@ def _mobile_phone_allowed_endpoints() -> set[str]:
         "main.update_apartment_po_status",
         "main.update_apartment_inspection_status",
         "main.update_apartment_inspection_date",
+        "main.delete_apartment_inspection_date",
         "main.update_apartment_inspection_note",
         "main.update_apartment_comment",
         "main.update_apartment_avr_status",
@@ -3593,6 +3601,8 @@ def developer_delete_log_undo(log_id: int):
 @bp.app_errorhandler(Exception)
 def handle_unexpected_exception(exc):
     if isinstance(exc, HTTPException):
+        if not getattr(g, "http_error_reason", None):
+            g.http_error_reason = exc.description
         return exc
     current_app.logger.exception("Unhandled site error")
     try:
@@ -7501,7 +7511,7 @@ def material_writeoff_new():
                     if duplicate_count:
                         message += f". Уже были в базе: {duplicate_count}"
                     flash(message, "warning")
-                    return redirect(url_for("main.sync_conflicts"))
+                    return _redirect_after_sync_conflict()
                 message = f"Материал распределён между замечаниями: {len(selected_tasks)}"
                 redirect_url = url_for("main.materials", tab="history")
                 if wants_json:
@@ -8156,13 +8166,16 @@ def task_new():
             completed_previous_count = 0
             concession_updated_count = 0
             inspection_date_updated = False
-            prepared_entries: list[tuple[str, str]] = []
-            for point in points:
-                point_number = point["number"]
-                text = (request.form.get(f"description_{point_number}") or "").strip()
-                if not text or is_no_remark_text(text):
-                    continue
-                prepared_entries.append((point_number, text))
+            from app.services.manual_act import collect_manual_act_entries
+            try:
+                prepared_entries=[(number,text) for number,text in collect_manual_act_entries(request.form,points)
+                                  if not is_no_remark_text(text)]
+            except ValueError as error:
+                db.session.rollback()
+                flash(str(error),'warning')
+                return render_template('task_form.html',project=project,apartments=apartments,points=points,
+                    concession_candidates_by_apartment=concession_candidates_by_apartment,
+                    add_mode=add_mode,manual_kind=manual_kind),400
             if not prepared_entries:
                 if not po_mode:
                     db.session.rollback()
@@ -8283,7 +8296,13 @@ def task_new():
                                 action="manual_act_created",
                             ))
                     else:
+                        existing_before_act={task_id for (task_id,) in db.session.query(Task.id).filter_by(project_id=project.id,apartment_id=apartment.id).all()}
                         for point_number, text in prepared_entries:
+                            if 'act_point' in request.form:
+                                work_point,duplicate,conflict=_find_existing_remark_duplicate_or_conflict(project=project,apartment=apartment,point_number=point_number,text=text)
+                                if duplicate is None and conflict is not None and conflict.id not in existing_before_act:
+                                    created_count+=len(_create_manual_remark_tasks(project=project,apartment=apartment,point_number=point_number,text=text,source_sheet_name='manual_act',action='manual_act_created'))
+                                    continue
                             outcome = _save_remark_with_sync_fallback(
                                 project=project,
                                 apartment=apartment,
@@ -8327,7 +8346,7 @@ def task_new():
                             if duplicate_count:
                                 message += f". Уже были в базе: {duplicate_count}"
                             flash(message, "warning")
-                            return redirect(url_for("main.sync_conflicts"))
+                            return _redirect_after_sync_conflict()
                         message = f"Добавлено замечаний из акта: {created_count}" if created_count else "Акт ПО обработан"
                         if completed_previous_count:
                             message += f". Переведено в выполнено: {completed_previous_count}"
@@ -8383,9 +8402,9 @@ def task_new():
                         if duplicate_act_names:
                             message += f". Уже подгружены: {', '.join(duplicate_act_names)}"
                         flash(message, "warning")
-                        return redirect(url_for("main.sync_conflicts"))
-                    flash("Замечание отправлено в синхронизацию: выберите, что оставить, а что заменить", "warning")
-                    return redirect(url_for("main.sync_conflicts"))
+                        return _redirect_after_sync_conflict()
+                    flash("Замечание отправлено в синхронизацию: выберите, что оставить, а что заменить" if can_manage_sync(current_user) else "Замечание отправлено администратору на проверку", "warning")
+                    return _redirect_after_sync_conflict()
                 if outcome == "duplicate":
                     db.session.rollback()
                     flash("Точно такое же замечание уже добавлено", "warning")
@@ -8653,7 +8672,7 @@ def task_recognition():
                         if blocked_count:
                             message += f". Актов пропущено: {blocked_count}"
                         flash(message, "warning")
-                        return redirect(url_for("main.sync_conflicts"))
+                        return _redirect_after_sync_conflict()
                     if created_count or conflict_count or completed_previous_count or concession_updated_count or inspection_date_updated:
                         db.session.commit()
                         _finish_snapshot_sync_log(
@@ -9687,10 +9706,14 @@ def _apartment_inspection_status(apartments: list[Apartment]) -> str | None:
     values = [value for apartment in apartments for value in _apartment_inspection_values(apartment)]
     values = [value for value in values if value is not None]
     if values:
-        now = datetime.now()
+        now = to_moscow_datetime(utc_now()).replace(tzinfo=None)
+        bookings=[booking for apartment in apartments for booking in apartment.inspection_bookings]
+        completed_days={booking.slot.day for booking in bookings if booking.status=='completed'}
+        pending_days={booking.slot.day for booking in bookings if booking.status=='booked'}
         if any(
             (converted := _inspection_sort_datetime(value)) is not None
-            and (converted >= now if isinstance(value, datetime) else converted.date() >= date.today())
+            and (converted >= now if isinstance(value, datetime) else converted.date() >= now.date())
+            and (converted.date() not in completed_days or converted.date() in pending_days)
             for value in values
         ):
             return "Будет"
@@ -11196,7 +11219,13 @@ def apartment_source_export(apartment_id):
     from app.services.excel_export import export_apartment_source_table
     filename=f"{project.name}_{apartment.label()}_таблица"
     path=export_apartment_source_table(group,tasks,filename)
-    return send_file(path,as_attachment=True,download_name=path.name)
+    try:
+        payload = BytesIO(path.read_bytes())
+    finally:
+        path.unlink(missing_ok=True)
+    download_name = f"{path.stem.rsplit('_', 1)[0]}.xlsx"
+    return send_file(payload, as_attachment=True, download_name=download_name,
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 @bp.route("/apartments/<int:apartment_id>/remarks/export")
@@ -11683,6 +11712,12 @@ def update_task_point(task_id: int):
     old_label = old_point.display_name if old_point else ""
     new_label = new_point.display_name
     task.work_point = new_point
+    task.work_point_id = new_point.id
+    if task.remark_point_review:
+        from app.services.remark_catalog import fingerprint
+        task.remark_point_review.corrected_point_id = new_point.id
+        task.remark_point_review.fingerprint = fingerprint(task)
+        task.remark_point_review.user_id = current_user.id
     task.manually_edited = True
     log_change(task, "field_update", "work_point", old_label, new_label)
     db.session.commit()
@@ -11915,7 +11950,7 @@ def upload_excel():
                     f"Добавлено новых - {result.get('created_count', 0)} , несостыковок - {pending_conflicts}",
                     "warning",
                 )
-                return redirect(url_for("main.sync_conflicts"), code=303)
+                return _redirect_after_sync_conflict(code=303)
             flash(
                 f"Добавлено новых - {result.get('created_count', 0)} , несостыковок - {pending_conflicts}",
                 "success",
@@ -12940,10 +12975,18 @@ def _create_task_from_sync_conflict(conflict: SyncConflict) -> Task | None:
     )
 
 
+def _redirect_after_sync_conflict(code: int = 302):
+    if can_manage_sync(current_user):
+        return redirect(url_for("main.sync_conflicts"), code=code)
+    flash("Конфликт передан администратору для проверки.", "info")
+    return redirect(url_for("main.dashboard"), code=code)
+
+
 @bp.route("/conflicts")
 @login_required
 def sync_conflicts():
     if not can_manage_sync(current_user):
+        g.http_error_reason = "sync_management_permission_required"
         abort(403)
     project = selected_project()
     if project is None:
@@ -12995,7 +13038,7 @@ def cancel_sync_from_conflicts():
             if not ok:
                 db.session.rollback()
                 flash(rollback_message, "warning")
-                return redirect(url_for("main.sync_conflicts"))
+                return _redirect_after_sync_conflict()
             _refresh_sync_dashboard_settings(project.id)
 
         closed_conflicts = 0
@@ -13009,13 +13052,13 @@ def cancel_sync_from_conflicts():
         current_app.logger.exception("Failed to cancel sync from conflicts")
         db.session.rollback()
         flash(f"Не удалось отменить синхронизацию: {exc}", "danger")
-        return redirect(url_for("main.sync_conflicts"))
+        return _redirect_after_sync_conflict()
 
     if rollback_message:
         flash(rollback_message, "success")
     else:
         flash(f"Синхронизация отменена, несостыковок закрыто: {closed_conflicts}", "success")
-    return redirect(url_for("main.sync_conflicts"), code=303)
+    return _redirect_after_sync_conflict(code=303)
 
 
 @bp.route("/conflicts/<int:conflict_id>/<action>", methods=["POST"])
@@ -13035,7 +13078,7 @@ def resolve_conflict(conflict_id: int, action: str):
     if conflict_project_id != project.id:
         abort(404)
     if conflict.status != "pending":
-        return redirect(url_for("main.sync_conflicts"))
+        return _redirect_after_sync_conflict()
     if action not in {"keep_old", "apply_new", "keep_both"}:
         abort(400)
     if action == "apply_new":
@@ -13049,7 +13092,7 @@ def resolve_conflict(conflict_id: int, action: str):
     conflict.resolved_by_user_id = current_user.id
     db.session.commit()
     flash("Конфликт синхронизации решён", "success")
-    return redirect(url_for("main.sync_conflicts"))
+    return _redirect_after_sync_conflict()
 
 
 @bp.route("/conflicts/bulk/<action>", methods=["POST"])
@@ -13073,7 +13116,7 @@ def resolve_conflicts_bulk(action: str):
         changed += 1
     db.session.commit()
     flash(f"Готово: обработано несостыковок {changed}", "success")
-    return redirect(url_for("main.sync_conflicts"))
+    return _redirect_after_sync_conflict()
 
 
 @bp.route("/tasks/<int:task_id>/inline-text", methods=["POST"])
@@ -13173,3 +13216,5 @@ def split_task_remark(task_id: int):
 
 # Register the project workspaces after the shared scope helpers are defined.
 from app import workflows as _workflows  # noqa: E402,F401
+
+from app import remark_suggestions as _remark_suggestions  # noqa: E402,F401

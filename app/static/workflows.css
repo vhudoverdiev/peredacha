@@ -71,6 +71,16 @@
 .workflow-slot-time { display: grid; min-width: 78px; gap: 3px; }
 .workflow-slot-time small { color: #73806c; font-size: 12px; }
 .workflow-slot > .workflow-actions { margin-left: auto; }
+.record-slot-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0 !important;
+  border-radius: 12px;
+  font-size: 17px;
+}
 .workflow-booking-link { display: grid; gap: 5px; color: #172027; text-decoration: none; min-width: 0; flex: 1; }
 .workflow-booking-link > span, .workflow-booking-link > b { overflow-wrap: anywhere; }
 .workflow-booking-link .workflow-contact-names { white-space: pre-line; }
@@ -306,3 +316,19 @@ html body.app-body .workflow-page .call-list-visibility-action :is(i, span) {
 }
 
 @media (max-width:767.98px) { .records-page .records-period-navigation { display:none !important; } }
+
+html body.app-body .apartment-detail-page .apartment-inspection-book-form[data-apartment-book-inspection-controls][hidden] { display: none !important; }
+
+.crm-time-field { display:block; position:relative; min-width:0; }
+.crm-time-field input { padding-right:44px!important; }
+.crm-time-open { position:absolute; right:4px; top:4px; bottom:4px; width:36px; border:0; border-radius:50%; background:#edf5e5; color:#253128; }
+.crm-time-options { position:fixed; z-index:100010; overflow:auto; overscroll-behavior:contain; border:1px solid #d8e3cf; border-radius:12px; background:white; padding:5px; box-shadow:0 8px 25px #17202722; }
+.crm-time-options button { display:block; width:100%; text-align:left; padding:10px 12px; border:0; border-radius:8px; background:white; color:#172027; font-size:15px; }
+.crm-time-options button:is(:hover,:focus-visible),.crm-time-options button[aria-selected=true] { background:#edf5e5; outline:2px solid #a7c883; outline-offset:-2px; }
+.manual-act-entry { display:grid; gap:12px; border:1px solid #e0e8d9; border-radius:14px; padding:16px; margin-bottom:14px; }
+.manual-act-entry label { display:grid; gap:6px; }
+html body.app-body .apartment-detail-page .apartment-inspection-book-form > .btn.apartment-inspection-action-btn[data-apartment-book-inspection] {
+ display:flex!important; align-items:center; justify-content:center; width:100%!important;
+ min-height:2.5rem!important; padding:.4rem .7rem!important; border-radius:.7rem!important; font-size:.78rem!important; font-weight:750!important;
+}
+@media(max-width:767.98px){html body.app-body .apartment-detail-page .apartment-inspection-book-form > .btn.apartment-inspection-action-btn[data-apartment-book-inspection]{min-height:2.75rem!important; font-size:16px!important;}}

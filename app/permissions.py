@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import abort, flash, redirect, url_for
+from flask import abort, flash, g, redirect, url_for
 from flask_login import current_user
 from app.models import ROLE_ADMIN, ROLE_MANAGER, ROLE_OFFICE, ROLE_OFFICE_MANAGER, ROLE_SUPERVISOR, ROLE_VIEWER, WORKER_ROLES
 
@@ -19,6 +19,7 @@ def role_required(*roles):
                 or (ROLE_MANAGER in roles and current_user.role in OFFICE_MANAGER_ROLES)
             ):
                 return view(*args, **kwargs)
+            g.http_error_reason = "role_not_permitted"
             abort(403)
         return wrapped
     return decorator

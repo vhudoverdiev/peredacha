@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Записать на осмотр{% endblock %}
+{% from '_time_field.html' import time_field %}
 {% block content %}
 <section class="workflow-page record-apartment-page">
   <div class="workflow-head"><div><h1 class="page-title">Записать на осмотр</h1><p class="text-muted">{{ apartment.label() }}</p></div><a class="btn btn-outline-secondary" href="{{ url_for('main.apartment_detail', apartment_id=apartment.id) }}">Назад к помещению</a></div>
@@ -11,7 +12,7 @@
       <fieldset class="record-apartment-times" id="record-apartment-times"><legend>Свободное время на {{ selected_day|ru_date }}</legend>
         {% for slot in available %}<label class="record-apartment-time"><input type="radio" name="slot_id" value="{{ slot.id }}" data-slot-time="{{ slot.start_time.strftime('%H:%M') }}" {% if request.form.get('slot_id') == slot.id|string %}checked{% endif %}><span>{{ slot.start_time.strftime('%H:%M') }} <small>· {{ slot.duration_minutes }} мин.</small></span></label>{% else %}<p class="text-muted">На эту дату свободного времени нет. Выберите другую дату.</p>{% endfor %}
       </fieldset><p class="record-apartment-time-error" id="record-apartment-time-error" hidden>Выберите время осмотра.</p>
-      {% if available %}<label>Время осмотра<select class="form-select workflow-time-select" name="appointment_time" id="record-apartment-time" required data-force-custom-select>{% set selected_time = request.form.get('appointment_time', available[0].start_time.strftime('%H:%M')) %}{% for minute in range(0, 1440, 5) %}{% set value = '%02d:%02d'|format(minute // 60, minute % 60) %}<option value="{{ value }}" {% if value == selected_time %}selected{% endif %}>{{ value }}</option>{% endfor %}</select><small class="text-muted">При необходимости можно немного сместить время. Занятое время выбрать нельзя.</small></label>
+      {% if available %}<label>Время осмотра{{ time_field('appointment_time', request.form.get('appointment_time',available[0].start_time.strftime('%H:%M')),id='record-apartment-time',step=5) }}<small class="text-muted">При необходимости можно немного сместить время. Занятое время выбрать нельзя.</small></label>
       <label>ФИО<textarea class="form-control" name="contact" rows="2" maxlength="255" placeholder="Каждое ФИО с новой строки">{{ request.form.get('contact', inspection_contact_lines(apartment.owner_name)) }}</textarea></label>
       <label>Телефон<textarea class="form-control" name="contact_phone" rows="2" maxlength="255">{{ request.form.get('contact_phone', apartment.phone or '') }}</textarea></label>
       <label>Примечание<textarea class="form-control" name="note" rows="3" maxlength="4000">{{ request.form.get('note', '') }}</textarea></label>

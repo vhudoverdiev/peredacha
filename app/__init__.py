@@ -1,5 +1,7 @@
 import sys
 import time
+import json
+from uuid import uuid4
 from pathlib import Path
 
 from flask import Flask, abort, g, redirect, request, session, url_for
@@ -61,7 +63,7 @@ def _format_ru_datetime(value) -> str:
 def _is_static_asset_request() -> bool:
     endpoint = request.endpoint or ""
     path = request.path or ""
-    return endpoint == "static" or path.startswith("/static/") or endpoint == "main.service_worker" or path == "/service-worker.js"
+    return endpoint == "static" or path.startswith("/static/") or endpoint == "main.service_worker" or path == "/service-worker.js" or path in {"/favicon.ico", "/apple-touch-icon.png", "/robots.txt"}
 
 
 def _is_flask_push_cli_invocation() -> bool:
@@ -127,7 +129,27 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    @app.get("/favicon.ico")
+    def public_favicon():
+        response = app.send_static_file("favicon.ico")
+        response.headers["Cache-Control"] = "public, max-age=3600"
+        return response
+
+    @app.get("/apple-touch-icon.png")
+    def public_apple_touch_icon():
+        response = app.send_static_file("apple-touch-icon.png")
+        response.headers["Cache-Control"] = "public, max-age=3600"
+        return response
+
+    @app.get("/robots.txt")
+    def public_robots():
+        return app.response_class("User-agent: *\nDisallow: /\n", mimetype="text/plain")
+
     login_manager.init_app(app)
+    @app.before_request
+    def initialize_request_diagnostics():
+        g.http_error_reason = None
+
     csrf.init_app(app)
     compress.init_app(app)
 
@@ -232,11 +254,26 @@ def create_app(config_class=Config):
             response.headers["Cache-Control"] = "private, no-store, no-cache, must-revalidate, max-age=0"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"
+        # Only metadata: never log query strings, form contents, tokens or cookies.
+        if response.status_code >= 400:
+            request_id = uuid4().hex
+            response.headers["X-Request-ID"] = request_id
+            details = {
+                "request_id": request_id, "status": response.status_code,
+                "method": request.method, "path": request.path,
+                "endpoint": request.endpoint,
+                "user_id": current_user.id if current_user.is_authenticated else None,
+                "role": current_user.role if current_user.is_authenticated else None,
+                "project_id": session.get("current_project_id"),
+                "reason": getattr(g, "http_error_reason", None) or "http_response",
+            }
+            app.logger.warning("http_error %s", json.dumps(details, ensure_ascii=True))
         record_site_visit(response)
         return response
 
     @app.errorhandler(CSRFError)
     def handle_csrf_error(error):
+        g.http_error_reason = f"csrf_validation: {error.description}"
         # Do not leave the PWA on Flask's raw 400 page when WebKit restored a
         # stale login form.  A fresh GET creates a matching session/token pair.
         if request.endpoint == "auth.login" or request.path == "/login":
@@ -305,6 +342,7 @@ def create_app(config_class=Config):
 
     # Bootstrap DB for fresh installs / new tables (no Alembic migrations yet).
     from app import models  # noqa: F401
+    from app.services import remark_learning  # noqa: F401
 
     with app.app_context():
         uri = (app.config.get("SQLALCHEMY_DATABASE_URI") or "").lower()
@@ -339,6 +377,12 @@ def create_app(config_class=Config):
             if "appointment_time" not in booking_columns:
                 db.session.execute(text("ALTER TABLE inspection_bookings ADD COLUMN appointment_time TIME"))
             db.session.commit()
+
+        if _is_sqlite_database_uri(uri) or _is_mysql_database_uri(uri):
+            if not app.config.get('TESTING') or app.config.get('REMARK_LIBRARY_FILE'):
+                from app.services.remark_library_file import import_library, LIBRARY_PATH
+                import_library(app.config.get('REMARK_LIBRARY_FILE') or LIBRARY_PATH)
+            remark_learning.backfill_existing_phrases()
 
         if _is_mysql_database_uri(uri):
             inspector = inspect(db.engine)

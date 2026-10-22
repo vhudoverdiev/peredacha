@@ -81,6 +81,7 @@ IGNORED_POINT_HEADER_PARTS = [
     "комментарий",
     "примечание",
     "авр",
+    "сертификат",
 ]
 
 # Cyrillic aliases for matching real Excel headers.
@@ -114,6 +115,7 @@ IGNORED_POINT_HEADER_PARTS_RU = [
     "комментарий",
     "примечание",
     "авр",
+    "сертификат",
 ]
 
 APARTMENT_IMPORT_CONFLICT_LABELS = {
@@ -604,6 +606,9 @@ def is_work_point_header(header: str, index: int) -> bool:
         return True
     if any(part in h for part in (IGNORED_POINT_HEADER_PARTS_RU + IGNORED_POINT_HEADER_PARTS)):
         return False
+    from app.services.remark_catalog import point_keys
+    if point_keys(header):
+        return True
     point = extract_point_number(h, None)
     if point.isdigit() and int(point) >= 1:
         return True
@@ -1636,12 +1641,23 @@ def get_or_update_apartment(
 
 
 def get_or_update_work_point(point_number: str, header: str, sheet_name: str, column_index: int) -> WorkPoint:
+    from app.services.remark_catalog import point_keys
+    from app.work_points import WORK_POINT_LABELS
+    named_points = point_keys(header)
+    if len(named_points) == 1:
+        point_number = named_points[0]
+        header = WORK_POINT_LABELS[point_number]
     if is_dop_agreement_header(header) or str(point_number or "").strip() in DOP_AGREEMENT_POINT_NUMBERS:
         point_number = DOP_AGREEMENT_POINT_NUMBER
         header = DOP_AGREEMENT_LABEL
         point = WorkPoint.query.filter_by(point_number=point_number).order_by(WorkPoint.id.asc()).first()
     else:
         point = WorkPoint.query.filter_by(point_number=point_number, source_sheet_name=sheet_name).first()
+        # Older imports used physical column numbers. Never rename a shared
+        # legacy record whose actual work type differs from this column.
+        if named_points and point is not None and point_keys(point.short_name or point.original_column_name) != named_points:
+            sheet_name = f"canonical:{sheet_name}"
+            point = WorkPoint.query.filter_by(point_number=point_number, source_sheet_name=sheet_name).first()
     if point is None:
         # A mapping may already be configured using a catalogue/manual point
         # before this import sheet creates its own source-specific record.
@@ -1854,8 +1870,22 @@ def upsert_task_from_cell(
         # the same import pass. Persist the new task first so that history never
         # receives a NULL task_id.
         db.session.flush()
+    if not created:
+        # Serialize an import of an existing task with developer point review.
+        Task.query.filter_by(id=task.id).with_for_update().one()
+        db.session.expire(task, ['remark_point_review'])
     task.apartment_id = apartment.id
+    # Keep a developer-confirmed assignment when the same source cell is
+    # imported again. Source identity/coordinates remain intact for sync.
+    from app.models import RemarkPointReview
+    review = (RemarkPointReview.query.filter_by(task_id=task.id).populate_existing().with_for_update().first()
+              if not created else None)
+    if review and review.corrected_point_id:
+        corrected = db.session.get(WorkPoint, review.corrected_point_id)
+        if corrected is not None:
+            work_point = corrected
     task.work_point_id = work_point.id
+    task.work_point = work_point
     task.is_archived = False
     task.title = f"Пункт {work_point.point_number}: {work_point.display_name}"
     # Любое изменение уже известной ячейки Excel теперь попадает в «Несостыковки».
@@ -1989,6 +2019,8 @@ def sync_rows(
                 continue
             header = headers[col_idx] if col_idx < len(headers) else ""
             point_number = _indexed_visible_point_number(raw, header)
+            if any(part in normalize_text(header) for part in IGNORED_POINT_HEADER_PARTS_RU):
+                continue
             if point_number:
                 if header:
                     indexed_points[col_idx] = f"{point_number}. {header}"

@@ -78,7 +78,7 @@
       </div>
       <div class="col-12">
         <label class="form-label">Описание замечания</label>
-        <textarea class="form-control" name="description" rows="4" required placeholder="Например: отрегулировать входную дверь">{{ request.form.get('description', '') }}</textarea>
+        <textarea class="form-control" name="description" {% if not is_mobile_phone_request %}data-remark-suggest{% endif %} rows="4" required placeholder="Например: отрегулировать входную дверь">{{ request.form.get('description', '') }}</textarea>
       </div>
       <div class="col-12 d-none" data-concession-single-block>
         <div class="task-concession-panel">
@@ -131,16 +131,20 @@
       </div>
     </div>
 
-    <div class="mt-4">
-      <h3 class="h5 mb-3">Замечания по пунктам</h3>
-      <div class="row g-3">
-        {% for point in points %}
-        <div class="col-12">
-          <label class="form-label">{{ point.number }}. {{ point.label }}</label>
-          <textarea class="form-control" name="description_{{ point.number }}" rows="2">{{ request.form.get('description_' ~ point.number, '') }}</textarea>
-        </div>
-        {% endfor %}
-      </div>
+    {% macro act_row(number='', text='') %}
+    <div class="manual-act-entry" data-act-row>
+      <label>Пункт замечания<select class="form-select" name="act_point"><option value="">Выберите пункт</option>{% for point in points %}<option value="{{ point.number }}" {{ 'selected' if number==point.number }}>{{ point.number }}. {{ point.label }}</option>{% endfor %}</select></label>
+      <label>Текст замечания<textarea class="form-control" name="act_description" rows="3" {% if not is_mobile_phone_request %}data-remark-suggest{% endif %}>{{ text }}</textarea></label>
+    </div>
+    {% endmacro %}
+    <div class="mt-4" data-manual-act>
+      <h3 class="h5 mb-3">Замечания</h3>
+      {% set draft=namespace(rows=[]) %}
+      {% for number in request.form.getlist('act_point') %}{% set draft.rows=draft.rows+[(number,request.form.getlist('act_description')[loop.index0]|default(''))] %}{% endfor %}
+      {% if not draft.rows %}{% for point in points %}{% set text=request.form.get('description_'~point.number,'') %}{% if text %}{% set draft.rows=draft.rows+[(point.number,text)] %}{% endif %}{% endfor %}{% endif %}
+      <div data-act-rows>{% for number,text in draft.rows %}{{ act_row(number,text) }}{% else %}{{ act_row() }}{% endfor %}</div>
+      <button class="btn btn-primary mt-3" type="button" data-act-add><i class="bi bi-plus-lg" aria-hidden="true"></i> Добавить ещё замечание</button>
+      <template data-act-row-template>{{ act_row() }}</template>
     </div>
 
     <div class="task-concession-panel mt-4 d-none" data-concession-act-block>
@@ -374,25 +378,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const actBlock = document.querySelector('[data-concession-act-block]');
-  const tmcTextarea = document.querySelector('textarea[name="description_26"]');
-  if (actBlock && tmcTextarea) {
-    const syncActConcession = () => {
-      const showBlock = Boolean(tmcTextarea.value.trim());
-      actBlock.classList.toggle('d-none', !showBlock);
-      let visibleCount = 0;
-      actBlock.querySelectorAll('[data-concession-act-point-option]').forEach(option => {
-        const pointNumber = option.dataset.concessionActPointOption;
-        const textarea = document.querySelector(`textarea[name="description_${pointNumber}"]`);
-        const visible = showBlock && Boolean(textarea?.value.trim());
-        option.classList.toggle('d-none', !visible);
-        const checkbox = option.querySelector('input[type="checkbox"]');
-        if (!visible && checkbox) checkbox.checked = false;
-        if (visible) visibleCount += 1;
+  if (actBlock) {
+    const form=actBlock.closest('form');
+    const syncActConcession=()=>{
+      const populated=new Set([...form.querySelectorAll('[data-act-row]')].filter(row=>row.querySelector('textarea').value.trim()).map(row=>row.querySelector('select').value));
+      const showBlock=populated.has('26');
+      actBlock.classList.toggle('d-none',!showBlock);
+      let visibleCount=0;
+      actBlock.querySelectorAll('[data-concession-act-point-option]').forEach(option=>{
+        const visible=showBlock&&populated.has(option.dataset.concessionActPointOption);
+        option.classList.toggle('d-none',!visible);
+        if(!visible) option.querySelector('input').checked=false;
+        if(visible)visibleCount++;
       });
-      actBlock.querySelector('[data-concession-act-empty]')?.classList.toggle('d-none', visibleCount > 0);
+      actBlock.querySelector('[data-concession-act-empty]')?.classList.toggle('d-none',visibleCount>0);
     };
-    document.querySelectorAll('textarea[name^="description_"]').forEach(textarea => {
-      textarea.addEventListener('input', syncActConcession);
+    form.addEventListener('input',syncActConcession);form.addEventListener('change',syncActConcession);
+    const entries=form.querySelector('[data-act-rows]');
+    form.querySelector('[data-act-add]').addEventListener('click',()=>{
+      if(entries.children.length>=100) return;
+      entries.append(form.querySelector('[data-act-row-template]').content.cloneNode(true));
+      document.dispatchEvent(new Event('crm:act-row-added'));
+      entries.lastElementChild.querySelector('select').focus();
     });
     syncActConcession();
   }

@@ -228,7 +228,8 @@ const isTopLevelWindow = () => {
 };
 
 const isDesktopFirefoxFrameNavigation = () => (
-  isTopLevelWindow()
+  !document.body?.hasAttribute?.('data-navigation-user')
+  && isTopLevelWindow()
   && document.body?.classList.contains('app-body')
   && isDesktopLikePointer()
   && /Firefox\//i.test(getNavigatorInfo().userAgent || '')
@@ -2090,7 +2091,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const link = event.target.closest('a[href]');
     if (!link) return;
     if ((link.getAttribute('target') || '').toLowerCase() === '_blank') return;
-    if (link.hasAttribute('download') || link.dataset.noLoader === '1') return;
+    if (link.hasAttribute('download') || link.dataset.downloadMode || link.dataset.noLoader === '1') return;
     if (link.dataset.bsToggle || link.dataset.bsDismiss) return;
     const href = link.getAttribute('href') || '';
     if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
@@ -3041,6 +3042,10 @@ document.addEventListener('DOMContentLoaded', () => {
           throw new Error(data.message || 'Не удалось сохранить изменения');
         }
 
+        if (Object.prototype.hasOwnProperty.call(data, 'inspection_status')) {
+          const bookingControls = document.querySelector('[data-apartment-book-inspection-controls]');
+          if (bookingControls) bookingControls.hidden = data.inspection_status === 'Будет';
+        }
         const inspectionDisplay = document.querySelector('[data-apartment-inspection-display]');
         if (inspectionDisplay && Object.prototype.hasOwnProperty.call(data, 'inspection_date_label') && form.classList.contains('apartment-inspection-date-form')) {
           const statusText = data.inspection_status || '';
@@ -6631,7 +6636,10 @@ document.addEventListener('DOMContentLoaded', () => {
     trigger.classList.add('disabled');
     trigger.classList.add('is-loading');
     if ('disabled' in trigger) trigger.disabled = true;
-    trigger.innerHTML = buildLoadingDotsMarkup(trigger);
+    // Keep the compact table icon and its intrinsic dimensions while generating.
+    if (!trigger.classList.contains('apartment-source-export-btn')) {
+      trigger.innerHTML = buildLoadingDotsMarkup(trigger);
+    }
     window.setTimeout(() => {
       showExcelReadyNotice(trigger);
     }, Math.min(delay, 900));
@@ -6661,7 +6669,10 @@ document.addEventListener('DOMContentLoaded', () => {
     trigger.classList.add('disabled');
     trigger.classList.add('is-loading');
     if ('disabled' in trigger) trigger.disabled = true;
-    trigger.innerHTML = buildLoadingDotsMarkup(trigger);
+    // Keep the compact table icon and its intrinsic dimensions while generating.
+    if (!trigger.classList.contains('apartment-source-export-btn')) {
+      trigger.innerHTML = buildLoadingDotsMarkup(trigger);
+    }
   };
 
   const triggerBlobDownload = (blob, filename) => {
@@ -6696,7 +6707,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (event.defaultPrevented) return;
       if (event.button !== 0) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      if (link.classList.contains('is-loading')) return;
+      if (link.classList.contains('is-loading')) { event.preventDefault(); return; }
       event.preventDefault();
       const isDropdownDownload = !!link.closest('.dropdown-menu');
       const useFetchDownload = link.dataset.downloadMode !== 'native'
@@ -6707,9 +6718,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (isDropdownDownload) event.stopPropagation();
       trySetBusyState(link);
+      const downloadController = new AbortController();
+      const downloadTimeout = window.setTimeout(() => downloadController.abort(), 185000);
       try {
         const response = await window.fetch(link.href, {
+          signal: downloadController.signal,
           credentials: 'same-origin',
+          redirect: 'error',
           headers: {
             'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, application/octet-stream, application/json;q=0.9, */*;q=0.8'
@@ -6730,8 +6745,7 @@ document.addEventListener('DOMContentLoaded', () => {
           || contentType.includes('application/vnd.ms-excel')
           || contentType.includes('application/octet-stream');
         if (!looksLikeDownload) {
-          window.location.href = link.href;
-          return;
+          throw new Error('Сервер не вернул файл Excel. Страница сохранена, попробуйте скачать ещё раз.');
         }
         const blob = await response.blob();
         triggerBlobDownload(blob, getDownloadFilename(response));
@@ -6745,6 +6759,7 @@ document.addEventListener('DOMContentLoaded', () => {
           : 'Не удалось подготовить Excel. Попробуйте еще раз.';
         showCrmNotice(message, 'warning');
       } finally {
+        window.clearTimeout(downloadTimeout);
         restoreBusyState(link);
       }
     });
