@@ -2324,21 +2324,23 @@
   html body.app-body.app-body.app-body:has(.workflow-page) {
     min-height: 100dvh !important; height: auto !important; max-height: none !important;
     overflow-y: auto !important;
+    background: #f6f7f9 !important;
+    background-color: #f6f7f9 !important;
   }
 }
 @media (max-width: 767.98px) {
   html body.app-body .apartment-detail-page :is(.apartment-source-export-btn, .apartment-detail-export-btn) { display: none !important; }
 }
 
-/* In installed iOS, bottom:0 can use the shortened layout viewport while
-   100dvh still describes the visible app canvas. Keep the dock fixed to that
-   canvas, without tying its position to the scrolling document. */
+/* Short iOS pages can report a canvas one status-bar shorter than the
+   screen. Use the existing measured physical height, like empty Tasks,
+   while keeping navigation fixed during document scrolling. */
 @media (max-width: 767.98px) {
   html.standalone-app.ios-standalone-bottom-chrome
     body.app-body.app-body.app-body:has(.workflow-page)
     > nav.mobile-bottom-nav.mobile-bottom-nav-root {
     inset: auto 0 auto !important;
-    top: calc(100dvh - 72px) !important;
+    top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
     bottom: auto !important;
     position: fixed !important;
   }

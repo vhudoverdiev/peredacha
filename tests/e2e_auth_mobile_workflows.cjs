@@ -73,6 +73,7 @@ async function run(browser, width, standalone = false) {
     const shortcuts = page.locator('.workflow-mobile-shortcuts');
     assert.equal(await shortcuts.isVisible(), phone);
     let referenceGap;
+    let appealsBackStyle;
     if (phone) {
       assert.equal(await shortcuts.locator('a').count(), 2);
       const shortcutBoxes = await shortcuts.locator('a').evaluateAll(links => links.map(link => { const r = link.getBoundingClientRect(); return { top: r.top, right: r.right }; }));
@@ -120,6 +121,15 @@ async function run(browser, width, standalone = false) {
         assert.ok(Math.abs(dock.bottom - 956) < 2, `${route} ${JSON.stringify(dock)}`);
         if (route.startsWith('/appeals?') || route === '/appeals' || route.startsWith('/records?') || route === '/records')
           assert.equal(await page.locator('.workflow-heading-copy').isVisible(), false);
+        if (route === '/appeals' || route === '/records') {
+          const style = await page.locator('.workflow-mobile-back').evaluate(element => {
+            const s = getComputedStyle(element);
+            return ['width', 'height', 'padding', 'borderRadius', 'backgroundColor', 'borderColor', 'fontSize']
+              .map(key => s[key]);
+          });
+          if (route === '/appeals') appealsBackStyle = style;
+          else assert.deepEqual(style, appealsBackStyle);
+        }
         if (route === '/appeals') {
           await page.getByRole('link', { name: 'Назад', exact: true }).click();
           await page.waitForURL(url => url.pathname === '/');
@@ -128,6 +138,17 @@ async function run(browser, width, standalone = false) {
         if (standalone) {
           const anchor = await page.locator('.mobile-bottom-nav').evaluate(element => ({ top: getComputedStyle(element).top, bottom: getComputedStyle(element).bottom }));
           assert.equal(anchor.top, '884px');
+          // A short iOS document may have a CSS viewport 62px shorter than the
+          // physical canvas. The anchor must use the measured canvas value.
+          const measured = await page.evaluate(() => {
+            const root = document.documentElement;
+            const original = root.style.getPropertyValue('--mobile-physical-app-height');
+            root.style.setProperty('--mobile-physical-app-height', '1018px');
+            const top = getComputedStyle(document.querySelector('.mobile-bottom-nav')).top;
+            root.style.setProperty('--mobile-physical-app-height', original);
+            return top;
+          });
+          assert.equal(measured, '946px');
           await page.mouse.move(220, 400);
           await page.mouse.wheel(0, 500);
           await page.waitForTimeout(100);
@@ -152,6 +173,8 @@ async function run(browser, width, standalone = false) {
           await action.focus();
           assert.equal(await action.evaluate(element => getComputedStyle(element, '::after').content), '"Настроить время"');
           assert.equal(await page.locator('.records-action-label').first().isVisible(), false);
+          assert.equal(await page.locator('.records-period-navigation').isVisible(), false);
+          await action.evaluate(element => element.blur());
         }
       }
       await screenshot(page, `${route.includes('appeals') ? 'appeals' : 'records'}-${label}-${route.includes('?') ? route.split('=')[1] : route.endsWith('new') ? 'new' : route.endsWith('availability') ? 'availability' : 'list'}`);

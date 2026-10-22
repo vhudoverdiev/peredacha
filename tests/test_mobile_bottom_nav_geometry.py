@@ -463,12 +463,12 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             )
             self.assertIn("bottom: auto !important;", dock_rule)
 
-    def test_ios_workflows_anchor_fixed_dock_to_dynamic_viewport(self):
+    def test_ios_workflows_anchor_fixed_dock_to_physical_viewport(self):
         marker = "html.standalone-app.ios-standalone-bottom-chrome"
         start = self.mobile_css.rindex(marker)
         rule = self.mobile_css[start:self.mobile_css.index("}", start)]
         self.assertIn(":has(.workflow-page)", rule)
-        self.assertIn("top: calc(100dvh - 72px) !important;", rule)
+        self.assertIn("top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;", rule)
         self.assertIn("bottom: auto !important;", rule)
         self.assertIn("position: fixed !important;", rule)
 

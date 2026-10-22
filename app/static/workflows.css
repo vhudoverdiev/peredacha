@@ -250,7 +250,7 @@ html body.app-body .workflow-page .call-list-visibility-action :is(i, span) {
   .records-header-actions .nav-count-badge { display: none !important; }
   .records-header-actions .btn > i { margin: 0 !important; font-size: 18px; }
   .records-header-actions .btn[title]:is(:hover, :focus-visible)::after {
-    content: attr(title); position: absolute; top: calc(100% + 6px); right: 0;
+    content: attr(title); position: absolute; top: calc(100% + 6px); left: 0; right: auto;
     z-index: 20; padding: 6px 9px; border-radius: 8px; background: #172027;
     color: #fff; font-size: 12px; white-space: nowrap; pointer-events: none;
   }
@@ -295,3 +295,14 @@ html body.app-body .workflow-page .call-list-visibility-action :is(i, span) {
 @media (max-width:767.98px) {
   html body.app-body .records-page .records-header-actions > [data-records-desktop-action] { display:none !important; }
 }
+
+@media (max-width:767.98px) {
+  html body.app-body .appeals-page > .workflow-head .workflow-mobile-back {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:42px !important; min-width:42px !important; height:42px !important;
+    padding:0 !important; flex:0 0 42px;
+  }
+  .appeals-page > .workflow-head .workflow-mobile-back > i { margin:0 !important; font-size:18px; }
+}
+
+@media (max-width:767.98px) { .records-page .records-period-navigation { display:none !important; } }

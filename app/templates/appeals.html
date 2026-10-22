@@ -2,7 +2,7 @@
 {% block title %}Обращения{% endblock %}
 {% block content %}
 <section class="workflow-page appeals-page">
-  <div class="workflow-head"><a class="btn btn-outline-secondary workflow-mobile-back" href="{{ url_for('main.dashboard') }}" aria-label="Назад" title="Назад"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Назад</a><div class="workflow-heading-copy"><h1 class="page-title">Обращения</h1></div>{% if can_create_appeal %}<a class="btn btn-primary" href="{{ url_for('main.appeal_new') }}"><i class="bi bi-plus-lg me-2"></i>Создать обращение</a>{% endif %}</div>
+  <div class="workflow-head"><a class="btn btn-outline-secondary workflow-mobile-back" href="{{ url_for('main.dashboard') }}" aria-label="Назад" title="Назад"><i class="bi bi-arrow-left" aria-hidden="true"></i></a><div class="workflow-heading-copy"><h1 class="page-title">Обращения</h1></div>{% if can_create_appeal %}<a class="btn btn-primary" href="{{ url_for('main.appeal_new') }}"><i class="bi bi-plus-lg me-2"></i>Создать обращение</a>{% endif %}</div>
   <form method="get" class="workflow-filter crm-filter-form card content-card" data-appeals-filter>
     <label>Поиск<input class="form-control" name="q" value="{{ q }}" placeholder="Квартира или текст обращения"></label>
     <label>Статус<select class="form-select" name="status"><option value="">Все</option>{% for value,label in statuses.items() %}<option value="{{ value }}" {% if status==value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
