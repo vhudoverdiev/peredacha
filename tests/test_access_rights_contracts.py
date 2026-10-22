@@ -117,6 +117,7 @@ class AccessRightsContractsTests(unittest.TestCase):
         self.assertEqual(WORKER_ALLOWED_ENDPOINTS, {
             "main.dashboard_legacy",
             "main.my_tasks",
+            "main.my_inspections",
             "main.my_task_done",
             "main.my_task_return",
             "main.my_task_status",
@@ -205,7 +206,7 @@ class AccessRightsContractsTests(unittest.TestCase):
     def test_unauthenticated_main_endpoint_redirects_to_login_with_next(self):
         response = self._guard(None, "main.task_list", path="/tasks?status=open")
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 303)
         self.assertIn("/login", response.headers["Location"])
         self.assertIn("next=/tasks", response.headers["Location"])
 

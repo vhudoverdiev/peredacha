@@ -4,7 +4,7 @@ import argparse
 import os
 import signal
 import sys
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 from pathlib import Path
 
 from werkzeug.serving import make_server
@@ -16,6 +16,8 @@ from app import create_app, db
 import app.security as security
 from app.models import (
     Apartment,
+    InspectionBooking,
+    InspectionSlot,
     Project,
     ROLE_ADMIN,
     ROLE_MANAGER,
@@ -28,7 +30,7 @@ from app.models import (
     WorkCategory,
     WorkPoint,
 )
-from app.time_utils import utc_now
+from app.time_utils import to_moscow_datetime, utc_now
 from config import Config
 
 
@@ -37,7 +39,7 @@ class E2EVisualConfig(Config):
     ALLOW_SQLITE_RUNTIME = True
     SECRET_KEY = "e2e-visual-secret-key"
     SQLALCHEMY_DATABASE_URI = os.environ["E2E_VISUAL_DATABASE_URL"]
-    WTF_CSRF_ENABLED = False
+    WTF_CSRF_ENABLED = os.environ.get("E2E_VISUAL_CSRF_ENABLED") == "1"
     SESSION_COOKIE_SECURE = False
     TRUSTED_PROXY_COUNT = 0
     FORCE_HSTS = False
@@ -126,6 +128,11 @@ def seed_database() -> None:
     db.session.add_all(apartments)
     db.session.flush()
 
+    if os.environ.get("E2E_CALL_LIST_FIXTURES") == "1":
+        for index in (0, 1, 9, 19):
+            apartments[index].po_status = "thrown"
+            apartments[index].po_status_manual = True
+
     statuses = [STATUS_NOT_STARTED, STATUS_DONE, STATUS_PROBLEM]
     for index, apartment in enumerate(apartments[:8], start=1):
         status = statuses[index % len(statuses)]
@@ -167,6 +174,21 @@ def seed_database() -> None:
         second_project = Project(name="Второй объект — длинное название для проверки переноса")
         second_apartment = Apartment(project=second_project, apartment_number="173")
         db.session.add_all([second_project, second_apartment]); db.session.flush()
+        forbidden_project = Project(name="Недоступный объект для осмотров")
+        forbidden_apartment = Apartment(project=forbidden_project, apartment_number="999")
+        db.session.add(forbidden_apartment)
+        db.session.flush()
+        inspection_today = to_moscow_datetime(utc_now()).date()
+        for room, day, begins in ((apartments[0], inspection_today, time(9, 15)),
+                                  (second_apartment, inspection_today, time(10)),
+                                  (forbidden_apartment, inspection_today, time(11)),
+                                  (apartments[1], inspection_today + timedelta(days=1), time(12))):
+            slot = InspectionSlot(project=room.project, day=day, start_time=begins, duration_minutes=30)
+            db.session.add(slot)
+            db.session.flush()
+            db.session.add(InspectionBooking(slot=slot, active_slot_id=slot.id, apartment=room,
+                                            created_by=developer, contact="Личные данные собственника",
+                                            contact_phone="+79991112233", status="booked"))
         for role in ("painter", "handyman", "glazier"):
             worker = User(username="qa-" + role, role=role, full_name="Петров Пётр Петрович",
                           project=project, captcha_disabled=True)

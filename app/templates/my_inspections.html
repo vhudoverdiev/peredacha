@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Осмотры сегодня{% endblock %}
+{% block content %}
+<section class="worker-page worker-page-minimal worker-inspections-page{% if not has_inspections %} worker-page-empty mobile-short-page-marker{% endif %}">
+  <div class="worker-day-head">
+    <div><h1>Осмотры сегодня</h1><p>{{ format_ru_weekday(today) }} · {{ format_ru_date(today) }}</p></div>
+  </div>
+  <div class="worker-inspection-list">
+    {% for group in groups %}
+    <section class="worker-project-group" data-worker-inspection-project="{{ group.project.id }}">
+      <h2 class="worker-project-heading"><i class="bi bi-buildings" aria-hidden="true"></i><span>{{ group.project.name }}</span></h2>
+      {% for booking in group.bookings %}
+      <article class="worker-inspection-card" data-worker-inspection="{{ booking.id }}">
+        <h3>{{ booking.apartment.label() }}</h3>
+        <time datetime="{{ today.isoformat() }}T{{ (booking.appointment_time or booking.slot.start_time).strftime('%H:%M') }}">{{ (booking.appointment_time or booking.slot.start_time).strftime('%H:%M') }}</time>
+      </article>
+      {% endfor %}
+    </section>
+    {% else %}
+    <div class="worker-empty-card"><i class="bi bi-calendar2-check" aria-hidden="true"></i><h2>На сегодня осмотров нет</h2></div>
+    {% endfor %}
+  </div>
+</section>
+<script>
+(() => {
+  const nextDay = Date.parse({{ next_day.isoformat()|tojson }});
+  const refreshAtMidnight = () => { if (Date.now() >= nextDay) window.location.reload(); };
+  setTimeout(refreshAtMidnight, Math.max(1000, nextDay - Date.now()));
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshAtMidnight();
+  });
+})();
+</script>
+{% endblock %}

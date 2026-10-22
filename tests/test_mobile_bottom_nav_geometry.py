@@ -392,7 +392,7 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         self.assertIn("background: #f6f8fb !important;", rule)
         self.assertIn("background-color: #f6f8fb !important;", rule)
 
-    def test_all_worker_roles_share_the_unified_two_item_dock(self):
+    def test_all_worker_roles_share_the_unified_three_item_dock(self):
         self.assertIn("{% if worker_role %}", self.base)
         worker_nav = re.search(
             r'<nav class="mobile-bottom-nav mobile-bottom-nav-root mobile-worker-bottom-nav"[^>]+>',
@@ -400,7 +400,7 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         )
         self.assertIsNotNone(worker_nav)
         worker_nav_markup = worker_nav.group(0)
-        self.assertIn("--mobile-nav-count: 2", worker_nav_markup)
+        self.assertIn("--mobile-nav-count: 3", worker_nav_markup)
         self.assertIn("width: 100vw !important", worker_nav_markup)
         self.assertIn("height: calc(72px + var(--android-dock-inset, 0px)) !important", worker_nav_markup)
 

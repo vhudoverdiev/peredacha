@@ -31,6 +31,21 @@ class ProjectWorkflowsTests(unittest.TestCase):
             'start_date':'2026-10-21','end_date':'2026-10-21',
             'start_time':'09:00','end_time':'10:00','duration':'30','weekday':['2']})
 
+    def test_mobile_workflow_shortcuts_exist_only_inside_a_project(self):
+        self.login(self.manager)
+        mobile_headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148 Safari/604.1'}
+        for selected in (False, True):
+            with self.client.session_transaction() as state:
+                if selected:
+                    state['current_project_id'] = self.project.id
+                else:
+                    state.pop('current_project_id', None)
+            self.assertNotIn('workflow-mobile-shortcuts', self.client.get('/objects', headers=mobile_headers).text)
+        dashboard = self.client.get('/', headers=mobile_headers).text
+        self.assertIn('class="workflow-mobile-shortcuts"', dashboard)
+        self.assertIn('class="btn mobile-section-shortcut" href="/appeals"', dashboard)
+        self.assertIn('class="btn mobile-section-shortcut" href="/records"', dashboard)
+
     def test_previous_inspection_and_multiple_names(self):
         self.assertEqual(inspection_contact_lines('Иванов Иван Иванович Петров Пётр Петрович'),
                          'Иванов Иван Иванович\nПетров Пётр Петрович')

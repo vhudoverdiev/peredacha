@@ -1,5 +1,10 @@
 /* Project workspaces share the CRM's fixed desktop shell and phone breakpoint. */
 .workflow-page { display: grid; gap: 18px; min-width: 0; padding-bottom: 20px; }
+.workflow-calendar-content { display: grid; gap: inherit; min-width: 0; }
+.records-period-controls { display: contents; }
+.records-page [data-records-day-action][hidden] { display: none !important; }
+.call-list-visibility-form { margin: 0; }
+.call-list-summary { flex-wrap: wrap; }
 .workflow-page .workflow-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
 .workflow-page h2 { font-size: 21px !important; line-height: 1.3; margin: 0; }
 .workflow-page p { margin-bottom: 0; }
@@ -116,6 +121,8 @@
 .workflow-mobile-shortcuts { display: none; }
 .workflow-month-tally, .workflow-month-legend { display: none; }
 @media (max-width:767.98px) {
+ /* The shared app-main already reserves the fixed header's height. */
+ html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.workflow-page) .app-layout { padding-top: 0 !important; }
  .workflow-page { gap: 14px; padding-bottom: 24px; }
  .workflow-page .workflow-head { display: grid; gap: 14px; }
  .workflow-page .page-title { font-size: 26px !important; }
@@ -140,8 +147,9 @@
  .workflow-month-legend { display: block; font-size: 13px; color: #4e6144; }
  .workflow-month-tally { display: grid; gap: 4px; justify-content: center; color: #3f612c; text-decoration: none; font-size: 12px; line-height: 1.2; }
  .workflow-calendar-month .workflow-day > small { font-size: 10px; text-align: center; overflow-wrap: anywhere; }
- .workflow-mobile-shortcuts { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
- .workflow-mobile-shortcuts a { flex: 1; display: inline-flex; justify-content: center; align-items: center; gap: 7px; padding: 12px; background: #fff; border: 1px solid #e0e8d9; border-radius: 12px; color: #1d2b16; text-decoration: none; }
+ .workflow-mobile-shortcuts { display: grid; grid-template-columns: minmax(0,1fr); gap: 10px; margin-bottom: 14px; }
+ .workflow-mobile-shortcuts .mobile-section-shortcut > span { min-width: 0; overflow-wrap: anywhere; }
+ .workflow-mobile-shortcuts .workflow-count { display: inline-block; margin-left: 7px; vertical-align: middle; }
 }
 @media (prefers-reduced-motion:reduce) { .workflow-appeal-card { transition: none; } }
 
@@ -219,3 +227,11 @@
 .call-list-card-actions .btn-outline-secondary,
 .call-list-card-actions .btn-outline-secondary:hover { color: #111827 !important; }
 .call-list-note{position:relative;padding-right:2.8rem}.call-list-note-delete{position:absolute;right:.45rem;top:.45rem;display:grid;place-items:center;width:1.9rem;height:1.9rem;border:1px solid transparent;border-radius:.5rem;background:transparent;color:#677465;cursor:pointer}.call-list-note-delete:hover{color:#bd3e39;background:#fff0ef;border-color:#f4d0cd}.call-list-note-delete:disabled{opacity:.5;cursor:wait}
+
+/* Keep call-list visibility controls and their icons readable in every state. */
+html body.app-body .workflow-page .call-list-visibility-action,
+html body.app-body .workflow-page .call-list-visibility-action:is(:hover, :focus, :active, :visited),
+html body.app-body .workflow-page .call-list-visibility-action :is(i, span) {
+  color: #000 !important;
+  -webkit-text-fill-color: #000 !important;
+}

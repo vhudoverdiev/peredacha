@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v207-office-manager-access';
+const STATIC_CACHE = 'peredacha-static-v215-call-list-controls-black';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,11 +13,11 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v712-office-manager-access',
-  '/static/workflows.css?v=4',
+  '/static/style.css?v=v720-worker-navigation-reference',
+  '/static/workflows.css?v=22-call-list-controls-black',
   '/static/mobile-only.css?v=v91-site-settings-mobile',
   '/static/desktop-only.css?v=v76-objects-three-columns',
-  '/static/script.js?v=v700-office-manager-comment',
+  '/static/script.js?v=v704-apartment-comment-meta',
 ];
 
 const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;

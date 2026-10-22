@@ -192,6 +192,10 @@ class User(UserMixin, TimestampMixin, db.Model):
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
 
+    def get_auth_id(self) -> str:
+        """Bind signed login cookies to the account's revocable session version."""
+        return f"{self.id}:{int(self.session_version or 0)}"
+
     def can(self, *roles: str) -> bool:
         return self.role in roles or self.role == ROLE_ADMIN or (ROLE_MANAGER in roles and self.role in {ROLE_OFFICE, ROLE_OFFICE_MANAGER, ROLE_SUPERVISOR})
 
@@ -294,6 +298,7 @@ class Apartment(TimestampMixin, db.Model):
     is_app_mode = db.Column(db.Boolean, default=False, nullable=False, index=True)
     po_status = db.Column(db.String(30), default="not_ready", nullable=False, index=True)
     po_status_manual = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    call_list_hidden = db.Column(db.Boolean, default=False, nullable=False)
     avr_archived_at = db.Column(db.DateTime, nullable=True)
     avr_status = db.Column(db.String(30), default="needed", nullable=False, index=True)
     avr_signed_date = db.Column(db.Date, nullable=True)

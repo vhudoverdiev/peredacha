@@ -29,7 +29,7 @@ class ApartmentDetailContactsTests(unittest.TestCase):
         self.assertIn("<span>По договору</span>", TEMPLATE)
         self.assertIn('name="contract_number"', TEMPLATE)
         self.assertIn('form="apartment-details-form-{{ apartment.id }}"', TEMPLATE)
-        self.assertIn("const fieldSelector = '[name=\"owner_name\"], [name=\"phone\"], [name=\"contract_number\"], [name=\"finishing_type\"], [name=\"mode\"]';", TEMPLATE)
+        self.assertIn("const fieldSelector = '[name=\"owner_name\"], [name=\"phone\"], [name=\"contract_number\"], [name=\"construction_number\"], [name=\"finishing_type\"], [name=\"mode\"]';", TEMPLATE)
         self.assertIn("field.form === form || (formId && field.getAttribute('form') === formId)", TEMPLATE)
         self.assertIn('class="form-control form-control-sm apartment-owner-names-control"', TEMPLATE)
         self.assertIn("row.owner_names|join('\\n') if row.owner_names else ''", TEMPLATE)

@@ -1,13 +1,16 @@
 {% extends 'base.html' %}
 {% block title %}Записи на осмотры{% endblock %}
 {% block content %}
-<section class="workflow-page records-page">
-  <div class="workflow-head"><div><h1 class="page-title">Записи на осмотры</h1><p class="text-muted">{{ project.name }} · Расписание осмотров</p></div><div class="workflow-actions"><a class="btn btn-outline-secondary" href="{{ url_for('main.records_call_list') }}"><i class="bi bi-telephone-outbound me-2"></i>Обзвонить{% if call_list_count %}<span class="nav-count-badge ms-2" aria-label="Помещений для обзвона: {{ call_list_count }}">{{ call_list_count }}</span>{% endif %}</a>{% if can_configure_inspections %}<a class="btn btn-primary" href="{{ url_for('main.records_availability') }}"><i class="bi bi-clock me-2"></i>Настроить время</a>{% endif %}{% if view=='day' %}{% if can_configure_inspections %}<button class="btn btn-outline-secondary" type="button" data-close-interval-open><i class="bi bi-lock me-2"></i>Закрыть интервал</button>{% endif %}<a class="btn btn-outline-secondary" href="{{ url_for('main.records_download',date=selected.isoformat()) }}"><i class="bi bi-download me-2"></i>Скачать</a>{% endif %}</div></div>
+<section class="workflow-page records-page" data-ajax-pagination-page="records" data-records-view="{{ view }}" data-records-date="{{ selected.isoformat() }}">
+  <div class="workflow-head"><div><h1 class="page-title">Записи на осмотры</h1><p class="text-muted">{{ project.name }} · Расписание осмотров</p></div><div class="workflow-actions"><a class="btn btn-outline-secondary" href="{{ url_for('main.records_call_list') }}"><i class="bi bi-telephone-outbound me-2"></i>Обзвонить{% if call_list_count %}<span class="nav-count-badge ms-2" aria-label="Помещений для обзвона: {{ call_list_count }}">{{ call_list_count }}</span>{% endif %}</a>{% if can_configure_inspections %}<a class="btn btn-primary" href="{{ url_for('main.records_availability') }}"><i class="bi bi-clock me-2"></i>Настроить время</a>{% endif %}{% if can_configure_inspections %}<button class="btn btn-outline-secondary" type="button" data-close-interval-open data-records-day-action="close" {% if view!='day' %}hidden{% endif %}><i class="bi bi-lock me-2"></i>Закрыть интервал</button>{% endif %}<a class="btn btn-outline-secondary" data-records-day-action="download" {% if view!='day' %}hidden{% endif %} href="{{ url_for('main.records_download',date=selected.isoformat()) }}"><i class="bi bi-download me-2"></i>Скачать</a></div></div>
   <div class="card content-card workflow-calendar-toolbar">
-    <nav class="workflow-view-switch" aria-label="Вид расписания">{% for key,label in [('day','День'),('week','Неделя'),('month','Месяц')] %}<a class="{{ 'is-active' if view==key else '' }}" href="{{ url_for('main.records',view=key,date=selected.isoformat()) }}">{{ label }}</a>{% endfor %}</nav>
+    <nav data-ajax-pagination-tabs class="workflow-view-switch" aria-label="Вид расписания">{% for key,label in [('day','День'),('week','Неделя'),('month','Месяц')] %}<a class="{{ 'is-active' if view==key else '' }}" href="{{ url_for('main.records',view=key,date=selected.isoformat()) }}">{{ label }}</a>{% endfor %}</nav>
+    <div class="records-period-controls" data-ajax-pagination-head>
     <div class="workflow-actions"><a class="btn btn-outline-secondary" aria-label="Предыдущий период" href="{{ url_for('main.records',view=view,date=previous.isoformat()) }}"><i class="bi bi-chevron-left"></i></a><a class="btn btn-outline-secondary {{ 'workflow-today-active' if view=='day' and selected==today else '' }}" href="{{ url_for('main.records') }}" {% if view=='day' and selected==today %}aria-current="date"{% endif %}>Сегодня</a><a class="btn btn-outline-secondary" aria-label="Следующий период" href="{{ url_for('main.records',view=view,date=following.isoformat()) }}"><i class="bi bi-chevron-right"></i></a></div>
-    {% if view=='day' %}<form method="get" class="crm-filter-form workflow-date-filter"><input type="hidden" name="view" value="{{ view }}"><label for="recordDate">Дата</label><input id="recordDate" class="form-control" type="date" name="date" value="{{ selected.isoformat() }}"><button class="btn btn-outline-secondary" type="submit">Показать</button></form>{% endif %}
+    {% if view=='day' %}<form method="get" class="crm-filter-form workflow-date-filter" data-ajax-pagination-form><input type="hidden" name="view" value="{{ view }}"><label for="recordDate">Дата</label><input id="recordDate" class="form-control" type="date" name="date" value="{{ selected.isoformat() }}"><button class="btn btn-outline-secondary" type="submit">Показать</button></form>{% endif %}
+    </div>
   </div>
+  <div class="workflow-calendar-content" data-ajax-pagination-content>
   <div class="workflow-period-row"><h2 class="workflow-period">{% if view=='month' %}{{ selected.strftime('%m.%Y') }}{% else %}{{ format_ru_date(start) }}{% if end!=start %} — {{ format_ru_date(end) }}{% endif %}{% endif %}</h2></div>
 
   {% if view=='month' %}<p class="workflow-month-legend">● Записи · ○ Свободное время</p>{% endif %}
@@ -37,7 +40,8 @@
     </article>
     {% endfor %}
   </div>
-  {% if view=='day' and can_configure_inspections %}<div class="workflow-interval-overlay" data-close-interval-modal hidden>
+  </div>
+  {% if can_configure_inspections %}<div class="workflow-interval-overlay" data-close-interval-modal hidden>
     <div class="workflow-interval-modal card content-card" role="dialog" aria-modal="true" aria-labelledby="closeIntervalTitle">
       <div class="workflow-interval-title"><div><h2 id="closeIntervalTitle">Закрыть интервал</h2><p class="text-muted">Выберите время. Занятые записи останутся без изменений.</p></div><button type="button" class="btn btn-outline-secondary" data-close-interval-dismiss aria-label="Закрыть окно"><i class="bi bi-x-lg"></i></button></div>
       <form method="post" action="{{ url_for('main.record_slots_close_interval') }}" data-close-interval-form>
@@ -52,9 +56,29 @@
 </section>
 <script>
 (() => {
-  document.querySelectorAll('[data-day-url]').forEach(card => {
-    card.addEventListener('click', event => { if (!event.target.closest('a, button, form, input, select')) window.location.assign(card.dataset.dayUrl); });
-    card.addEventListener('keydown', event => { if ((event.key === 'Enter' || event.key === ' ') && event.target === card) { event.preventDefault(); window.location.assign(card.dataset.dayUrl); } });
+  const root = document.querySelector('[data-ajax-pagination-page="records"]');
+  const loadCalendar = url => window.crmUpdatePaginationPage(url, {
+    root, scroll: false, useCache: false, replaceContent: true, fallbackToNavigation: false,
+  });
+  root.addEventListener('click', event => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (typeof window.crmUpdatePaginationPage !== 'function') return;
+    const link = event.target.closest('a[href]');
+    if (link?.target || link?.hasAttribute('download')) return;
+    const card = event.target.closest('[data-day-url]');
+    const href = link?.href || (card && !event.target.closest('button, form, input, select, textarea') ? card.dataset.dayUrl : null);
+    if (!href) return;
+    const url = new URL(href, window.location.href);
+    if (url.origin !== window.location.origin || url.pathname !== '{{ url_for("main.records") }}') return;
+    event.preventDefault();
+    void loadCalendar(url);
+  });
+  root.addEventListener('keydown', event => {
+    const card = event.target.closest('[data-day-url]');
+    if (card && event.target === card && (event.key === 'Enter' || event.key === ' ') && typeof window.crmUpdatePaginationPage === 'function') {
+      event.preventDefault();
+      void loadCalendar(new URL(card.dataset.dayUrl, window.location.href));
+    }
   });
   const canManageClosedInterval = {{ 'true' if can_manage_closed_interval else 'false' }};
   const modal = document.querySelector('[data-close-interval-modal]');
@@ -91,8 +115,9 @@
     } catch (error) { window.showCrmNotice?.(error.message, 'danger'); }
     finally { delete form.dataset.pending; }
   });
-  document.querySelectorAll('[data-slot-toggle]').forEach(form => {
-    form.addEventListener('submit', async event => {
+  document.addEventListener('submit', async event => {
+      const form = event.target.closest('[data-slot-toggle]');
+      if (!form || !root.contains(form)) return;
       event.preventDefault();
       if (form.dataset.pending === '1') return;
       form.dataset.pending = '1';
@@ -103,7 +128,14 @@
         updateSlot(form.closest('[data-record-slot]'), result.is_open);
       } catch (error) { window.showCrmNotice?.(error.message, 'danger'); }
       finally { delete form.dataset.pending; }
-    });
+  });
+  document.addEventListener('crm:ajax-pagination-updated', event => {
+    if (event.detail?.pageKey !== 'records') return;
+    root.querySelectorAll('[data-records-day-action]').forEach(action => { action.hidden = root.dataset.recordsView !== 'day'; });
+    const download = root.querySelector('[data-records-day-action=download]');
+    if (download) { const url = new URL(download.href); url.searchParams.set('date', root.dataset.recordsDate); download.href = url.href; }
+    const day = modal?.querySelector('[name=day]');
+    if (day) day.value = root.dataset.recordsDate;
   });
 })();
 </script>

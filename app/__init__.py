@@ -5,7 +5,7 @@ from pathlib import Path
 from flask import Flask, abort, g, redirect, request, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_login import LoginManager, current_user
+from flask_login import LoginManager, current_user, login_user, user_loaded_from_cookie
 from flask_wtf import CSRFProtect
 from flask_wtf.csrf import CSRFError
 from flask_compress import Compress
@@ -135,6 +135,7 @@ def create_app(config_class=Config):
     login_manager.login_message = "Войдите в CRM, чтобы продолжить"
     login_manager.login_message_category = "warning"
     login_manager.session_protection = "strong"
+    login_manager.id_attribute = "get_auth_id"
 
     def authentication_required():
         from app.security import clear_auth_session
@@ -241,6 +242,19 @@ def create_app(config_class=Config):
         if request.endpoint == "auth.login" or request.path == "/login":
             session.pop("csrf_token", None)
             return redirect(url_for("auth.login"), code=303)
+        # CSRF runs before the authentication guard. An old form from an
+        # expired/revoked session must use the same login recovery as GETs;
+        # the rejected mutation is never executed or replayed.
+        submitted_token = (
+            request.form.get("csrf_token")
+            or request.headers.get("X-CSRFToken")
+            or request.headers.get("X-CSRF-Token")
+        )
+        if request.blueprint == "main" and request.endpoint != "main.report_error" and submitted_token:
+            from app.security import is_session_version_valid
+
+            if not current_user.is_authenticated or not is_session_version_valid():
+                return authentication_required()
         if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in (request.headers.get("Accept") or ""):
             return {"ok": False, "message": "Сессия устарела. Обновите страницу и отправьте сообщение еще раз."}, 400
         return error.get_response()
@@ -268,9 +282,26 @@ def create_app(config_class=Config):
     @login_manager.user_loader
     def load_user(user_id):
         try:
-            return db.session.get(User, int(user_id))
-        except (TypeError, ValueError):
+            identifier, separator, version = str(user_id).partition(":")
+            user = db.session.get(User, int(identifier))
+            if user is None or not user.is_active:
+                return None
+            if separator and int(version) != int(user.session_version or 0):
+                return None
+            # Existing signed sessions still carry a plain ID and are checked
+            # by is_session_version_valid. Old remember cookies lack a version
+            # and must require a fresh login rather than bypass revocation.
+            return user
+        except (TypeError, ValueError, OverflowError):
             return None
+
+    @user_loaded_from_cookie.connect_via(app)
+    def restore_remembered_session(sender, user):
+        if session.get("_user_id") != user.get_auth_id():
+            return
+        login_user(user, fresh=False)
+        session.permanent = True
+        session["session_version"] = int(user.session_version or 0)
 
     # Bootstrap DB for fresh installs / new tables (no Alembic migrations yet).
     from app import models  # noqa: F401
@@ -289,6 +320,9 @@ def create_app(config_class=Config):
 
         # Additive migration: old appeals remain readable with unknown caller data.
         if _is_sqlite_database_uri(uri) or _is_mysql_database_uri(uri):
+            apartment_columns = {column["name"] for column in inspect(db.engine).get_columns("apartments")}
+            if "call_list_hidden" not in apartment_columns:
+                db.session.execute(text("ALTER TABLE apartments ADD COLUMN call_list_hidden BOOLEAN NOT NULL DEFAULT 0"))
             appeal_columns = {column["name"] for column in inspect(db.engine).get_columns("appeals")}
             for column, length in (("caller_name", 180), ("caller_phone", 100)):
                 if column not in appeal_columns:

@@ -2,8 +2,6 @@
 {% block layout_mode %}objects{% endblock %}
 {% block title %}Объекты{% endblock %}
 {% block content %}
-{% if can_use_project_workflows %}<nav class="workflow-mobile-shortcuts" aria-label="Обращения и осмотры"><a href="{{ url_for('main.appeals') }}"><i class="bi bi-chat-square-text"></i>Обращения{% if new_appeals_count %}<span class="workflow-count">{{ new_appeals_count }}</span>{% endif %}</a><a href="{{ url_for('main.records') }}"><i class="bi bi-calendar2-week"></i>Записи</a></nav>{% endif %}
-
 <section class="objects-page">
   <div class="objects-mobile-hero">
     {% if not is_mobile_phone_request %}

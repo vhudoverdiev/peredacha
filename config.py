@@ -86,6 +86,10 @@ class Config:
     REMEMBER_COOKIE_SAMESITE = "Lax"
     REMEMBER_COOKIE_SECURE = _bool_env("SESSION_COOKIE_SECURE", False)
     PERMANENT_SESSION_LIFETIME = int(os.getenv("PERMANENT_SESSION_LIFETIME", str(60 * 60 * 8)))
+    # Background reads (including PWA asset prefetches) must not overwrite a
+    # newer login/project cookie when responses arrive out of order. Sessions
+    # are still saved on changes and valid remember tokens can restore them.
+    SESSION_REFRESH_EACH_REQUEST = False
     PREFERRED_URL_SCHEME = "https" if SESSION_COOKIE_SECURE else "http"
     FORCE_HSTS = _bool_env("FORCE_HSTS", False)
     PROTECTED_DEVELOPER_USERNAMES = _csv_env("PROTECTED_DEVELOPER_USERNAMES")

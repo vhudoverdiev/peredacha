@@ -53624,7 +53624,7 @@ body:has(.apartments-page) .developer-select-menu-portal .developer-select-optio
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
     body.app-body .mobile-worker-bottom-nav {
     display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(var(--mobile-nav-count, 3), minmax(0, 1fr)) !important;
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
@@ -53971,8 +53971,7 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-page-head:not(.glass-page-head))
-    .remarks-measurements-mobile-btn {
+    body.app-body .mobile-section-shortcut {
     order: -1 !important;
     display: grid !important;
     grid-template-columns: 2.36rem minmax(0, 1fr) 1.5rem !important;
@@ -53997,8 +53996,7 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-page-head:not(.glass-page-head))
-    .remarks-measurements-mobile-btn > .bi-rulers {
+    body.app-body .mobile-section-shortcut > .mobile-section-shortcut-icon {
     display: inline-grid !important;
     place-items: center !important;
     width: 2.36rem !important;
@@ -54013,8 +54011,7 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-page-head:not(.glass-page-head))
-    .remarks-measurements-mobile-arrow {
+    body.app-body .mobile-section-shortcut-arrow {
     justify-self: end !important;
     margin: 0 !important;
     color: #78b929 !important;
@@ -54023,9 +54020,14 @@ body.app-body:has(.confirm-modal-page) .confirm-modal-backdrop {
   }
 
   html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
-    body.app-body:has(.remarks-page-head:not(.glass-page-head))
-    .remarks-measurements-mobile-btn:active {
+    body.app-body .mobile-section-shortcut:active {
     transform: scale(.985) !important;
+  }
+
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body .mobile-section-shortcut:focus-visible {
+    outline: 3px solid #78b929 !important;
+    outline-offset: 3px !important;
   }
 
   /* Ordered measurements: preserve the desktop table, but present each row as
@@ -54868,6 +54870,25 @@ body.app-body:has(.objects-page) :is(
   justify-content: space-between;
   width: 100%;
   min-height: 3rem;
+}
+
+html body.app-body .users-page .users-create-access-dropdown .users-access-toggle,
+html body.app-body .users-page .users-create-access-dropdown .users-access-toggle:is(:hover, :focus, :active, .show) {
+  color: #000 !important;
+  -webkit-text-fill-color: #000 !important;
+  background: #fff !important;
+  border-color: #d6dce3 !important;
+  box-shadow: none !important;
+}
+
+html body.app-body .users-page .users-create-access-dropdown .users-access-toggle :is(i, span) {
+  color: #000 !important;
+  -webkit-text-fill-color: #000 !important;
+}
+
+html body.app-body .users-page .users-create-access-dropdown .users-access-toggle:focus-visible {
+  outline: 2px solid #667085 !important;
+  outline-offset: 3px !important;
 }
 
 .users-access-mode {
@@ -59911,3 +59932,56 @@ html body.app-body .worker-page .worker-task-card-minimal.done .worker-task-text
 .appeal-list-body p { margin:0; }
 .appeal-list-author { display:block; margin-top:14px; color:#6b7280; }
 @media (max-width:767.98px) { .appeal-list-info-grid { grid-template-columns:1fr; gap:10px; } }
+
+/* Workers see only the premise and appointment time in their daily schedule. */
+.worker-section-nav { gap: .5rem; align-items: center; }
+.worker-section-nav a { color: #fff; font-size: .9rem; text-decoration: none; padding: .5rem .8rem; border-radius: .7rem; white-space: nowrap; }
+.worker-section-nav a:is(.is-active, :hover, :focus-visible) { color: #c4ed94; background: rgba(141,214,44,.13); }
+.worker-inspection-list { display: grid; gap: 1rem; }
+.worker-inspection-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-width: 0; margin-top: .6rem; padding: 1rem 1.2rem; border: 1px solid #e1e8dc; border-radius: 1rem; background: #fff; }
+.worker-inspection-card h3 { min-width: 0; margin: 0; font-size: 1rem; line-height: 1.35; overflow-wrap: anywhere; }
+.worker-inspection-card time { flex: none; font-size: 1.15rem; font-weight: 750; color: #528823; }
+
+/* Worker navigation has its own column so the account menu stays on the top row. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body .app-layout.worker-layout > .app-main > .app-topbar {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+  }
+  .worker-layout .worker-brand-link { min-width: 0; overflow: hidden; }
+  .worker-layout .worker-section-nav { grid-column: 2; grid-row: 1; }
+  .worker-layout .app-topbar > .topbar-actions { grid-column: 3; grid-row: 1; }
+}
+.worker-layout .worker-section-nav {
+  gap: .3rem; padding: .3rem; border: 1px solid rgba(255,255,255,.16);
+  border-radius: 1rem; background: rgba(255,255,255,.06);
+}
+.worker-layout .worker-section-nav a {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  min-height: 42px; padding: .55rem .85rem; font-size: .875rem; font-weight: 650;
+  color: #e9eee6; border-radius: .7rem;
+}
+.worker-layout .worker-section-nav a:hover { background: rgba(255,255,255,.1); color: #fff; }
+.worker-layout .worker-section-nav a.is-active { background: rgba(255,255,255,.14); color: #fff; }
+.worker-layout .worker-section-nav a:focus-visible { outline: 2px solid #c4ed94; outline-offset: 3px; }
+@media (max-width: 767.98px) {
+  html body.app-body .mobile-worker-bottom-nav .mobile-nav-item {
+    min-width: 0 !important; gap: 3px !important; border-radius: 14px !important;
+    margin: 2px 3px !important; padding: 5px 2px !important;
+  }
+  html body.app-body .mobile-worker-bottom-nav .mobile-nav-item span {
+    font-size: 11px !important; line-height: 14px !important; white-space: nowrap !important;
+  }
+  html body.app-body .mobile-worker-bottom-nav .mobile-nav-item i { font-size: 21px !important; }
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-bottom-nav.mobile-worker-bottom-nav .mobile-nav-item:is(.active, :hover, :focus-visible) {
+    background: transparent !important; background-image: none !important;
+    color: #8dd62c !important; -webkit-text-fill-color: #8dd62c !important; box-shadow: none !important;
+  }
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body
+    .mobile-bottom-nav.mobile-worker-bottom-nav .mobile-nav-item:is(.active, :hover, :focus-visible) :is(i, span) {
+    color: #8dd62c !important; -webkit-text-fill-color: #8dd62c !important;
+  }
+  html body.app-body .mobile-worker-bottom-nav .mobile-nav-item:focus-visible {
+    outline: 2px solid #528823 !important; outline-offset: -2px;
+  }
+}

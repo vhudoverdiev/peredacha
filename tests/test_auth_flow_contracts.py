@@ -56,7 +56,7 @@ class AuthFlowContractsTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/")
         with self.client.session_transaction() as session:
-            self.assertEqual(session.get("_user_id"), str(user.id))
+            self.assertEqual(session.get("_user_id"), user.get_auth_id())
             self.assertEqual(session.get("session_version"), user.session_version)
             self.assertNotIn("pending_login_user_id", session)
 
@@ -76,7 +76,7 @@ class AuthFlowContractsTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 302)
         with self.client.session_transaction() as session:
-            self.assertEqual(session.get("_user_id"), str(user.id))
+            self.assertEqual(session.get("_user_id"), user.get_auth_id())
 
     def test_worker_login_honors_safe_next_url_for_field_workflows(self):
         worker = self._user(username="glazier", role=ROLE_GLAZIER)
@@ -184,7 +184,7 @@ class AuthFlowContractsTests(unittest.TestCase):
 
         self.assertEqual(good_response.status_code, 302)
         with self.client.session_transaction() as session:
-            self.assertEqual(session.get("_user_id"), str(user_id))
+            self.assertEqual(session.get("_user_id"), db.session.get(User, user_id).get_auth_id())
             self.assertNotIn("pending_login_2fa", session)
 
     def test_registration_request_validates_captcha_and_persists_normalized_request(self):

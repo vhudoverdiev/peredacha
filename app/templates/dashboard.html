@@ -1,7 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Главная{% endblock %}
 {% block content %}
-{% if can_use_project_workflows %}<nav class="workflow-mobile-shortcuts" aria-label="Обращения и осмотры"><a href="{{ url_for('main.appeals') }}"><i class="bi bi-chat-square-text"></i>Обращения{% if new_appeals_count %}<span class="workflow-count">{{ new_appeals_count }}</span>{% endif %}</a><a href="{{ url_for('main.records') }}"><i class="bi bi-calendar2-week"></i>Записи</a></nav>{% endif %}
+{% if current_project and can_use_project_workflows %}
+<nav class="workflow-mobile-shortcuts" aria-label="Обращения и осмотры">
+  <a class="btn mobile-section-shortcut" href="{{ url_for('main.appeals') }}">
+    <i class="bi bi-chat-square-text mobile-section-shortcut-icon" aria-hidden="true"></i>
+    <span>Обращения{% if new_appeals_count %}<span class="workflow-count">{{ new_appeals_count }}</span>{% endif %}</span>
+    <i class="bi bi-chevron-right mobile-section-shortcut-arrow" aria-hidden="true"></i>
+  </a>
+  <a class="btn mobile-section-shortcut" href="{{ url_for('main.records') }}">
+    <i class="bi bi-calendar2-week mobile-section-shortcut-icon" aria-hidden="true"></i>
+    <span>Записи</span>
+    <i class="bi bi-chevron-right mobile-section-shortcut-arrow" aria-hidden="true"></i>
+  </a>
+</nav>
+{% endif %}
 
 {% set task_total = stats.tasks if stats.tasks else 1 %}
 {% set task_done_percent = (stats.done / task_total * 100) if stats.tasks else 0 %}

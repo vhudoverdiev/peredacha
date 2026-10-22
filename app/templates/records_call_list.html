@@ -6,11 +6,11 @@
     <div><span class="call-list-eyebrow"><i class="bi bi-telephone-outbound"></i> Подготовка к осмотру</span><h1 class="page-title">Обзвонить</h1><p class="text-muted">Проданные помещения со статусом «Приглашаем», у которых нет предстоящего осмотра.</p></div>
     <a class="btn btn-outline-secondary workflow-back-to-schedule" href="{{ url_for('main.records') }}"><i class="bi bi-arrow-left me-2"></i>К расписанию</a>
   </div>
-  <div class="call-list-summary"><span class="call-list-summary-icon"><i class="bi bi-telephone"></i></span><div><strong>{{ rows|length }}</strong><span>помещений для обзвона</span></div></div>
+  <div class="call-list-summary"><span class="call-list-summary-icon"><i class="bi bi-telephone"></i></span><div><strong>{{ rows|length }}</strong><span>{{ 'скрытых карточек' if show_hidden else 'помещений для обзвона' }}</span></div>{% if hidden_count and not show_hidden %}<a class="btn btn-outline-secondary call-list-visibility-action" href="{{ url_for('main.records_call_list', hidden='1') }}">Показать скрытые ({{ hidden_count }})</a>{% endif %}</div>
   <div class="call-list-grid">
     {% for row in rows %}
     <article class="call-list-card" id="call-list-{{ row.apartment.id }}">
-      <div class="call-list-card-head"><div><small>Помещение</small><h2><a class="call-list-premise-link" href="{{ url_for('main.apartment_detail', apartment_id=row.apartment.id) }}">{{ row.apartment.label() }} <i class="bi bi-arrow-up-right"></i></a></h2></div><span class="call-list-status">Приглашаем</span></div>
+      <div class="call-list-card-head"><div><small>Помещение</small><h2><a class="call-list-premise-link" href="{{ url_for('main.apartment_detail', apartment_id=row.apartment.id) }}">{{ row.apartment.label() }} <i class="bi bi-arrow-up-right"></i></a></h2></div><span class="call-list-status">{{ 'Скрыта из обзвона' if row.call_list_hidden else 'Приглашаем' }}</span></div>
       <div class="call-list-card-body">
         <div class="call-list-detail"><span class="call-list-detail-icon"><i class="bi bi-person"></i></span><div><small>ФИО</small>{% if row.owner_names %}{% for name in row.owner_names %}<strong>{{ name }}</strong>{% endfor %}{% else %}<span class="text-muted">Не указано</span>{% endif %}</div></div>
         <div class="call-list-detail"><span class="call-list-detail-icon"><i class="bi bi-telephone"></i></span><div><small>Номера телефонов</small>{% if row.phones %}{% for phone in row.phones %}<a href="tel:{{ phone|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}">{{ phone }}</a>{% endfor %}{% else %}<span class="text-muted">Не указаны</span>{% endif %}</div></div>
@@ -28,6 +28,13 @@
         </form>
       </div>
       <div class="call-list-card-actions"><a class="btn btn-primary call-list-book" href="{{ url_for('main.record_apartment_new', apartment_id=row.apartment.id) }}"><i class="bi bi-calendar2-plus me-2"></i>Записать на осмотр</a><a class="btn btn-outline-secondary" href="{{ url_for('main.apartment_detail', apartment_id=row.apartment.id) }}">Открыть карточку</a></div>
+      {% if current_user.role != 'viewer' %}
+      <form method="post" action="{{ url_for('main.records_call_list_visibility', apartment_id=row.apartment.id) }}" class="call-list-visibility-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="hidden" value="{{ '0' if row.call_list_hidden else '1' }}">
+        <button class="btn btn-outline-secondary call-list-visibility-action" type="submit"><i class="bi {{ 'bi-eye' if row.call_list_hidden else 'bi-eye-slash' }} me-2" aria-hidden="true"></i>{{ 'Вернуть в обзвон' if row.call_list_hidden else 'Скрыть карточку' }}</button>
+      </form>
+      {% endif %}
     </article>
     {% else %}
     <div class="call-list-empty"><span><i class="bi bi-check2-circle"></i></span><h2>Список обзвона пуст</h2><p>Проданные помещения появятся здесь, когда получат статус «Приглашаем» и у них не будет предстоящей записи.</p></div>

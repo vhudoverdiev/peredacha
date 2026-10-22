@@ -54,7 +54,7 @@ CONTRACTS = [
     # Base layout and navigation contracts.
     ("base_mobile_page_chrome_macro", "app/templates/base.html", ["macro mobile_page_chrome", "mobile-shell-topbar"]),
     ("base_mobile_bottom_nav_macro", "app/templates/base.html", ["macro mobile_bottom_nav", "data-mobile-dock=\"unified\""]),
-    ("base_worker_dock_two_items", "app/templates/base.html", ["mobile-worker-bottom-nav", "--mobile-nav-count: 2"]),
+    ("base_worker_dock_three_items", "app/templates/base.html", ["mobile-worker-bottom-nav", "--mobile-nav-count: 3"]),
     ("base_manager_dock_four_items", "app/templates/base.html", ["4 if current_user.role in ['admin', 'manager', 'supervisor'] else 3"]),
     ("base_mobile_home_tab", "app/templates/base.html", ["mobile-nav-item-home", "url_for('main.dashboard')"]),
     ("base_mobile_remarks_tab", "app/templates/base.html", ["active == 'remarks'", "url_for('main.task_list')"]),

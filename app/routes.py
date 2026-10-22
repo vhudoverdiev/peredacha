@@ -51,6 +51,8 @@ from app.models import (
     material_writeoff_tasks,
     GlassMeasurement,
     GlassMeasurementItem,
+    InspectionBooking,
+    InspectionSlot,
     Project,
     SyncConflict,
     SyncLog,
@@ -236,10 +238,16 @@ def _set_setting_csv(key: str, values) -> None:
     set_setting(key, ",".join(cleaned))
 
 
-PROJECT_WORKFLOW_ENDPOINTS = {
+PROJECT_RECORD_ENDPOINTS = {
+    "main.records", "main.records_availability", "main.records_availability_page",
+    "main.record_slot_toggle", "main.record_slots_close_interval", "main.record_new",
+    "main.record_detail", "main.record_status", "main.records_download", "main.record_apartment_new",
+    "main.records_call_list", "main.records_call_list_comment", "main.records_call_list_comment_delete",
+    "main.records_call_list_visibility",
+}
+
+PROJECT_WORKFLOW_ENDPOINTS = PROJECT_RECORD_ENDPOINTS | {
     "main.appeals", "main.appeal_new", "main.appeal_detail", "main.appeal_status", "main.appeal_attachment", "main.appeal_delete",
-    "main.records", "main.records_availability", "main.record_slot_toggle", "main.record_slots_close_interval", "main.record_new",
-    "main.record_detail", "main.record_status", "main.records_download",
 }
 
 
@@ -372,7 +380,7 @@ SECTION_LOCK_CHOICES = [
     {"key": "appeals", "label": "Обращения", "icon": "bi-chat-square-text",
      "endpoints": {"main.appeals", "main.appeal_new", "main.appeal_detail", "main.appeal_status", "main.appeal_attachment", "main.appeal_delete"}},
     {"key": "records", "label": "Записи", "icon": "bi-calendar2-week",
-     "endpoints": {"main.records", "main.records_availability", "main.record_slot_toggle", "main.record_slots_close_interval", "main.record_new", "main.record_detail", "main.record_status", "main.records_download"}},
+     "endpoints": PROJECT_RECORD_ENDPOINTS},
     {
         "key": "worker_tasks",
         "label": "Мои задачи сотрудников",
@@ -726,6 +734,12 @@ def _build_change_history_entry(change: ChangeLog, task: Task | None = None, use
             )
     elif change.action == "apartment_field_update":
         apartment_field_summaries = {
+            "construction_number": (
+                "Синхронизация изменила строительный номер",
+                "Строительный номер изменён",
+                "был",
+                "стал",
+            ),
             "owner_name": (
                 "Синхронизация изменила ФИО собственника",
                 "ФИО собственника изменено",
@@ -1359,6 +1373,7 @@ def _deny_or_redirect():
 WORKER_ALLOWED_ENDPOINTS = {
     "main.dashboard_legacy",
     "main.my_tasks",
+    "main.my_inspections",
     "main.my_task_done",
     "main.my_task_return",
     "main.my_task_status",
@@ -1451,12 +1466,16 @@ def enforce_role_access():
         return None
 
     if not current_user.is_authenticated:
-        if request.method in {"GET", "HEAD"} and endpoint in {"main.dashboard", "main.dashboard_legacy"}:
+        wants_json = (
+            request.is_json
+            or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            or request.accept_mimetypes.best == "application/json"
+        )
+        if not wants_json and request.method in {"GET", "HEAD"} and endpoint in {"main.dashboard", "main.dashboard_legacy"}:
             from app.auth import login as login_view
 
             return login_view()
-        next_url = request.full_path if request.query_string else request.path
-        return redirect(url_for("auth.login", next=next_url))
+        return current_app.login_manager.unauthorized()
 
     locked_section = _section_lock_choice_for_endpoint(endpoint)
     if current_user.role != ROLE_ADMIN and locked_section and locked_section["key"] in _blocked_section_keys():
@@ -5297,6 +5316,37 @@ def my_task_comment_delete(task_id, comment_id):
     if _wants_json_response():
         return jsonify(ok=True, message="Комментарий удалён")
     return redirect(url_for("main.my_tasks"))
+
+
+@bp.get("/my-inspections")
+@login_required
+def my_inspections():
+    if current_user.role not in WORKER_ROLES:
+        abort(403)
+    now_moscow = to_moscow_datetime(utc_now())
+    today_value = now_moscow.date()
+    allowed_projects = Project.query
+    if not current_user.can_access_all_projects:
+        allowed_projects = allowed_projects.filter(Project.id.in_(current_user.project_access_ids))
+    projects = allowed_projects.order_by(Project.name, Project.id).all()
+    bookings = InspectionBooking.query.join(
+        InspectionSlot, InspectionBooking.slot_id == InspectionSlot.id,
+    ).join(Apartment, InspectionBooking.apartment_id == Apartment.id).filter(
+        InspectionSlot.project_id.in_([project.id for project in projects]),
+        Apartment.project_id == InspectionSlot.project_id,
+        InspectionSlot.day == today_value,
+        InspectionBooking.active_slot_id.isnot(None),
+        InspectionBooking.status.in_(['booked', 'completed']),
+    ).options(selectinload(InspectionBooking.slot), selectinload(InspectionBooking.apartment)).all()
+    bookings.sort(key=lambda booking: (booking.appointment_time or booking.slot.start_time,
+                                      _apartment_sort_value(booking.apartment), booking.id))
+    groups = [
+        {"project": project, "bookings": [booking for booking in bookings if booking.slot.project_id == project.id]}
+        for project in projects
+    ]
+    return render_template("my_inspections.html", groups=[group for group in groups if group['bookings']],
+                           today=today_value, has_inspections=bool(bookings),
+                           next_day=now_moscow.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1))
 
 
 @bp.route("/my-tasks")
@@ -10427,46 +10477,68 @@ def update_apartment_details(apartment_id: int):
     old_owner = "\n".join(old_overview.get("owner_names") or [])
     old_phone = "\n".join(old_overview.get("phones") or [])
     old_contract_number = str(_pick_apartment_representative(target_group).contract_number or "").strip()
+    old_construction_number = str(apartment.construction_number or "").strip()
     old_finish = str(_pick_apartment_representative(target_group).finishing_type or "").strip()
     old_mode = old_overview.get("mode") or ""
 
     owner_name = str(request.form.get("owner_name") or "").strip()
     phone = str(request.form.get("phone") or "").strip()
     contract_number = _normalize_apartment_contract_form_value(apartment, request.form.get("contract_number"))
+    construction_number = str(request.form.get("construction_number", old_construction_number) or "").strip()
     finishing_type = str(request.form.get("finishing_type") or "").strip()
     mode_value = str(request.form.get("mode") or "").strip()
     if mode_value not in APARTMENT_DETAIL_MODE_LABELS:
         abort(400)
-    if any(len(value) > 255 for value in (owner_name, phone, finishing_type)) or len(contract_number) > 80:
+
+    def reject_details(message, status=400):
         if _wants_json_response():
-            return jsonify({
-                "ok": False,
-                "message": "ФИО, телефон и отделка не должны превышать 255 символов, номер по договору — 80 символов.",
-            }), 400
-        flash("ФИО, телефон и отделка не должны превышать 255 символов, номер по договору — 80 символов.", "warning")
+            return jsonify({"ok": False, "message": message}), status
+        flash(message, "warning")
         return redirect(request.referrer or url_for("main.apartment_detail", apartment_id=apartment.id))
 
-    for item in target_group:
-        item.owner_name = owner_name or None
-        item.phone = phone or None
-        item.contract_number = contract_number or None
-        item.finishing_type = finishing_type or None
-        item.is_unsold = mode_value == "unsold"
-        item.is_app_mode = mode_value == "app"
-        if mode_value != "app":
-            item.addendum_status = ADDENDUM_STATUS_NONE
-            item.addendum_signed_date = None
-            item.addendum_status_manual = False
+    if any(len(value) > 255 for value in (owner_name, phone, finishing_type)) or any(len(value) > 80 for value in (contract_number, construction_number)):
+        return reject_details("ФИО, телефон и отделка не должны превышать 255 символов, номера по договору и строительный — 80 символов.")
 
-    new_mode = APARTMENT_DETAIL_MODE_LABELS[mode_value]
-    history_changes = [
-        _log_apartment_field_change(target_group, "owner_name", old_owner, owner_name),
-        _log_apartment_field_change(target_group, "phone", old_phone, phone),
-        _log_apartment_field_change(target_group, "contract_number", old_contract_number, contract_number),
-        _log_apartment_field_change(target_group, "finishing_type", old_finish, finishing_type),
-        _log_apartment_field_change(target_group, "apartment_mode", old_mode, new_mode),
-    ]
-    db.session.commit()
+    if construction_number and construction_number != old_construction_number:
+        duplicate = Apartment.query.filter(
+            Apartment.project_id == project.id,
+            Apartment.apartment_number == apartment.apartment_number,
+            Apartment.construction_number == construction_number,
+            Apartment.id != apartment.id,
+        ).first()
+        if duplicate:
+            return reject_details("Помещение с таким строительным номером и номером квартиры уже существует.", 409)
+
+    try:
+        for item in target_group:
+            item.owner_name = owner_name or None
+            item.phone = phone or None
+            item.contract_number = contract_number or None
+            item.finishing_type = finishing_type or None
+            item.is_unsold = mode_value == "unsold"
+            item.is_app_mode = mode_value == "app"
+            if mode_value != "app":
+                item.addendum_status = ADDENDUM_STATUS_NONE
+                item.addendum_signed_date = None
+                item.addendum_status_manual = False
+
+        # Construction numbers identify individual imported rows; changing the
+        # selected record must not collapse other source rows in the same card.
+        apartment.construction_number = construction_number or None
+        new_mode = APARTMENT_DETAIL_MODE_LABELS[mode_value]
+        history_changes = [
+            _log_apartment_field_change([apartment], "construction_number", old_construction_number, construction_number),
+            _log_apartment_field_change(target_group, "owner_name", old_owner, owner_name),
+            _log_apartment_field_change(target_group, "phone", old_phone, phone),
+            _log_apartment_field_change(target_group, "contract_number", old_contract_number, contract_number),
+            _log_apartment_field_change(target_group, "finishing_type", old_finish, finishing_type),
+            _log_apartment_field_change(target_group, "apartment_mode", old_mode, new_mode),
+        ]
+        db.session.commit()
+
+    except IntegrityError:
+        db.session.rollback()
+        return reject_details("Помещение с таким строительным номером и номером квартиры уже существует.", 409)
 
     changed_count = sum(1 for item in history_changes if item)
     if _wants_json_response():
@@ -10478,6 +10550,7 @@ def update_apartment_details(apartment_id: int):
             "owner_name": owner_name,
             "phone": phone,
             "contract_number": contract_number,
+            "construction_number": construction_number,
             "finishing_type": finishing_type,
         })
     flash("Данные помещения обновлены." if changed_count else "Данные помещения не изменились.", "success")

@@ -33,6 +33,15 @@
           </div>
           <div class="apartment-data-row{% if current_user.role != 'viewer' %} apartment-data-edit-row{% endif %}">
             {% if current_user.role != 'viewer' %}
+            <label for="apartment-construction-{{ apartment.id }}">Строительный номер</label>
+            <input class="form-control form-control-sm" id="apartment-construction-{{ apartment.id }}" name="construction_number" type="text" value="{{ apartment.construction_number or '' }}" maxlength="80" inputmode="text" form="apartment-details-form-{{ apartment.id }}">
+            {% else %}
+            <span>Строительный номер</span>
+            <b>{{ apartment.construction_number or '—' }}</b>
+            {% endif %}
+          </div>
+          <div class="apartment-data-row{% if current_user.role != 'viewer' %} apartment-data-edit-row{% endif %}">
+            {% if current_user.role != 'viewer' %}
             <label for="apartment-contract-{{ apartment.id }}">По договору</label>
             <input class="form-control form-control-sm" id="apartment-contract-{{ apartment.id }}" name="contract_number" type="text" value="{{ row.contract_number_input or '' }}" maxlength="80" inputmode="text" form="apartment-details-form-{{ apartment.id }}">
             {% else %}
@@ -523,7 +532,7 @@
     form.dataset.autosaveBound = '1';
 
     const formId = form.id || '';
-    const fieldSelector = '[name="owner_name"], [name="phone"], [name="contract_number"], [name="finishing_type"], [name="mode"]';
+    const fieldSelector = '[name="owner_name"], [name="phone"], [name="contract_number"], [name="construction_number"], [name="finishing_type"], [name="mode"]';
     const ownerInput = form.querySelector('[name="owner_name"]');
     const modeSelect = form.querySelector('[name="mode"]');
     const fields = Array.from(document.querySelectorAll(fieldSelector)).filter((field) => field.form === form || (formId && field.getAttribute('form') === formId));

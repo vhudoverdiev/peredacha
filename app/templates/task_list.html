@@ -29,10 +29,10 @@
     </form>
     {% endif %}
     {% if not contractor_page %}
-      <a class="btn remarks-measurements-mobile-btn" href="{{ url_for('main.glass_measurements', tab='ordered') }}">
-        <i class="bi bi-rulers me-2" aria-hidden="true"></i>
+      <a class="btn remarks-measurements-mobile-btn mobile-section-shortcut" href="{{ url_for('main.glass_measurements', tab='ordered') }}">
+        <i class="bi bi-rulers me-2 mobile-section-shortcut-icon" aria-hidden="true"></i>
         <span>Замеры</span>
-        <i class="bi bi-chevron-right remarks-measurements-mobile-arrow" aria-hidden="true"></i>
+        <i class="bi bi-chevron-right remarks-measurements-mobile-arrow mobile-section-shortcut-arrow" aria-hidden="true"></i>
       </a>
       {% if current_user.role != 'viewer' %}
       <a class="btn btn-success remarks-page-primary-btn" href="{{ task_add_href }}" title="Добавить замечание" aria-label="Добавить замечание">

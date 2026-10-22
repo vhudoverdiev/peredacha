@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 from app import db
 from app.models import Appeal, AppealAttachment, AppealComment, Apartment, InspectionBooking, InspectionCallNote, InspectionSlot, Project, ROLE_ADMIN, ROLE_MANAGER, ROLE_OFFICE, ROLE_OFFICE_MANAGER, ROLE_SUPERVISOR, User
 from app.permissions import can_use_project_workflows, can_create_appeal
-from app.routes import bp, selected_project, _project_apartment_options, _is_visible_apartment_row, _active_users_for_project, _group_project_apartments, _build_apartment_overview, PO_STATUS_THROWN, format_ru_datetime
+from app.routes import bp, selected_project, _project_apartment_options, _is_visible_apartment_row, _active_users_for_project, _group_project_apartments, _build_apartment_overview, _apartment_sort_value, PO_STATUS_THROWN, format_ru_datetime
 from app.security import hit_rate_limit, validate_upload
 from app.services.inspection_schedule import has_prior_inspection, inspection_contact_lines, inspection_phone_lines
 from app.services.task_service import parse_date, text_field_search_clause
@@ -310,14 +310,18 @@ def calendar_period(value, view):
     return start, end, previous, following
 
 
-def _inspection_call_list_rows(project_id):
+def _inspection_call_list_rows(project_id, include_hidden=False):
     rows = [
         row for group in _group_project_apartments(project_id, include_activity=False)
         if (row := _build_apartment_overview(group, include_activity=False))['po_status'] == PO_STATUS_THROWN
         and row['inspection_status'] != 'Будет'
         and row['mode'] != 'не продана'
     ]
-    rows.sort(key=lambda row: (row['apartment'].premise_type or '', row['apartment'].display_number()))
+    for row in rows:
+        row['call_list_hidden'] = any(item.call_list_hidden for item in row['apartments'])
+    if not include_hidden:
+        rows = [row for row in rows if not row['call_list_hidden']]
+    rows.sort(key=lambda row: _apartment_sort_value(row['apartment']))
     return rows
 
 
@@ -327,7 +331,10 @@ def records_call_list():
     project = project_context()
     if project is None:
         return redirect(url_for('main.objects'))
-    rows = _inspection_call_list_rows(project.id)
+    all_rows = _inspection_call_list_rows(project.id, include_hidden=True)
+    show_hidden = request.args.get('hidden') == '1'
+    rows = [row for row in all_rows if row['call_list_hidden'] == show_hidden]
+    hidden_count = sum(row['call_list_hidden'] for row in all_rows)
     apartment_ids = [apartment.id for row in rows for apartment in row['apartments']]
     notes = InspectionCallNote.query.filter(
         InspectionCallNote.project_id == project.id,
@@ -336,7 +343,30 @@ def records_call_list():
     for row in rows:
         group_ids = {apartment.id for apartment in row['apartments']}
         row['call_notes'] = [note for note in notes if note.apartment_id in group_ids]
-    return render_template('records_call_list.html', project=project, rows=rows, format_ru_datetime=format_ru_datetime)
+    return render_template('records_call_list.html', project=project, rows=rows, hidden_count=hidden_count,
+                           show_hidden=show_hidden, format_ru_datetime=format_ru_datetime)
+
+
+@bp.post('/records/call-list/<int:apartment_id>/visibility')
+@login_required
+def records_call_list_visibility(apartment_id):
+    project = project_context()
+    if current_user.role == 'viewer':
+        abort(403)
+    apartment = project_item(Apartment, apartment_id, project)
+    hidden = request.form.get('hidden')
+    if hidden not in {'0', '1'}:
+        abort(400)
+    row = next((row for row in _inspection_call_list_rows(project.id, include_hidden=True)
+                if row['apartment'].id == apartment.id), None)
+    if row is None:
+        abort(409)
+    if hit_rate_limit('inspection-call-visibility', 60, 300):
+        abort(429)
+    for item in row['apartments']:
+        item.call_list_hidden = hidden == '1'
+    db.session.commit()
+    return redirect(url_for('main.records_call_list'), code=303)
 
 
 @bp.route('/records/call-list/<int:apartment_id>/comments', methods=['POST'])
