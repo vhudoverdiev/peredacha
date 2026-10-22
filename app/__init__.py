@@ -5,7 +5,7 @@ from pathlib import Path
 from flask import Flask, abort, g, redirect, request, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_login import LoginManager, current_user, logout_user
+from flask_login import LoginManager, current_user
 from flask_wtf import CSRFProtect
 from flask_wtf.csrf import CSRFError
 from flask_compress import Compress
@@ -136,6 +136,42 @@ def create_app(config_class=Config):
     login_manager.login_message_category = "warning"
     login_manager.session_protection = "strong"
 
+    def authentication_required():
+        from app.security import clear_auth_session
+
+        clear_auth_session()
+        next_url = None
+        if request.method == "GET" and request.blueprint != "auth":
+            next_url = request.full_path.rstrip("?")
+        login_url = url_for("auth.login", next=next_url)
+        wants_json = (
+            request.is_json
+            or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            or request.accept_mimetypes.best == "application/json"
+        )
+        if wants_json:
+            response = app.json.response({
+                "ok": False,
+                "error": "authentication_required",
+                "message": "Сессия завершена. Войдите в CRM снова.",
+                "login_url": login_url,
+            })
+            response.status_code = 401
+            response.headers["X-CRM-Auth-Required"] = "1"
+            response.headers["X-CRM-Login-URL"] = login_url
+        else:
+            # Never show raw Unauthorized HTML, including on /login itself.
+            # POST requests are not replayed after authentication.
+            response = redirect(login_url, code=303)
+        response.headers["Cache-Control"] = "private, no-store, no-cache, must-revalidate, max-age=0"
+        return response
+
+    login_manager.unauthorized_handler(authentication_required)
+
+    @app.errorhandler(401)
+    def handle_unauthorized(error):
+        return authentication_required()
+
     @app.before_request
     def enforce_global_security():
         g.request_started_at = time.perf_counter()
@@ -147,9 +183,7 @@ def create_app(config_class=Config):
             from app.security import is_session_version_valid, hit_rate_limit, security_event
             if not is_session_version_valid():
                 security_event("session_revoked", "Сессия устарела или была отозвана", severity="warning")
-                logout_user()
-                session.clear()
-                abort(401)
+                return authentication_required()
             # Мягкий лимит на частые POST-действия, чтобы не сломать обычную работу, но закрыть бесконечный спам.
             if request.method == "POST" and hit_rate_limit(f"post:{request.endpoint or request.path}", 180, 60):
                 security_event("rate_limit", "Слишком много POST-запросов", severity="warning")

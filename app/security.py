@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Iterable
 
 from flask import current_app, g, request, session
-from flask_login import current_user
+from flask_login import current_user, logout_user
 from sqlalchemy import inspect, select, update
 from sqlalchemy.orm.exc import ObjectDeletedError
 from werkzeug.datastructures import FileStorage
@@ -334,7 +334,19 @@ def bump_session_version(user) -> None:
 def is_session_version_valid() -> bool:
     if not getattr(current_user, "is_authenticated", False):
         return True
-    return int(session.get("session_version", -1)) == int(getattr(current_user, "session_version", 0) or 0)
+    try:
+        return int(session.get("session_version", -1)) == int(getattr(current_user, "session_version", 0) or 0)
+    except (TypeError, ValueError, OverflowError):
+        return False
+
+
+def clear_auth_session() -> None:
+    """Clear state without losing Flask-Login's remember-cookie deletion flag."""
+    logout_user()
+    session.clear()
+    # Flask-Login consumes this flag in after_request to expire its configured
+    # remember cookie. Clearing it would restore the same stale user next time.
+    session["_remember"] = "clear"
 
 
 def protected_developer_usernames() -> set[str]:

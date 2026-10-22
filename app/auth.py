@@ -1,7 +1,7 @@
 from urllib.parse import urlparse
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
-from flask_login import current_user, login_required, login_user, logout_user
+from flask_login import current_user, login_required, login_user
 from flask_wtf.csrf import generate_csrf
 
 from app import db
@@ -10,6 +10,7 @@ from app.models import SiteErrorReport, User, WORKER_ROLES, ROLE_ADMIN
 from app.services.task_service import get_setting
 from app.security import (
     clear_captcha,
+    clear_auth_session,
     client_ip,
     generate_captcha,
     hit_rate_limit,
@@ -70,7 +71,7 @@ def _complete_pending_login(user: User):
     remember = bool(session.get("pending_login_remember"))
     next_url = session.get("pending_login_next") or None
     current_project_id = session.get("current_project_id")
-    session.clear()
+    clear_auth_session()
     login_user(user, remember=remember)
     session.permanent = True
     session["session_version"] = int(user.session_version or 0)
@@ -292,7 +293,6 @@ def registration_request():
 @bp.route("/logout", methods=["POST"])
 @login_required
 def logout():
-    logout_user()
-    session.clear()
+    clear_auth_session()
     flash("Вы вышли из CRM", "info")
     return redirect(url_for("auth.login"))

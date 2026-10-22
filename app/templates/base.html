@@ -5,6 +5,34 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <script>
+    // Recover expired AJAX sessions without replaying a user's POST request.
+    (() => {
+      if (typeof window.fetch !== 'function') return;
+      const originalFetch = window.fetch;
+      let redirecting = false;
+      window.fetch = function (...args) {
+        return originalFetch.apply(this, args).then(response => {
+          if (!redirecting && response.status === 401 &&
+              response.headers.get('X-CRM-Auth-Required') === '1') {
+            try {
+              const destination = new URL(response.headers.get('X-CRM-Login-URL') || '/login', window.location.origin);
+              if (destination.origin === window.location.origin && destination.pathname === '/login' &&
+                  window.location.pathname !== '/login') {
+                redirecting = true;
+                try {
+                  window.top.location.replace(destination.href);
+                } catch (error) {
+                  window.location.replace(destination.href);
+                }
+              }
+            } catch (error) {}
+          }
+          return response;
+        });
+      };
+    })();
+  </script>
   <title>{% block title %}Передача{% endblock %}</title>
   <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}?v=v610-akvilon-original" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}?v=v610-akvilon-original">
