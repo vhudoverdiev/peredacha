@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v220-ios-physical-dock';
+const STATIC_CACHE = 'peredacha-static-v221-ios-workflow-scroll-shell';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -15,7 +15,7 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v720-worker-navigation-reference',
   '/static/workflows.css?v=26-matching-mobile-back',
-  '/static/mobile-only.css?v=v95-ios-physical-dock',
+  '/static/mobile-only.css?v=v96-ios-workflow-scroll-shell',
   '/static/desktop-only.css?v=v76-objects-three-columns',
   '/static/script.js?v=v704-apartment-comment-meta',
 ];

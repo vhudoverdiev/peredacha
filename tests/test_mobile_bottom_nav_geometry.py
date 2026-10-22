@@ -463,14 +463,13 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             )
             self.assertIn("bottom: auto !important;", dock_rule)
 
-    def test_ios_workflows_anchor_fixed_dock_to_physical_viewport(self):
-        marker = "html.standalone-app.ios-standalone-bottom-chrome"
-        start = self.mobile_css.rindex(marker)
-        rule = self.mobile_css[start:self.mobile_css.index("}", start)]
-        self.assertIn(":has(.workflow-page)", rule)
-        self.assertIn("top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;", rule)
-        self.assertIn("bottom: auto !important;", rule)
-        self.assertIn("position: fixed !important;", rule)
+    def test_ios_workflows_scroll_content_inside_stationary_canvas(self):
+        start = self.mobile_css.index("/* iOS clips fixed elements")
+        rules = self.mobile_css[start:]
+        self.assertIn("height:var(--mobile-physical-app-height, 100dvh) !important;", rules)
+        self.assertIn("position:absolute !important;", rules)
+        self.assertIn("inset:var(--ref-mobile-topbar-height, 3.82rem) 0 72px !important;", rules)
+        self.assertIn("overflow-y:auto !important;", rules)
 
     def test_objects_page_keeps_the_shared_fixed_bottom_dock(self):
         body_selector = "body.app-body.app-body.app-body:has(.objects-page) {"

@@ -116,7 +116,7 @@ async function run(browser, width, standalone = false) {
           const box = element.getBoundingClientRect();
           return { position: getComputedStyle(element).position, height: box.height, bottom: box.bottom };
         });
-        assert.equal(dock.position, 'fixed', route);
+        assert.equal(dock.position, standalone ? 'absolute' : 'fixed', route);
         assert.equal(dock.height, 72, route);
         assert.ok(Math.abs(dock.bottom - 956) < 2, `${route} ${JSON.stringify(dock)}`);
         if (route.startsWith('/appeals?') || route === '/appeals' || route.startsWith('/records?') || route === '/records')
@@ -153,7 +153,7 @@ async function run(browser, width, standalone = false) {
           await page.mouse.wheel(0, 500);
           await page.waitForTimeout(100);
           assert.ok(Math.abs((await page.locator('.mobile-bottom-nav').boundingBox()).y - 884) < 2);
-          await page.evaluate(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; });
+          await page.evaluate(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; document.querySelector('.app-content').scrollTop = 0; });
         }
         if (route === '/appeals/new') {
           assert.equal(await page.locator('.appeal-form-title').isVisible(), false);
