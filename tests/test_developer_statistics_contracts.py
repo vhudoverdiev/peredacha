@@ -42,7 +42,7 @@ class DeveloperStatisticsContractsTests(unittest.TestCase):
             session["_user_id"] = str(admin.id)
             session["_fresh"] = True
             session["session_version"] = admin.session_version
-        expected = ["Обращения", "Логи удалений", "Статистика"]
+        expected = ["Обращения", "Логи удалений", "Статистика", "Обновления"]
         pages = [
             ("/site-errors", "Обращения"),
             ("/developer/delete-logs", "Логи удалений"),
@@ -61,7 +61,7 @@ class DeveloperStatisticsContractsTests(unittest.TestCase):
                     links = re.findall(r'<a class="([^"]+)" href="([^"]+)">\s*<i[^>]*></i><span>(.*?)</span>', tabs)
                     self.assertEqual([label for classes, href, label in links if "active" in classes.split()], [active])
                     self.assertEqual([href for classes, href, label in links], [
-                        "/site-errors", "/developer/delete-logs", "/developer/statistics?days=30",
+                        "/site-errors", "/developer/delete-logs", "/developer/statistics?days=30", "/developer/updates",
                     ])
 
     def test_statistics_totals_include_guest_request_ips_and_unique_visits_are_unique_ips(self):

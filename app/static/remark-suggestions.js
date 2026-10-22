@@ -2,6 +2,7 @@
 (() => {
   let nextId = 0;
   const initialized = new WeakSet();
+  const bindings = new Map();
   function init(root = document) {
     if (window.matchMedia('(max-width: 767px)').matches) return;
     root.querySelectorAll('[data-remark-suggest]').forEach(field => {
@@ -13,7 +14,8 @@
       list.setAttribute('role', 'listbox'); list.setAttribute('aria-label', 'Варианты замечаний');
       const status = document.createElement('div');
       status.className = 'remark-suggestion-status'; status.setAttribute('role', 'status');
-      field.after(list, status);
+      document.body.append(list);
+      field.after(status);
       field.setAttribute('role', 'combobox'); field.setAttribute('aria-autocomplete', 'list');
       field.setAttribute('aria-controls', id); field.setAttribute('aria-expanded', 'false');
       field.setAttribute('autocomplete', 'off');
@@ -22,6 +24,35 @@
         list.hidden = true; active = -1;
         field.setAttribute('aria-expanded', 'false'); field.removeAttribute('aria-activedescendant');
       };
+      const position = () => {
+        if (list.hidden) return;
+        const rect = field.getBoundingClientRect();
+        const viewportHeight = window.visualViewport?.height || innerHeight;
+        const viewportWidth = document.documentElement.clientWidth;
+        const below = viewportHeight - rect.bottom - 10, above = rect.top - 10;
+        if (rect.bottom < 0 || rect.top > viewportHeight || Math.max(below, above) < 48) { close(); return; }
+        const down = below >= Math.min(250, above);
+        const available = Math.min(250, down ? below : above);
+        Object.assign(list.style, { left: `${Math.max(8, Math.min(rect.left, viewportWidth - Math.min(rect.width, viewportWidth - 16) - 8))}px`,
+          width: `${Math.min(rect.width, viewportWidth - 16)}px`, maxHeight: `${available}px` });
+        list.style.top = `${down ? rect.bottom + 6 : Math.max(8, rect.top - list.getBoundingClientRect().height - 6)}px`;
+      };
+      const onScroll = event => { if (!list.contains(event.target)) position(); };
+      const onResize = () => close();
+      const onOutside = event => {
+        if (event.target !== field && !list.contains(event.target)) {
+          generation++; controller?.abort(); clearTimeout(timer); close();
+        }
+      };
+      document.addEventListener('scroll', onScroll, true);
+      document.addEventListener('pointerdown', onOutside);
+      window.addEventListener('resize', onResize);
+      bindings.set(field, () => {
+        controller?.abort(); clearTimeout(timer); list.remove();
+        document.removeEventListener('scroll', onScroll, true);
+        document.removeEventListener('pointerdown', onOutside);
+        window.removeEventListener('resize', onResize);
+      });
       const fragment = () => {
         const caret = field.selectionStart ?? field.value.length;
         const start = field.value.lastIndexOf('\n', caret - 1) + 1;
@@ -60,10 +91,12 @@
           option.addEventListener('click', () => choose(index)); list.append(option);
         });
         list.hidden = !values.length; field.setAttribute('aria-expanded', String(!!values.length));
-        status.textContent = values.length ? 'Варианты: стрелки для выбора, Enter для вставки, Escape — закрыть.' : '';
+        status.textContent = '';
+        position();
       };
       field.addEventListener('input', event => {
         if (event.isComposing) return;
+        if (window.matchMedia('(max-width: 767px)').matches) { close(); return; }
         clearTimeout(timer); controller?.abort(); const current = ++generation;
         const part = fragment(); close(); status.textContent = '';
         if (part.text.length < 3 || part.text.length > 500 || field.disabled || field.readOnly) return;
@@ -87,7 +120,7 @@
         }, 240);
       });
       field.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { generation++; controller?.abort(); clearTimeout(timer); close(); return; }
+        if (event.key === 'Escape') { if (!list.hidden) event.stopPropagation(); generation++; controller?.abort(); clearTimeout(timer); close(); return; }
         if (list.hidden) return;
         if (['ArrowDown', 'ArrowUp'].includes(event.key)) {
           event.preventDefault();
@@ -95,7 +128,9 @@
             : (active + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
           [...list.children].forEach((el, index) => el.setAttribute('aria-selected', String(index === active)));
           field.setAttribute('aria-activedescendant', `${id}-${active}`);
-          list.children[active].scrollIntoView({ block: 'nearest' });
+          const option = list.children[active];
+          if (option.offsetTop < list.scrollTop) list.scrollTop = option.offsetTop;
+          else if (option.offsetTop + option.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = option.offsetTop + option.offsetHeight - list.clientHeight;
         } else if ((event.key === 'Enter' || event.key === 'Tab') && active >= 0) {
           event.preventDefault(); choose(active);
         }
@@ -106,6 +141,9 @@
       });
     });
   }
+  const cleanup = () => { for (const [field, dispose] of bindings) if (!field.isConnected) { dispose(); bindings.delete(field); } };
+  const observe = () => new MutationObserver(cleanup).observe(document.body, { childList: true, subtree: true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observe); else observe();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init());
   else init();
   document.addEventListener('crm:ajax-pagination-updated', () => init());

@@ -1,0 +1,128 @@
+/* Release notes share one fixed desktop type scale and a phone breakpoint. */
+html body.app-body .dev-news-card {
+ display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:start;gap:16px;
+ border:1px solid #dce7d3;border-radius:18px;padding:20px;background:#fff;
+ box-shadow:0 6px 22px #17202708;min-width:0;
+}
+.dev-news-icon {display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:#edf5e6;color:#47662d;font-size:21px;}
+.dev-news-personal .dev-news-icon {background:#eaf0fa;color:#426286;}
+.dev-news-copy {min-width:0;}
+html body.app-body .dev-news-copy h2 {margin:5px 0 7px;font-size:18px;line-height:1.35;overflow-wrap:anywhere;}
+.dev-news-copy h2 a {color:inherit;text-decoration:none;}
+.dev-news-copy h2 a:hover {text-decoration:underline;}
+html body.app-body .dev-news-card p {margin:0;color:#46505a;font-size:14px;line-height:1.55;white-space:pre-line;overflow-wrap:anywhere;}
+.dev-news-eyebrow {color:#66715f;font-size:12px;font-weight:600;}
+.dev-news-card-actions {display:flex;flex-direction:column;align-items:flex-end;gap:9px;}
+html body.app-body .dev-news-all {white-space:nowrap;font-size:13px;min-height:36px;display:inline-flex;gap:8px;align-items:center;justify-content:center;}
+.dev-news-copy details {margin-top:8px;}
+.dev-news-copy summary {font-size:13px;cursor:pointer;color:#426286;}
+.dev-news-copy details p {margin-top:10px!important;}
+.developer-news-page,.dev-news-archive {min-width:0;}
+.dev-news-modes,.dev-news-actions,.dev-news-pagination {display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0;}
+html body.app-body .dev-news-editor {padding:24px;max-width:100%;margin-top:18px;}
+html body.app-body .dev-news-editor h2,.dev-news-history>h2 {font-size:20px;line-height:1.35;margin:0 0 12px;}
+.dev-news-editor>p {max-width:85ch;color:#67715f;font-size:14px;line-height:1.55;}
+.dev-news-editor form {display:grid;gap:16px;}
+.dev-news-editor label {display:grid;gap:7px;min-width:0;font-size:14px;}
+html body.app-body .dev-news-editor textarea {resize:vertical;min-height:140px;}
+.dev-news-editor form>button {justify-self:start;}
+.dev-news-duration {display:grid;grid-template-columns:160px 180px;gap:12px;}
+.dev-news-history {display:grid;gap:14px;margin-top:24px;min-width:0;}
+.dev-news-history-item {padding:22px;min-width:0;}
+html body.app-body .dev-news-history-item h2,html body.app-body .dev-news-history-item h3 {font-size:19px;line-height:1.35;overflow-wrap:anywhere;margin:0 0 12px;}
+.dev-news-history-item p {white-space:pre-line;overflow-wrap:anywhere;font-size:14px;line-height:1.6;}
+.dev-news-history-item time {display:block;font-size:12px;color:#6a7264;margin-bottom:10px;}
+.dev-news-item-head {display:flex;align-items:start;justify-content:space-between;gap:12px;}
+.dev-news-state {font-size:12px;color:#506040;padding:5px 9px;border:1px solid #dde7d3;border-radius:20px;flex-shrink:0;}
+.dev-news-pagination {justify-content:center;font-size:14px;}
+.dev-news-actions {margin:0;}
+.dev-news-actions form {margin:0;}
+@media(max-width:767.98px){
+ html body.app-body .dev-news-card {grid-template-columns:36px minmax(0,1fr);gap:12px;padding:16px;border-radius:16px;}
+ .dev-news-icon {width:36px;height:36px;font-size:18px;border-radius:11px;}
+ html body.app-body .dev-news-copy h2 {font-size:16px;}
+ .dev-news-card-actions {grid-column:2;align-items:flex-start;}
+ html body.app-body .dev-news-editor,.dev-news-history-item {padding:16px;}
+ .dev-news-duration {grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+ .dev-news-item-head {flex-direction:column;}
+ .dev-news-editor input,.dev-news-editor textarea,.dev-news-editor select {font-size:16px!important;}
+ .developer-news-page .developer-section-tabs>a:not(.active) {display:none!important;}
+ .dev-news-archive .page-head,.developer-news-page .page-head {gap:12px;flex-wrap:wrap;}
+}
+
+html body.app-body .dev-news-card[hidden] {display:none!important;}
+
+/* Secondary editorial actions retain readable black text in every state. */
+html body.app-body .developer-news-page .btn-outline-secondary,
+html body.app-body .developer-news-page .btn-outline-secondary:is(:hover,:focus,:active) {
+ color:#000!important;-webkit-text-fill-color:#000!important;
+}
+
+.dashboard-page > .dev-news-card {animation:dashboardFadeUp .36s ease both;animation-delay:0ms;}
+@media(max-width:767.98px),(prefers-reduced-motion:reduce) {
+ .dashboard-page > .dev-news-card {animation:none;}
+}
+html body.app-body .dev-news-all,
+html body.app-body .dev-news-all:is(:hover,:focus,:active),
+html body.app-body .dev-news-all i,
+html body.app-body .dev-news-all i::before {
+ color:#000!important;-webkit-text-fill-color:#000!important;
+}
+html body.app-body .dev-news-archive .btn-outline-secondary,
+html body.app-body .dev-news-archive .btn-outline-secondary:is(:hover,:focus,:active),
+html body.app-body .dev-news-archive .btn-outline-secondary i,
+html body.app-body .dev-news-archive .btn-outline-secondary i::before {
+ color:#000!important;-webkit-text-fill-color:#000!important;
+}
+
+.dev-news-empty {text-align:left;}
+html body.app-body .dev-news-empty h2 {margin:0;}
+
+.dev-news-toolbar {display:flex;align-items:center;justify-content:space-between;gap:16px;margin:18px 0;}
+.dev-news-toolbar .dev-news-modes {margin:0;}
+.dev-news-create {flex-shrink:0;}
+html body.app-body .dev-news-card {border-color:#b8d69a;border-left:5px solid #83bf28;background:linear-gradient(110deg,#f0f8e5 0%,#fff 72%);box-shadow:0 8px 26px #527a1b12;}
+.dev-news-card .dev-news-icon {background:#83bf28;color:#172027;}
+@media(max-width:767.98px){
+ .dev-news-toolbar {flex-wrap:wrap;gap:12px;}
+ .dev-news-toolbar .dev-news-modes {width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+ .dev-news-toolbar .dev-news-modes .btn {white-space:normal;font-size:13px;}
+ .dev-news-create {margin-left:auto;max-width:100%;white-space:normal;}
+}
+
+html body.app-body .dev-news-empty {
+ display:flex;flex-direction:row;align-items:center;gap:18px;min-height:136px;
+ padding:28px;border:1px solid #dce8d1;border-radius:20px;
+ background:linear-gradient(115deg,#f6faef,#fff 65%);box-shadow:0 8px 28px #25351b08;
+}
+.dev-news-empty-icon {display:grid;place-items:center;flex:0 0 56px;width:56px;height:56px;border-radius:17px;background:#eaf4dd;border:1px solid #d7e7c4;color:#587f2d;font-size:26px;}
+html body.app-body .dev-news-empty h2 {font-size:18px;line-height:1.4;margin:0;overflow-wrap:anywhere;}
+@media(max-width:767.98px){
+ html body.app-body .dev-news-empty {padding:20px;gap:14px;min-height:120px;border-radius:16px;}
+ .dev-news-empty-icon {flex-basis:44px;width:44px;height:44px;border-radius:14px;font-size:22px;}
+ html body.app-body .dev-news-empty h2 {font-size:16px;}
+}
+
+.dev-news-item-tools {display:flex;align-items:center;gap:12px;margin-left:auto;}
+.dev-news-delete-form {margin:0;}
+html body.app-body .dev-news-delete {display:grid;place-items:center;width:40px;height:40px;min-height:40px;padding:0;border:1px solid #f0d7d7;border-radius:12px;background:#fff7f7;}
+html body.app-body .dev-news-delete,html body.app-body .dev-news-delete i,html body.app-body .dev-news-delete i::before {color:#c43c3c!important;-webkit-text-fill-color:#c43c3c!important;}
+html body.app-body .dev-news-delete:hover {background:#ffe9e9;border-color:#dcaaaa;}
+html body.app-body .dev-news-delete:focus-visible {outline:2px solid #c43c3c;outline-offset:3px;}
+.dev-news-item-head>h3 {min-width:0;}
+@media(max-width:767.98px){.dev-news-item-head {flex-direction:row;flex-wrap:wrap;}.dev-news-item-tools {flex-shrink:0;}}
+
+.dev-news-brand {display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit;}
+
+/* Match the rounded brand mark in the header, including global image resets. */
+html body.app-body .dev-news-icon {overflow:hidden;border-radius:13px!important;}
+html body.app-body img.dev-news-brand {border-radius:13px!important;border:1px solid rgba(86,93,98,.08);box-sizing:border-box;}
+html body.app-body .dev-news-card.dev-news-personal {
+ border-color:#e9c47d;border-left:5px solid #db951c;
+ background:linear-gradient(110deg,#fff1d2 0%,#fffaf0 65%,#fff 100%);
+ box-shadow:0 8px 28px #ad75151a;
+}
+.dev-news-personal-heading {display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;}
+.dev-news-personal-badge {display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;background:#ffe1a0;color:#694000;font-size:12px;font-weight:700;line-height:1.3;}
+html body.app-body .dev-news-personal .dev-news-copy h2 {color:#402c13;}
+html body.app-body .dev-news-personal .dev-news-copy p {color:#4e422f;}

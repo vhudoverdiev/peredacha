@@ -9,7 +9,7 @@ const { chromium } = require('playwright');
   const base = process.env.E2E_VISUAL_BASE_URL || 'http://127.0.0.1:5098';
   const output = process.env.E2E_ARTIFACT_DIR || path.resolve(__dirname, '../_codex_chat_files/developer-navigation');
   fs.mkdirSync(output, { recursive: true });
-  const expected = ['Обращения', 'Логи удалений', 'Статистика'];
+  const expected = ['Обращения', 'Логи удалений', 'Статистика', 'Обновления'];
   try {
     for (const width of [1440, 1100]) {
       const context = await browser.newContext({ viewport: { width, height: 1000 } });
@@ -47,6 +47,11 @@ const { chromium } = require('playwright');
       await tabs.locator('a.active').filter({ hasText: 'Обращения' }).waitFor();
       assert.deepEqual(await links.locator('span').allTextContents(), expected);
       assert.deepEqual(errors, []);
+      await page.goto(`${base}/site-errors`);
+      await page.locator('.developer-section-tabs a').filter({hasText:'Обновления'}).click();
+      await page.waitForURL('**/developer/updates');
+      await page.getByRole('heading',{name:'Новое обновление',exact:true}).waitFor();
+      assert.deepEqual(await page.locator('.developer-section-tabs a span').allTextContents(),expected);
       console.log(`${width}px: tab order, positions, active states, AJAX navigation and reload passed`);
       await context.close();
     }

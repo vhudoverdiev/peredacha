@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v233-inspection-completion';
+const STATIC_CACHE = 'peredacha-static-v241-personal-highlight';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,16 +13,18 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v720-worker-navigation-reference',
+  '/static/style.css?v=v721-developer-select',
   '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v96-ios-workflow-scroll-shell',
   '/static/desktop-only.css?v=v76-objects-three-columns',
   '/static/script.js?v=v708-remark-library',
   '/static/navigation-state.js?v=1',
   '/static/form-csrf.js?v=1',
-  '/static/remark-suggestions.js?v=4',
+  '/static/remark-suggestions.js?v=6',
   '/static/time-entry.js?v=3',
-  '/static/remark-suggestions.css?v=1',
+  '/static/remark-suggestions.css?v=3',
+  '/static/developer-news.css?v=8',
+  '/static/developer-news.js?v=2',
 ];
 
 const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;

@@ -25275,7 +25275,7 @@ body:has(.developer-section-tabs) .developer-custom-select.is-open .developer-se
   background: #e8f4da;
 }
 
-body:has(.developer-section-tabs) .developer-select-menu {
+body:has(.developer-section-tabs) .developer-select-menu:not(.developer-select-menu-portal) {
   position: absolute;
   left: 0;
   right: 0;
@@ -25339,7 +25339,7 @@ body:has(.developer-section-tabs) .developer-select-option.is-selected {
     transform: none;
   }
 
-  body:has(.developer-section-tabs) .developer-select-menu {
+  body:has(.developer-section-tabs) .developer-select-menu:not(.developer-select-menu-portal) {
     position: static;
     margin-top: .45rem;
   }
@@ -25574,7 +25574,7 @@ body:has(.developer-section-tabs) .developer-custom-select.is-open {
   z-index: 5000 !important;
 }
 
-body:has(.developer-section-tabs) .developer-select-menu {
+body:has(.developer-section-tabs) .developer-select-menu:not(.developer-select-menu-portal) {
   top: calc(100% + .35rem) !important;
   z-index: 5001 !important;
   display: flex !important;
@@ -25658,7 +25658,7 @@ body:has(.developer-section-tabs) .developer-select-menu::-webkit-scrollbar-thum
     z-index: 1 !important;
   }
 
-  body:has(.developer-section-tabs) .developer-select-menu {
+  body:has(.developer-section-tabs) .developer-select-menu:not(.developer-select-menu-portal) {
     max-height: none !important;
     box-shadow: 0 12px 24px rgba(15, 23, 42, .10) !important;
   }
@@ -25773,7 +25773,7 @@ body.app-body .settings-topbar {
 }
 
 /* v130: softer developer dropdown selection tone and regular text weight */
-body:has(.developer-section-tabs) .developer-select-menu {
+body:has(.developer-section-tabs) .developer-select-menu:not(.developer-select-menu-portal) {
   border-color: rgba(137, 173, 84, .28) !important;
 }
 

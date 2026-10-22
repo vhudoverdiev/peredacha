@@ -1027,3 +1027,30 @@ class InspectionBooking(TimestampMixin, db.Model):
     apartment = db.relationship('Apartment', backref=db.backref('inspection_bookings', cascade='all, delete-orphan'))
     created_by = db.relationship('User', foreign_keys=[created_by_id])
     staff = db.relationship('User', foreign_keys=[staff_id])
+
+
+class DeveloperUpdate(TimestampMixin, db.Model):
+    __tablename__='developer_updates'
+    id=db.Column(db.Integer,primary_key=True)
+    title=db.Column(db.String(160),nullable=False)
+    body=db.Column(db.Text,nullable=False)
+    author_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True)
+    published_at=db.Column(db.DateTime,nullable=True,index=True)
+    withdrawn_at=db.Column(db.DateTime,nullable=True)
+    author=db.relationship('User',foreign_keys=[author_id])
+
+
+class DeveloperPersonalMessage(TimestampMixin, db.Model):
+    __tablename__='developer_personal_messages'
+    id=db.Column(db.Integer,primary_key=True)
+    recipient_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='CASCADE'),nullable=False,index=True)
+    author_id=db.Column(db.Integer,db.ForeignKey('users.id',ondelete='SET NULL'),nullable=True)
+    title=db.Column(db.String(160),nullable=False)
+    body=db.Column(db.Text,nullable=False)
+    duration_minutes=db.Column(db.Integer,nullable=False,default=60)
+    first_seen_at=db.Column(db.DateTime,nullable=True)
+    expires_at=db.Column(db.DateTime,nullable=True,index=True)
+    revoked_at=db.Column(db.DateTime,nullable=True)
+    recipient=db.relationship('User',foreign_keys=[recipient_id])
+    author=db.relationship('User',foreign_keys=[author_id])
+    __table_args__=(db.CheckConstraint('duration_minutes >= 1 AND duration_minutes <= 10080',name='ck_personal_message_duration'),)

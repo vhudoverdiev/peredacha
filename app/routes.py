@@ -376,6 +376,8 @@ SECTION_LOCK_CHOICES = [
             "main.developer_statistics",
             "main.developer_statistics_visits",
             "main.developer_statistics_sources",
+            "main.developer_updates", "main.developer_update_edit", "main.developer_update_withdraw",
+            "main.developer_message_send", "main.developer_message_revoke", "main.developer_update_delete", "main.developer_message_delete",
         },
     },
     {"key": "appeals", "label": "Обращения", "icon": "bi-chat-square-text",
@@ -1386,6 +1388,7 @@ WORKER_ALLOWED_ENDPOINTS = {
 } | MESSENGER_ENDPOINTS
 
 VIEWER_ALLOWED_GET_ENDPOINTS = {
+    "main.updates_archive", "main.updates_card",
     "main.objects",
     "main.object_open",
     "main.dashboard",
@@ -2335,7 +2338,9 @@ def dashboard():
         project.id,
         include_all_completed_statuses=include_all_completed_statuses,
     )
-    return render_template("dashboard.html", stats=stats, categories=categories, project=project)
+    from app.services.developer_news import card_for_user
+    news_card=card_for_user(current_user,start=request.method=='GET')
+    return render_template("dashboard.html",stats=stats,categories=categories,project=project,news_card=news_card),200,{'Cache-Control':'private, no-store'}
 
 
 @bp.route("/object")
@@ -2401,6 +2406,7 @@ def _mobile_phone_allowed_endpoints() -> set[str]:
         return set(WORKER_ALLOWED_ENDPOINTS) | ({"main.objects", "main.object_open"} if current_user.role == ROLE_EXECUTOR else set())
 
     allowed = {
+        "main.updates_archive", "main.updates_card",
         "main.report_error",
         "main.messenger_thread",
         "main.messenger_send",
@@ -2460,7 +2466,8 @@ def _mobile_phone_allowed_endpoints() -> set[str]:
             "main.assignment_issued_employee_export",
         })
     if current_user.role == ROLE_ADMIN:
-        allowed.add("main.site_settings")
+        allowed.update({"main.site_settings","main.developer_updates","main.developer_update_edit",
+                        "main.developer_update_withdraw","main.developer_message_send","main.developer_message_revoke","main.developer_update_delete","main.developer_message_delete"})
     if can_use_project_workflows(current_user):
         allowed.update(PROJECT_WORKFLOW_ENDPOINTS)
     return allowed
@@ -13218,3 +13225,5 @@ def split_task_remark(task_id: int):
 from app import workflows as _workflows  # noqa: E402,F401
 
 from app import remark_suggestions as _remark_suggestions  # noqa: E402,F401
+
+from app import developer_news as _developer_news  # noqa: E402,F401

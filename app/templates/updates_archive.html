@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Обновления CRM{% endblock %}
+{% block content %}
+{% from "_developer_news_empty.html" import empty_card %}
+<section class="dev-news-archive">
+<div class="page-head"><div><h1 class="page-title">Обновления CRM</h1><p class="page-subtitle">Новые возможности, улучшения и исправления от разработчика.</p></div><a class="btn btn-outline-secondary" href="{{ url_for('main.dashboard') }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> На главную</a></div>
+<div class="dev-news-history">
+{% for update in updates.items %}<article class="card content-card dev-news-history-item"><time>Худовердиев В · {{ update.published_at|ru_datetime }}</time><h2>{{ update.title }}</h2><p>{{ update.body }}</p></article>
+{% else %}{{ empty_card('Скоро здесь появятся обновления', 'bi-journal-richtext') }}{% endfor %}
+</div>
+<nav class="dev-news-pagination" aria-label="Страницы обновлений">{% if updates.has_prev %}<a class="btn btn-outline-secondary" href="{{ url_for('main.updates_archive',page=updates.prev_num) }}">Назад</a>{% endif %}<span>Страница {{ updates.page }} из {{ updates.pages or 1 }}</span>{% if updates.has_next %}<a class="btn btn-outline-secondary" href="{{ url_for('main.updates_archive',page=updates.next_num) }}">Далее</a>{% endif %}</nav>
+</section>
+{% endblock %}

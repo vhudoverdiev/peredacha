@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Для разработчика — обновления{% endblock %}
+{% block content %}
+{% from "_developer_news_empty.html" import empty_card %}
+{% macro delete_button(action, label) %}
+<form method="post" action="{{ action }}" class="dev-news-delete-form" data-confirm="{{ label }}? Это действие нельзя отменить.">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<button type="submit" class="btn dev-news-delete" title="{{ label }}" aria-label="{{ label }}"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+</form>
+{% endmacro %}
+<div class="developer-news-page">
+<div class="page-head"><div><h1 class="page-title">Для разработчика</h1><p class="page-subtitle">Общие обновления и персональные сообщения пользователям.</p></div><a class="btn btn-outline-secondary" href="{{ url_for('main.dashboard') }}">На главную</a></div>
+<div class="developer-section-tabs">
+<a class="developer-section-tab remarks-tab-link" href="{{ url_for('main.site_errors') }}"><i class="bi bi-inbox"></i><span>Обращения</span></a>
+<a class="developer-section-tab remarks-tab-link" href="{{ url_for('main.developer_delete_logs') }}"><i class="bi bi-clock-history"></i><span>Логи удалений</span></a>
+<a class="developer-section-tab remarks-tab-link" href="{{ url_for('main.developer_statistics',days=30) }}"><i class="bi bi-graph-up-arrow"></i><span>Статистика</span></a>
+<a class="developer-section-tab remarks-tab-link active" href="{{ url_for('main.developer_updates') }}"><i class="bi bi-megaphone"></i><span>Обновления</span></a>
+</div>
+<div class="dev-news-toolbar">
+<nav class="dev-news-modes" aria-label="Тип сообщения">
+<a class="btn {{ 'btn-primary' if mode!='messages' else 'btn-outline-secondary' }}" href="{{ url_for('main.developer_updates') }}">Для всех</a>
+<a class="btn {{ 'btn-primary' if mode=='messages' else 'btn-outline-secondary' }}" href="{{ url_for('main.developer_updates',mode='messages') }}">Личные сообщения</a>
+</nav>
+{% if mode=='messages' %}
+<a class="btn btn-primary dev-news-create" href="{{ url_for('main.developer_updates',mode='messages',compose=1) }}">Отправить</a>
+{% else %}
+<a class="btn btn-primary dev-news-create" href="{{ url_for('main.developer_updates',compose=1) }}">Добавить</a>
+{% endif %}
+</div>
+{% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+{% set composing = request.args.get('compose')=='1' or request.method=='POST' or edit %}
+{% if composing %}
+<section class="card content-card dev-news-editor">
+{% if mode=='messages' %}
+<h2>Новое личное сообщение</h2>
+<form method="post" action="{{ url_for('main.developer_message_send') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="mode" value="messages">
+<label>Получатель<select class="form-select" name="recipient_id" required><option value="">Выберите пользователя</option>{% for user in recipients %}<option value="{{ user.id }}" {% if request.form.get('recipient_id')==user.id|string %}selected{% endif %}>{{ user.full_name or user.username }} · {{ user.username }} · {{ ROLE_LABELS.get(user.role,user.role) }}</option>{% endfor %}</select></label>
+{% else %}
+<h2>{{ 'Редактировать обновление' if edit else 'Новое обновление' }}</h2>
+<form method="post" action="{{ url_for('main.developer_update_edit',update_id=edit.id) if edit else url_for('main.developer_updates') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% endif %}
+<label>Заголовок<input class="form-control" name="title" maxlength="160" required value="{{ request.form.get('title',edit.title if edit else '') }}"></label>
+<label>Текст<textarea class="form-control" name="body" rows="6" maxlength="10000" required>{{ request.form.get('body',edit.body if edit else '') }}</textarea></label>
+{% if mode=='messages' %}
+<div class="dev-news-duration"><label>Показывать<input class="form-control" type="number" name="duration_value" min="1" max="168" value="{{ request.form.get('duration_value','1') }}" required></label>
+<label>Единица времени<select class="form-select" name="duration_unit"><option value="1" {% if request.form.get('duration_unit')=='1' %}selected{% endif %}>Минуты</option><option value="60" {% if request.form.get('duration_unit','60')=='60' %}selected{% endif %}>Часы</option><option value="1440" {% if request.form.get('duration_unit')=='1440' %}selected{% endif %}>Дни</option></select></label></div>
+<button class="btn btn-primary" type="submit">Отправить пользователю</button>
+{% else %}
+<div class="dev-news-actions"><button class="btn btn-primary" type="submit" name="action" value="publish">{{ 'Сохранить и опубликовать' if edit else 'Опубликовать всем' }}</button><button class="btn btn-outline-secondary" type="submit" name="action" value="draft">{{ 'Сохранить без публикации' if edit else 'Сохранить черновик' }}</button>{% if edit %}<a class="btn btn-outline-secondary" href="{{ url_for('main.developer_updates') }}">Отмена</a>{% endif %}</div>
+{% endif %}
+</form>
+</section>
+{% endif %}
+{% if not composing %}
+<div class="dev-news-history">
+{% if mode=='messages' %}
+<h2>Отправленные сообщения</h2>
+{% for message in messages.items %}<article class="card content-card dev-news-history-item">
+<div class="dev-news-item-head"><h3>{{ message.title }}</h3><div class="dev-news-item-tools"><span class="dev-news-state">{{ 'Отозвано' if message.revoked_at else ('Ожидает первого показа' if not message.first_seen_at else ('Показ завершён' if message.expires_at<=now else 'Показывается')) }}</span>{{ delete_button(url_for('main.developer_message_delete',message_id=message.id), 'Удалить личное сообщение') }}</div></div>
+<p class="text-muted">{{ message.recipient.full_name or message.recipient.username }} · {{ message.recipient.username }} · {{ message.duration_minutes }} мин.</p>
+<p>{{ message.body }}</p>
+{% if message.first_seen_at %}<p class="text-muted">Первый показ: {{ message.first_seen_at|ru_datetime }} · До {{ message.expires_at|ru_datetime }}</p>{% endif %}
+{% if not message.revoked_at and (not message.expires_at or message.expires_at>now) %}<form method="post" action="{{ url_for('main.developer_message_revoke',message_id=message.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-outline-secondary">Отозвать</button></form>{% endif %}
+</article>{% else %}{{ empty_card('Личных сообщений пока нет', 'bi-chat-square-text') }}{% endfor %}
+{% set pagination=messages %}
+{% else %}
+<h2>Публикации и черновики</h2>
+{% for update in updates.items %}<article class="card content-card dev-news-history-item">
+<div class="dev-news-item-head"><h3>{{ update.title }}</h3><div class="dev-news-item-tools"><span class="dev-news-state">{{ 'Скрыто' if update.withdrawn_at else ('Опубликовано' if update.published_at else 'Черновик') }}</span>{{ delete_button(url_for('main.developer_update_delete',update_id=update.id), 'Удалить обновление') }}</div></div>
+{% if update.published_at %}<time>{{ update.published_at|ru_datetime }}</time>{% endif %}
+<p>{{ update.body }}</p>
+<div class="dev-news-actions"><a class="btn btn-outline-secondary" href="{{ url_for('main.developer_update_edit',update_id=update.id) }}">Редактировать</a>
+{% if update.published_at and not update.withdrawn_at %}<form method="post" action="{{ url_for('main.developer_update_withdraw',update_id=update.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-outline-secondary">Снять с публикации</button></form>{% endif %}</div>
+</article>{% else %}{{ empty_card('Обновлений пока нет', 'bi-journal-richtext') }}{% endfor %}
+{% set pagination=updates %}
+{% endif %}
+<nav class="dev-news-pagination" aria-label="Страницы сообщений">{% if pagination.has_prev %}<a class="btn btn-outline-secondary" href="{{ url_for('main.developer_updates',mode=mode,page=pagination.prev_num) }}">Назад</a>{% endif %}<span>Страница {{ pagination.page }} из {{ pagination.pages or 1 }}</span>{% if pagination.has_next %}<a class="btn btn-outline-secondary" href="{{ url_for('main.developer_updates',mode=mode,page=pagination.next_num) }}">Далее</a>{% endif %}</nav>
+</div>
+{% endif %}
+</div>
+{% endblock %}

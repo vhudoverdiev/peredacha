@@ -1,0 +1,27 @@
+{% macro update_content(update) %}
+<div class="dev-news-icon" aria-hidden="true"><img class="dev-news-brand" src="{{ url_for('static',filename='brand-logo.png') }}" width="42" height="42" alt=""></div>
+<div class="dev-news-copy">
+  <div class="dev-news-eyebrow">Худовердиев В · Обновления CRM{% if update %} · {{ update.published_at|msk_datetime('%d.%m.%Y') }}{% endif %}</div>
+  <h2><a href="{{ url_for('main.updates_archive') }}">{{ update.title if update else 'Новости от разработчика' }}</a></h2>
+  {% if update %}<p>{{ update.body|truncate(400,True) }}</p>{% endif %}
+</div>
+<div class="dev-news-card-actions"><a class="btn btn-outline-secondary dev-news-all" href="{{ url_for('main.updates_archive') }}">Посмотреть все <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
+{% endmacro %}
+{% if news_card %}
+<section class="dev-news-card{% if news_card.kind=='personal' %} dev-news-personal{% endif %}" data-developer-news
+ data-news-version="{{ news_card.kind }}:{{ news_card.item.id if news_card.item else 0 }}:{{ news_card.item.updated_at.isoformat() if news_card.item and news_card.item.updated_at else '' }}"
+ data-news-url="{{ url_for('main.updates_card') }}" data-news-now="{{ news_card.server_now.isoformat() }}Z"
+ {% if news_card.expires_at %}data-news-expires="{{ news_card.expires_at.isoformat() }}Z"{% endif %} aria-label="Новости разработчика" aria-live="polite">
+{% if news_card.kind=='personal' %}
+  <div class="dev-news-icon" aria-hidden="true"><img class="dev-news-brand" src="{{ url_for('static',filename='brand-logo.png') }}" width="42" height="42" alt=""></div>
+  <div class="dev-news-copy">
+    <div class="dev-news-eyebrow dev-news-personal-heading"><span class="dev-news-personal-badge"><i class="bi bi-envelope-paper-heart" aria-hidden="true"></i>{{ ((current_user.full_name or '').split()|first)|default(current_user.username,true) }}</span><span>Худовердиев В</span></div>
+    <h2>{{ news_card.item.title }}</h2>
+    <p>{{ news_card.item.body|truncate(400,True) }}</p>
+    {% if news_card.item.body|length>400 %}<details><summary>Прочитать полностью</summary><p>{{ news_card.item.body }}</p></details>{% endif %}
+  </div>
+  
+  <template data-news-fallback>{{ update_content(news_card.fallback) }}</template>
+{% else %}{{ update_content(news_card.item) }}{% endif %}
+</section>
+{% endif %}

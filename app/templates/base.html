@@ -950,7 +950,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v233-inspection-completion', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v241-personal-highlight', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -991,7 +991,7 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v720-worker-navigation-reference">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v721-developer-select">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v96-ios-workflow-scroll-shell">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v76-objects-three-columns">
   <script>
@@ -1007,8 +1007,9 @@
   </script>
   {% if current_user.is_authenticated and can_use_project_workflows %}
   <link rel="stylesheet" href="{{ url_for('static',filename='workflows.css') }}?v=31-named-point-sync-final">
-  <link rel="stylesheet" href="{{ url_for('static',filename='remark-suggestions.css') }}?v=1">
+  <link rel="stylesheet" href="{{ url_for('static',filename='remark-suggestions.css') }}?v=3">
   {% endif %}
+  {% if current_user.is_authenticated %}<link rel="stylesheet" href="{{ url_for('static',filename='developer-news.css') }}?v=8">{% endif %}
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-navigation-user="{{ current_user.id if current_user.is_authenticated else 0 }}" data-navigation-project="{{ current_project.id if current_project else 0 }}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <div class="crm-offline-banner js-crm-offline-banner" hidden>Не удается обновить. Показана сохраненная версия.</div>
@@ -1431,7 +1432,7 @@
         <i class="bi bi-file-earmark-bar-graph"></i><span>Отчет</span>
       </a>
       {% if current_user.role == 'admin' %}
-      {% set developer_sidebar_active = request.endpoint in ['main.site_errors', 'main.site_error_close', 'main.site_error_delete', 'main.developer_delete_logs', 'main.developer_delete_log_undo', 'main.developer_statistics', 'main.developer_statistics_visits', 'main.developer_statistics_sources'] %}
+      {% set developer_sidebar_active = request.endpoint in ['main.site_errors', 'main.site_error_close', 'main.site_error_delete', 'main.developer_delete_logs', 'main.developer_delete_log_undo', 'main.developer_statistics', 'main.developer_statistics_visits', 'main.developer_statistics_sources', 'main.developer_updates', 'main.developer_update_edit', 'main.developer_message_send'] %}
       <a class="sidebar-link developer-sidebar-link {% if developer_sidebar_active %}active{% endif %} {% if new_site_errors_count %}has-nav-count{% endif %}" href="{{ url_for('main.site_errors') }}" {% if developer_sidebar_active %}aria-current="page"{% endif %}>
         <i class="bi bi-bug"></i><span>Для разработчика</span>
         {% if new_site_errors_count %}<span class="nav-count-badge site-errors-nav-badge" aria-label="Новые уведомления: {{ new_site_errors_count }}">{{ new_site_errors_count }}</span>{% endif %}
@@ -1600,10 +1601,11 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
+  <script src="{{ url_for('static', filename='developer-news.js') }}?v=2"></script>
   <script src="{{ url_for('static', filename='time-entry.js') }}?v=3"></script>
   <script src="{{ url_for('static', filename='navigation-state.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='form-csrf.js') }}?v=1"></script>
-  <script src="{{ url_for('static', filename='remark-suggestions.js') }}?v=4"></script>
+  <script src="{{ url_for('static', filename='remark-suggestions.js') }}?v=6"></script>
   <script src="{{ url_for('static', filename='script.js') }}?v=v708-remark-library"></script>
 </body>
 </html>
