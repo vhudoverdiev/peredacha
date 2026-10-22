@@ -54,7 +54,10 @@ async function run(browser, width, standalone = false) {
     reducedMotion: 'reduce',
   });
   try {
-    if (standalone) await context.addInitScript(() => Object.defineProperty(navigator, 'standalone', { get: () => true }));
+    if (standalone) await context.addInitScript(() => {
+      Object.defineProperty(navigator, 'standalone', { get: () => true });
+      Object.defineProperty(window, 'innerHeight', { get: () => 895 });
+    });
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -117,6 +120,20 @@ async function run(browser, width, standalone = false) {
         assert.ok(Math.abs(dock.bottom - 956) < 2, `${route} ${JSON.stringify(dock)}`);
         if (route.startsWith('/appeals?') || route === '/appeals' || route.startsWith('/records?') || route === '/records')
           assert.equal(await page.locator('.workflow-heading-copy').isVisible(), false);
+        if (route === '/appeals') {
+          await page.getByRole('link', { name: 'Назад', exact: true }).click();
+          await page.waitForURL(url => url.pathname === '/');
+          await page.goto(base + route);
+        }
+        if (standalone) {
+          const anchor = await page.locator('.mobile-bottom-nav').evaluate(element => ({ top: getComputedStyle(element).top, bottom: getComputedStyle(element).bottom }));
+          assert.equal(anchor.top, '884px');
+          await page.mouse.move(220, 400);
+          await page.mouse.wheel(0, 500);
+          await page.waitForTimeout(100);
+          assert.ok(Math.abs((await page.locator('.mobile-bottom-nav').boundingBox()).y - 884) < 2);
+          await page.evaluate(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; });
+        }
         if (route === '/appeals/new') {
           assert.equal(await page.locator('.appeal-form-title').isVisible(), false);
           await page.getByRole('link', { name: 'Назад', exact: true }).click();
@@ -124,6 +141,9 @@ async function run(browser, width, standalone = false) {
           await page.goto(base + route);
         }
         if (route === '/records') {
+          for (const name of ['Обзвонить', 'Скачать']) {
+            assert.equal(await page.getByRole('link', { name, exact: true, includeHidden: true }).isVisible(), false);
+          }
           const back = page.getByRole('link', { name: 'Назад', exact: true });
           await back.click();
           await page.waitForURL(url => url.pathname === '/');

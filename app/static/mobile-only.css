@@ -2053,13 +2053,12 @@
     flex-direction: column !important;
   }
 
-  /* The shared mobile documents rule reserves a second 72px dock inside the
-     page. The dock is fixed already, so Account ended 77px above it while
-     Tasks ended 12px above it. Remove only that duplicate content reserve. */
-  html.standalone-app body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
+  /* Account can scroll beyond the viewport. Reserve the fixed dock plus a
+     small gap so its last card is fully reachable, including the safe area. */
+  html body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
     main.documents-content.documents-content {
-    padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
-    scroll-padding-bottom: var(--mobile-empty-content-gap, .75rem) !important;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+    scroll-padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* Empty "Issued to employees" is another short page, but its assignment
@@ -2317,10 +2316,6 @@
     :is(.documents-standalone-layout, .documents-content, .crm-mobile-page-shell, .account-page) {
     height: auto !important; max-height: none !important; overflow: visible !important;
   }
-  html body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
-    main.documents-content.documents-content {
-    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
-  }
   html body.app-body.app-body.app-body:has(:is(.account-page, .workflow-page))
     > nav.mobile-bottom-nav.mobile-bottom-nav-root {
     position: fixed !important; inset: auto 0 0 !important; top: auto !important;
@@ -2333,4 +2328,18 @@
 }
 @media (max-width: 767.98px) {
   html body.app-body .apartment-detail-page :is(.apartment-source-export-btn, .apartment-detail-export-btn) { display: none !important; }
+}
+
+/* In installed iOS, bottom:0 can use the shortened layout viewport while
+   100dvh still describes the visible app canvas. Keep the dock fixed to that
+   canvas, without tying its position to the scrolling document. */
+@media (max-width: 767.98px) {
+  html.standalone-app.ios-standalone-bottom-chrome
+    body.app-body.app-body.app-body:has(.workflow-page)
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    inset: auto 0 auto !important;
+    top: calc(100dvh - 72px) !important;
+    bottom: auto !important;
+    position: fixed !important;
+  }
 }

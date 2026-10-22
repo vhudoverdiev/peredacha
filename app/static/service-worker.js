@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v216-mobile-scroll-toolbar';
+const STATIC_CACHE = 'peredacha-static-v219-worker-account-bottom-clearance';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -14,8 +14,8 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
   '/static/style.css?v=v720-worker-navigation-reference',
-  '/static/workflows.css?v=23-mobile-workflow-toolbar',
-  '/static/mobile-only.css?v=v92-worker-account-scroll',
+  '/static/workflows.css?v=25-mobile-records-actions',
+  '/static/mobile-only.css?v=v94-worker-account-bottom-clearance',
   '/static/desktop-only.css?v=v76-objects-three-columns',
   '/static/script.js?v=v704-apartment-comment-meta',
 ];

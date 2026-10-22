@@ -286,3 +286,12 @@ html body.app-body .workflow-page .call-list-visibility-action :is(i, span) {
     width:28px !important; height:28px !important;
   }
 }
+
+@media (max-width: 767.98px) {
+  .appeals-page > .workflow-head { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+  .appeals-page > .workflow-head .workflow-mobile-back { display:inline-flex; align-items:center; }
+}
+
+@media (max-width:767.98px) {
+  html body.app-body .records-page .records-header-actions > [data-records-desktop-action] { display:none !important; }
+}
