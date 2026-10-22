@@ -2,7 +2,7 @@
 {% block title %}{{ 'Редактировать обращение' if edit_mode else 'Создать обращение' }}{% endblock %}
 {% block content %}
 <section class="workflow-page appeal-form-page">
-  <div class="workflow-head"><h1 class="page-title">{{ 'Редактировать обращение' if edit_mode else 'Создать обращение' }}</h1><a class="btn btn-outline-secondary" href="{{ url_for('main.appeal_detail', appeal_id=appeal.id) if edit_mode else url_for('main.appeals') }}">Назад</a></div>
+  <div class="workflow-head"><h1 class="page-title appeal-form-title">{{ 'Редактировать обращение' if edit_mode else 'Создать обращение' }}</h1><a class="btn btn-outline-secondary workflow-back-to-schedule" href="{{ url_for('main.appeal_detail', appeal_id=appeal.id) if edit_mode else url_for('main.appeals') }}"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Назад</a></div>
   <form method="post" enctype="multipart/form-data" class="card content-card workflow-editor">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>Помещение<select class="form-select" name="apartment_id" required><option value="">Выберите помещение</option>{% for apartment in apartments %}<option value="{{ apartment.id }}" {% if (request.form.get('apartment_id') or (appeal.apartment_id if appeal else ''))|string==apartment.id|string %}selected{% endif %}>{{ apartment.label() }}</option>{% endfor %}</select></label>

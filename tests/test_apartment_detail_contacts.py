@@ -169,7 +169,12 @@ class ApartmentDetailContactsTests(unittest.TestCase):
         self.assertIn("display: grid !important;", date_stack_rule)
         self.assertIn("grid-template-columns: minmax(0, max-content) !important;", date_stack_rule)
         self.assertIn("row-gap: .5rem !important;", date_stack_rule)
-        self.assertIn("width: 100% !important;", STYLE[STYLE.rindex("@media (max-width: 767.98px)"):])
+        mobile_controls_start = STYLE.rindex(
+            "html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) "
+            "body.app-body:has(.apartment-detail-page) "
+            ".apartment-compact-control-row:has([data-apartment-inspection-display]) .apartment-inline-controls {"
+        )
+        self.assertIn("width: 100% !important;", STYLE[mobile_controls_start:STYLE.index("}", mobile_controls_start)])
 
     def test_mobile_delete_action_sits_next_to_problem_with_matching_dimensions(self):
         self.assertIn('class="apartment-task-actions actions-cell{% if task.status != \'problem\' %} has-delete-action{% endif %}"', TEMPLATE)

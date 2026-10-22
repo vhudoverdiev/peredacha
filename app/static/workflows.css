@@ -235,3 +235,54 @@ html body.app-body .workflow-page .call-list-visibility-action :is(i, span) {
   color: #000 !important;
   -webkit-text-fill-color: #000 !important;
 }
+
+.workflow-mobile-back { display: none; }
+@media (max-width: 767.98px) {
+  .records-page > .workflow-head > .workflow-heading-copy,
+  .appeals-page > .workflow-head > .workflow-heading-copy { display: none !important; }
+  html body.app-body .records-page .records-header-actions { display: flex; flex-wrap: nowrap; gap: 8px; }
+  html body.app-body .records-page .records-header-actions > .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 42px !important; min-width: 42px !important; height: 42px !important;
+    padding: 0 !important; position: relative; flex: 0 0 42px;
+  }
+  .records-header-actions .records-action-label,
+  .records-header-actions .nav-count-badge { display: none !important; }
+  .records-header-actions .btn > i { margin: 0 !important; font-size: 18px; }
+  .records-header-actions .btn[title]:is(:hover, :focus-visible)::after {
+    content: attr(title); position: absolute; top: calc(100% + 6px); right: 0;
+    z-index: 20; padding: 6px 9px; border-radius: 8px; background: #172027;
+    color: #fff; font-size: 12px; white-space: nowrap; pointer-events: none;
+  }
+  html body.app-body:has(.workflow-page) :is(.app-layout, .app-main, .app-content, .crm-mobile-page-shell) {
+    background: #f6f7f9 !important; background-image: none !important;
+  }
+  html body.app-body .workflow-page :is(.content-card, .workflow-slot, .workflow-appeal-card, .workflow-filter) {
+    background: #fff !important; background-image: none !important; border-color: #e1e5e9 !important;
+  }
+  .workflow-mobile-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .workflow-mobile-shortcuts .mobile-section-shortcut-arrow { display: none; }
+}
+
+@media (max-width:767.98px) { .appeal-form-page .appeal-form-title { display:none !important; } }
+@media (max-width:767.98px) {
+  html body.app-body .workflow-mobile-shortcuts .mobile-section-shortcut { position:relative; }
+  html body.app-body .workflow-mobile-shortcuts .mobile-section-shortcut > span { white-space:nowrap; overflow-wrap:normal; }
+  html body.app-body .workflow-mobile-shortcuts .workflow-count { position:absolute; top:4px; right:6px; margin:0; font-size:10px; padding:1px 5px; }
+}
+@media (max-width:767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .workflow-mobile-shortcuts .mobile-section-shortcut {
+    grid-template-columns:32px minmax(0,1fr) !important; gap:6px !important; padding:10px !important;
+  }
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .workflow-mobile-shortcuts .mobile-section-shortcut > .mobile-section-shortcut-icon {
+    width:32px !important; height:32px !important;
+  }
+}
+@media (max-width:374.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .workflow-mobile-shortcuts .mobile-section-shortcut {
+    grid-template-columns:28px minmax(0,1fr) !important; gap:4px !important; padding:8px 6px !important; font-size:13px !important;
+  }
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body .workflow-mobile-shortcuts .mobile-section-shortcut > .mobile-section-shortcut-icon {
+    width:28px !important; height:28px !important;
+  }
+}

@@ -65,6 +65,17 @@ const base = process.env.E2E_VISUAL_BASE_URL || 'http://127.0.0.1:5098';
           } else {
             await page.locator('.mobile-worker-bottom-nav a[href="/account"]').click();
             await page.waitForURL('**/account');
+            await page.setViewportSize({ width: 440, height: 740 });
+            await page.mouse.move(220, 400);
+            await page.mouse.wheel(0, 600);
+            await page.waitForTimeout(200);
+            const scroll = await page.evaluate(() => ({ y: scrollY || document.body.scrollTop,
+              bottom: document.querySelector('.mobile-worker-bottom-nav').getBoundingClientRect().bottom,
+              position: getComputedStyle(document.querySelector('.mobile-worker-bottom-nav')).position }));
+            assert.ok(scroll.y > 0, JSON.stringify(scroll));
+            assert.equal(scroll.position, 'fixed');
+            assert.ok(Math.abs(scroll.bottom - 740) < 2, JSON.stringify(scroll));
+            if (process.env.E2E_ARTIFACT_DIR) await page.screenshot({ path: path.join(process.env.E2E_ARTIFACT_DIR, `worker-account-scroll-${role}.png`) });
           }
           const logout = page.locator('form[action="/logout"] button:visible').first();
           await logout.waitFor({ state: 'visible' });

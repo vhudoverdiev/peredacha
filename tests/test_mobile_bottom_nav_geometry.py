@@ -430,18 +430,18 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
             self.mobile_css,
         )
         self.assertIn(
-            ":has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty))",
+            ":has(.mobile-worker-bottom-nav):has(.worker-page-empty)",
             self.mobile_css,
         )
 
-    def test_worker_account_and_empty_tasks_use_the_physical_ios_dock_anchor(self):
+    def test_only_empty_worker_tasks_use_the_physical_ios_dock_anchor(self):
         body_selector = (
             "body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav)"
-            ":has(:is(.account-page, .worker-page-empty)) {"
+            ":has(.worker-page-empty) {"
         )
         dock_selector = re.compile(
             r"body\.app-body\.app-body\.app-body:has\(\.mobile-worker-bottom-nav\)"
-            r":has\(:is\(\.account-page, \.worker-page-empty\)\)"
+            r":has\(\.worker-page-empty\)"
             r"\s*>\s*nav\.mobile-bottom-nav\.mobile-bottom-nav-root"
         )
         for stylesheet in (self.base, self.mobile_css):

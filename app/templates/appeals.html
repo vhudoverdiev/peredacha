@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% block title %}Обращения{% endblock %}
 {% block content %}
-<section class="workflow-page">
-  <div class="workflow-head"><div><h1 class="page-title">Обращения</h1></div>{% if can_create_appeal %}<a class="btn btn-primary" href="{{ url_for('main.appeal_new') }}"><i class="bi bi-plus-lg me-2"></i>Создать обращение</a>{% endif %}</div>
+<section class="workflow-page appeals-page">
+  <div class="workflow-head"><div class="workflow-heading-copy"><h1 class="page-title">Обращения</h1></div>{% if can_create_appeal %}<a class="btn btn-primary" href="{{ url_for('main.appeal_new') }}"><i class="bi bi-plus-lg me-2"></i>Создать обращение</a>{% endif %}</div>
   <form method="get" class="workflow-filter crm-filter-form card content-card" data-appeals-filter>
     <label>Поиск<input class="form-control" name="q" value="{{ q }}" placeholder="Квартира или текст обращения"></label>
     <label>Статус<select class="form-select" name="status"><option value="">Все</option>{% for value,label in statuses.items() %}<option value="{{ value }}" {% if status==value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>

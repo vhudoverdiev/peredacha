@@ -570,11 +570,10 @@
         inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
       }
 
-      /* Worker Account and the empty Tasks state are short pages too. Limit
-         the physical anchor to those two states so populated task lists keep
-         the normal fixed dock while scrolling. */
+      /* Only empty Tasks needs the physical short-page anchor. Account and
+         populated task lists use the shared fixed dock while scrolling. */
       html.standalone-app
-        body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty)) {
+        body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.worker-page-empty) {
         min-height: var(--mobile-physical-app-height, 100dvh) !important;
         height: var(--mobile-physical-app-height, 100dvh) !important;
         max-height: var(--mobile-physical-app-height, 100dvh) !important;
@@ -586,7 +585,7 @@
       }
 
       html.standalone-app
-        body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty))
+        body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.worker-page-empty)
         > nav.mobile-bottom-nav.mobile-bottom-nav-root {
         position: absolute !important;
         top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
@@ -951,7 +950,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v215-call-list-controls-black', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v216-mobile-scroll-toolbar', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -993,7 +992,7 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v720-worker-navigation-reference">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v91-site-settings-mobile">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v92-worker-account-scroll">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v76-objects-three-columns">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
@@ -1007,7 +1006,7 @@
     })();
   </script>
   {% if current_user.is_authenticated and can_use_project_workflows %}
-  <link rel="stylesheet" href="{{ url_for('static',filename='workflows.css') }}?v=22-call-list-controls-black">
+  <link rel="stylesheet" href="{{ url_for('static',filename='workflows.css') }}?v=23-mobile-workflow-toolbar">
   {% endif %}
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">

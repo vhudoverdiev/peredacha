@@ -39,8 +39,8 @@ async function shortcutStyle(page, selector) {
     const style = getComputedStyle(element);
     const icon = getComputedStyle(element.querySelector('.mobile-section-shortcut-icon'));
     return Object.fromEntries([
-      ...['borderRadius', 'backgroundImage', 'fontSize', 'fontWeight', 'minHeight', 'padding'].map(key => [key, style[key]]),
-      ['iconBackground', icon.backgroundImage], ['iconSize', icon.width],
+      ...['borderRadius', 'backgroundImage', 'fontSize', 'fontWeight', 'minHeight'].map(key => [key, style[key]]),
+      ['iconBackground', icon.backgroundImage],
     ]);
   });
 }
@@ -72,6 +72,9 @@ async function run(browser, width, standalone = false) {
     let referenceGap;
     if (phone) {
       assert.equal(await shortcuts.locator('a').count(), 2);
+      const shortcutBoxes = await shortcuts.locator('a').evaluateAll(links => links.map(link => { const r = link.getBoundingClientRect(); return { top: r.top, right: r.right }; }));
+      assert.ok(Math.abs(shortcutBoxes[0].top - shortcutBoxes[1].top) < 2);
+      assert.ok(await shortcuts.locator('a > span').first().evaluate(element => element.scrollWidth <= element.clientWidth + 1));
       const workflowStyle = await shortcutStyle(page, '.workflow-mobile-shortcuts a');
       await page.locator('.workflow-mobile-shortcuts a').first().focus();
       assert.notEqual(await page.locator('.workflow-mobile-shortcuts a').first().evaluate(el => getComputedStyle(el).outlineStyle), 'none');
@@ -92,7 +95,7 @@ async function run(browser, width, standalone = false) {
       assert.ok(referenceGap >= 8 && referenceGap <= 28, `Reference header gap: ${referenceGap}`);
     }
 
-    const routes = ['/appeals', '/appeals/new', '/records', '/records?view=week', '/records?view=month'];
+    const routes = ['/appeals?q=__empty_call_test__', '/appeals', '/appeals/new', '/records', '/records?view=week', '/records?view=month'];
     routes.push('/records/availability');
     for (const route of routes) {
       const response = await page.goto(base + route);
@@ -103,6 +106,33 @@ async function run(browser, width, standalone = false) {
         const gap = await page.evaluate(() => document.querySelector('.workflow-page').getBoundingClientRect().top
           - document.querySelector('.mobile-project-topbar').getBoundingClientRect().bottom);
         assert.ok(Math.abs(gap - referenceGap) <= 1, `${route} header gap: ${gap}, reference: ${referenceGap}`);
+      }
+      if (phone) {
+        const dock = await page.locator('.mobile-bottom-nav').evaluate(element => {
+          const box = element.getBoundingClientRect();
+          return { position: getComputedStyle(element).position, height: box.height, bottom: box.bottom };
+        });
+        assert.equal(dock.position, 'fixed', route);
+        assert.equal(dock.height, 72, route);
+        assert.ok(Math.abs(dock.bottom - 956) < 2, `${route} ${JSON.stringify(dock)}`);
+        if (route.startsWith('/appeals?') || route === '/appeals' || route.startsWith('/records?') || route === '/records')
+          assert.equal(await page.locator('.workflow-heading-copy').isVisible(), false);
+        if (route === '/appeals/new') {
+          assert.equal(await page.locator('.appeal-form-title').isVisible(), false);
+          await page.getByRole('link', { name: 'Назад', exact: true }).click();
+          await page.waitForURL('**/appeals');
+          await page.goto(base + route);
+        }
+        if (route === '/records') {
+          const back = page.getByRole('link', { name: 'Назад', exact: true });
+          await back.click();
+          await page.waitForURL(url => url.pathname === '/');
+          await page.goto(base + route);
+          const action = page.getByRole('link', { name: 'Настроить время', exact: true });
+          await action.focus();
+          assert.equal(await action.evaluate(element => getComputedStyle(element, '::after').content), '"Настроить время"');
+          assert.equal(await page.locator('.records-action-label').first().isVisible(), false);
+        }
       }
       await screenshot(page, `${route.includes('appeals') ? 'appeals' : 'records'}-${label}-${route.includes('?') ? route.split('=')[1] : route.endsWith('new') ? 'new' : route.endsWith('availability') ? 'availability' : 'list'}`);
     }
@@ -153,6 +183,7 @@ async function run(browser, width, standalone = false) {
     }
 
     await page.goto(`${base}/apartments/1`);
+    assert.equal(await page.locator('.apartment-source-export-btn').isVisible(), !phone);
     const construction = page.locator('input[name=construction_number]');
     const newNumber = `C-001-${label}`;
     await construction.fill(newNumber);

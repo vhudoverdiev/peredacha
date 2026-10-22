@@ -2152,11 +2152,10 @@
     inset: calc(var(--mobile-physical-app-height, 100dvh) - 72px) 0 auto 0 !important;
   }
 
-  /* The short worker Account and empty Tasks pages expose the same iOS
-     innerHeight gap. Anchor only those states to the physical canvas; task
-     lists with rows remain fixed and retain their normal scroll behaviour. */
+  /* Empty Tasks exposes the iOS innerHeight gap. Account can grow beyond
+     the viewport and must retain the normal fixed dock while scrolling. */
   html.standalone-app
-    body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty)) {
+    body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.worker-page-empty) {
     min-height: var(--mobile-physical-app-height, 100dvh) !important;
     height: var(--mobile-physical-app-height, 100dvh) !important;
     max-height: var(--mobile-physical-app-height, 100dvh) !important;
@@ -2168,7 +2167,7 @@
   }
 
   html.standalone-app
-    body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(:is(.account-page, .worker-page-empty))
+    body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.worker-page-empty)
     > nav.mobile-bottom-nav.mobile-bottom-nav-root {
     position: absolute !important;
     top: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;
@@ -2305,4 +2304,33 @@
   html body.app-body .settings-standalone-layout .settings-card-head > div:last-child {
     min-width: 0;
   }
+}
+
+/* Account is a scrollable document; its navigation must stay viewport-fixed. */
+@media (max-width: 767.98px) {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device)
+    body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page) {
+    height: auto !important; max-height: none !important; min-height: 100dvh !important;
+    overflow-y: auto !important; position: static !important;
+  }
+  html body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
+    :is(.documents-standalone-layout, .documents-content, .crm-mobile-page-shell, .account-page) {
+    height: auto !important; max-height: none !important; overflow: visible !important;
+  }
+  html body.app-body.app-body.app-body:has(.mobile-worker-bottom-nav):has(.account-page)
+    main.documents-content.documents-content {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  html body.app-body.app-body.app-body:has(:is(.account-page, .workflow-page))
+    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    position: fixed !important; inset: auto 0 0 !important; top: auto !important;
+    transform: none !important;
+  }
+  html body.app-body.app-body.app-body:has(.workflow-page) {
+    min-height: 100dvh !important; height: auto !important; max-height: none !important;
+    overflow-y: auto !important;
+  }
+}
+@media (max-width: 767.98px) {
+  html body.app-body .apartment-detail-page :is(.apartment-source-export-btn, .apartment-detail-export-btn) { display: none !important; }
 }
