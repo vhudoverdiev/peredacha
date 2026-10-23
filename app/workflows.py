@@ -370,6 +370,8 @@ def records_call_list_visibility(apartment_id):
     for item in row['apartments']:
         item.call_list_hidden = hidden == '1'
     db.session.commit()
+    if request.accept_mimetypes.best == 'application/json':
+        return jsonify(ok=True, hidden=hidden == '1')
     return redirect(url_for('main.records_call_list'), code=303)
 
 

@@ -2,7 +2,7 @@
 (() => {
   const prefix = 'crm-history-v1:';
   const user = document.body.dataset.navigationUser || '0';
-  const project = document.body.dataset.navigationProject || '0';
+  let project = document.body.dataset.navigationProject || '0';
   const identityKey = prefix + 'user';
   try {
     if (sessionStorage.getItem(identityKey) !== user) {
@@ -11,7 +11,8 @@
     }
   } catch (_) {}
   if (user === '0') return;
-  const scope = `${prefix}${user}:${project}:`;
+  let scope = `${prefix}${user}:${project}:`;
+  const syncProject = () => { project = document.body.dataset.navigationProject || '0'; scope = `${prefix}${user}:${project}:`; };
   const stateKey = 'crmHistoryEntry';
   const newId = () => window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
   const uri = () => location.pathname + location.search;
@@ -36,7 +37,8 @@
       // could otherwise write stale data on the next blur/change.
       if ([element, form].some(node => node && (Array.from(node.attributes).some(attribute => /auto.?save/i.test(attribute.name))
           || /auto.?save/i.test(node.className)))) return [];
-      const formKey = form?.id || `${form?.getAttribute('action') || ''}:${Array.from(document.forms).indexOf(form)}`;
+      const actionKey = node => node ? new URL(node.getAttribute('action') || location.href, location.href).pathname : '';
+      const formKey = form?.id || `${actionKey(form)}:${Array.from(document.forms).filter(node => actionKey(node) === actionKey(form)).indexOf(form)}`;
       const base = `${formKey}:${name}:${type}`;
       const index = counts.get(base) || 0;
       counts.set(base, index + 1);
@@ -75,7 +77,7 @@
     } catch (_) { return null; }
   };
   const restore = () => {
-    if (!pending || pending.url !== uri()) return;
+    if (window.crmPageLoading || !pending || pending.url !== uri()) return;
     restoring = true;
     const fields = new Map(pending.fields.filter(field => typeof field?.key === 'string'
       && (typeof field.value === 'string' || Array.isArray(field.value))).map(field => [field.key, field]));
@@ -106,13 +108,14 @@
     setTimeout(restore, 320);
     setTimeout(() => { if (!document.querySelector('.ajax-pagination-loading')) finishRestore(); }, 400);
   };
-  const finishRestore = () => { if (pending) { restore(); pending = null; } };
+  const finishRestore = () => { if (window.crmPageLoading) return; if (pending) { restore(); pending = null; } };
   history.replaceState = (state, title, url) => {
     originalReplace({ ...state, [stateKey]: entry }, title, url);
     activeUrl = uri();
   };
   history.pushState = (state, title, url) => {
     finishRestore();
+    syncProject();
     entry = newId();
     originalPush({ ...state, [stateKey]: entry }, title, url);
     activeUrl = uri();
@@ -141,6 +144,7 @@
     if (pending) requestAnimationFrame(finishRestore);
     else save();
   });
+  document.addEventListener('crm:navigation-ready', event => { syncProject(); if (event.detail?.restore) queueRestore(); else pending = null; });
   // Capture scroll positions for page/inner-shell scrolling without overwriting
   // a history entry while its partial-navigation response is still arriving.
   let timer;

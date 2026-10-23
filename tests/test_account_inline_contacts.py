@@ -169,6 +169,23 @@ class AccountAutosaveContactsTests(unittest.TestCase):
         self.assertIn("<dt>Роль</dt>", html)
         self.assertIn("Разработчик", html)
 
+    def test_password_change_keeps_this_remember_cookie_and_revokes_others(self):
+        from flask import g
+        def request(client,method,url,**kwargs):
+            g.pop('_login_user',None)
+            return getattr(client,method)(url,**kwargs)
+        request(self.client,'post','/logout')
+        request(self.client,'post','/login',data={'username':self.user.username,'password':'Strong-test-password-2026!','remember':'y'})
+        other=self.app.test_client()
+        request(other,'post','/login',data={'username':self.user.username,'password':'Strong-test-password-2026!','remember':'y'})
+        response=request(self.client,'post','/account/password',data={'current_password':'Strong-test-password-2026!','new_password':'Another-strong-password-2026!','confirm_password':'Another-strong-password-2026!'})
+        self.assertEqual(response.status_code,302)
+        self.assertEqual(request(self.client,'get','/account').status_code,200)
+        self.client.delete_cookie('session')
+        self.assertEqual(request(self.client,'get','/account').status_code,200)
+        other.delete_cookie('session')
+        self.assertIn(request(other,'get','/account').status_code,(302,303,401))
+
     def test_account_password_change_updates_current_user_password(self):
         response = self.client.post(
             "/account/password",
@@ -184,6 +201,11 @@ class AccountAutosaveContactsTests(unittest.TestCase):
         updated = db.session.get(User, self.user.id)
         self.assertFalse(updated.check_password("Strong-test-password-2026!"))
         self.assertTrue(updated.check_password("Another-strong-password-2026!"))
+        self.assertEqual(self.client.get('/account').status_code,200)
+        with self.client.session_transaction() as session:
+            self.assertEqual(session['session_version'],updated.session_version)
+            self.assertEqual(session['_user_id'],updated.get_auth_id())
+
 
 
 if __name__ == "__main__":

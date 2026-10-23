@@ -2708,6 +2708,7 @@ def dashboard_stats(
         "missing": Task.query.filter(Task.project_id == project_id, Task.is_missing_in_latest_sync.is_(True)).count() if project_id else Task.query.filter(Task.is_missing_in_latest_sync.is_(True)).count(),
         "percent": round((done / total_tasks * 100), 1) if total_tasks else 0,
         "accepted": accepted,
+        "accepted_apartment_count": accepted_with_remarks_by_type["apartment"] + accepted_no_remarks_by_type["apartment"],
         "accepted_with_remarks": accepted_with_remarks,
         "accepted_no_remarks": accepted_no_remarks,
         "accepted_with_remarks_apartment": accepted_with_remarks_by_type["apartment"],

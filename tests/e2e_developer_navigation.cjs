@@ -50,7 +50,7 @@ const { chromium } = require('playwright');
       await page.goto(`${base}/site-errors`);
       await page.locator('.developer-section-tabs a').filter({hasText:'Обновления'}).click();
       await page.waitForURL('**/developer/updates');
-      await page.getByRole('heading',{name:'Новое обновление',exact:true}).waitFor();
+      await page.getByRole('link',{name:'Добавить',exact:true}).waitFor();
       assert.deepEqual(await page.locator('.developer-section-tabs a span').allTextContents(),expected);
       console.log(`${width}px: tab order, positions, active states, AJAX navigation and reload passed`);
       await context.close();

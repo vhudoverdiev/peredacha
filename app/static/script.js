@@ -1,3 +1,4 @@
+(() => {
 try {
   const preparedNavigationUrl = new URL(window.location.href);
   if (preparedNavigationUrl.searchParams.has('_crm_prepared_navigation')) {
@@ -2079,6 +2080,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const navigateWithViewportTransition = href => {
     if (!href) return;
+    if (window.crmNavigate) { void window.crmNavigate(href); return; }
     rememberInstantMobileEntryForNextNavigation(href);
     showViewportTransitionLoader();
     if (requestDesktopFirefoxFrameNavigation(href)) return;
@@ -5341,7 +5343,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ) => {
     const currentRoot = root || document.querySelector('[data-ajax-pagination-page]');
     if (!currentRoot) {
-      if (fallbackToNavigation) window.location.assign(targetUrl.toString());
+      if (fallbackToNavigation) (window.crmNavigate || (href => window.location.assign(href)))(targetUrl.toString());
       return;
     }
     const pageKey = currentRoot.dataset.ajaxPaginationPage || '';
@@ -5358,22 +5360,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const nextContent = nextRoot?.querySelector('[data-ajax-pagination-content]');
       if (!nextRoot || !currentContent || !nextContent) {
         if (fallbackToNavigation) {
-          window.location.assign(targetUrl.toString());
+          (window.crmNavigate || (href => window.location.assign(href)))(targetUrl.toString());
         } else if (typeof showCrmNotice === 'function') {
           showCrmNotice('Не удалось обновить таблицу. Повторите попытку.', 'danger');
         }
         return;
       }
 
-      const itemsSelector = currentContent.dataset.ajaxItemsSelector || '';
-      if (itemsSelector && !isDesktopAjaxTableSearch()) {
-        const availableSlots = currentContent.querySelectorAll(itemsSelector).length;
-        const requiredSlots = nextContent.querySelectorAll(itemsSelector).length;
-        if (requiredSlots > availableSlots) {
-          window.location.assign(targetUrl.toString());
-          return;
-        }
-      }
 
       if (replaceContent) {
         currentContent.replaceChildren(
@@ -9423,3 +9416,5 @@ document.addEventListener('change', event => {
   select.disabled = toggle.checked;
   select.required = !toggle.checked;
 });
+
+})();

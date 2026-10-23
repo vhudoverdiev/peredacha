@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v248-mobile-card-backgrounds';
+const STATIC_CACHE = 'peredacha-static-v251-mounted-shell';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -17,8 +17,9 @@ const STATIC_ASSETS = [
   '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v97-ios-archive-scroll-shell',
   '/static/desktop-only.css?v=v76-objects-three-columns',
-  '/static/script.js?v=v708-remark-library',
-  '/static/navigation-state.js?v=1',
+  '/static/script.js?v=v710-object-navigation',
+  '/static/navigation-state.js?v=4',
+  '/static/page-navigation.js?v=3',
   '/static/form-csrf.js?v=1',
   '/static/remark-suggestions.js?v=8',
   '/static/time-entry.js?v=3',

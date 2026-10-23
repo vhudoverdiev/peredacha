@@ -16,7 +16,7 @@ from sqlalchemy import or_, and_, exists
 from werkzeug.exceptions import HTTPException
 
 from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, send_file, session, url_for, jsonify
-from flask_login import current_user, login_required
+from flask_login import current_user, login_required, login_user
 from sqlalchemy import Integer, case, cast, distinct, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import selectinload
@@ -2170,7 +2170,7 @@ def project_stats(project: Project) -> dict[str, int]:
         "storeroom_count": int(stats.get("storeroom_count") or 0),
         "parking_count": int(stats.get("parking_count") or 0),
         "premises": int(stats.get("apartments") or 0),
-        "transferred": int(stats.get("accepted") or 0),
+        "transferred": int(stats.get("accepted_apartment_count") or 0),
         "not_transferred": int(stats.get("not_accepted") or 0),
         "unsold": int(stats.get("unsold") or 0),
     }
@@ -12268,8 +12268,13 @@ def account_password():
         elif new_password != confirm_password:
             flash("Новый пароль и подтверждение не совпадают.", "warning")
         else:
+            remember_name = current_app.config.get("REMEMBER_COOKIE_NAME", "remember_token")
+            remembered = bool(request.cookies.get(remember_name))
             user.set_password(new_password)
             db.session.commit()
+            # Keep this verified browser signed in; other sessions stay revoked.
+            login_user(user, remember=remembered, fresh=True)
+            session["session_version"] = int(user.session_version or 0)
             flash("Пароль изменён.", "success")
             return redirect(url_for("main.account"))
     return render_template("account_password.html")

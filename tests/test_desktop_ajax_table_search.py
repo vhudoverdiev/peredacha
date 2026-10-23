@@ -45,7 +45,8 @@ class DesktopAjaxTableSearchTests(unittest.TestCase):
         )
         self.assertIn("fallbackToNavigation: !isDesktopAjaxTableSearch()", self.script)
         self.assertIn("fallbackToNavigation: false", self.script)
-        self.assertIn("if (itemsSelector && !isDesktopAjaxTableSearch())", self.script)
+        self.assertNotIn("requiredSlots > availableSlots", self.script)
+        self.assertIn("window.crmNavigate", self.script)
 
     def test_hidden_ajax_spares_cannot_override_hidden_attribute(self):
         selector = "[data-ajax-pagination-spare][hidden]"

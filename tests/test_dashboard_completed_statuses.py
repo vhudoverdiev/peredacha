@@ -186,6 +186,18 @@ class DashboardCompletedStatusesTests(unittest.TestCase):
         self.assertNotIn("dashboardRoadmapModal", html)
         self.assertNotIn("dashboard-roadmap-mini-card", html)
 
+    def test_accepted_apartment_count_excludes_other_premises(self):
+        self.apartment.is_app_mode=True
+        for premise_type in ('storeroom','parking','commercial'):
+            db.session.add(Apartment(project=self.project,apartment_number=f'{premise_type}-1',premise_type=premise_type,is_app_mode=True))
+        db.session.add(Apartment(project=self.project,apartment_number='2',premise_type='apartment',is_app_mode=True,app_deadline_status=APP_DEADLINE_NO_REMARKS))
+        db.session.commit()
+        stats=dashboard_stats(self.project.id)
+        self.assertEqual(stats['accepted_apartment_count'],2)
+        self.assertGreater(stats['accepted'],2)
+        from app.routes import project_stats
+        self.assertEqual(project_stats(self.project)['transferred'],2)
+
     def test_dashboard_shows_unaccepted_storerooms_separately_from_unsold_ones(self):
         self.project.has_storerooms = True
         accepted = Apartment(

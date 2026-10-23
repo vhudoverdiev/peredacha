@@ -950,7 +950,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v248-mobile-card-backgrounds', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v251-mounted-shell', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1012,6 +1012,8 @@
   {% if current_user.is_authenticated %}<link rel="stylesheet" href="{{ url_for('static',filename='developer-news.css') }}?v=8">{% endif %}
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-navigation-user="{{ current_user.id if current_user.is_authenticated else 0 }}" data-navigation-project="{{ current_project.id if current_project else 0 }}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
+<script src="{{ url_for('static', filename='navigation-state.js') }}?v=4"></script>
+<script src="{{ url_for('static', filename='page-navigation.js') }}?v=3"></script>
 <div class="crm-offline-banner js-crm-offline-banner" hidden>Не удается обновить. Показана сохраненная версия.</div>
 <div class="mobile-standalone-boot-screen" aria-hidden="true">
   <div class="mobile-standalone-boot-screen__orbit" aria-hidden="true">
@@ -1603,9 +1605,8 @@
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
   <script src="{{ url_for('static', filename='developer-news.js') }}?v=2"></script>
   <script src="{{ url_for('static', filename='time-entry.js') }}?v=3"></script>
-  <script src="{{ url_for('static', filename='navigation-state.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='form-csrf.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='remark-suggestions.js') }}?v=8"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v708-remark-library"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v710-object-navigation"></script>
 </body>
 </html>

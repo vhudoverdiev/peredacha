@@ -51,6 +51,13 @@ class InspectionCallListTests(unittest.TestCase):
         self.assertEqual(response.status_code, 303)
         self.assertIn(f'id="call-list-{self.apartment.id}"', self.client.get('/records/call-list').text)
 
+    def test_visibility_json_does_not_redirect(self):
+        self.invited()
+        response=self.client.post(f'/records/call-list/{self.apartment.id}/visibility',data={'hidden':'1'},headers={'Accept':'application/json'})
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.json,{'ok':True,'hidden':True})
+        db.session.refresh(self.apartment);self.assertTrue(self.apartment.call_list_hidden)
+
     def test_mobile_can_open_call_list_and_booking_settings(self):
         self.invited()
         headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148 Safari/604.1'}
