@@ -60005,12 +60005,18 @@ html body.app-body .worker-page .worker-task-card-minimal.done .worker-task-text
 @media(max-width:767.98px){
  html:is(.mobile-viewport,.adaptive-mobile-viewport,.touch-app-device) body.app-body.app-body:has(.dev-news-archive) .app-main {padding-top:0!important;justify-content:flex-start!important;}
 }
-/* The archive shell already includes the fixed header inset in its border box. */
+/* Use the shared dock clearance; flex allocates the header inset only once. */
 @media(max-width:767.98px){
  html:is(.mobile-viewport,.adaptive-mobile-viewport,.touch-app-device) body.app-body.app-body.app-body:has(.dev-news-archive) .app-layout {
-  min-height:100dvh!important;height:auto!important;box-sizing:border-box;
+  display:flex!important;flex-direction:column!important;
+  min-height:calc(var(--mobile-layout-height,100dvh) - 72px)!important;height:auto!important;box-sizing:border-box;
  }
  html:is(.mobile-viewport,.adaptive-mobile-viewport,.touch-app-device) body.app-body.app-body.app-body:has(.dev-news-archive) .app-main {
-  min-height:0!important;height:auto!important;
+  flex:1 0 auto!important;min-height:0!important;height:auto!important;
+ }
+}
+@media(max-width:767.98px){
+ html:is(.mobile-viewport,.adaptive-mobile-viewport,.touch-app-device) body.app-body.app-body.app-body:has(.dev-news-archive) {
+  min-height:100dvh!important;height:auto!important;background:#f6f8fb!important;background-color:#f6f8fb!important;
  }
 }
