@@ -1,6 +1,8 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const { webkit } = require('playwright');
+const {execFileSync}=require('node:child_process');
+function seedArchive(body){execFileSync(path.resolve('venv/bin/python'),['-c',`import sqlite3,sys\nc=sqlite3.connect('_codex_chat_files/qa.sqlite');c.execute('delete from developer_updates')\nif sys.argv[1]:c.executemany("insert into developer_updates(title,body,published_at,created_at,updated_at) values(?,?,'2026-10-23 10:00:00','2026-10-23 10:00:00','2026-10-23 10:00:00')", [('Обновление CRM',sys.argv[1])]*2)\nc.commit()`,body]);}
 const base = process.env.E2E_VISUAL_BASE_URL || 'http://127.0.0.1:5098';
 (async () => {
   const browser = await webkit.launch();
@@ -26,7 +28,8 @@ const base = process.env.E2E_VISUAL_BASE_URL || 'http://127.0.0.1:5098';
           await page.setViewportSize({ width: 440, height });
           await page.goto(base + '/tasks');
           const reference = await page.locator('.mobile-bottom-nav').boundingBox();
-          for (const [route, name] of [['/records?date=2080-01-01', 'records'], ['/appeals?q=__no_matches__', 'appeals-empty'], ['/appeals/new', 'appeal-form']]) {
+          for (const [route, name] of [['/records?date=2080-01-01', 'records'], ['/appeals?q=__no_matches__', 'appeals-empty'], ['/appeals/new', 'appeal-form'], ['/updates', 'archive-empty'], ['/updates', 'archive-filled'], ['/updates', 'archive-long']]) {
+            if(name.startsWith('archive-'))seedArchive(name==='archive-empty'?'':name==='archive-filled'?'Улучшена стабильность CRM.':Array(100).fill('Подробное описание обновлений CRM.').join('\n'));
             await page.goto(base + route);
             if (standalone) await page.waitForFunction(() => parseFloat(document.documentElement.style.getPropertyValue('--mobile-physical-app-height')) === 956);
             const dock = page.locator('.mobile-bottom-nav');
@@ -39,11 +42,11 @@ const base = process.env.E2E_VISUAL_BASE_URL || 'http://127.0.0.1:5098';
             if (standalone) {
               const content = page.locator('.app-content');
               const box = await content.boundingBox();
-              assert.ok((await page.locator('.workflow-page').boundingBox()).x >= 12);
+              assert.ok((await page.locator('.workflow-page, .dev-news-archive').boundingBox()).x >= 12);
               assert.ok(Math.abs(box.y + box.height - geometry.y) < 2, JSON.stringify({ box, geometry }));
               await content.evaluate(element => { element.scrollTop = element.scrollHeight; });
               assert.deepEqual(await dock.boundingBox(), geometry);
-              const last = await page.locator('.workflow-page').evaluate(element => element.getBoundingClientRect().bottom);
+              const last = await page.locator('.workflow-page, .dev-news-archive').evaluate(element => element.getBoundingClientRect().bottom);
               assert.ok(last <= geometry.y, JSON.stringify({ last, geometry }));
               assert.equal(await page.evaluate(() => window.scrollY || document.body.scrollTop), 0);
             } else {

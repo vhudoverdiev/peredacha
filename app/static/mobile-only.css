@@ -2335,26 +2335,26 @@
 /* iOS clips fixed elements to its shorter layout viewport on these pages.
    Keep one stationary app canvas and scroll only the content between bars. */
 @media (max-width:767.98px) {
-  html.standalone-app.ios-standalone-bottom-chrome:has(.workflow-page),
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(.workflow-page) {
+  html.standalone-app.ios-standalone-bottom-chrome:has(:is(.workflow-page, .dev-news-archive)),
+  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(:is(.workflow-page, .dev-news-archive)) {
     min-height:var(--mobile-physical-app-height, 100dvh) !important;
     height:var(--mobile-physical-app-height, 100dvh) !important;
     max-height:var(--mobile-physical-app-height, 100dvh) !important;
     overflow:hidden !important;
   }
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(.workflow-page) {
+  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(:is(.workflow-page, .dev-news-archive)) {
     position:relative !important;
   }
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(.workflow-page)
+  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(:is(.workflow-page, .dev-news-archive))
     > nav.mobile-bottom-nav.mobile-bottom-nav-root {
     position:absolute !important;
     inset:auto 0 0 !important;
     top:auto !important; bottom:0 !important;
   }
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(.workflow-page) :is(.app-layout, .app-main) {
+  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(:is(.workflow-page, .dev-news-archive)) :is(.app-layout, .app-main) {
     position:static !important;
   }
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(.workflow-page) .app-content {
+  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(:is(.workflow-page, .dev-news-archive)) .app-content {
     position:absolute !important;
     inset:var(--ref-mobile-topbar-height, 3.82rem) 0 72px !important;
     min-height:0 !important; height:auto !important; max-height:none !important;

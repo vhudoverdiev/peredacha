@@ -470,6 +470,7 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         self.assertIn("position:absolute !important;", rules)
         self.assertIn("inset:var(--ref-mobile-topbar-height, 3.82rem) 0 72px !important;", rules)
         self.assertIn("overflow-y:auto !important;", rules)
+        self.assertIn(":has(:is(.workflow-page, .dev-news-archive))", rules)
 
     def test_objects_page_keeps_the_shared_fixed_bottom_dock(self):
         body_selector = "body.app-body.app-body.app-body:has(.objects-page) {"

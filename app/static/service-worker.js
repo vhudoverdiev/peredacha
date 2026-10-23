@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v245-archive-dock';
+const STATIC_CACHE = 'peredacha-static-v247-mobile-neutral-cards';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,9 +13,9 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v725-archive-dock',
+  '/static/style.css?v=v726-mobile-neutral-cards',
   '/static/workflows.css?v=31-named-point-sync-final',
-  '/static/mobile-only.css?v=v96-ios-workflow-scroll-shell',
+  '/static/mobile-only.css?v=v97-ios-archive-scroll-shell',
   '/static/desktop-only.css?v=v76-objects-three-columns',
   '/static/script.js?v=v708-remark-library',
   '/static/navigation-state.js?v=1',

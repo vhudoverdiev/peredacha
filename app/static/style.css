@@ -50601,7 +50601,7 @@ body.auth-body .auth-shell .auth-footer .auth-footer-line-main {
     box-shadow: 0 14px 26px rgba(31, 45, 61, .06) !important;
   }
 
-  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign) .dashboard-focus-primary {
+  html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.dashboard-page.dashboard-redesign) :is(.dashboard-focus-primary, .dashboard-redesign-hero, .dashboard-progress-panel, .workflow-mobile-shortcuts .mobile-section-shortcut) {
     background:
       radial-gradient(circle at top right, rgba(141, 214, 44, .06), transparent 32%),
       linear-gradient(180deg, rgba(255, 255, 255, .995), rgba(244, 248, 251, .985)) !important;
