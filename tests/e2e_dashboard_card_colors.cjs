@@ -12,6 +12,7 @@ const base='http://127.0.0.1:5098';
    const target=page.locator(selector);assert.deepEqual(await target.evaluate(surface),expected,selector);
    if(selector.includes('shortcuts')){await target.focus();assert.deepEqual(await target.evaluate(surface),expected);await target.hover();assert.deepEqual(await target.evaluate(surface),expected);}
   }
+  for(const card of await page.locator('.dashboard-focus-card,.dashboard-info-card,.dashboard-specialist-card').all())assert.deepEqual(await card.evaluate(surface),expected,'All dashboard card backgrounds must match Tasks');
   assert.ok((await page.getByRole('link',{name:/Обращения/}).first().getAttribute('href')).startsWith('/appeals'));
   assert.ok((await page.getByRole('link',{name:/Записи/}).first().getAttribute('href')).startsWith('/records'));
  }else assert.equal(await page.locator('.workflow-mobile-shortcuts').isVisible(),false);
