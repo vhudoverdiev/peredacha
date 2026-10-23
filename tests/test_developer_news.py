@@ -64,6 +64,12 @@ class DeveloperNewsTests(unittest.TestCase):
         update.published_at=datetime(2026,10,22,22);db.session.commit()
         self.assertIn('23.10.2026',self.client.get('/').text)
 
+    def test_publication_shows_date_without_time(self):
+        self.login(self.manager);self.update()
+        archive=self.client.get('/updates').text
+        self.assertIn('23.10.2026',archive)
+        self.assertNotIn('11:00',archive)
+
     def test_drafts_and_withdrawn_updates_are_not_public(self):
         self.login(self.manager);self.update('SECRET_DRAFT',False)
         update=self.update('SECRET_WITHDRAWN');update.withdrawn_at=datetime(2026,10,23,9);db.session.commit()

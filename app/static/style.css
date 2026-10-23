@@ -59985,3 +59985,23 @@ html body.app-body .worker-page .worker-task-card-minimal.done .worker-task-text
     outline: 2px solid #528823 !important; outline-offset: -2px;
   }
 }
+
+/* Stable mobile layout for release history, second-factor actions and specialists. */
+.dashboard-specialists-heading {font-size:20px;line-height:1.4;font-weight:700;margin:4px 0 0;color:#111827;}
+@media(max-width:767.98px){
+ html body.app-body .app-content:has(.dev-news-archive) {display:block!important;align-content:start!important;justify-content:flex-start!important;}
+ html body.app-body .dev-news-archive {align-self:start!important;margin-top:0!important;}
+ html body.app-body .dev-news-archive .page-head {display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;margin-top:0!important;}
+ html body.app-body .dev-news-archive .page-head>.btn {align-self:flex-start!important;width:auto!important;}
+ html body.auth-body .login-2fa-wrap .login-captcha-actions .login-submit {order:0!important;grid-row:1!important;}
+ html body.auth-body .login-2fa-wrap .login-captcha-actions>a {order:1!important;grid-row:2!important;}
+ html body.app-body .dashboard-page.dashboard-redesign .dashboard-specialists-heading {display:block!important;font-size:18px;margin:8px 0 0;}
+ html body.app-body .dashboard-page.dashboard-redesign .dashboard-specialists-grid {display:grid!important;}
+}
+@media(max-width:767.98px){
+ html body.app-body .dev-news-archive .page-head>div {display:none!important;}
+ html body.app-body .dev-news-archive .page-head {padding-top:0!important;min-height:0!important;}
+}
+@media(max-width:767.98px){
+ html:is(.mobile-viewport,.adaptive-mobile-viewport,.touch-app-device) body.app-body.app-body:has(.dev-news-archive) .app-main {padding-top:0!important;justify-content:flex-start!important;}
+}

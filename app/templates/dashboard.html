@@ -213,7 +213,7 @@
     </article>
 
   </div>
-  <div class="dashboard-section dashboard-section-redesign">Статистика по специалистам</div>
+  <h2 class="dashboard-specialists-heading">По специалистам</h2>
   <div class="dashboard-specialists-grid">
     {% for row in categories %}
     {% set percent = (row.done / row.total * 100) if row.total else 0 %}

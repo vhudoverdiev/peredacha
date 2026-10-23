@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v241-personal-highlight';
+const STATIC_CACHE = 'peredacha-static-v243-network-mobile-final';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,21 +13,20 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v721-developer-select',
+  '/static/style.css?v=v723-mobile-final',
   '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v96-ios-workflow-scroll-shell',
   '/static/desktop-only.css?v=v76-objects-three-columns',
   '/static/script.js?v=v708-remark-library',
   '/static/navigation-state.js?v=1',
   '/static/form-csrf.js?v=1',
-  '/static/remark-suggestions.js?v=6',
+  '/static/remark-suggestions.js?v=8',
   '/static/time-entry.js?v=3',
   '/static/remark-suggestions.css?v=3',
   '/static/developer-news.css?v=8',
   '/static/developer-news.js?v=2',
 ];
 
-const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;
 const STATIC_NETWORK_TIMEOUT_MS = 6000;
 
 const MOBILE_OFFLINE_HTML = `<!doctype html>
@@ -176,7 +175,7 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
         }
 
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 3000);
+        const timeout = setTimeout(() => controller.abort(), 30000);
 
         try {
           const probeUrl = new URL(location.href);
@@ -203,7 +202,10 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
           location.replace(targetUrl.toString());
         } catch (error) {
           if (description) {
-            description.textContent = 'Соединение пока не восстановлено. Проверьте сеть и попробуйте снова.';
+            description.textContent = navigator.onLine === false
+              ? 'Соединение пока не восстановлено. Проверьте сеть и попробуйте снова.'
+              : 'Сервер пока не отвечает. Попробуйте ещё раз позже.';
+            document.querySelector('.offline-card h2').textContent = navigator.onLine === false ? 'Нет интернета' : 'Сервер временно недоступен';
           }
           showCard();
           restoreRetryButton();
@@ -248,7 +250,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // File generation must not use the three-second HTML/offline fallback.
+  // File generation must bypass HTML navigation fallbacks.
   if (/\/(?:export|download)(?:\/|$)/.test(url.pathname)) return;
 
   if (request.mode === 'navigate') {
@@ -296,14 +298,19 @@ async function fetchWithTimeout(request, timeoutMs) {
 
 async function navigationNetworkFirst(request) {
   try {
-    return await fetchWithTimeout(request, NAVIGATION_NETWORK_TIMEOUT_MS);
+    return await fetch(request);
   } catch (error) {
-    return new Response(MOBILE_OFFLINE_HTML, {
+    const offline = self.navigator.onLine === false;
+    const html = offline ? MOBILE_OFFLINE_HTML : MOBILE_OFFLINE_HTML
+      .replace('Передача — нет интернета', 'Передача — сервер недоступен')
+      .replace('<h2>Нет интернета</h2>', '<h2>Сервер временно недоступен</h2>')
+      .replace('Проверьте подключение к сети и попробуйте открыть приложение ещё раз.', 'Не удалось получить ответ сервера. Попробуйте открыть страницу позже.');
+    return new Response(html, {
       status: 503,
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-store',
-        'X-CRM-Mobile-Offline': '1',
+        'X-CRM-Mobile-Offline': offline ? '1' : '0',
       },
     });
   }

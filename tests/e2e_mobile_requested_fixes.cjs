@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),path=require('node:path'),{execFileSync}=require('node:child_process');
+const {chromium,webkit}=require('playwright');const base='http://127.0.0.1:5098';
+(async()=>{for(const [engine,width] of [['chromium',1440],['chromium',1024],['webkit',440]]){
+ const browser=await(engine==='webkit'?webkit.launch():chromium.launch({executablePath:process.env.E2E_VISUAL_BROWSER_EXECUTABLE}));
+ try{const context=await browser.newContext({viewport:{width,height:956},serviceWorkers:'block',isMobile:engine==='webkit',hasTouch:engine==='webkit',...(engine==='webkit'?{userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1'}:{})});const page=await context.newPage();
+ await page.goto(base+'/login');await page.fill('[name=username]','e2e-admin');await page.fill('[name=password]','E2E-visual-password-2026!');await page.locator('.login-submit').click();await page.waitForURL(u=>!u.pathname.startsWith('/login'));
+ await page.goto(base+'/');const heading=page.getByRole('heading',{name:'По специалистам',exact:true});await heading.scrollIntoViewIfNeeded();assert.ok(await heading.isVisible());assert.ok(await page.locator('.dashboard-specialists-grid').isVisible());assert.ok(await page.locator('.dashboard-specialist-card').first().isVisible());await page.screenshot({path:path.resolve(`_codex_chat_files/specialists-${engine}-${width}.png`)});
+ await page.goto(base+'/updates');const back=page.getByRole('link',{name:'На главную',exact:true});await back.waitFor();if(width===440){const box=await back.boundingBox();assert.ok(box.y<150,JSON.stringify(box));assert.ok(box.x<60,JSON.stringify(box));}
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:path.resolve(`_codex_chat_files/updates-top-${engine}-${width}.png`)});
+ // Signed session and 2FA fixture only in the disposable local test database.
+ const cookie=execFileSync(path.resolve('venv/bin/python'),['-c',`import sqlite3\nfrom flask import Flask\nfrom flask.sessions import SecureCookieSessionInterface\nc=sqlite3.connect('_codex_chat_files/qa.sqlite');c.execute("update users set two_factor_enabled=1,two_factor_secret='JBSWY3DPEHPK3PXP' where username='e2e-developer'");c.commit();uid=c.execute("select id from users where username='e2e-developer'").fetchone()[0]\na=Flask(__name__);a.secret_key='e2e-visual-secret-key';print(SecureCookieSessionInterface().get_signing_serializer(a).dumps({'pending_login_user_id':uid,'pending_login_2fa':True}))`],{encoding:'utf8'}).trim();
+ await context.clearCookies();await context.addCookies([{name:'session',value:cookie,url:base}]);await page.goto(base+'/login/2fa');await page.locator('[name=two_factor_code]').waitFor();
+ if(width===440){const submit=await page.locator('.login-submit').boundingBox(),cancel=await page.getByRole('link',{name:'Назад',exact:true}).boundingBox();assert.ok(submit.y+submit.height<=cancel.y+1,JSON.stringify({submit,cancel}));}
+ await page.screenshot({path:path.resolve(`_codex_chat_files/2fa-order-${engine}-${width}.png`)});console.log(`PASS specialist heading, archive top/back alignment, 2FA actions ${engine} ${width}`);
+ }finally{await browser.close();}
+}})().catch(e=>{console.error(e);process.exitCode=1;});

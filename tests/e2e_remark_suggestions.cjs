@@ -64,6 +64,7 @@ const base = process.env.E2E_VISUAL_BASE_URL || 'http://127.0.0.1:5098';
       const afterAct=await geometry(field);
       for(const key of Object.keys(beforeAct))assert.ok(Math.abs(beforeAct[key]-afterAct[key])<2,key);
       const overlayBox=await list.boundingBox(),fieldBox=await field.boundingBox();
+      assert.ok(overlayBox.y>=fieldBox.y+fieldBox.height,'Suggestions must open below the textarea');
       assert.ok(overlayBox.y>=0&&overlayBox.y+overlayBox.height<=956+1);
       assert.ok(Math.abs(overlayBox.x-fieldBox.x)<2);
       assert.equal(await list.evaluate(el=>el.contains(document.elementFromPoint(el.getBoundingClientRect().x+10,el.getBoundingClientRect().y+10))),true);

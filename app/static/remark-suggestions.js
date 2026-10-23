@@ -24,18 +24,20 @@
         list.hidden = true; active = -1;
         field.setAttribute('aria-expanded', 'false'); field.removeAttribute('aria-activedescendant');
       };
-      const position = () => {
+      const position = (reveal = false) => {
         if (list.hidden) return;
-        const rect = field.getBoundingClientRect();
+        let rect = field.getBoundingClientRect();
         const viewportHeight = window.visualViewport?.height || innerHeight;
         const viewportWidth = document.documentElement.clientWidth;
-        const below = viewportHeight - rect.bottom - 10, above = rect.top - 10;
-        if (rect.bottom < 0 || rect.top > viewportHeight || Math.max(below, above) < 48) { close(); return; }
-        const down = below >= Math.min(250, above);
-        const available = Math.min(250, down ? below : above);
+        if (reveal && viewportHeight - rect.bottom < 106) {
+          field.scrollIntoView({block:'center',behavior:'instant'});
+          rect = field.getBoundingClientRect();
+        }
+        const below = viewportHeight - rect.bottom - 10;
+        if (rect.bottom < 0 || rect.top > viewportHeight || below < 48) { close(); return; }
         Object.assign(list.style, { left: `${Math.max(8, Math.min(rect.left, viewportWidth - Math.min(rect.width, viewportWidth - 16) - 8))}px`,
-          width: `${Math.min(rect.width, viewportWidth - 16)}px`, maxHeight: `${available}px` });
-        list.style.top = `${down ? rect.bottom + 6 : Math.max(8, rect.top - list.getBoundingClientRect().height - 6)}px`;
+          width: `${Math.min(rect.width, viewportWidth - 16)}px`, maxHeight: `${Math.min(250, below)}px`,
+          top: `${rect.bottom + 6}px` });
       };
       const onScroll = event => { if (!list.contains(event.target)) position(); };
       const onResize = () => close();
@@ -92,7 +94,7 @@
         });
         list.hidden = !values.length; field.setAttribute('aria-expanded', String(!!values.length));
         status.textContent = '';
-        position();
+        position(true);
       };
       field.addEventListener('input', event => {
         if (event.isComposing) return;

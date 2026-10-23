@@ -950,7 +950,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v241-personal-highlight', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v243-network-mobile-final', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -991,7 +991,7 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v721-developer-select">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v723-mobile-final">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v96-ios-workflow-scroll-shell">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v76-objects-three-columns">
   <script>
@@ -1605,7 +1605,7 @@
   <script src="{{ url_for('static', filename='time-entry.js') }}?v=3"></script>
   <script src="{{ url_for('static', filename='navigation-state.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='form-csrf.js') }}?v=1"></script>
-  <script src="{{ url_for('static', filename='remark-suggestions.js') }}?v=6"></script>
+  <script src="{{ url_for('static', filename='remark-suggestions.js') }}?v=8"></script>
   <script src="{{ url_for('static', filename='script.js') }}?v=v708-remark-library"></script>
 </body>
 </html>

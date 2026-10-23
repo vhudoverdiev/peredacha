@@ -22,8 +22,8 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         bypass = handler.index("if (/\\/(?:export|download)(?:\\/|$)/.test(url.pathname)) return;")
         self.assertLess(bypass, handler.index("if (request.mode === 'navigate')"))
 
-    def test_navigation_has_a_bounded_network_wait(self):
-        self.assertIn("const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;", self.worker)
+    def test_navigation_does_not_abort_a_slow_server(self):
+        self.assertNotIn("const NAVIGATION_NETWORK_TIMEOUT_MS", self.worker)
         navigation_start = self.worker.index(
             "async function navigationNetworkFirst(request)"
         )
@@ -33,11 +33,11 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         navigation = self.worker[navigation_start:navigation_end]
 
         self.assertIn(
-            "fetchWithTimeout(request, NAVIGATION_NETWORK_TIMEOUT_MS)",
+            "await fetch(request)",
             navigation,
         )
         self.assertIn("MOBILE_OFFLINE_HTML", navigation)
-        self.assertIn("'X-CRM-Mobile-Offline': '1'", navigation)
+        self.assertIn("'X-CRM-Mobile-Offline': offline ? '1' : '0'", navigation)
 
     def test_timeout_aborts_the_stalled_request_and_cleans_up(self):
         helper_start = self.worker.index(
@@ -53,7 +53,7 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         self.assertIn("fetch(request, { signal: controller.signal })", helper)
         self.assertIn("clearTimeout(timeoutId)", helper)
 
-    def test_stalled_lte_is_detected_by_real_request_not_browser_online_flag(self):
+    def test_failed_navigation_distinguishes_server_failure_from_offline(self):
         navigation_start = self.worker.index(
             "async function navigationNetworkFirst(request)"
         )
@@ -62,12 +62,12 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         )
         navigation = self.worker[navigation_start:navigation_end]
 
-        self.assertNotIn("navigator.onLine", self.worker)
+        self.assertIn("self.navigator.onLine === false", navigation)
         self.assertIn(
-            "fetchWithTimeout(request, NAVIGATION_NETWORK_TIMEOUT_MS)",
+            "await fetch(request)",
             navigation,
         )
-        self.assertIn("const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;", self.worker)
+        self.assertNotIn("const NAVIGATION_NETWORK_TIMEOUT_MS", self.worker)
 
     def test_homescreen_launch_returns_the_logo_shell_without_waiting_for_network(self):
         fetch_start = self.worker.index("self.addEventListener('fetch'")
@@ -160,9 +160,9 @@ class ServiceWorkerWeakNetworkTests(unittest.TestCase):
         self.assertGreater(retry.rindex("showLogo();"), retry.index("if (!response.ok)"))
         self.assertNotIn("showLoader();", retry)
 
-    def test_retry_uses_the_same_three_second_network_timeout(self):
+    def test_retry_allows_a_slow_server_thirty_seconds(self):
         self.assertIn(
-            "setTimeout(() => controller.abort(), 3000)",
+            "setTimeout(() => controller.abort(), 30000)",
             self.worker,
         )
 

@@ -69,7 +69,7 @@
 <h2>Публикации и черновики</h2>
 {% for update in updates.items %}<article class="card content-card dev-news-history-item">
 <div class="dev-news-item-head"><h3>{{ update.title }}</h3><div class="dev-news-item-tools"><span class="dev-news-state">{{ 'Скрыто' if update.withdrawn_at else ('Опубликовано' if update.published_at else 'Черновик') }}</span>{{ delete_button(url_for('main.developer_update_delete',update_id=update.id), 'Удалить обновление') }}</div></div>
-{% if update.published_at %}<time>{{ update.published_at|ru_datetime }}</time>{% endif %}
+{% if update.published_at %}<time>{{ update.published_at|msk_datetime('%d.%m.%Y') }}</time>{% endif %}
 <p>{{ update.body }}</p>
 <div class="dev-news-actions"><a class="btn btn-outline-secondary" href="{{ url_for('main.developer_update_edit',update_id=update.id) }}">Редактировать</a>
 {% if update.published_at and not update.withdrawn_at %}<form method="post" action="{{ url_for('main.developer_update_withdraw',update_id=update.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-outline-secondary">Снять с публикации</button></form>{% endif %}</div>
