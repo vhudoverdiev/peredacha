@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v243-network-mobile-final';
+const STATIC_CACHE = 'peredacha-static-v244-archive-scroll';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,7 +13,7 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v723-mobile-final',
+  '/static/style.css?v=v724-archive-scroll',
   '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v96-ios-workflow-scroll-shell',
   '/static/desktop-only.css?v=v76-objects-three-columns',

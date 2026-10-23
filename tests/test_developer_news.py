@@ -158,6 +158,30 @@ class DeveloperNewsTests(unittest.TestCase):
         self.assertEqual(DeveloperPersonalMessage.query.count(),0)
         self.assertNotIn(message.title,self.client.get('/updates/card').json['html'])
 
+    def test_edit_actions_only_save_and_cancel(self):
+        from html.parser import HTMLParser
+        class Actions(HTMLParser):
+            def __init__(self):
+                super().__init__();self.values=[]
+            def handle_starttag(self,tag,attrs):
+                attrs=dict(attrs)
+                if tag=='button' and attrs.get('name')=='action':self.values.append(attrs.get('value'))
+        self.admin();update=self.update()
+        page=self.client.get(f'/developer/updates/{update.id}/edit')
+        self.assertEqual(page.status_code,200)
+        self.assertIn('>Сохранить</button>',page.text)
+        self.assertIn('>Отмена</a>',page.text)
+        self.assertNotIn('Сохранить и опубликовать',page.text)
+        self.assertNotIn('Сохранить без публикации',page.text)
+        self.assertNotIn('Сохранить черновик',page.text)
+        actions=Actions();actions.feed(page.text);self.assertEqual(actions.values,['publish'])
+        published_at=update.published_at
+        response=self.client.post(f'/developer/updates/{update.id}/edit',data={'title':'Изменено','body':'Исправленный текст','action':'publish'})
+        self.assertEqual(response.status_code,303)
+        db.session.refresh(update)
+        self.assertEqual(update.title,'Изменено');self.assertEqual(update.body,'Исправленный текст')
+        self.assertEqual(update.published_at,published_at)
+
     def test_editor_lifecycle_plain_text_and_public_pagination(self):
         self.admin()
         response=self.client.post('/developer/updates',data={'title':'Новая функция','body':'<script>alert(1)</script>','action':'draft'})

@@ -48,7 +48,7 @@
 <label>Единица времени<select class="form-select" name="duration_unit"><option value="1" {% if request.form.get('duration_unit')=='1' %}selected{% endif %}>Минуты</option><option value="60" {% if request.form.get('duration_unit','60')=='60' %}selected{% endif %}>Часы</option><option value="1440" {% if request.form.get('duration_unit')=='1440' %}selected{% endif %}>Дни</option></select></label></div>
 <button class="btn btn-primary" type="submit">Отправить пользователю</button>
 {% else %}
-<div class="dev-news-actions"><button class="btn btn-primary" type="submit" name="action" value="publish">{{ 'Сохранить и опубликовать' if edit else 'Опубликовать всем' }}</button><button class="btn btn-outline-secondary" type="submit" name="action" value="draft">{{ 'Сохранить без публикации' if edit else 'Сохранить черновик' }}</button>{% if edit %}<a class="btn btn-outline-secondary" href="{{ url_for('main.developer_updates') }}">Отмена</a>{% endif %}</div>
+<div class="dev-news-actions"><button class="btn btn-primary" type="submit" name="action" value="publish">{{ 'Сохранить' if edit else 'Опубликовать всем' }}</button>{% if not edit %}<button class="btn btn-outline-secondary" type="submit" name="action" value="draft">Сохранить черновик</button>{% endif %}{% if edit %}<a class="btn btn-outline-secondary" href="{{ url_for('main.developer_updates') }}">Отмена</a>{% endif %}</div>
 {% endif %}
 </form>
 </section>
