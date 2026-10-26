@@ -122,6 +122,7 @@ from app.services.task_service import (
     MAIN_WORK_POINT_NUMBERS,
     VISIBLE_WORK_POINT_NUMBERS,
     build_task_query,
+    construction_entrance,
     category_stats,
     change_task_status,
     dashboard_stats,
@@ -3659,6 +3660,11 @@ def _contractor_response_status(project_id: int, contractor_id: int) -> str:
 def _filter_tasks_for_contractor(query, contractor: Contractor | None):
     if contractor is None:
         return query
+    if contractor.point_apartments_json is not None:
+        scopes = json.loads(contractor.point_apartments_json)
+        clauses = [and_(Task.work_point_id == int(point_id), Task.apartment_id.in_(ids))
+                   for point_id, ids in scopes.items() if ids]
+        return query.filter(or_(*clauses)) if clauses else query.filter(False)
     work_point_ids = [point.id for point in contractor.work_points]
     apartment_ids = [apartment.id for apartment in contractor.apartments]
     if not work_point_ids or not apartment_ids:
@@ -3872,7 +3878,9 @@ def _contractor_form_response(contractor: Contractor | None = None):
         contract_number = str(request.form.get("contract_number") or "").strip()
         contract_date = str(request.form.get("contract_date") or "").strip()
         director_full_name = str(request.form.get("director_full_name") or "").strip()
-        email = str(request.form.get("email") or "").strip()
+        emails = list(dict.fromkeys(value.strip() for raw in request.form.getlist("email")
+                                    for value in re.split(r'[,;\n]', raw) if value.strip()))
+        email = emails[0] if emails else ""
         selected_point_numbers = {
             str(value).strip()
             for value in request.form.getlist("work_points")
@@ -3904,10 +3912,36 @@ def _contractor_form_response(contractor: Contractor | None = None):
         }
 
     if request.method == "POST":
+        try:
+            point_groups = json.loads(request.form.get("point_apartment_groups") or "null")
+            if point_groups is not None and (not isinstance(point_groups, dict) or
+                    any(not isinstance(ids, list) for ids in point_groups.values())):
+                raise ValueError()
+        except (ValueError, TypeError):
+            point_groups = {}
+        if point_groups is None:
+            point_groups = {number: list(selected_apartment_group_ids) for number in selected_point_numbers}
+    else:
+        emails = contractor.email_addresses if contractor else []
+        stored_scopes = json.loads(contractor.point_apartments_json) if contractor and contractor.point_apartments_json else None
+        point_groups = {}
+        for point in (contractor.work_points if contractor else []):
+            ids = set(stored_scopes.get(str(point.id), [])) if stored_scopes is not None else contractor_apartment_ids
+            point_groups[str(point.point_number)] = [str(option['id']) for option in apartment_options
+                                                   if ids.intersection(option['apartment_ids'])]
+
+    if request.method == "POST":
         errors = []
+        if len(emails) > 30 or any(len(value) > 254 or not re.fullmatch(r'[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+', value) for value in emails):
+            errors.append("Укажите корректные электронные почты (не более 30 адресов).")
         available_point_numbers = {option["number"] for option in point_options}
         selected_point_numbers &= available_point_numbers
         apartment_group_map = {str(option["id"]): option for option in apartment_options}
+        point_groups = {number: {str(value) for value in point_groups.get(number, [])} & set(apartment_group_map)
+                        for number in selected_point_numbers}
+        selected_apartment_group_ids = set().union(*point_groups.values()) if point_groups else set()
+        if any(not ids for ids in point_groups.values()):
+            errors.append("Выберите квартиры для каждого пункта ответственности.")
         selected_apartment_group_ids &= set(apartment_group_map)
 
         if len(name) < 2:
@@ -3967,6 +4001,10 @@ def _contractor_form_response(contractor: Contractor | None = None):
             contractor.contract_date = contract_date or None
             contractor.director_full_name = director_full_name or None
             contractor.email = email or None
+            contractor.emails_json = json.dumps(emails, ensure_ascii=False)
+            contractor.point_apartments_json = json.dumps({str(point.id): sorted({
+                apartment_id for group_id in point_groups[str(point.point_number)]
+                for apartment_id in apartment_group_map[group_id]['apartment_ids']}) for point in work_points})
             contractor.work_points = work_points
             contractor.apartments = apartments
             db.session.commit()
@@ -3990,6 +4028,8 @@ def _contractor_form_response(contractor: Contractor | None = None):
         contractor_contract_date=contract_date,
         contractor_director_full_name=director_full_name,
         contractor_email=email,
+        contractor_emails=emails or [""],
+        point_apartment_groups={number: list(ids) for number, ids in point_groups.items()},
         selected_point_numbers=selected_point_numbers,
         selected_apartment_group_ids=selected_apartment_group_ids,
         contractor=contractor,
@@ -4314,15 +4354,6 @@ def _assignment_filter_by_user_mapping(query, user: User | None):
     return query.filter(or_(Task.work_point_id.in_(point_ids), Task.source_sheet_name == "assignment_manual"))
 
 
-def _assignment_task_allowed_for_user(task: Task, user: User | None, allowed_point_ids: set[int] | None = None) -> bool:
-    if not user or user.role not in WORKER_ROLES:
-        return False
-    if task.source_sheet_name == "assignment_manual":
-        return True
-    point_ids = allowed_point_ids if allowed_point_ids is not None else _assignment_allowed_point_ids_for_user(user)
-    return bool(task.work_point_id and task.work_point_id in point_ids)
-
-
 def _parse_id_list(value: str | None) -> set[int]:
     result: set[int] = set()
     for raw_item in str(value or "").replace(",", " ").split():
@@ -4501,8 +4532,6 @@ def assignments():
             new_responsible = db.session.get(User, new_responsible_id) if new_responsible_id else None
             if not _user_can_work_in_project(new_responsible, project):
                 return assignment_error("Выберите нового исполнителя")
-            if not _assignment_task_allowed_for_user(task, new_responsible):
-                return assignment_error("Эта задача не относится к пунктам, отмеченным для выбранного исполнителя в распределении")
             if task.responsible_id == new_responsible.id:
                 return assignment_error("Этот исполнитель уже назначен на задачу")
             old_responsible = task.responsible_id
@@ -4611,36 +4640,13 @@ def assignments():
                 .all()
             )
             already_assigned = [task for task in existing_tasks if task.responsible_id]
-            allowed_point_ids = _assignment_allowed_point_ids_for_user(responsible)
-            candidate_tasks = [task for task in existing_tasks if not task.responsible_id]
-            incompatible_tasks = [
-                task for task in candidate_tasks
-                if not _assignment_task_allowed_for_user(task, responsible, allowed_point_ids)
-            ]
-            tasks = [
-                task for task in candidate_tasks
-                if _assignment_task_allowed_for_user(task, responsible, allowed_point_ids)
-            ]
-            if incompatible_tasks:
-                redirect_args = {
-                    key: value
-                    for key, value in request.args.to_dict(flat=True).items()
-                    if key not in {"selected_task_ids", "invalid_task_ids", "responsible_id", "planned_date"}
-                }
-                redirect_args["selected_task_ids"] = ",".join(str(task_id) for task_id in task_ids)
-                redirect_args["invalid_task_ids"] = ",".join(str(task.id) for task in incompatible_tasks)
-                if responsible:
-                    redirect_args["responsible_id"] = str(responsible.id)
-                if planned_date:
-                    redirect_args["planned_date"] = planned_date.isoformat()
-                flash("Выбранные задачи не относятся к пунктам, отмеченным для этого исполнителя в распределении. Проблемные задачи подсвечены красным, снимите с них отметку и повторите выдачу.", "danger")
-                return redirect(url_for("main.assignments", **redirect_args))
+            # Manual issuance is independent of the worker's point mapping.
+            # The mapping continues to constrain smart selection below.
+            tasks = [task for task in existing_tasks if not task.responsible_id]
             if not tasks:
                 skipped = len(already_assigned)
                 if skipped:
                     flash(f"Задача уже выдана сотруднику. Повторная выдача не выполнена. Пропущено: {task_count_label(skipped)}", "warning")
-                elif incompatible_tasks:
-                    flash("Выбранные задачи не относятся к пунктам, отмеченным для этого исполнителя в распределении", "warning")
                 else:
                     flash("Нет доступных задач для выдачи", "warning")
                 return redirect(url_for("main.assignments"))
@@ -4658,20 +4664,25 @@ def assignments():
             message = f"Выдано: {task_count_label(len(tasks))}"
             if already_assigned:
                 message += f". Уже были выданы и пропущены: {task_count_label(len(already_assigned))}"
-            if incompatible_tasks:
-                message += f". Не подходят по распределению и пропущены: {task_count_label(len(incompatible_tasks))}"
-            flash(message, "success" if not already_assigned and not incompatible_tasks else "warning")
+            flash(message, "success" if not already_assigned else "warning")
             return redirect(url_for("main.assignments"))
 
-    # В выдаче задач оставляем один умный поиск. Старые параметры сортировки/узких фильтров
-    # намеренно не тащим дальше, чтобы экран не путал пользователя.
-    query_args = {"q": (request.args.get("q") or "").strip()}
+    query_args = {
+        key: (request.args.get(key) or "").strip()
+        for key in ("q", "acceptance_status", "status", "point")
+    }
+    if query_args["status"] not in {"deadline_expiring", "deadline_expired"}:
+        query_args["status"] = ""
+    query_args["finishing_group"] = get_multi_param_values(request.args, "finishing_group")
+    assignment_filter_args = {
+        key: value if isinstance(value, list) else [value]
+        for key, value in query_args.items() if value
+    }
     smart_mode = request.args.get("smart") == "1"
     smart_user_id = request.args.get("smart_user_id", type=int)
     smart_date = parse_date(request.args.get("smart_date")) or to_moscow_datetime(utc_now()).date()
     smart_user = db.session.get(User, smart_user_id) if smart_user_id else None
     selected_task_ids = _parse_id_list(request.args.get("selected_task_ids"))
-    invalid_task_ids = _parse_id_list(request.args.get("invalid_task_ids"))
     issue_responsible_id = request.args.get("responsible_id", type=int)
     issue_planned_date = parse_date(request.args.get("planned_date"))
     if smart_user and not _user_can_work_in_project(smart_user, project):
@@ -4693,7 +4704,6 @@ def assignments():
         )
         smart_limit = ASSIGNMENT_SMART_BATCH_LIMIT
         smart_args = {k: v for k, v in query_args.items() if k not in {"smart", "smart_user_id", "smart_date", "page"}}
-        smart_args["status"] = "not_done"
         query = _assignment_base_query(project.id, smart_args).filter(Task.responsible_id.is_(None))
         query = _assignment_filter_by_user_mapping(query, smart_user)
         tasks = query.limit(smart_limit).all() if smart_limit > 0 else []
@@ -4819,6 +4829,7 @@ def assignments():
     ]
     return render_template(
         "assignments.html",
+        assignment_filter_args=assignment_filter_args,
         project=project,
         tasks=tasks,
         pagination=pagination,
@@ -4834,7 +4845,6 @@ def assignments():
         issue_responsible_id=issue_responsible_id,
         issue_planned_date=issue_planned_date,
         selected_task_ids=selected_task_ids,
-        invalid_task_ids=invalid_task_ids,
         smart_limit=smart_limit,
         assigned_today_count=assigned_today_count,
         assignment_total=assignment_total,
@@ -5599,7 +5609,7 @@ def _task_search_blob(task: Task) -> str:
     return " ".join(str(part or "") for part in parts).lower().replace("ё", "е")
 
 
-GLASS_WORK_POINT_NUMBERS = {"16", "17", "18", "19", "20"}
+GLASS_WORK_POINT_NUMBERS = {"17", "18", "19", "20"}
 
 
 def _all_project_tasks(
@@ -5759,7 +5769,7 @@ def _glass_point_options(project_id: int) -> list[dict[str, str]]:
         .all()
     )
     return [
-        {"number": str(point.point_number or ""), "label": f"{point.point_number} — {point.display_name}"}
+        {"number": str(point.point_number or ""), "label": f"{point.display_number} — {point.display_name}"}
         for point in points
         if str(point.point_number or "").strip()
     ]
@@ -7581,7 +7591,8 @@ def _remark_point_options(min_number: int = 1) -> list[dict[str, str]]:
     for number, label in CONTRACTOR_POINT_LABELS.items():
         if str(number).isdigit() and int(number) < min_number:
             continue
-        options.append({"number": number, "label": label})
+        from app.work_points import display_point_number
+        options.append({"number": number, "display_number": display_point_number(number), "label": label})
     return options
 
 
@@ -7976,7 +7987,7 @@ def _queue_remark_sync_conflict(
 def _work_point_conflict_label(work_point: WorkPoint | None) -> str:
     if work_point is None:
         return "Замечание"
-    point_number = str(work_point.point_number or "").strip()
+    point_number = str(work_point.display_number or "").strip()
     display_name = str(work_point.display_name or "").strip()
     if point_number and display_name:
         cleaned_name = re.sub(rf"^\s*{re.escape(point_number)}\s*[\.\-:)]?\s*", "", display_name).strip()
@@ -9911,6 +9922,13 @@ def _apartment_group_contact_values(apartments: list[Apartment], field_name: str
 def _build_apartment_overview(apartment_or_group, include_activity: bool = True) -> dict:
     apartments = apartment_or_group if isinstance(apartment_or_group, list) else [apartment_or_group]
     apartment = _pick_apartment_representative(apartments)
+    construction_numbers = {
+        str(item.construction_number).strip() for item in apartments
+        if str(item.construction_number or "").strip()
+    }
+    construction_number = str(apartment.construction_number or "").strip()
+    if not construction_number and len(construction_numbers) == 1:
+        construction_number = next(iter(construction_numbers))
     all_tasks = sorted(
         [task for item in apartments for task in list(item.tasks or [])],
         key=lambda task: (
@@ -9920,7 +9938,11 @@ def _build_apartment_overview(apartment_or_group, include_activity: bool = True)
             task.id,
         ),
     )
-    tasks = [task for task in all_tasks if (task.source_sheet_name or "") != "apartment_history"]
+    from app.work_points import is_retired_point_label
+    tasks = [task for task in all_tasks if (task.source_sheet_name or "") != "apartment_history"
+             and not (task.work_point and (is_retired_point_label(task.work_point.short_name)
+                      or is_retired_point_label(task.work_point.original_column_name)
+                      or str(task.work_point.point_number) == '16'))]
     active_tasks = [task for task in tasks if not task.is_archived and not task.is_missing_in_latest_sync]
     done_tasks = [task for task in active_tasks if task.is_done]
     left_tasks = [task for task in active_tasks if not task.is_done]
@@ -9953,6 +9975,7 @@ def _build_apartment_overview(apartment_or_group, include_activity: bool = True)
         "contract_number_input": _apartment_contract_input_value(apartment),
         "apartments": apartments,
         "group_count": len(apartments),
+        "construction_number": construction_number,
         "owner_names": _apartment_group_contact_values(apartments, "owner_name"),
         "phones": _apartment_group_contact_values(apartments, "phone"),
         "mode": mode,
@@ -10033,6 +10056,13 @@ def apartments():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
+    entrance_options = sorted({
+        entrance for (number,) in db.session.query(Apartment.construction_number).filter(
+            Apartment.project_id == project.id,
+            or_(Apartment.premise_type == "apartment", Apartment.premise_type.is_(None)),
+        ).all()
+        if (entrance := construction_entrance(number))
+    }, key=int)
     is_mobile_request = _is_mobile_phone_request()
     has_active_filters = any(
         str(value or "").strip()
@@ -10099,6 +10129,7 @@ def apartments():
         args=request.args,
         export_args=request.args.to_dict(flat=False),
         finishing_types=finishing_types,
+        entrance_options=entrance_options,
         total_count=total_count,
         mobile_page=mobile_page,
         mobile_total_pages=mobile_total_pages,
@@ -10166,6 +10197,7 @@ def _filtered_apartment_overview_rows(
     inspection_order = (args.get("inspection_order") or "").strip()
     app_status_filter = (args.get("app_status") or "").strip()
     avr_status_filter = (args.get("avr_status") or "").strip()
+    entrance_filter = avr_status_filter.removeprefix("entrance:") if avr_status_filter.startswith("entrance:") else ""
     po_status_filter = (args.get("po_status") or "").strip()
     if current_user.is_authenticated and current_user.role == ROLE_OFFICE:
         po_only = False
@@ -10199,6 +10231,12 @@ def _filtered_apartment_overview_rows(
                 haystack = _apartment_overview_search_haystack(row)
                 if needle not in haystack:
                     continue
+        if entrance_filter and not any(
+            (item.premise_type or "apartment") == "apartment"
+            and construction_entrance(item.construction_number) == entrance_filter
+            for item in row["apartments"]
+        ):
+            continue
         if po_only and row.get("po_status") != PO_STATUS_TO_THROW:
             continue
         if app_status_filter == "accepted" and row.get("mode") != "АПП":
@@ -11661,9 +11699,6 @@ def update_task(task_id: int):
             responsible = db.session.get(User, fields["responsible_id"])
             if not _user_can_work_in_project(responsible, project):
                 flash("Выберите корректного исполнителя", "danger")
-                return redirect(url_for("main.task_detail", task_id=task.id))
-            if not _assignment_task_allowed_for_user(task, responsible):
-                flash("Эта задача не относится к пунктам, отмеченным для выбранного исполнителя в распределении", "danger")
                 return redirect(url_for("main.task_detail", task_id=task.id))
         for field, new_value in fields.items():
             old_value = getattr(task, field)

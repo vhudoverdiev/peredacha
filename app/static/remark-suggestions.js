@@ -87,7 +87,7 @@
           option.setAttribute('aria-selected', 'false'); option.tabIndex = -1;
           option.append(document.createTextNode(item.text));
           const point = document.createElement('small');
-          point.textContent = item.points.map(p => `${p.number}. ${p.label}`).join(' / ');
+          point.textContent = item.points.map(p => `${p.display_number || p.number}. ${p.label}`).join(' / ');
           option.append(point);
           option.addEventListener('mousedown', event => event.preventDefault());
           option.addEventListener('click', () => choose(index)); list.append(option);

@@ -71,7 +71,7 @@ class PdfRecognitionContractsTests(unittest.TestCase):
 
         self.assertEqual(title, "РћРєРЅР°")
         self.assertEqual(body, "sash does not close")
-        self.assertEqual(recognition._map_pdf_point_to_work_point("7", title), "16")
+        self.assertEqual(recognition._map_pdf_point_to_work_point("7", title), "17")
         self.assertEqual(recognition._clean_point_description(" _ sash does not close _ "), "sash does not close")
 
     def test_extract_point_remarks_ignores_no_remark_rows_and_maps_known_sections(self):
@@ -86,7 +86,7 @@ class PdfRecognitionContractsTests(unittest.TestCase):
         remarks = recognition._extract_point_remarks(text)
 
         self.assertEqual([(remark.point_number, remark.description, remark.active) for remark in remarks], [
-            ("16", "sash does not close", True),
+            ("17", "sash does not close", True),
             ("21", "custom unmapped point", True),
         ])
 

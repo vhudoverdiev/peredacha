@@ -38,6 +38,9 @@
         <label class="form-label">Фильтр</label>
         <select class="form-select" name="avr_status" data-force-custom-select>
           <option value="">Все</option>
+          {% for entrance in entrance_options %}
+          <option value="entrance:{{ entrance }}" {% if args.get('avr_status') == 'entrance:' ~ entrance %}selected{% endif %}>{{ entrance }} подъезд</option>
+          {% endfor %}
           <option value="with_remarks" {% if args.get('avr_status') == 'with_remarks' %}selected{% endif %}>С замечаниями</option>
           <option value="{{ app_deadline_no_remarks }}" {% if args.get('avr_status') == app_deadline_no_remarks %}selected{% endif %}>Без замечаний</option>
           <option value="{{ avr_status_needed }}" {% if args.get('avr_status') == avr_status_needed %}selected{% endif %}>Нужен АВР</option>

@@ -258,6 +258,18 @@ class Contractor(TimestampMixin, db.Model):
     director_full_name = db.Column(db.String(255), nullable=True)
     email = db.Column(db.String(255), nullable=True)
 
+    emails_json = db.Column(db.Text, nullable=True)
+    point_apartments_json = db.Column(db.Text, nullable=True)
+
+    @property
+    def email_addresses(self):
+        import json
+        return json.loads(self.emails_json) if self.emails_json else ([self.email] if self.email else [])
+
+    @property
+    def formatted_emails(self):
+        return ', '.join(self.email_addresses)
+
     project = db.relationship("Project", back_populates="contractors")
     work_points = db.relationship("WorkPoint", secondary=contractor_work_points, back_populates="contractors")
     apartments = db.relationship("Apartment", secondary=contractor_apartments, back_populates="contractors")
@@ -489,6 +501,11 @@ class WorkPoint(TimestampMixin, db.Model):
     __table_args__ = (
         db.UniqueConstraint("point_number", "source_sheet_name", name="uq_workpoint_number_sheet"),
     )
+
+    @property
+    def display_number(self):
+        from app.work_points import display_point_number
+        return display_point_number(self.point_number)
 
     @property
     def display_name(self):

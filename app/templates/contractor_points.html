@@ -23,7 +23,7 @@
       <select id="contractor-points-point-filter" class="form-select" name="point" data-force-custom-select>
         <option value="">Все пункты</option>
         {% for point in points %}
-        <option value="{{ point.number }}" {% if point_filter == point.number %}selected{% endif %}>{{ point.number }}. {{ point.label }}</option>
+        <option value="{{ point.number }}" {% if point_filter == point.number %}selected{% endif %}>{{ point.display_number }}. {{ point.label }}</option>
         {% endfor %}
       </select>
     </div>
@@ -72,12 +72,12 @@
               <input type="hidden" name="next" value="{{ request.full_path }}">
               <select class="form-select form-select-sm task-detail-point-select contractor-points-point-select" name="point_number" aria-label="Пункт замечания" data-force-custom-select>
                 {% for point in points %}
-                <option value="{{ point.number }}" {% if point_number == point.number %}selected{% endif %}>{{ point.number }}. {{ point.label }}</option>
+                <option value="{{ point.number }}" {% if point_number == point.number %}selected{% endif %}>{{ point.display_number }}. {{ point.label }}</option>
                 {% endfor %}
               </select>
             </form>
             {% else %}
-            <span class="contractor-points-static-point">{{ point_number or '—' }}</span>
+            <span class="contractor-points-static-point">{{ task.work_point.display_number if task.work_point else '—' }}</span>
             {% endif %}
           </td>
         </tr>

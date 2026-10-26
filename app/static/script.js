@@ -1276,7 +1276,9 @@ document.addEventListener('DOMContentLoaded', () => {
     prepareNativeSelectsForCustomUi(scope);
     const isMobileSelectUi = document.documentElement.matches('.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device');
 
-    scope.querySelectorAll('.js-developer-custom-select').forEach(selectShell => {
+    const selectShells = [...scope.querySelectorAll('.js-developer-custom-select')];
+    if (scope.matches?.('.js-developer-custom-select')) selectShells.unshift(scope);
+    selectShells.forEach(selectShell => {
       const select = selectShell.querySelector('select');
       if (!select) return;
       const hideEnhancedNativeSelect = () => {
@@ -1304,6 +1306,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (selectShell.querySelector('.developer-select-button')) {
+        const existingButton = selectShell.querySelector('.developer-select-button');
+        existingButton.hidden = false;
+        existingButton.removeAttribute('data-ajax-pagination-spare');
         hideEnhancedNativeSelect();
         selectShell.classList.add('is-enhanced');
         return;

@@ -81,32 +81,32 @@ class TaskDetailPointHistoryContractsTests(unittest.TestCase):
 
         response = self.client.post(
             f"/tasks/{self.task.id}/point",
-            data={"point_number": "16"},
+            data={"point_number": "13"},
             follow_redirects=False,
         )
 
         self.assertEqual(response.status_code, 302)
         db.session.refresh(self.task)
-        self.assertEqual(self.task.work_point.point_number, "16")
+        self.assertEqual(self.task.work_point.point_number, "13")
         change = ChangeLog.query.filter_by(task_id=self.task.id, field_name="work_point").one()
         self.assertIn("Стены", change.old_value)
-        self.assertIn("Разнорабочие", change.new_value)
+        self.assertIn("подстилающего слоя", change.new_value)
 
     def test_task_point_change_supports_ajax_autosave(self):
         self._login(self.admin)
 
         response = self.client.post(
             f"/tasks/{self.task.id}/point",
-            data={"point_number": "16"},
+            data={"point_number": "13"},
             headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
         )
 
         self.assertEqual(response.status_code, 200)
         payload = response.get_json()
         self.assertTrue(payload["ok"])
-        self.assertEqual(payload["point_number"], "16")
+        self.assertEqual(payload["point_number"], "13")
         db.session.refresh(self.task)
-        self.assertEqual(self.task.work_point.point_number, "16")
+        self.assertEqual(self.task.work_point.point_number, "13")
 
     def test_task_point_change_rejects_service_points_before_ten(self):
         self._login(self.admin)
@@ -132,7 +132,7 @@ class TaskDetailPointHistoryContractsTests(unittest.TestCase):
         self.assertIn("data-task-detail-point-autosave", html)
         self.assertIn('<option value="10"', html)
         self.assertIn('<option value="26"', html)
-        self.assertIn("26. Отступное (ТМЦ)", html)
+        self.assertIn("25. Отступное (ТМЦ)", html)
         self.assertNotIn('<option value="1"', html)
         self.assertNotIn("task-detail-point-save-btn", html)
 

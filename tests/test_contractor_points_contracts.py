@@ -84,7 +84,7 @@ class ContractorPointsContractsTests(unittest.TestCase):
         self.assertIn(f'action="/tasks/{self.task_1.id}/point"', html)
         self.assertIn("10. Вентиляция", html)
         self.assertIn("11. Стены. Потолки", html)
-        self.assertIn("26. Отступное (ТМЦ)", html)
+        self.assertIn("25. Отступное (ТМЦ)", html)
         self.assertIn('name="point"', html)
         self.assertNotIn('name="q"', html)
         self.assertNotIn('for="contractor-points-search"', html)

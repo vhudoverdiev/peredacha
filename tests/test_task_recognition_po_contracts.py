@@ -46,7 +46,7 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
         self.apartment = Apartment(project=self.project, apartment_number="59")
         self.point_1 = WorkPoint(point_number="1", short_name="Пункт 1", source_sheet_name="manual")
         self.point_10 = WorkPoint(point_number="10", short_name="Вентиляция", source_sheet_name="manual")
-        self.point = WorkPoint(point_number="16", short_name="Разнорабочие", source_sheet_name="manual")
+        self.point = WorkPoint(point_number="13", short_name="Работы по устройству подстилающего слоя", source_sheet_name="manual")
         self.point_25 = WorkPoint(point_number="25", short_name="Прочее", source_sheet_name="manual")
         self.old_task = Task(
             source_uid="recognition-po-old",
@@ -185,7 +185,7 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
                 "act_0_inspection_date": "2026-09-17",
                 "act_0_row_count": "1",
                 "act_0_row_0_active": "1",
-                "act_0_row_0_point": "16",
+                "act_0_row_0_point": "13",
                 "act_0_row_0_description": "Новое замечание после ПО",
             },
             follow_redirects=False,
@@ -197,7 +197,7 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
         self.assertEqual(self.old_task.status, STATUS_DONE)
         new_task = Task.query.filter(Task.description == "Новое замечание после ПО").one()
         self.assertEqual(new_task.status, STATUS_NOT_STARTED)
-        self.assertEqual(new_task.work_point.point_number, "16")
+        self.assertEqual(new_task.work_point.point_number, "13")
 
     def test_pdf_act_date_is_saved_even_when_act_has_no_remark_rows(self):
         self._login()
@@ -256,7 +256,7 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
                 "manual_kind": "act",
                 "apartment_id": str(self.apartment.id),
                 "description_26": "Выданы отступные по акту",
-                "concession_point_numbers": ["16"],
+                "concession_point_numbers": ["13"],
             },
             follow_redirects=False,
         )
@@ -280,7 +280,7 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
                 "manual_kind": "act",
                 "apartment_id": str(self.apartment.id),
                 "description_26": "Выданы отступные по выполненному",
-                "concession_point_numbers": ["16"],
+                "concession_point_numbers": ["13"],
             },
             follow_redirects=False,
         )
@@ -305,7 +305,7 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
                 "act_0_apartment_id": str(self.apartment.id),
                 "act_0_row_count": "1",
                 "act_0_row_0_active": "1",
-                "act_0_row_0_point": "16",
+                "act_0_row_0_point": "13",
                 "act_0_row_0_description": "Старое замечание",
             },
             follow_redirects=False,
@@ -343,7 +343,7 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
                 "act_0_apartment_id": str(self.apartment.id),
                 "act_0_row_count": "1",
                 "act_0_row_0_active": "1",
-                "act_0_row_0_point": "16",
+                "act_0_row_0_point": "13",
                 "act_0_row_0_description": "Старое замечание",
             },
             follow_redirects=False,
@@ -403,7 +403,7 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
                 "act_0_row_0_active": "1",
                 "act_0_row_0_point": "26",
                 "act_0_row_0_description": "Отступное из PDF",
-                "act_0_concession_point_numbers": ["16"],
+                "act_0_concession_point_numbers": ["13"],
             },
             follow_redirects=False,
         )
@@ -508,7 +508,7 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
                 "act_0_project_ok": "1",
                 "act_0_apartment_id": str(self.apartment.id),
                 "act_0_row_count": "2",
-                "act_0_row_0_point": "16",
+                "act_0_row_0_point": "13",
                 "act_0_row_0_description": "Снятая строка не должна сохраниться",
                 "act_0_row_1_active": "1",
                 "act_0_row_1_point": "10",
@@ -590,7 +590,7 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
                 "apartment_id": str(self.apartment.id),
                 "po_mode": "1",
                 "description_10": "Новое по вентиляции",
-                "description_16": "Старое замечание",
+                "description_13": "Старое замечание",
             },
             follow_redirects=False,
         )
@@ -679,7 +679,7 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
                 "manual_kind": "act",
                 "apartment_id": str(self.apartment.id),
                 "description_10": "Первое новое",
-                "description_16": "Второе новое",
+                "description_13": "Второе новое",
                 "description_25": "Третье новое",
             },
             follow_redirects=True,

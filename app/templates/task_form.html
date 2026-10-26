@@ -71,7 +71,7 @@
           <option value="">Выберите пункт</option>
           {% for point in points %}
           <option value="{{ point.number }}" {% if request.form.get('point_number', '') == point.number %}selected{% endif %}>
-            {{ point.number }}. {{ point.label }}
+            {{ point.display_number }}. {{ point.label }}
           </option>
           {% endfor %}
         </select>
@@ -91,7 +91,7 @@
               <label class="task-concession-task-option d-none" data-concession-apartment-id="{{ apartment_id }}">
                 <input type="checkbox" name="concession_task_ids" value="{{ task.id }}" {% if task.id|string in request.form.getlist('concession_task_ids') %}checked{% endif %}>
                 <span>
-                  <b>{{ task.work_point.point_number if task.work_point else '—' }}.</b>
+                  <b>{{ task.work_point.display_number if task.work_point else '—' }}.</b>
                   {{ task.description }}
                 </span>
               </label>
@@ -133,7 +133,7 @@
 
     {% macro act_row(number='', text='') %}
     <div class="manual-act-entry" data-act-row>
-      <label>Пункт замечания<select class="form-select" name="act_point"><option value="">Выберите пункт</option>{% for point in points %}<option value="{{ point.number }}" {{ 'selected' if number==point.number }}>{{ point.number }}. {{ point.label }}</option>{% endfor %}</select></label>
+      <label>Пункт замечания<select class="form-select" name="act_point"><option value="">Выберите пункт</option>{% for point in points %}<option value="{{ point.number }}" {{ 'selected' if number==point.number }}>{{ point.display_number }}. {{ point.label }}</option>{% endfor %}</select></label>
       <label>Текст замечания<textarea class="form-control" name="act_description" rows="3" {% if not is_mobile_phone_request %}data-remark-suggest{% endif %}>{{ text }}</textarea></label>
     </div>
     {% endmacro %}
@@ -155,7 +155,7 @@
           {% if point.number != '26' %}
           <label class="task-concession-point-option d-none" data-concession-act-point-option="{{ point.number }}">
             <input type="checkbox" name="concession_point_numbers" value="{{ point.number }}" {% if point.number in request.form.getlist('concession_point_numbers') %}checked{% endif %}>
-            <span>{{ point.number }}</span>
+            <span>{{ point.display_number }}</span>
           </label>
           {% endif %}
         {% endfor %}

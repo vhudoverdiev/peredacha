@@ -95,7 +95,7 @@ class ApartmentSourceExportTests(unittest.TestCase):
         )
         self.assertEqual(sheet.max_row, 3)
         self.assertEqual(sheet['F1'].value, 'Электрика')
-        self.assertEqual(list(sheet.values)[1], (1,2,3,4,5,6))
+        self.assertEqual(list(sheet.values)[1], (1,20,21,24,10,23))
         self.assertFalse(sheet['B3'].value)
         self.assertIn('Покрасить стену', str(sheet['F3'].value))
 
@@ -137,7 +137,7 @@ class ApartmentSourceExportTests(unittest.TestCase):
         self.assertEqual(headers[4:11], [WORK_POINT_LABELS[n] for n in ('13','14','15','18','19','20','25')])
         self.assertEqual(headers[-1],'Дата занесения в РВТ (ПТО)')
         self.assertEqual(sheet.max_row,3)
-        self.assertEqual([c.value for c in sheet[2]],list(range(1,13)))
+        self.assertEqual([c.value for c in sheet[2]],[1,2,3,4,13,14,15,17,18,19,24,12])
         for col in range(1,5):
             self.assertEqual(sheet.cell(1,col).fill.fgColor.rgb,'0093C47D')
             self.assertTrue(sheet.cell(1,col).font.bold)

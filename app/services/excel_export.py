@@ -19,6 +19,7 @@ from app.models import Apartment, SyncLog, Task, STATUS_DONE, STATUS_FINISHERS, 
 from app.services.excel_import import inspect_remarks_workbook
 from app.services.filename import safe_filename_part
 from app.services.task_service import get_setting
+from app.work_points import display_point_number, is_retired_point_label
 from app.services.uid_service import extract_point_number
 from app.work_points import WORK_POINT_LABELS
 
@@ -188,7 +189,7 @@ def export_tasks_to_excel(tasks: Iterable[Task], filename_prefix: str = "tasks_e
                 task.apartment.owner_name if task.apartment else "",
                 task.apartment.phone if task.apartment else "",
                 task.apartment.finishing_type if task.apartment else "",
-                task.work_point.point_number,
+                task.work_point.display_number,
                 task.work_point.display_name,
                 task.description or task.source_cell_value,
                 task.responsible.full_name if task.responsible else "",
@@ -228,7 +229,7 @@ def export_source_excel_reconstructed(tasks: Iterable[Task], filename_prefix: st
                 task.apartment.owner_name if task.apartment else "",
                 task.apartment.phone if task.apartment else "",
                 task.apartment.finishing_type if task.apartment else "",
-                task.work_point.point_number if task.work_point else "",
+                task.work_point.display_number if task.work_point else "",
                 task.work_point.display_name if task.work_point else "",
                 _task_export_value(task, task.source_cell_value or task.description or ""),
                 task.responsible.full_name if task.responsible else "",
@@ -800,7 +801,7 @@ def _normalize_source_work_point_headers(wb) -> dict[str, int]:
                 label_cell = editable_cell(ws, label_row, column_index)
                 number_cell = editable_cell(ws, number_row, column_index)
                 label_cell.value = WORK_POINT_LABELS[str(point_number)]
-                number_cell.value = point_number
+                number_cell.value = int(display_point_number(point_number))
                 label_cell.alignment = copy(label_cell.alignment)
                 label_cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
                 number_cell.alignment = copy(number_cell.alignment)
@@ -895,6 +896,126 @@ def resolve_source_excel_with_strikes_path(source_path: str | None = None, proje
     raise FileNotFoundError("Не найден корректный исходный Excel замечаний для полного экспорта. Загрузите исходный файл замечаний заново.")
 
 
+def _shift_deleted_column_references(workbook, sheet_name, deleted_column):
+    """Apply structural column deletion to A1 formula references, not literals.
+
+    openpyxl deliberately does not update dependent formulae on delete_cols.
+    Resolve sheet names explicitly so unrelated sheets and external books stay
+    intact. A reference exclusively to the removed work point becomes zero.
+    """
+    from openpyxl.formula.tokenizer import Tokenizer
+    cell_pattern = re.compile(r'^(\$?)([A-Za-z]{1,3})(\$?\d+)?$')
+
+    def reference(value, current_sheet):
+        if '!' in value:
+            qualifier, address = value.rsplit('!', 1)
+            target = qualifier.strip("'").replace("''", "'")
+            prefix = qualifier + '!'
+        else:
+            address, target, prefix = value, current_sheet, ''
+        if target != sheet_name or '[' in target:
+            return value
+        parts = address.split(':')
+        if len(parts) > 2:
+            return value
+        matches = [cell_pattern.fullmatch(part) for part in parts]
+        if not all(matches):
+            return value
+        columns = [column_index_from_string(match.group(2)) for match in matches]
+        if len(columns) == 1 and columns[0] == deleted_column:
+            return '0'
+        if len(columns) == 2 and columns[0] == columns[1] == deleted_column:
+            return '0'
+        shifted = []
+        for index, (column, match) in enumerate(zip(columns, matches)):
+            if column > deleted_column or (index == 1 and column == deleted_column):
+                column -= 1
+            shifted.append(match.group(1) + get_column_letter(column) + (match.group(3) or ''))
+        return prefix + ':'.join(shifted)
+
+    for sheet in workbook:
+        for row in sheet:
+            for cell in row:
+                if cell.data_type != 'f' or not isinstance(cell.value, str):
+                    continue
+                tokens = Tokenizer(cell.value).items
+                for token in tokens:
+                    if token.type == 'OPERAND' and token.subtype == 'RANGE':
+                        token.value = reference(token.value, sheet.title)
+                cell.value = '=' + ''.join(token.value for token in tokens)
+    for defined in workbook.defined_names.values():
+        if defined.attr_text:
+            defined.attr_text = reference(defined.attr_text, '')
+    sheet = workbook[sheet_name]
+    if sheet.auto_filter.ref:
+        sheet.auto_filter.ref = reference(sheet.auto_filter.ref, sheet_name)
+
+
+def _remove_retired_columns(workbook):
+    from app.services.task_service import is_index_number_row
+    if workbook.calculation:
+        workbook.calculation.fullCalcOnLoad = True
+        workbook.calculation.forceFullCalc = True
+        workbook.calculation.calcMode = 'auto'
+    for sheet in list(workbook.worksheets):
+        if is_retired_point_label(sheet.title):
+            if len(workbook.worksheets) > 1:
+                from openpyxl.formula.tokenizer import Tokenizer
+                for other in workbook:
+                    if other is sheet:
+                        continue
+                    for row in other:
+                        for cell in row:
+                            if cell.data_type != 'f' or not isinstance(cell.value, str):
+                                continue
+                            tokens = Tokenizer(cell.value).items
+                            for token in tokens:
+                                if token.type == 'OPERAND' and token.subtype == 'RANGE' and '!' in token.value:
+                                    qualifier = token.value.rsplit('!', 1)[0].strip("'").replace("''", "'")
+                                    if qualifier == sheet.title:
+                                        token.value = '0'
+                            cell.value = '=' + ''.join(token.value for token in tokens)
+                workbook.remove(sheet)
+                continue
+            sheet.title = 'Замечания'
+        columns = {cell.column for row in sheet.iter_rows(min_row=1, max_row=min(8, sheet.max_row))
+                   for cell in row if is_retired_point_label(cell.value)}
+        for column in sorted(columns, reverse=True):
+            _shift_deleted_column_references(workbook, sheet.title, column)
+            merged = []
+            for region in list(sheet.merged_cells.ranges):
+                left, top, right, bottom = region.bounds
+                sheet.unmerge_cells(str(region))
+                if left == right == column:
+                    continue
+                if left > column:
+                    left -= 1
+                if right >= column:
+                    right -= 1
+                merged.append((left, top, right, bottom))
+            widths = {index:sheet.column_dimensions[get_column_letter(index)].width
+                      for index in range(column + 1, sheet.max_column + 1)}
+            sheet.delete_cols(column)
+            for index, width in widths.items():
+                sheet.column_dimensions[get_column_letter(index - 1)].width = width
+            for left, top, right, bottom in merged:
+                if right >= left:
+                    sheet.merge_cells(start_row=top, start_column=left, end_row=bottom, end_column=right)
+        from app.services.remark_catalog import point_keys
+        for row in sheet.iter_rows(min_row=1, max_row=min(8, sheet.max_row)):
+            for cell in row:
+                keys = point_keys(cell.value)
+                if len(keys) != 1:
+                    continue
+                public = display_point_number(keys[0])
+                value = str(cell.value or '')
+                if re.match(r'^\s*\d+[.)]\s*', value):
+                    cell.value = re.sub(r'^\s*\d+([.)])\s*', public + r'\1 ', value, count=1)
+                below = cell.row + 1
+                if below <= sheet.max_row and is_index_number_row([c.value for c in sheet[below]]):
+                    sheet.cell(below, cell.column).value = int(public)
+
+
 def export_source_excel_with_strikes(source_path: str | None = None, project_name: str | None = None, project_id: int | None = None) -> Path:
     """Return a copy of the latest source Excel with CRM statuses applied to source cells."""
     source_file = resolve_source_excel_with_strikes_path(source_path=source_path, project_id=project_id)
@@ -930,7 +1051,10 @@ def export_source_excel_with_strikes(source_path: str | None = None, project_nam
             new_font = copy(cell.font)
             new_font.strike = True
             cell.font = new_font
-    manual_query = Task.query.filter(Task.is_done.is_(True), Task.manually_edited.is_(True))
+    manual_query = Task.query.filter(
+        (Task.is_done.is_(True) & Task.manually_edited.is_(True)) |
+        (Task.source_sheet_name == "manual_retired_point")
+    )
     if project_name:
         manual_query = manual_query.filter(Task.project.has(name=project_name))
     manual_tasks = [
@@ -949,6 +1073,7 @@ def export_source_excel_with_strikes(source_path: str | None = None, project_nam
                 task.completed_date.strftime("%d.%m.%Y") if task.completed_date else "",
             ])
         apply_worksheet_style(ws_manual, [20, 36, 100, 20, 18])
+    _remove_retired_columns(wb)
     wb.save(target)
     return target
 
@@ -1080,7 +1205,7 @@ def export_apartment_source_table(apartments: Iterable[Apartment], tasks: Iterab
                     if column not in mapping.values() and str(value or '').removesuffix('.0').isdigit() and headers[column]:
                         if _export_point_name(headers[column]):
                             points[column]=headers[column]
-            points={column:header for column,header in points.items() if _export_point_name(header)}
+            points={column:header for column,header in points.items() if _export_point_name(header) and not is_retired_point_label(header)}
             if mapping.get('apartment_number') is not None and points:
                 template=sheet
                 # Copy only business columns and one header row. Summary rows,
@@ -1125,9 +1250,21 @@ def export_apartment_source_table(apartments: Iterable[Apartment], tasks: Iterab
         base_mapping={'apartment_number':0,'construction_number':1,'owner_name':2,'phone':3,'finishing_type':4}
         headers=['№ квартиры / помещения','Строительный номер','Собственник','Телефон','Отделка']
         for number,label in WORK_POINT_LABELS.items():
-            point_columns[len(headers)]=label; headers.append(f'{number}. {label}')
+            point_columns[len(headers)]=label; headers.append(f'{display_point_number(number)}. {label}')
         output.append(headers)
         apply_worksheet_style(output,[18,18,28,22,20]+[45]*len(point_columns))
+    from app.services.remark_catalog import point_keys
+    for column, label in point_columns.items():
+        keys = point_keys(label)
+        if len(keys) == 1 and re.match(r'^\s*\d+[.)]\s*', str(output.cell(1, column + 1).value or '')):
+            output.cell(1, column + 1).value = re.sub(
+                r'^\s*\d+([.)])\s*', display_point_number(keys[0]) + r'\1 ',
+                str(output.cell(1, column + 1).value), count=1)
+    if header_count == 2:
+        for column, label in point_columns.items():
+            keys = point_keys(label)
+            if len(keys) == 1:
+                output.cell(2, column + 1).value = int(display_point_number(keys[0]))
     data_row=header_count+1
     def literal(column,value):
         cell=output.cell(data_row,column+1,value)
@@ -1200,7 +1337,9 @@ def export_apartment_source_table(apartments: Iterable[Apartment], tasks: Iterab
         by_column.setdefault(column,[]).append(task)
     if header_count==2:
         for column in range(1,output.max_column+1):
-            output.cell(2,column,column)
+            keys = point_keys(output.cell(1, column).value)
+            number = int(display_point_number(keys[0])) if len(keys) == 1 else column
+            output.cell(2, column, number)
     for column,point_tasks in by_column.items():
         lines=[];seen=set()
         for task in point_tasks:

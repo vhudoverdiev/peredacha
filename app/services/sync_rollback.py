@@ -340,6 +340,8 @@ def _project_conflicts_query(project_id: int, started_at: datetime, end_at: date
 
 def apply_sync_rollback(log: SyncLog) -> tuple[bool, str]:
     """Откатывает синхронизацию и возвращает (успешно, сообщение)."""
+    if log.source_type == "maintenance":
+        return False, "Снимок обслуживания предназначен для восстановления разработчиком."
     if log.rolled_back_at:
         return False, "Эта синхронизация уже была откатана"
     if log.rollback_data:
@@ -360,6 +362,23 @@ def _rollback_from_snapshot(log: SyncLog) -> tuple[bool, str]:
     next_payload = _snapshot_payload(next_log)
     if next_payload:
         payload = next_payload
+
+    # Old import snapshots must not recreate the retired point or reference
+    # a deleted WorkPoint. Such old snapshots require supervised restoration.
+    from app.models import AppSetting
+    from app.services.retired_work_point import MARKER
+    marker = AppSetting.query.filter_by(key=MARKER).first()
+    retired_ids = set(json.loads(marker.value).get('retired_point_ids', [])) if marker else set()
+    legacy_map = json.loads(marker.value).get('legacy_point_map', {}) if marker else {}
+    for row in payload.get('tasks', []):
+        legacy_number = legacy_map.get(str(row.get('work_point_id')))
+        if legacy_number:
+            point = WorkPoint.query.filter_by(point_number=legacy_number).first()
+            if point:
+                row['work_point_id'] = point.id
+        if row.get('work_point_id') not in retired_ids:
+            continue
+        raise ValueError('Этот снимок содержит удалённый пункт замечаний. Автоматический откат остановлен, чтобы не восстановить неправильные пункты. Требуется восстановление разработчиком из сохранённого снимка.')
 
     apartment_snapshots = {int(row["id"]): row for row in payload.get("apartments", []) if row.get("id") is not None}
     task_snapshots = {int(row["id"]): row for row in payload.get("tasks", []) if row.get("id") is not None}

@@ -7,7 +7,7 @@ from app import db
 from app.models import Apartment, Task, WorkPoint
 from app.services.task_service import is_apartment_unsold
 
-MAIN_POINT_NUMBERS = {str(n) for n in range(10, 26)}
+MAIN_POINT_NUMBERS = {str(n) for n in range(10, 26)} - {"16"}
 WALL_POINT_NUMBERS = {"11"}
 PRIMARY_STATUS_NOT_READY = "not_ready"
 PRIMARY_STATUS_THROWN = "thrown"

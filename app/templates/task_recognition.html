@@ -150,7 +150,7 @@
                 <td>
                   <select class="form-select form-select-sm" name="act_{{ act_idx }}_row_{{ row_idx }}_point">
                     {% for point in points %}
-                    <option value="{{ point.number }}" {% if point.number == remark.point_number %}selected{% endif %}>{{ point.number }}. {{ point.label }}</option>
+                    <option value="{{ point.number }}" {% if point.number == remark.point_number %}selected{% endif %}>{{ point.display_number }}. {{ point.label }}</option>
                     {% endfor %}
                   </select>
                 </td>
@@ -169,7 +169,7 @@
                         {% if point.number != '26' %}
                         <label class="task-recognition-concession-option d-none" data-recognition-concession-option="{{ point.number }}">
                           <input type="checkbox" name="act_{{ act_idx }}_concession_point_numbers" value="{{ point.number }}" {% if point.number in request.form.getlist('act_' ~ act_idx ~ '_concession_point_numbers') %}checked{% endif %}>
-                          <span>{{ point.number }}</span>
+                          <span>{{ point.display_number }}</span>
                         </label>
                         {% endif %}
                       {% endfor %}
@@ -190,7 +190,7 @@
             <td>
               <select class="form-select form-select-sm" name="act_{{ act_idx }}_row___ROW___point">
                 {% for point in points %}
-                <option value="{{ point.number }}">{{ point.number }}. {{ point.label }}</option>
+                <option value="{{ point.number }}">{{ point.display_number }}. {{ point.label }}</option>
                 {% endfor %}
               </select>
             </td>
@@ -209,7 +209,7 @@
                     {% if point.number != '26' %}
                     <label class="task-recognition-concession-option d-none" data-recognition-concession-option="{{ point.number }}">
                       <input type="checkbox" name="act_{{ act_idx }}_concession_point_numbers" value="{{ point.number }}">
-                      <span>{{ point.number }}</span>
+                      <span>{{ point.display_number }}</span>
                     </label>
                     {% endif %}
                   {% endfor %}

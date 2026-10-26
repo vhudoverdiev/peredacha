@@ -6,7 +6,7 @@ from app.models import ROLE_MANAGER
 from app.routes import bp, selected_project
 from app.security import hit_rate_limit
 from app.services.remark_catalog import get_catalog
-from app.work_points import WORK_POINT_LABELS
+from app.work_points import WORK_POINT_LABELS, display_point_number
 
 
 def project_required():
@@ -27,6 +27,6 @@ def remark_suggestions():
     if len(query)<3: return jsonify(items=[])
     point=request.args.get('point','')
     items=get_catalog().suggestions(query,point=point or None)
-    response=jsonify(items=[{'text':row['text'],'points':[{'number':p,'label':WORK_POINT_LABELS[p]} for p in row['points']]} for row in items])
+    response=jsonify(items=[{'text':row['text'],'points':[{'number':p,'display_number':display_point_number(p),'label':WORK_POINT_LABELS[p]} for p in row['points']]} for row in items])
     response.headers['Cache-Control']='private, no-store'
     return response

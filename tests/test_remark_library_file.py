@@ -40,7 +40,7 @@ class RemarkLibraryFileTests(unittest.TestCase):
     def test_export_contains_only_text_and_points_without_database_ids(self):
         with TemporaryDirectory() as directory:
             path=Path(directory)/'library.json'
-            self.assertGreater(export_library(path),6000)
+            self.assertGreater(export_library(path),5000)
             payload=json.loads(path.read_text(encoding='utf-8'))
             self.assertEqual(payload['schema'],SCHEMA)
             self.assertTrue(all(set(entry)=={'text','points'} for entry in payload['entries']))

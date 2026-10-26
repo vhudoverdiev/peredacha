@@ -18,15 +18,24 @@ def reference_words():
 
 
 def record_phrase(mapper,connection,task):
+    from sqlalchemy.orm import object_session
+    if object_session(task).info.get('retiring_work_point'):
+        return
     state=inspect(task)
     if state.persistent and not any(state.attrs[name].history.has_changes() for name in ('description','source_cell_value','work_point_id')):
         return
     point=connection.execute(select(WorkPoint.short_name,WorkPoint.original_column_name).where(WorkPoint.id==task.work_point_id)).first()
+    from app.work_points import is_retired_point_label
+    if point and (is_retired_point_label(point.short_name) or is_retired_point_label(point.original_column_name)):
+        return
     points=(point_keys(point.short_name) or point_keys(point.original_column_name)) if point else ()
     store_phrase(connection, task.description or task.source_cell_value, points)
 
 
 def store_phrase(connection, text, points, *, increment=True, clean=True):
+    # Legacy portable files may still carry the retired internal key.
+    if '16' in {str(p) for p in points}:
+        return
     text=str(text or '').strip()
     if not text:return
     text=re.sub(r'\s+',' ',text)
@@ -42,6 +51,10 @@ def store_phrase(connection, text, points, *, increment=True, clean=True):
     first=re.search('[а-яА-ЯёЁa-zA-Z]',text)
     if first:
         i=first.start();text=text[:i]+text[i].upper()+text[i+1:]
+    if not increment:
+        from app.work_points import retired_phrase_hashes
+        if sha256(normalize(text).encode()).hexdigest() in retired_phrase_hashes():
+            return
     table=RemarkLibraryEntry.__table__
     values=dict(normalized_hash=sha256(normalize(text).encode()).hexdigest(),point_key=','.join(points),
                 text=text,points_json=json.dumps(points),occurrences=1,created_at=utc_now(),updated_at=utc_now())
@@ -79,10 +92,13 @@ def backfill_existing_phrases(*, force=False, batch_size=500):
     after=0;scanned=0
     while True:
         rows=db.session.execute(select(Task.id,Task.description,Task.source_cell_value,WorkPoint.short_name,WorkPoint.original_column_name)
-            .outerjoin(WorkPoint,Task.work_point_id==WorkPoint.id).where(Task.id>after).order_by(Task.id).limit(batch_size)).all()
+            .outerjoin(WorkPoint,Task.work_point_id==WorkPoint.id).where(Task.id>after, (Task.source_sheet_name.is_(None)) | (Task.source_sheet_name != 'manual_retired_point')).order_by(Task.id).limit(batch_size)).all()
         if not rows:break
         connection=db.session.connection()
         for row in rows:
+            from app.work_points import is_retired_point_label
+            if is_retired_point_label(row.short_name) or is_retired_point_label(row.original_column_name):
+                continue
             store_phrase(connection,row.description or row.source_cell_value,
                          point_keys(row.short_name) or point_keys(row.original_column_name),increment=False)
         after=rows[-1].id;scanned+=len(rows)

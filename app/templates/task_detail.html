@@ -28,7 +28,7 @@
               <input type="hidden" name="next" value="{{ request.full_path }}">
               <select class="form-select form-select-sm task-detail-point-select" name="point_number" aria-label="Пункт замечания">
                 {% for point in points %}
-                <option value="{{ point.number }}" {% if task.work_point and task.work_point.point_number == point.number %}selected{% endif %}>{{ point.number }}. {{ point.label }}</option>
+                <option value="{{ point.number }}" {% if task.work_point and task.work_point.point_number == point.number %}selected{% endif %}>{{ point.display_number }}. {{ point.label }}</option>
                 {% endfor %}
               </select>
             </form>

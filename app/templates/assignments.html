@@ -216,26 +216,76 @@
   </button>
 </div>
 
-<div class="assignment-toolbar-grid assignment-toolbar-grid-restored mb-3">
-  <div class="card content-card assignment-search-card assignment-search-card-compact" id="assignmentSearchPanel">
-    <div class="card-body">
-      <form method="get" class="assignment-search-form assignment-search-form-compact" data-ajax-pagination-form>
-        <div class="assignment-search-field">
-          <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Найти задачу">
+{% set selected_finishing_groups = args.getlist('finishing_group') %}
+<div class="card content-card mb-3 remarks-filter-card" id="assignmentSearchPanel">
+  <div class="card-body">
+    <form method="get" action="{{ url_for('main.assignments') }}" class="row g-2 align-items-end crm-filter-form remarks-filter-form" data-ajax-pagination-form>
+      {% if smart_mode %}
+      <input type="hidden" name="smart" value="1">
+      <input type="hidden" name="smart_user_id" value="{{ smart_user.id if smart_user else '' }}">
+      <input type="hidden" name="smart_date" value="{{ smart_date.isoformat() }}">
+      {% endif %}
+      <div class="col-12 col-md-4">
+        <label class="form-label">Поиск</label>
+        <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Введите текст или цифру">
+      </div>
+      <div class="col-12 col-md-2">
+        <label class="form-label">Режим</label>
+        <select class="form-select mobile-native-select" name="acceptance_status">
+          <option value="">Все</option>
+          <option value="accepted" {% if args.get('acceptance_status') == 'accepted' %}selected{% endif %}>АПП</option>
+          <option value="waiting" {% if args.get('acceptance_status') == 'waiting' %}selected{% endif %}>Не принята</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-2">
+        <label class="form-label">Статус</label>
+        <select class="form-select mobile-native-select" name="status">
+          <option value="">Все</option>
+          <option value="deadline_expiring" {% if args.get('status') == 'deadline_expiring' %}selected{% endif %}>Срок истекает</option>
+          <option value="deadline_expired" {% if args.get('status') == 'deadline_expired' %}selected{% endif %}>Срок истёк</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label" for="assignmentPointFilter">Пункт</label>
+        <select class="form-select" name="point" id="assignmentPointFilter">
+          <option value="">Все пункты</option>
+          {% for point in points %}
+          <option value="{{ point.number }}" {% if args.get('point') == point.number %}selected{% endif %}>{{ point.display_number }}. {{ point.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-auto remarks-filter-finishing-col">
+        <label class="form-label d-block">Отделка</label>
+        <div class="remarks-filter-checks">
+          <label class="form-check remarks-filter-check">
+            <input class="form-check-input" type="checkbox" name="finishing_group" value="white" {% if 'white' in selected_finishing_groups %}checked{% endif %}>
+            <span class="form-check-label">Белая</span>
+          </label>
+          <label class="form-check remarks-filter-check">
+            <input class="form-check-input" type="checkbox" name="finishing_group" value="clean" {% if 'clean' in selected_finishing_groups %}checked{% endif %}>
+            <span class="form-check-label">Чистовые</span>
+          </label>
+          <label class="form-check remarks-filter-check">
+            <input class="form-check-input" type="checkbox" name="finishing_group" value="none" {% if 'none' in selected_finishing_groups %}checked{% endif %}>
+            <span class="form-check-label">Без отделки</span>
+          </label>
         </div>
-        <div class="assignment-search-actions">
-          <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
-          <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.assignments') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
-        </div>
-      </form>
-    </div>
+      </div>
+      <div class="col-12 col-md-auto ms-md-auto filter-actions remarks-filter-actions">
+        <button class="btn btn-primary crm-search-btn" type="submit"><i class="bi bi-search me-2"></i>Найти</button>
+        <a class="btn btn-outline-secondary crm-reset-btn" href="{{ url_for('main.assignments') }}"><i class="bi bi-arrow-counterclockwise me-2"></i>Сброс</a>
+      </div>
+    </form>
   </div>
-
+</div>
+<div class="assignment-toolbar-grid assignment-toolbar-grid-restored mb-3">
   <div class="card content-card assignment-smart-card assignment-smart-card-compact">
     <div class="card-body">
       <form method="get" class="assignment-smart-form">
         <input type="hidden" name="smart" value="1">
-        {% if args.get('q') %}<input type="hidden" name="q" value="{{ args.get('q') }}">{% endif %}
+        {% for key, values in assignment_filter_args.items() %}
+        {% for value in values %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+        {% endfor %}
         <div>
           <label class="form-label">Исполнитель</label>
           <div class="developer-custom-select js-developer-custom-select assignment-page-custom-select assignment-smart-user-select">
@@ -314,12 +364,6 @@
         Выбрано: <span class="js-bulk-count">0</span> <span class="js-bulk-label">задач</span>
       </div>
     </div>
-    {% if invalid_task_ids %}
-    <div class="assignment-invalid-selection-note mt-3">
-      <i class="bi bi-exclamation-triangle-fill"></i>
-      <span>Красным выделены задачи, которые не относятся к выбранному исполнителю. Снимите отметку с этих задач и повторите выдачу.</span>
-    </div>
-    {% endif %}
   </div>
   <div class="card-body p-0">
     <div class="table-responsive assignment-table-wrap">
@@ -344,7 +388,7 @@
         </thead>
         <tbody>
         {% for task in tasks %}
-          <tr class="assignment-task-row js-bulk-row {% if task.id in invalid_task_ids %}assignment-task-row-invalid{% endif %}" data-task-id="{{ task.id }}">
+          <tr class="assignment-task-row js-bulk-row" data-task-id="{{ task.id }}">
             <td class="assignment-check-cell">
               <input class="form-check-input assignment-task-check js-bulk-check" type="checkbox" name="task_ids" value="{{ task.id }}" {% if smart_mode or task.id in selected_task_ids %}checked{% endif %}>
             </td>
@@ -405,6 +449,9 @@
       </div>
       <div class="assignment-search-modal-body">
         <form method="get" class="assignment-search-form assignment-search-form-compact assignment-search-form-modal">
+          {% for key, values in assignment_filter_args.items() if key != 'q' %}
+          {% for value in values %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+          {% endfor %}
           <div class="assignment-search-field">
             <input class="form-control" type="text" name="q" value="{{ args.get('q', '') }}" placeholder="Найти задачу">
           </div>

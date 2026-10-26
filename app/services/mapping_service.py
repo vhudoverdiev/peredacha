@@ -2,7 +2,7 @@ import re
 
 from app import db
 from app.models import AppSetting, Task, WorkCategory, WorkPoint
-from app.work_points import WORK_POINT_LABELS
+from app.work_points import WORK_POINT_LABELS, display_point_number
 
 DEFAULT_CATEGORIES = [
     ("Все", "#212529", 0),
@@ -14,12 +14,12 @@ DEFAULT_CATEGORIES = [
 
 DEFAULT_POINT_MAPPING = {
     "Маляры": ["10", "11", "12"],
-    "Разнорабочие": ["13", "14", "15", "16"],
+    "Разнорабочие": ["13", "14", "15"],
     "Витражники": ["17", "18", "20"],
     "Доп.Соглашение": ["26"],
 }
 
-MAIN_POINT_NUMBERS = {str(number) for number in range(10, 26)}
+MAIN_POINT_NUMBERS = {str(number) for number in range(10, 26)} - {"16"}
 DOP_AGREEMENT_POINT_NUMBER = "26"
 DOP_AGREEMENT_LABEL = "Отступное (ТМЦ)"
 DOP_AGREEMENT_POINT_NUMBERS = {DOP_AGREEMENT_POINT_NUMBER}
@@ -196,7 +196,7 @@ def group_mapping_points(points: list[WorkPoint]) -> list[dict]:
         number = str(int(number)) if number.isascii() and number.isdigit() else number
         if number not in groups:
             groups[number] = {
-                "id": point.id, "point_number": number,
+                "id": point.id, "point_number": number, "display_number": display_point_number(number),
                 "display_name": WORK_POINT_LABELS.get(number, point.display_name),
                 "member_ids": set(),
             }

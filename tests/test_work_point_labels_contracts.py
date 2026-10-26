@@ -8,12 +8,12 @@ from app.work_points import CONTRACTOR_POINT_LABELS, WORK_POINT_LABELS
 
 class WorkPointLabelsContractsTests(unittest.TestCase):
     def test_contractor_points_cover_first_twenty_six_numbers(self):
-        self.assertEqual(set(WORK_POINT_LABELS), {str(number) for number in range(1, 27)})
+        self.assertEqual(set(WORK_POINT_LABELS), {str(number) for number in range(1, 27)} - {"16"})
         self.assertEqual(CONTRACTOR_POINT_LABELS, WORK_POINT_LABELS)
-        self.assertEqual([item["number"] for item in _contractor_point_options()], [str(number) for number in range(10, 27)])
+        self.assertEqual([item["number"] for item in _contractor_point_options()], [str(number) for number in range(10, 27) if number != 16])
 
     def test_table_point_names_match_source_sheet_headers(self):
-        self.assertEqual(WORK_POINT_LABELS["16"], "Разнорабочие")
+        self.assertNotIn("16", WORK_POINT_LABELS)
         self.assertEqual(WORK_POINT_LABELS["17"], "Работы по монтажу ПВХ блоков")
         self.assertEqual(WORK_POINT_LABELS["19"], "Ростелеком")
         self.assertEqual(WORK_POINT_LABELS["20"], "Работы по монтажу холодного витражного остекления балконов")
@@ -29,7 +29,7 @@ class WorkPointLabelsContractsTests(unittest.TestCase):
         self.assertEqual(MAIN_WORK_POINT_NUMBERS, MAIN_POINT_NUMBERS)
 
     def test_default_category_mapping_uses_shifted_table_numbers(self):
-        self.assertIn("16", DEFAULT_POINT_MAPPING["Разнорабочие"])
+        self.assertNotIn("16", DEFAULT_POINT_MAPPING["Разнорабочие"])
         self.assertNotIn("16", DEFAULT_POINT_MAPPING["Витражники"])
         self.assertIn("17", DEFAULT_POINT_MAPPING["Витражники"])
         self.assertIn("20", DEFAULT_POINT_MAPPING["Витражники"])

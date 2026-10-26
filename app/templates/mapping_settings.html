@@ -27,7 +27,7 @@
             {% if point.point_number not in hidden_point_numbers %}
             <div class="form-check">
               <input class="form-check-input" type="checkbox" name="category_{{ category.id }}" value="{{ point.id }}" id="c{{ category.id }}p{{ point.id }}" {% if point.id in selected_point_ids[category.id] %}checked{% endif %}>
-              <label class="form-check-label" for="c{{ category.id }}p{{ point.id }}"><b>{{ point.point_number }}</b> — {{ point.display_name | replace(point.point_number ~ '. ', '') | replace(point.point_number ~ '.', '') }}</label>
+              <label class="form-check-label" for="c{{ category.id }}p{{ point.id }}"><b>{{ point.display_number }}</b> — {{ point.display_name | replace(point.point_number ~ '. ', '') | replace(point.point_number ~ '.', '') }}</label>
             </div>
             {% endif %}
           {% else %}

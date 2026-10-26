@@ -378,12 +378,6 @@ def create_app(config_class=Config):
                 db.session.execute(text("ALTER TABLE inspection_bookings ADD COLUMN appointment_time TIME"))
             db.session.commit()
 
-        if _is_sqlite_database_uri(uri) or _is_mysql_database_uri(uri):
-            if not app.config.get('TESTING') or app.config.get('REMARK_LIBRARY_FILE'):
-                from app.services.remark_library_file import import_library, LIBRARY_PATH
-                import_library(app.config.get('REMARK_LIBRARY_FILE') or LIBRARY_PATH)
-            remark_learning.backfill_existing_phrases()
-
         if _is_mysql_database_uri(uri):
             inspector = inspect(db.engine)
             if "projects" in inspector.get_table_names():
@@ -678,6 +672,9 @@ def create_app(config_class=Config):
 
             if "contractors" in inspector.get_table_names():
                 contractor_columns = {column["name"] for column in inspector.get_columns("contractors")}
+                for field in ("emails_json", "point_apartments_json"):
+                    if field not in contractor_columns:
+                        db.session.execute(text(f"ALTER TABLE contractors ADD COLUMN {field} TEXT"))
                 if "legal_address" not in contractor_columns:
                     db.session.execute(text("ALTER TABLE contractors ADD COLUMN legal_address VARCHAR(255)"))
                 if "contract_number" not in contractor_columns:
@@ -716,6 +713,17 @@ def create_app(config_class=Config):
             from app.services.remark_entities import migrate_existing_compound_tasks
 
             migrate_existing_compound_tasks()
+
+        if {"tasks", "work_points", "remark_library_entries", "app_settings"}.issubset(table_names):
+            from app.services.retired_work_point import retire_handyman_remark_point
+            retire_handyman_remark_point()
+
+        if _is_sqlite_database_uri(uri) or _is_mysql_database_uri(uri):
+            if not app.config.get('TESTING') or app.config.get('REMARK_LIBRARY_FILE'):
+                from app.services.remark_library_file import import_library, LIBRARY_PATH
+                import_library(app.config.get('REMARK_LIBRARY_FILE') or LIBRARY_PATH)
+            remark_learning.backfill_existing_phrases()
+
 
     from app.auth import bp as auth_bp
     from app.routes import bp as main_bp

@@ -52,7 +52,12 @@
         <label class="form-label mt-3" for="contractorContractDate">Дата договора</label>
         <input class="form-control form-control-lg" id="contractorContractDate" name="contract_date" type="text" value="{{ contractor_contract_date }}" maxlength="50" autocomplete="off">
         <label class="form-label mt-3" for="contractorEmail">Эл.почта</label>
-        <input class="form-control form-control-lg" id="contractorEmail" name="email" type="email" value="{{ contractor_email }}" maxlength="255" autocomplete="email">
+        <div data-contractor-emails>
+          {% for address in contractor_emails %}
+          <div class="d-flex gap-2 mb-2"><input class="form-control form-control-lg" name="email" type="email" value="{{ address }}" maxlength="254" autocomplete="email" aria-label="Электронная почта"><button class="btn btn-outline-secondary" type="button" data-remove-email aria-label="Удалить почту">×</button></div>
+          {% endfor %}
+        </div>
+        <button class="btn btn-outline-secondary" type="button" data-add-email><i class="bi bi-plus-lg"></i>Добавить почту</button>
       </div>
       <div class="contractor-wizard-actions contractor-wizard-actions-end">
         {% if contractor %}
@@ -82,7 +87,7 @@
         <label class="contractor-choice-card" data-contractor-search-text="{{ (point.number ~ ' ' ~ point.label)|lower }}">
           <input class="form-check-input" type="checkbox" name="work_points" value="{{ point.number }}" {% if point.number in selected_point_numbers %}checked{% endif %}>
           <span class="contractor-choice-card-icon"><i class="bi bi-check2-square"></i></span>
-          <span class="contractor-choice-card-copy"><strong>Пункт {{ point.number }}</strong><small>{{ point.label }}</small></span>
+          <span class="contractor-choice-card-copy"><strong>Пункт {{ point.display_number }}</strong><small>{{ point.label }}</small></span>
         </label>
         {% else %}
         <div class="contractor-choice-empty">На объекте пока нет доступных пунктов подрядчика.</div>
@@ -103,7 +108,7 @@
         <span class="contractor-wizard-panel-icon"><i class="bi bi-buildings"></i></span>
         <div>
           <h2>Квартиры подрядчика</h2>
-          <p>Выберите квартиры, в которых подрядчик отвечает за указанные пункты.</p>
+          <p>Выберите пункт и укажите квартиры, за которые отвечает подрядчик.</p>
         </div>
       </div>
       <div class="contractor-choice-toolbar">
@@ -115,6 +120,15 @@
         <button class="btn btn-sm btn-outline-secondary" type="button" data-contractor-clear="apartments">Снять выбор</button>
         <span class="contractor-choice-counter"><strong data-contractor-count="apartments">0</strong> выбрано</span>
       </div>
+      <label class="form-label" for="contractorScopePoint">Пункт ответственности</label>
+      <div class="contractor-scope-picker mb-3">
+        <select id="contractorScopePoint" data-native-select hidden aria-hidden="true" tabindex="-1"></select>
+        <details class="contractor-scope-dropdown">
+          <summary><span data-scope-caption>Выберите пункт</span><i class="bi bi-chevron-down"></i></summary>
+          <div class="contractor-scope-menu" data-scope-menu></div>
+        </details>
+      </div>
+      <input type="hidden" name="point_apartment_groups" id="contractorScopeData">
       <div class="contractor-choice-grid contractor-apartment-grid" data-contractor-list="apartments">
         {% for apartment in apartment_options %}
         {% set apartment_meta = [apartment.building and 'Корпус ' ~ apartment.building, apartment.entrance and 'Подъезд ' ~ apartment.entrance, apartment.floor and 'Этаж ' ~ apartment.floor, apartment.finishing_type]|select|join(' · ') %}
@@ -133,7 +147,7 @@
         <div class="contractor-choice-empty">На объекте пока нет квартир для выбора.</div>
         {% endfor %}
       </div>
-      <p class="contractor-wizard-error" data-contractor-error="apartments" hidden>Выберите хотя бы одну квартиру.</p>
+      <p class="contractor-wizard-error" data-contractor-error="apartments" hidden>Выберите хотя бы одну квартиру для каждого пункта.</p>
       <div class="contractor-wizard-actions">
         <button class="btn btn-outline-secondary" type="button" data-contractor-back="2"><i class="bi bi-arrow-left"></i>Назад</button>
         <button class="btn btn-primary" type="submit"><i class="bi {{ 'bi-pencil-square' if contractor else 'bi-person-plus' }}"></i>{{ contractor_submit_label or 'Создать подрядчика' }}</button>
@@ -147,9 +161,78 @@
   const wizard = document.getElementById('contractorWizard');
   if (!wizard) return;
 
+  const emailList = wizard.querySelector('[data-contractor-emails]');
+  wizard.querySelector('[data-add-email]').addEventListener('click', () => {
+    const row = emailList.firstElementChild.cloneNode(true);
+    row.querySelector('input').value = '';
+    emailList.append(row);
+    row.querySelector('input').focus();
+  });
+  emailList.addEventListener('click', event => {
+    if (!event.target.closest('[data-remove-email]')) return;
+    const row = event.target.closest('.d-flex');
+    if (emailList.children.length > 1) row.remove();
+    else row.querySelector('input').value = '';
+  });
+  const scopes = {{ point_apartment_groups|tojson }};
+  const scopeSelect = wizard.querySelector('#contractorScopePoint');
+  const apartmentChecks = [...wizard.querySelectorAll('[name="apartment_groups"]')];
+  let scopePoint = '';
+  const saveScope = () => {
+    if (scopePoint) scopes[scopePoint] = apartmentChecks.filter(input => input.checked).map(input => input.value);
+    wizard.querySelector('#contractorScopeData').value = JSON.stringify(scopes);
+  };
+  const loadScope = () => {
+    scopePoint = scopeSelect.value;
+    apartmentChecks.forEach(input => { input.checked = (scopes[scopePoint] || []).includes(input.value); });
+    updateCount('apartments');
+    renderScopeMenu();
+  };
+  const scopeDropdown = wizard.querySelector('.contractor-scope-dropdown');
+  const renderScopeMenu = () => {
+    const menu = wizard.querySelector('[data-scope-menu]');
+    menu.replaceChildren();
+    wizard.querySelector('[data-scope-caption]').textContent = scopeSelect.selectedOptions[0]?.textContent || 'Выберите пункт';
+    [...scopeSelect.options].forEach(option => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'contractor-scope-option';
+      button.classList.toggle('is-selected', option.value === scopePoint);
+      button.textContent = option.textContent;
+      button.addEventListener('click', () => {
+        saveScope();
+        scopeSelect.value = option.value;
+        loadScope();
+        scopeDropdown.open = false;
+        scopeDropdown.querySelector('summary').focus();
+      });
+      menu.append(button);
+    });
+  };
+  document.addEventListener('click', event => {
+    if (!scopeDropdown.contains(event.target)) scopeDropdown.open = false;
+  });
+  scopeDropdown.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { scopeDropdown.open = false; scopeDropdown.querySelector('summary').focus(); }
+  });
+  const refreshScopes = () => {
+    saveScope();
+    scopeSelect.replaceChildren();
+    wizard.querySelectorAll('[name="work_points"]:checked').forEach(input => {
+      const option = document.createElement('option');
+      option.value = input.value;
+      const copy = input.closest('label').querySelector('.contractor-choice-card-copy');
+      option.textContent = `${copy.querySelector('strong').textContent.trim()} — ${copy.querySelector('small').textContent.trim()}`;
+      scopeSelect.append(option);
+    });
+    if ([...scopeSelect.options].some(option => option.value === scopePoint)) scopeSelect.value = scopePoint;
+    loadScope();
+  };
+  scopeSelect.addEventListener('change', () => { saveScope(); loadScope(); });
   const tabs = [...wizard.querySelectorAll('[data-contractor-step-tab]')];
   const panels = [...wizard.querySelectorAll('[data-contractor-step-panel]')];
   const showStep = (step) => {
+    if (String(step) === "3") refreshScopes();
     tabs.forEach((tab) => {
       const active = tab.dataset.contractorStepTab === String(step);
       tab.classList.toggle('active', active);
@@ -176,13 +259,26 @@
       return valid;
     }
     const list = step === 2 ? 'points' : 'apartments';
-    const valid = checkedCount(list) > 0;
+    if (step === 3) saveScope();
+    const valid = step === 3
+      ? [...wizard.querySelectorAll('[name="work_points"]:checked')].every(input => (scopes[input.value] || []).length > 0)
+      : checkedCount(list) > 0;
     const error = wizard.querySelector(`[data-contractor-error="${list}"]`);
     if (error) error.hidden = valid;
+    if (step === 3 && !valid) {
+      const missing = [...wizard.querySelectorAll('[name="work_points"]:checked')].find(input => !(scopes[input.value] || []).length);
+      if (missing) { scopeSelect.value = missing.value; loadScope(); }
+    }
     return valid;
   };
 
-  tabs.forEach((tab) => tab.addEventListener('click', () => showStep(tab.dataset.contractorStepTab)));
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    const target = Number(tab.dataset.contractorStepTab);
+    for (let step = 1; step < target; step++) {
+      if (!validateStep(step)) { showStep(step); return; }
+    }
+    showStep(target);
+  }));
   wizard.querySelectorAll('[data-contractor-next]').forEach((button) => button.addEventListener('click', () => {
     const currentStep = Number(button.closest('[data-contractor-step-panel]').dataset.contractorStepPanel);
     if (validateStep(currentStep)) showStep(button.dataset.contractorNext);
@@ -273,11 +369,14 @@
   });
 
   wizard.addEventListener('submit', (event) => {
+    const invalidEmail = [...emailList.querySelectorAll('input')].find(input => !input.checkValidity());
+    if (invalidEmail) { event.preventDefault(); showStep(1); invalidEmail.reportValidity(); return; }
     if (!validateStep(1)) { event.preventDefault(); showStep(1); return; }
     if (!validateStep(2)) { event.preventDefault(); showStep(2); return; }
     if (!validateStep(3)) { event.preventDefault(); showStep(3); }
   });
   wizard.querySelector('#contractorName').addEventListener('input', (event) => event.target.classList.remove('is-invalid'));
+  refreshScopes();
   updateCount('points');
   updateCount('apartments');
 })();

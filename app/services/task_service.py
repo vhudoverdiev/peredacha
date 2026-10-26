@@ -140,7 +140,7 @@ APARTMENT_IMPORT_CONFLICT_LABELS = {
 }
 
 # Основные рабочие замечания для вкладки "Все" и рабочих разделов: пункты 10-25.
-MAIN_WORK_POINT_NUMBERS = {str(number) for number in range(10, 26)}
+MAIN_WORK_POINT_NUMBERS = {str(number) for number in range(10, 26)} - {"16"}
 # Импортировать можно основные замечания + доп. соглашение, но во вкладку "Все" попадают только 10-25.
 VISIBLE_WORK_POINT_NUMBERS = MAIN_WORK_POINT_NUMBERS | DOP_AGREEMENT_POINT_NUMBERS
 
@@ -591,6 +591,11 @@ def _indexed_visible_point_number(raw: Any, header: str | None = None) -> str | 
         value_norm = value.replace(".", "").replace(",", "")
         if value_norm.isdigit():
             point_number = value.split(".", 1)[0]
+    if point_number:
+        from app.services.remark_catalog import point_keys
+        named = point_keys(header)
+        if len(named) == 1:
+            return named[0]
     if point_number and point_number.isdigit() and (
         is_visible_work_point_number(point_number) or is_dop_agreement_header(header)
     ):
@@ -599,6 +604,9 @@ def _indexed_visible_point_number(raw: Any, header: str | None = None) -> str | 
 
 
 def is_work_point_header(header: str, index: int) -> bool:
+    from app.work_points import is_retired_point_label
+    if is_retired_point_label(header):
+        return False
     h = normalize_text(header)
     if not h:
         return False
@@ -1445,6 +1453,21 @@ def get_or_update_apartment(
         else:
             query = query.filter(Apartment.apartment_number == apartment_number)
         apartment = query.first()
+    # A previous import may have created the apartment before its construction
+    # number was supplied. Reuse only an unambiguous apartment identity; never
+    # match commercial/storeroom/parking numbers or overwrite another number.
+    if apartment is None and construction_number and apartment_number and premise_type == "apartment":
+        candidates = Apartment.query.filter(
+            Apartment.project_id == project.id,
+            Apartment.apartment_number == apartment_number,
+            or_(Apartment.premise_type == "apartment", Apartment.premise_type.is_(None)),
+            or_(Apartment.construction_number.is_(None), func.trim(Apartment.construction_number) == ""),
+        )
+        if building:
+            candidates = candidates.filter(Apartment.building == building)
+        matches = candidates.limit(2).all()
+        if len(matches) == 1:
+            apartment = matches[0]
     created_apartment = apartment is None
     if apartment is None:
         apartment = Apartment(
@@ -1460,6 +1483,13 @@ def get_or_update_apartment(
         idx = base_mapping.get(field)
         return idx + 1 if idx is not None else None
 
+    if construction_number:
+        _set_apartment_import_field(
+            apartment, "construction_number", construction_number,
+            sheet_name=sheet_name, row_index=row_index,
+            column_index=col_for("construction_number"),
+            conflict_on_change=not created_apartment,
+        )
     apartment.premise_type = premise_type or "apartment"
     apartment.building = building or apartment.building
     if not str(apartment.contract_number or "").strip():
@@ -1863,7 +1893,7 @@ def upsert_task_from_cell(
             work_point_id=work_point.id,
             status=STATUS_NOT_STARTED,
             is_done=False,
-            title=f"Пункт {work_point.point_number}: {work_point.display_name}",
+            title=f"Пункт {work_point.display_number}: {work_point.display_name}",
         )
         db.session.add(task)
         # Status markers from Excel can create a change-log entry below during
@@ -1887,7 +1917,7 @@ def upsert_task_from_cell(
     task.work_point_id = work_point.id
     task.work_point = work_point
     task.is_archived = False
-    task.title = f"Пункт {work_point.point_number}: {work_point.display_name}"
+    task.title = f"Пункт {work_point.display_number}: {work_point.display_name}"
     # Любое изменение уже известной ячейки Excel теперь попадает в «Несостыковки».
     # Раньше конфликт создавался только после ручной правки на сайте, из-за этого
     # изменения дат/действий/текста из новой таблицы могли молча перетираться.
@@ -2028,7 +2058,11 @@ def sync_rows(
             point_columns = indexed_points
         data_start += 1
 
-    point_columns = select_primary_work_point_columns(headers, point_columns)
+    from app.work_points import is_retired_point_label
+    point_columns = {
+        column: label for column, label in select_primary_work_point_columns(headers, point_columns).items()
+        if not is_retired_point_label(label)
+    }
     if point_columns:
         anchored_mapping = map_base_columns(headers, anchor_before_col=min(point_columns))
         if anchored_mapping.get("apartment_number") is not None or anchored_mapping.get("construction_number") is not None:
@@ -2233,6 +2267,7 @@ def sync_rows(
                     result.updated_count += 1
     if mark_missing:
         missing_query = Task.query.filter(Task.project_id == project.id)
+        missing_query = missing_query.filter(or_(Task.source_sheet_name.is_(None), Task.source_sheet_name != "manual_retired_point"))
         missing_query = missing_query.filter(Task.work_point.has(WorkPoint.point_number.in_(VISIBLE_WORK_POINT_NUMBERS)))
         if result.seen_uids:
             missing_query = missing_query.filter(~Task.source_uid.in_(result.seen_uids))
@@ -2255,6 +2290,12 @@ def column_letter(n: int) -> str:
         n, rem = divmod(n - 1, 26)
         result = chr(65 + rem) + result
     return result
+
+
+def construction_entrance(value: str | None) -> str | None:
+    """Entrance is the first component of an apartment construction number."""
+    match = re.match(r"^\s*(\d+)\s*[-–—/]", str(value or ""))
+    return str(int(match.group(1))) if match and int(match.group(1)) > 0 else None
 
 
 def build_task_query(params, category_id: int | None = None, project_id: int | None = None, *, include_assignment_manual: bool = False):

@@ -117,7 +117,7 @@
             {% for task in group.tasks %}
             <tr class="{% if task.is_done %}is-done{% endif %}" data-assignment-report-row>
               <td class="assignment-report-room-cell"><span class="assignment-room-pill"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else 'Без помещения' }}</span></td>
-              <td>{{ task.work_point.point_number if task.work_point else '—' }}</td>
+              <td>{{ task.work_point.display_number if task.work_point else '—' }}</td>
               <td class="assignment-report-task-cell">{{ remark_text(task.description or task.source_cell_value) }}</td>
               <td><span class="badge bg-{{ task.status_class() }}" data-assignment-report-status-pill>{{ task.status_label() }}</span></td>
               <td class="assignment-report-status-actions">

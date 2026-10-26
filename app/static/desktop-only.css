@@ -2097,3 +2097,27 @@ html.desktop-like-pointer body.app-body:has(.objects-page) .object-card {
   width: 100% !important;
   min-width: 0 !important;
 }
+
+/* The smart picker occupies the full assignment toolbar after search moved out. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head) .assignment-toolbar-grid-restored {
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+  }
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head) .assignment-smart-card-compact {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head) .assignment-smart-form {
+    display: grid !important;
+    grid-template-columns: minmax(0, 2fr) minmax(12rem, 1fr) minmax(12rem, 1fr) !important;
+    gap: 1rem !important;
+    align-items: end !important;
+    width: 100% !important;
+  }
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head) .assignment-smart-form > div,
+  html.desktop-like-pointer body.app-body:has(.assignments-page-head) .assignment-smart-form .btn {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+}

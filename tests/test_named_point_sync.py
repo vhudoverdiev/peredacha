@@ -30,6 +30,7 @@ class NamedPointSyncTests(unittest.TestCase):
     def test_resync_repairs_old_assignments_without_duplicates_or_status_loss(self):
         rows=self.rows()
         def legacy(number,header,sheet,column):
+            number=str(column)  # Simulate the old physical-column mapping.
             point=WorkPoint.query.filter_by(point_number=number,source_sheet_name=sheet).first()
             if point is None:
                 point=WorkPoint(point_number=number,source_sheet_name=sheet);db.session.add(point)

@@ -25,7 +25,6 @@
     <div class="card content-card mb-3">
       <div class="card-body">
         <h2 class="section-title">Данные помещения</h2>
-        {% if row.group_count and row.group_count > 1 %}<div class="small text-muted mb-2">Данные объединены по номеру помещения из {{ row.group_count }} строк.</div>{% endif %}
         <div class="apartment-data-list">
           <div class="apartment-data-row">
             <span>Помещение</span>
@@ -34,10 +33,10 @@
           <div class="apartment-data-row{% if current_user.role != 'viewer' %} apartment-data-edit-row{% endif %}">
             {% if current_user.role != 'viewer' %}
             <label for="apartment-construction-{{ apartment.id }}">Строительный номер</label>
-            <input class="form-control form-control-sm" id="apartment-construction-{{ apartment.id }}" name="construction_number" type="text" value="{{ apartment.construction_number or '' }}" maxlength="80" inputmode="text" form="apartment-details-form-{{ apartment.id }}">
+            <input class="form-control form-control-sm" id="apartment-construction-{{ apartment.id }}" name="construction_number" type="text" value="{{ row.construction_number or '' }}" maxlength="80" inputmode="text" form="apartment-details-form-{{ apartment.id }}">
             {% else %}
             <span>Строительный номер</span>
-            <b>{{ apartment.construction_number or '—' }}</b>
+            <b>{{ row.construction_number or '—' }}</b>
             {% endif %}
           </div>
           <div class="apartment-data-row{% if current_user.role != 'viewer' %} apartment-data-edit-row{% endif %}">
@@ -441,7 +440,7 @@
               {% endif %}
             </div>
             <div class="apartment-task-meta">
-              <span>Пункт: {{ task.work_point.point_number if task.work_point else '—' }}</span>
+              <span>Пункт: {{ task.work_point.display_number if task.work_point else '—' }}</span>
               <span>Раздел: {% for category in task.work_point.categories %}{{ category.name }}{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</span>
               <span>Исполнитель: {{ task.responsible.full_name or task.responsible.username if task.responsible else '—' }}</span>
               {% if task.is_missing_in_latest_sync %}<span class="text-warning">нет в последней синхронизации</span>{% endif %}

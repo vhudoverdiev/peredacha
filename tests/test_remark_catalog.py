@@ -14,7 +14,8 @@ class CatalogTests(unittest.TestCase):
     def test_catalog_contains_four_sources_and_observed_names(self):
         catalog=get_catalog()
         self.assertEqual(len(catalog.sources),4)
-        self.assertGreater(len(catalog.entries),6000)
+        self.assertGreater(len(catalog.entries),5000)
+        self.assertTrue(all('16' not in entry['points'] for entry in catalog.entries))
         self.assertGreater(sum(len(e['points'])>1 for e in catalog.entries),100)
         self.assertTrue(all(e['origins'] and e['text'] for e in catalog.entries))
 

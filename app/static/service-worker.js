@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v251-mounted-shell';
+const STATIC_CACHE = 'peredacha-static-v252-point-retirement';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -16,12 +16,12 @@ const STATIC_ASSETS = [
   '/static/style.css?v=v727-mobile-card-backgrounds',
   '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v97-ios-archive-scroll-shell',
-  '/static/desktop-only.css?v=v76-objects-three-columns',
+  '/static/desktop-only.css?v=v77-assignment-picker-width',
   '/static/script.js?v=v710-object-navigation',
   '/static/navigation-state.js?v=4',
   '/static/page-navigation.js?v=3',
   '/static/form-csrf.js?v=1',
-  '/static/remark-suggestions.js?v=8',
+  '/static/remark-suggestions.js?v=5-point-numbering',
   '/static/time-entry.js?v=3',
   '/static/remark-suggestions.css?v=3',
   '/static/developer-news.css?v=8',

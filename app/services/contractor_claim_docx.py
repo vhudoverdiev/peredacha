@@ -124,7 +124,7 @@ def _letter_paragraphs(project: Project, contractor: Contractor | None, author: 
     technical_customer = project.technical_customer or "Техзаказчик"
     contractor_name = contractor.name if contractor else "Подрядчик"
     contractor_address = contractor.legal_address if contractor else ""
-    contractor_email = contractor.email if contractor else ""
+    contractor_email = contractor.formatted_emails if contractor else ""
     contract_number = contractor.contract_number if contractor else ""
     contract_date = contractor.contract_date if contractor else ""
     author_email = author.email or ""
@@ -214,12 +214,16 @@ def _deadline_paragraph(author_email: str) -> str:
 
 
 def _email_notice_paragraph(contractor_email: str) -> str:
-    email = contractor_email or "—"
+    addresses = [value.strip() for value in re.split(r'[,;\n]', contractor_email or '') if value.strip()]
+    runs = [("Направлено на адрес эл. почты: ", {})]
+    for index, address in enumerate(addresses):
+        if index:
+            runs.append((", ", {}))
+        runs.append((address, {"color": LINK_BLUE, "underline": True}))
+    if not addresses:
+        runs.append(("—", {}))
     return _paragraph_runs(
-        [
-            ("Направлено на адрес эл. почты: ", {}),
-            (email, {"color": LINK_BLUE, "underline": True}),
-        ],
+        runs,
         align="both",
         left=BODY_LEFT,
         right=BODY_RIGHT,
@@ -593,7 +597,7 @@ def _point_title(point: WorkPoint | None) -> str:
         return "Замечания"
     title = str(point.display_name or "").strip()
     if not title:
-        return f"Пункт {point.point_number}"
+        return f"Пункт {point.display_number}"
     return re.sub(r"^\s*\d+\s*[\.\-:)]\s*", "", title).strip() or title
 
 

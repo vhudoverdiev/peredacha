@@ -15,7 +15,7 @@ SUFFIXES = tuple(sorted(('иями','ями','ами','ого','ему','ому'
 OBJECT_HINTS = {
     '10': ('вентиляц','вытяжк'), '11': ('штукатур','шпаклев','потолк'),
     '12': ('монолит','пилон','фасад','ригел'), '13': ('стяжк',), '14': ('гидроизоляц',),
-    '15': ('перегород','блочн'), '16': ('мусор','уборк'), '17': ('пвх','окон'),
+    '15': ('перегород','блочн'), '17': ('пвх','окон'),
     '18': ('подокон','откос'), '19': ('ростелеком','интернет'), '20': ('витраж',),
     '21': ('радиатор','отоплен'), '22': ('канализа','водоснабж','хвс','гвс','сантех'),
     '23': ('входн','двер'), '24': ('электр','щитк','розетк','выключат','проводк'),
@@ -41,7 +41,7 @@ def point_keys(label):
                ('ростелеком','19'), ('витраж','20'), ('отоплен','21'),
                ('канализа','22'), ('входных двер','23'), ('электрик','24'),
                ('вентиляц','10'), ('штукатур','11'), ('шпаклев','11'),
-               ('коробки здан','12'), ('разнорабоч','16'), ('прочее','25'))
+               ('коробки здан','12'), ('прочее','25'))
     return next(((number,) for term,number in aliases if term in value), ())
 
 
@@ -67,11 +67,12 @@ class RemarkCatalog:
     def __init__(self, payload):
         self.version=payload['version']
         self.sources=payload['sources']
-        self.entries=payload['entries']
+        self.entries=[dict(entry) for entry in payload['entries'] if '16' not in entry.get('points', [])]
         self.postings=defaultdict(set)
         self.exact=defaultdict(list)
         self.termsets=[]
         for i,entry in enumerate(self.entries):
+            entry['points'] = [p for p in entry['points'] if p in WORK_POINT_LABELS]
             terms=tokens(entry['text']); self.termsets.append(terms)
             self.exact[normalize(entry['text'])].append(i)
             for term in terms: self.postings[term].add(i)

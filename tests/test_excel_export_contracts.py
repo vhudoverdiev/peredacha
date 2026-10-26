@@ -111,7 +111,7 @@ class ExcelExportPureContractsTests(unittest.TestCase):
         self.assertEqual(sheet.cell(row=5, column=3).value, "Работы по монтажу входных дверей")
         self.assertEqual(sheet.cell(row=5, column=4).value, "Электрика")
         self.assertEqual(sheet.cell(row=5, column=5).value, "Прочее")
-        self.assertEqual([sheet.cell(row=6, column=index).value for index in range(1, 6)], [21, 22, 23, 24, 25])
+        self.assertEqual([sheet.cell(row=6, column=index).value for index in range(1, 6)], [20, 21, 22, 23, 24])
         self.assertEqual(sheet.cell(row=5, column=6).value, "Сертификат Стройбат")
 
     def test_source_export_finds_old_split_header_without_numeric_point_row(self):
@@ -133,7 +133,7 @@ class ExcelExportPureContractsTests(unittest.TestCase):
         self.assertEqual(sheet.cell(row=5, column=24).value, "Электрика")
         self.assertEqual(sheet.cell(row=5, column=25).value, "Прочее")
         self.assertEqual(sheet.cell(row=5, column=26).value, "Сертификат Стройбат")
-        self.assertEqual([sheet.cell(row=6, column=index).value for index in range(21, 26)], [21, 22, 23, 24, 25])
+        self.assertEqual([sheet.cell(row=6, column=index).value for index in range(21, 26)], [20, 21, 22, 23, 24])
 
     def test_source_export_normalizes_split_headers_inside_merged_cells(self):
         workbook = Workbook()
@@ -153,7 +153,7 @@ class ExcelExportPureContractsTests(unittest.TestCase):
         self.assertEqual(sheet.cell(row=5, column=21).value, "Работы по монтажу системы отопления")
         self.assertEqual(sheet.cell(row=5, column=22).value, "Работы по монтажу канализации, в/с")
         self.assertEqual(sheet.cell(row=5, column=23).value, "Работы по монтажу входных дверей")
-        self.assertEqual([sheet.cell(row=6, column=index).value for index in range(21, 26)], [21, 22, 23, 24, 25])
+        self.assertEqual([sheet.cell(row=6, column=index).value for index in range(21, 26)], [20, 21, 22, 23, 24])
 
 
 class ExcelExportDatabaseContractsTests(unittest.TestCase):
