@@ -4367,11 +4367,17 @@ def _parse_id_list(value: str | None) -> set[int]:
 def _assignment_base_query(project_id: int, params=None):
     params = dict(params or {})
     params.setdefault("sort", "apartment")
+    worker_filters = {'painters': 'Маляры', 'glaziers': 'Витражники', 'handymen': 'Разнорабочие'}
+    worker_category = worker_filters.get(params.get('status'))
+    if worker_category:
+        params['status'] = ''
     query = build_task_query(params, project_id=project_id, include_assignment_manual=True).options(
         selectinload(Task.apartment),
         selectinload(Task.work_point),
         selectinload(Task.responsible),
     )
+    if worker_category:
+        query = query.filter(WorkPoint.categories.any(WorkCategory.name == worker_category))
     # Free-text assignment search is about the visible remark, not point labels,
     # employee names or an obsolete source value after the remark was edited.
     search_mode, search_value = detect_search_mode(params.get("q"))
@@ -4671,7 +4677,7 @@ def assignments():
         key: (request.args.get(key) or "").strip()
         for key in ("q", "acceptance_status", "status", "point")
     }
-    if query_args["status"] not in {"deadline_expiring", "deadline_expired"}:
+    if query_args["status"] not in {"deadline_expiring", "deadline_expired", "painters", "glaziers", "handymen"}:
         query_args["status"] = ""
     query_args["finishing_group"] = get_multi_param_values(request.args, "finishing_group")
     assignment_filter_args = {

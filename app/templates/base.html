@@ -950,7 +950,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v252-point-retirement', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v256-assignment-point-size-revert', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -991,9 +991,9 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v727-mobile-card-backgrounds">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v729-assignment-point-size-revert">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v97-ios-archive-scroll-shell">
-  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v77-assignment-picker-width">
+  <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v79-assignment-point-size-revert">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
     // Releasing the gate here guarantees that desktop body markup cannot be
@@ -1607,6 +1607,6 @@
   <script src="{{ url_for('static', filename='time-entry.js') }}?v=3"></script>
   <script src="{{ url_for('static', filename='form-csrf.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='remark-suggestions.js') }}?v=5-point-numbering"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v710-object-navigation"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v712-assignment-point-revert"></script>
 </body>
 </html>

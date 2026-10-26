@@ -238,19 +238,40 @@
         </select>
       </div>
       <div class="col-12 col-md-2">
-        <label class="form-label">Статус</label>
+        <label class="form-label">Фильтр</label>
         <select class="form-select mobile-native-select" name="status">
           <option value="">Все</option>
           <option value="deadline_expiring" {% if args.get('status') == 'deadline_expiring' %}selected{% endif %}>Срок истекает</option>
           <option value="deadline_expired" {% if args.get('status') == 'deadline_expired' %}selected{% endif %}>Срок истёк</option>
+          <option value="painters" {% if args.get('status') == 'painters' %}selected{% endif %}>Маляры</option>
+          <option value="glaziers" {% if args.get('status') == 'glaziers' %}selected{% endif %}>Витражники</option>
+          <option value="handymen" {% if args.get('status') == 'handymen' %}selected{% endif %}>Разнорабочие</option>
         </select>
       </div>
-      <div class="col-12 col-md-3">
+      <div class="col-12 col-md-3 assignment-point-filter">
         <label class="form-label" for="assignmentPointFilter">Пункт</label>
         <select class="form-select" name="point" id="assignmentPointFilter">
           <option value="">Все пункты</option>
+          {% set short_point_labels = {
+            '10': 'Вентиляция',
+            '11': 'Стены и потолки',
+            '12': 'Коробка здания',
+            '13': 'Подстилающий слой',
+            '14': 'Гидроизоляция пола',
+            '15': 'Блочные перегородки',
+            '17': 'ПВХ блоки',
+            '18': 'Откосы и подоконники',
+            '19': 'Ростелеком',
+            '20': 'Витражное остекление',
+            '21': 'Отопление',
+            '22': 'Водоснабжение и канализация',
+            '23': 'Входные двери',
+            '24': 'Электрика',
+            '25': 'Прочее',
+            '26': 'Отступное (ТМЦ)'
+          } %}
           {% for point in points %}
-          <option value="{{ point.number }}" {% if args.get('point') == point.number %}selected{% endif %}>{{ point.display_number }}. {{ point.label }}</option>
+          <option value="{{ point.number }}" {% if args.get('point') == point.number %}selected{% endif %}>{{ point.display_number }}. {{ short_point_labels.get(point.number, point.label) }}</option>
           {% endfor %}
         </select>
       </div>

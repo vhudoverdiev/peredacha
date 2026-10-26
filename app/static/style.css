@@ -60037,3 +60037,4 @@ html body.app-body .worker-page .worker-task-card-minimal.done .worker-task-text
 #assignmentSearchPanel .developer-select-button { height:56px; min-height:56px; }
 #assignmentSearchPanel .developer-select-value { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
 .contractor-scope-dropdown:not([open]) > .contractor-scope-menu { display:none; }
+

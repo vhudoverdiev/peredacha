@@ -1524,7 +1524,9 @@ document.addEventListener('DOMContentLoaded', () => {
   finishCustomSelectBoot();
   window.addEventListener('resize', () => refreshCustomSelectViewportMode(), { passive: true });
   document.addEventListener('crm:ajax-pagination-updated', event => {
-    refreshCustomSelectViewportMode(event.detail?.content || document);
+    // Filters and the assignee form are morphed outside the table content too.
+    const content = event.detail?.content;
+    refreshCustomSelectViewportMode(content?.closest('[data-ajax-pagination-page]') || document);
   });
 
   document.addEventListener('click', event => {
