@@ -950,7 +950,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v256-assignment-point-size-revert', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v257-assignment-persist-pagination', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1607,6 +1607,6 @@
   <script src="{{ url_for('static', filename='time-entry.js') }}?v=3"></script>
   <script src="{{ url_for('static', filename='form-csrf.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='remark-suggestions.js') }}?v=5-point-numbering"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v712-assignment-point-revert"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v713-assignment-persist-pagination"></script>
 </body>
 </html>

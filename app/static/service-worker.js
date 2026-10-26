@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v256-assignment-point-size-revert';
+const STATIC_CACHE = 'peredacha-static-v257-assignment-persist-pagination';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -17,7 +17,7 @@ const STATIC_ASSETS = [
   '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v97-ios-archive-scroll-shell',
   '/static/desktop-only.css?v=v79-assignment-point-size-revert',
-  '/static/script.js?v=v712-assignment-point-revert',
+  '/static/script.js?v=v713-assignment-persist-pagination',
   '/static/navigation-state.js?v=4',
   '/static/page-navigation.js?v=3',
   '/static/form-csrf.js?v=1',

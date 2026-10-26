@@ -3911,7 +3911,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     const scope = form.closest('.js-bulk-selectable') || document.querySelector(`.js-bulk-selectable button[form="${form.id}"]`)?.closest('.js-bulk-selectable');
-    if (scope && (form.id || form.querySelector('[name="measurement_ids"], [name="task_ids"]'))) {
+    if (scope && !form.matches('.assignment-shell') && (form.id || form.querySelector('[name="measurement_ids"], [name="task_ids"]'))) {
       clearBulkSelectionForScope(scope, { resetUi: false });
     }
   }, true);
@@ -4116,7 +4116,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.js-bulk-selectable').forEach(initBulkSelectableScope);
   document.addEventListener('crm:ajax-pagination-updated', event => {
-    (event.detail?.content || document).querySelectorAll?.('.js-bulk-selectable').forEach(initBulkSelectableScope);
+    const content = event.detail?.content || document;
+    if (content.matches?.('.js-bulk-selectable')) initBulkSelectableScope(content);
+    content.querySelectorAll?.('.js-bulk-selectable').forEach(initBulkSelectableScope);
   });
 
   document.querySelectorAll('.js-remark-export-scope').forEach(scope => {
@@ -4443,6 +4445,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  const assignmentDraftFields = ['responsible_id', 'planned_date', 'smart_user_id', 'smart_date'];
+  const assignmentDraftKey = () => {
+    const form = document.querySelector('.assignment-shell');
+    const match = form?.dataset.selectionKey?.match(/^assignments-(\d+)-/);
+    return match ? `crm-assignment-draft:${match[1]}` : '';
+  };
+  const saveAssignmentDraft = () => {
+    const key = assignmentDraftKey();
+    if (!key) return;
+    const values = {};
+    assignmentDraftFields.forEach(name => {
+      const input = document.querySelector(`.assignment-shell [name="${name}"], .assignment-smart-form [name="${name}"]`);
+      if (input) values[name] = input.value;
+    });
+    try { sessionStorage.setItem(key, JSON.stringify(values)); } catch (error) {}
+  };
+  const restoreAssignmentDraft = () => {
+    const key = assignmentDraftKey();
+    if (!key) return;
+    let values;
+    try { values = JSON.parse(sessionStorage.getItem(key) || 'null'); } catch (error) { return; }
+    if (!values) return;
+    assignmentDraftFields.forEach(name => {
+      const input = document.querySelector(`.assignment-shell [name="${name}"], .assignment-smart-form [name="${name}"]`);
+      if (!input || !Object.prototype.hasOwnProperty.call(values, name)) return;
+      input.value = values[name];
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      if (input._flatpickr) input._flatpickr.setDate(input.value, false);
+    });
+  };
+  restoreAssignmentDraft();
+  document.addEventListener('change', event => {
+    if (event.target.matches('.assignment-shell [name="responsible_id"], .assignment-shell [name="planned_date"], .assignment-smart-form [name="smart_user_id"], .assignment-smart-form [name="smart_date"]')) saveAssignmentDraft();
+  });
+  document.addEventListener('crm:ajax-pagination-updated', restoreAssignmentDraft);
   const assignmentForm = document.querySelector('.assignment-shell');
   if (assignmentForm) {
     assignmentForm.addEventListener('submit', event => {
@@ -4451,7 +4488,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const form = event.currentTarget;
 
       if (submitter?.name === 'action' && submitter.value === 'bulk_assign') {
-        const selected = Array.from(form.querySelectorAll('.js-bulk-check:checked:not(:disabled)'));
+        const selected = Array.from(form.querySelectorAll('.js-bulk-check:checked:not(:disabled), input.js-bulk-persisted-input[name="task_ids"]'));
         const responsibleSelect = form.querySelector('select[name="responsible_id"]');
         if (form.dataset.bulkAssignPending === '1') {
           event.preventDefault();
@@ -4473,6 +4510,11 @@ document.addEventListener('DOMContentLoaded', () => {
           showCrmNotice('Выберите исполнителя. Отмеченные задачи останутся выбранными.', 'warning');
           return;
         }
+        try {
+          const selectionKey = `crm-bulk-selection:${form.dataset.selectionKey}`;
+          localStorage.removeItem(selectionKey);
+          sessionStorage.removeItem(selectionKey);
+        } catch (error) {}
         form.dataset.bulkAssignPending = '1';
         submitter.disabled = true;
         submitter.classList.add('disabled');
