@@ -950,7 +950,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v257-assignment-persist-pagination', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v258-issued-employee-comments', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -991,7 +991,7 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v729-assignment-point-size-revert">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v730-issued-employee-comments">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v97-ios-archive-scroll-shell">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v79-assignment-point-size-revert">
   <script>

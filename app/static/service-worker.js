@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v257-assignment-persist-pagination';
+const STATIC_CACHE = 'peredacha-static-v258-issued-employee-comments';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,7 +13,7 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v729-assignment-point-size-revert',
+  '/static/style.css?v=v730-issued-employee-comments',
   '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v97-ios-archive-scroll-shell',
   '/static/desktop-only.css?v=v79-assignment-point-size-revert',

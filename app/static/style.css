@@ -60038,3 +60038,9 @@ html body.app-body .worker-page .worker-task-card-minimal.done .worker-task-text
 #assignmentSearchPanel .developer-select-value { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
 .contractor-scope-dropdown:not([open]) > .contractor-scope-menu { display:none; }
 
+
+/* Employee feedback is visible beside the issued task on desktop and mobile. */
+.assignment-issued-task-copy { width:100%; min-width:0; }
+.assignment-issued-comment { margin-top:12px; padding:12px 14px; border:1px solid #dfe7d8; border-left:3px solid #82bf2a; border-radius:12px; background:#f7faf3; text-align:left; }
+.assignment-issued-comment-meta { display:flex; align-items:baseline; gap:8px; margin-bottom:6px; color:#59634f; font-size:12px; font-weight:500; line-height:1.4; white-space:normal; }
+.assignment-issued-comment-body { color:#20291e; font-size:14px; font-weight:400; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere; }

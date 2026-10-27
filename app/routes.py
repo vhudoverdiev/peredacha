@@ -4754,7 +4754,8 @@ def assignments():
     today_value = to_moscow_datetime(utc_now()).date()
     issued_filter, issued_filter_date = _assignment_issued_day_filter(request.args.get("issued_day"))
     issued_query_builder = (
-        Task.query.options(selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.responsible))
+        Task.query.options(selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.responsible),
+                           selectinload(Task.comments).selectinload(TaskComment.user))
         .filter(
             Task.project_id == project.id,
             Task.responsible_id.isnot(None),
@@ -4794,6 +4795,12 @@ def assignments():
             "task": task,
             "issued_at": issue_dates.get(task.id),
             "employee_status": _issued_status_payload(task),
+            "employee_comments": sorted(
+                [comment for comment in task.comments
+                 if can_view_task_comments(current_user) and comment.user
+                 and (comment.user_id == task.responsible_id or comment.user.role in WORKER_ROLES)],
+                key=lambda comment: (comment.created_at or datetime.min, comment.id), reverse=True,
+            ),
             "overdue_days": max(overdue_days, 0),
         }
 

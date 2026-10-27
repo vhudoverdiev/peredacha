@@ -41,7 +41,17 @@
           {% set task = row.task %}
           <tr class="assignment-issued-row {% if task.is_done %}done-task{% endif %}" data-task-id="{{ task.id }}">
             <td><span class="assignment-room-pill"><i class="bi bi-door-open"></i>{{ task.apartment.label() if task.apartment else 'Без помещения' }}</span></td>
-            <td class="task-text"><a class="assignment-task-text assignment-task-open-link" href="{{ url_for('main.task_detail', task_id=task.id) }}">{{ remark_text(task.description or task.source_cell_value) }}</a></td>
+            <td class="task-text">
+              <div class="assignment-issued-task-copy">
+                <a class="assignment-task-text assignment-task-open-link" href="{{ url_for('main.task_detail', task_id=task.id) }}">{{ remark_text(task.description or task.source_cell_value) }}</a>
+                {% for comment in row.employee_comments %}
+                <div class="assignment-issued-comment">
+                  <div class="assignment-issued-comment-meta"><i class="bi bi-chat-left-text" aria-hidden="true"></i><span>{{ comment.user.full_name or comment.user.username }} · {{ comment.created_at|ru_datetime }}</span></div>
+                  <div class="assignment-issued-comment-body">{{ comment.body }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            </td>
             <td class="assignment-issued-date-cell">
               <span>{{ task.planned_date|ru_date if task.planned_date else '—' }}</span>
               {% if overdue_view and row.overdue_days %}<small class="assignment-overdue-days">просрочено {{ row.overdue_days }} дн.</small>{% endif %}
