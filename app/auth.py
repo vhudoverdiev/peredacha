@@ -1,4 +1,5 @@
 from urllib.parse import urlparse
+from datetime import timedelta
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user
@@ -68,11 +69,12 @@ def _needs_two_factor_for_ip(user: User) -> bool:
 
 
 def _complete_pending_login(user: User):
-    remember = bool(session.get("pending_login_remember"))
+    persistent_worker = user.role in {"painter", "glazier", "handyman"}
+    remember = persistent_worker or bool(session.get("pending_login_remember"))
     next_url = session.get("pending_login_next") or None
     current_project_id = session.get("current_project_id")
     clear_auth_session()
-    login_user(user, remember=remember)
+    login_user(user, remember=remember, duration=timedelta(days=365) if persistent_worker else None)
     session.permanent = True
     session["session_version"] = int(user.session_version or 0)
     if current_project_id:

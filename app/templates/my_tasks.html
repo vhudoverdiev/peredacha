@@ -19,8 +19,9 @@
     <section class="worker-project-group" data-worker-project-group data-project-id="{{ group.project.id }}">
       <h2 class="worker-project-heading"><i class="bi bi-buildings" aria-hidden="true"></i><span>{{ group.project.name }}</span></h2>
     {% for task in group.tasks %}
-    <article class="worker-task-card worker-task-card-minimal {% if task.status == STATUS_DONE %}done{% endif %}" data-worker-task-card data-task-id="{{ task.id }}">
+    <article class="worker-task-card worker-task-card-minimal {% if task.priority == 'critical' %}worker-task-urgent{% endif %} {% if task.status == STATUS_DONE %}done{% endif %}" data-worker-task-card data-task-id="{{ task.id }}">
       <div class="worker-task-main">
+        {% if task.priority == 'critical' %}<span class="task-urgent-badge"><i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>Срочно</span>{% endif %}
         <div class="worker-task-meta-minimal">
           <span class="worker-room">{{ task.apartment.label()|upper if task.apartment else 'Без помещения' }}</span>
           {% if task.planned_date %}<span>{{ task.planned_date|ru_date }}</span>{% endif %}
@@ -40,15 +41,30 @@
       <div class="worker-task-comments worker-own-comments" data-worker-own-comments {% if not own_comments.get(task.id) %}hidden{% endif %}>
         {% for comment in own_comments.get(task.id, []) %}
         <div class="worker-task-comment-entry">
-          <small>{{ comment.created_at|ru_datetime }}</small>
+          {% set comment_context = worker_comment_context.get(comment.id, {}) %}
+          <span class="assignment-comment-kind">{{ 'Прошлый комментарий' if comment_context.previous else ('Комментарий для работника' if comment_context.instruction else 'Ваш комментарий') }}</span>
+          <small>{{ comment.user.full_name or comment.user.username }} · {{ comment.created_at|ru_datetime }}</small>
+          {% if comment.user_id == current_user.id %}
           <form method="post" action="{{ url_for('main.my_task_comment_delete', task_id=task.id, comment_id=comment.id) }}" class="worker-comment-delete-form" data-confirm="Удалить этот комментарий?">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-sm btn-outline-danger worker-comment-delete-button" type="submit" title="Удалить комментарий" aria-label="Удалить комментарий"><i class="bi bi-trash" aria-hidden="true"></i></button>
           </form>
+          {% endif %}
           <p>{{ comment.body }}</p>
         </div>
         {% endfor %}
       </div>
+      {% if current_user.role == 'glazier' %}
+      <details class="worker-measurement-panel">
+        <summary><i class="bi bi-rulers"></i>Замер{% if task.glass_measurement and task.glass_measurement.comment %} · сохранён{% endif %}</summary>
+        <form method="post" action="{{ url_for('main.my_task_measurement', task_id=task.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label for="workerMeasurement{{ task.id }}">Размеры и комментарий к замеру</label>
+          <textarea class="form-control" id="workerMeasurement{{ task.id }}" name="body" rows="3" maxlength="4000" required placeholder="Например: 740 × 1260 мм, стеклопакет правой створки">{{ task.glass_measurement.comment if task.glass_measurement and task.glass_measurement.comment else '' }}</textarea>
+          <button type="submit" class="btn btn-primary btn-sm mt-2">Передать замер</button>
+        </form>
+      </details>
+      {% endif %}
       <div class="worker-task-discussion" id="workerComposer{{ task.id }}" hidden>
         <form method="post" action="{{ url_for('main.my_task_comment', task_id=task.id) }}" data-worker-comment-form class="worker-task-comment-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

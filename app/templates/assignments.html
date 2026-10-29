@@ -44,12 +44,29 @@
             <td class="task-text">
               <div class="assignment-issued-task-copy">
                 <a class="assignment-task-text assignment-task-open-link" href="{{ url_for('main.task_detail', task_id=task.id) }}">{{ remark_text(task.description or task.source_cell_value) }}</a>
+                {% if task.priority == 'critical' %}<span class="task-urgent-badge"><i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>Срочно</span>{% endif %}
                 {% for comment in row.employee_comments %}
                 <div class="assignment-issued-comment">
+                  {% set comment_context = issued_comment_context.get(comment.id, {}) %}
+                  {% if comment_context.previous %}<span class="assignment-comment-kind">Прошлый комментарий</span>{% elif comment_context.instruction %}<span class="assignment-comment-kind">Комментарий для работника</span>{% endif %}
                   <div class="assignment-issued-comment-meta"><i class="bi bi-chat-left-text" aria-hidden="true"></i><span>{{ comment.user.full_name or comment.user.username }} · {{ comment.created_at|ru_datetime }}</span></div>
+                  <form method="post" action="{{ url_for('main.assignment_comment_delete', task_id=task.id, comment_id=comment.id) }}" data-confirm="Удалить комментарий сотрудника?" class="assignment-comment-delete-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="issued_day" value="{{ issued_filter }}">
+                    <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Удалить комментарий" title="Удалить комментарий"><i class="bi bi-trash3"></i></button>
+                  </form>
                   <div class="assignment-issued-comment-body">{{ comment.body }}</div>
                 </div>
                 {% endfor %}
+                <details class="assignment-worker-instruction">
+                  <summary><i class="bi bi-chat-left-text"></i>Комментарий работнику</summary>
+                  <form method="post" action="{{ url_for('main.assignment_worker_instruction', task_id=task.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="issued_day" value="{{ issued_filter }}">
+                    <textarea class="form-control" name="body" rows="2" maxlength="4000" required placeholder="Комментарий для работника" aria-label="Комментарий для работника"></textarea>
+                    <button class="btn btn-primary btn-sm mt-2" type="submit">Отправить</button>
+                  </form>
+                </details>
               </div>
             </td>
             <td class="assignment-issued-date-cell">
@@ -64,6 +81,12 @@
             </td>
             <td class="text-end assignment-issued-actions-cell">
               <div class="assignment-issued-actions">
+                <form method="post" action="{{ url_for('main.assignment_task_priority', task_id=task.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="issued_day" value="{{ issued_filter }}">
+                  <input type="hidden" name="priority" value="{{ 'normal' if task.priority == 'critical' else 'critical' }}">
+                  <button class="btn btn-sm {{ 'btn-danger' if task.priority == 'critical' else 'btn-outline-danger' }}" type="submit" title="{{ 'Снять срочность' if task.priority == 'critical' else 'Пометить срочной' }}" aria-label="{{ 'Снять срочность' if task.priority == 'critical' else 'Пометить срочной' }}"><i class="bi bi-lightning-charge-fill"></i></button>
+                </form>
                 <form method="post" action="{{ url_for('main.assignments', view='issued', issued_day=issued_filter) }}" class="assignment-date-action-form">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="hidden" name="update_date_task_id" value="{{ task.id }}">
@@ -427,6 +450,7 @@
             <td class="task-text">
               <div class="d-flex align-items-start gap-2 inline-editor-anchor assignment-task-inline-anchor">
                 <span class="assignment-task-text inline-text js-highlight-text" data-task-id="{{ task.id }}" title="{{ task.description or task.source_cell_value }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
+                <button class="btn btn-sm {{ 'btn-danger' if task.priority == 'critical' else 'btn-outline-danger' }}" type="submit" name="priority" value="{{ 'normal' if task.priority == 'critical' else 'critical' }}" formaction="{{ url_for('main.assignment_task_priority', task_id=task.id, view='issue') }}" title="{{ 'Снять срочность' if task.priority == 'critical' else 'Пометить срочной' }}" aria-label="Срочная задача"><i class="bi bi-lightning-charge-fill"></i></button>
                 {% if current_user.role != 'viewer' %}
                 <button class="inline-edit-btn inline-edit assignment-mobile-task-edit-btn d-none" type="button" title="Редактировать замечание" aria-label="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
                 <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>

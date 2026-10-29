@@ -958,7 +958,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const syncMobileOrientationLockState = () => {
-    const landscapeLocked = isTouchAppDevice() && window.matchMedia('(orientation: landscape)').matches;
+    const landscapeLocked = isTouchAppDevice() && (window.crmIsPhysicalLandscape ? window.crmIsPhysicalLandscape() : (window.screen?.orientation?.type || '').startsWith('landscape'));
     document.documentElement.classList.toggle('mobile-landscape-locked', landscapeLocked);
     document.body.classList.toggle('mobile-landscape-locked', landscapeLocked);
   };
@@ -7868,7 +7868,8 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteForm.dataset.confirm = 'Удалить этот комментарий?';
         deleteForm.append(form.querySelector('[name=csrf_token]').cloneNode());
         deleteForm.insertAdjacentHTML('beforeend', '<button class="btn btn-sm btn-outline-danger worker-comment-delete-button" type="submit" aria-label="Удалить комментарий" title="Удалить комментарий"><i class="bi bi-trash" aria-hidden="true"></i></button>');
-        entry.append(timestamp, deleteForm, text); comments.prepend(entry); comments.hidden = false;
+        const kind = document.createElement('span'); kind.className = 'assignment-comment-kind'; kind.textContent = 'Ваш комментарий';
+        entry.append(kind, timestamp, deleteForm, text); comments.prepend(entry); comments.hidden = false;
         form.reset();
         card.querySelector('.worker-task-discussion').hidden = true;
         const toggle = card.querySelector('[data-worker-comment-toggle]');

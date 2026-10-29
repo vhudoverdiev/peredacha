@@ -302,7 +302,7 @@ SECTION_LOCK_CHOICES = [
         "label": "Выдача задач",
         "icon": "bi-person-check",
         "endpoints": {
-            "main.assignments", "main.assignment_unassign", "main.assignment_delete_from_employee",
+            "main.assignments", "main.assignment_unassign", "main.assignment_delete_from_employee", "main.assignment_task_priority", "main.assignment_comment_delete", "main.assignment_worker_instruction",
             "main.assignment_issued_employee_export", "main.assignment_manual_task_new",
         },
     },
@@ -1382,7 +1382,7 @@ WORKER_ALLOWED_ENDPOINTS = {
     "main.my_task_return",
     "main.my_task_status",
     "main.my_task_comment",
-    "main.my_task_comment_delete",
+    "main.my_task_comment_delete", "main.my_task_measurement",
     "main.account",
     "main.account_password",
     "main.report_error",
@@ -1411,7 +1411,7 @@ VIEWER_ALLOWED_GET_ENDPOINTS = {
 OFFICE_FORBIDDEN_ENDPOINTS = {
     "main.assignments",
     "main.assignment_unassign",
-    "main.assignment_delete_from_employee",
+    "main.assignment_delete_from_employee", "main.assignment_task_priority", "main.assignment_comment_delete", "main.assignment_worker_instruction",
     "main.assignment_manual_task_new",
     "main.assignment_issued_employee_export",
     "main.add_task_comment", "main.delete_task_comment",
@@ -2462,7 +2462,7 @@ def _mobile_phone_allowed_endpoints() -> set[str]:
         allowed.update({
             "main.assignments",
             "main.assignment_unassign",
-            "main.assignment_delete_from_employee",
+            "main.assignment_delete_from_employee", "main.assignment_task_priority", "main.assignment_comment_delete", "main.assignment_worker_instruction",
             "main.assignment_manual_task_new",
             "main.assignment_issued_employee_export",
         })
@@ -4482,6 +4482,84 @@ def _assignment_issued_filter_label(issued_filter: str, issued_filter_date: date
     return f"Сегодня, {issued_filter_date.strftime('%d.%m.%Y')}" if issued_filter_date else 'Сегодня'
 
 
+def _assignment_comment_context(tasks):
+    task_ids = [task.id for task in tasks]
+    latest = {}
+    if task_ids:
+        for change in ChangeLog.query.filter(ChangeLog.task_id.in_(task_ids),
+                ChangeLog.field_name == 'responsible_id', ChangeLog.new_value.isnot(None),
+                ChangeLog.new_value != '').order_by(ChangeLog.created_at, ChangeLog.id):
+            latest[change.task_id] = change.created_at
+    result = {}
+    for task in tasks:
+        for comment in task.comments:
+            is_worker = comment.user and comment.user.role in WORKER_ROLES
+            result[comment.id] = {
+                'previous': bool(is_worker and (comment.user_id != task.responsible_id or
+                    (latest.get(task.id) and comment.created_at < latest[task.id]))),
+                'instruction': bool(comment.user and not is_worker),
+            }
+    return result
+
+
+@bp.post("/assignments/tasks/<int:task_id>/comment")
+@login_required
+def assignment_worker_instruction(task_id):
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+        abort(403)
+    project = selected_project()
+    task = db.session.get(Task, task_id) or abort(404)
+    if not project or task.project_id != project.id:
+        abort(404)
+    form = CommentForm()
+    if not form.validate_on_submit() or not (form.body.data or '').strip():
+        abort(400)
+    body = form.body.data.strip()
+    db.session.add(TaskComment(task=task, user=current_user, body=body))
+    log_change(task, 'comment_added', 'comment', '', body)
+    db.session.commit()
+    return redirect(url_for('main.assignments', view='issued', issued_day=request.form.get('issued_day', 'today')))
+
+
+@bp.post("/assignments/tasks/<int:task_id>/priority")
+@login_required
+def assignment_task_priority(task_id):
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+        abort(403)
+    project = selected_project()
+    task = db.session.get(Task, task_id) or abort(404)
+    if not project or task.project_id != project.id:
+        abort(404)
+    priority = request.form.get('priority')
+    if priority not in {'normal', 'critical'}:
+        abort(400)
+    old = task.priority
+    task.priority = priority
+    task.manually_edited = True
+    log_change(task, 'field_update', 'priority', old, priority)
+    db.session.commit()
+    return redirect(url_for('main.assignments', view=request.form.get('view') or request.args.get('view', 'issued'),
+                            issued_day=request.form.get('issued_day', 'today')))
+
+
+@bp.post("/assignments/tasks/<int:task_id>/comments/<int:comment_id>/delete")
+@login_required
+def assignment_comment_delete(task_id, comment_id):
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+        abort(403)
+    project = selected_project()
+    task = db.session.get(Task, task_id) or abort(404)
+    comment = db.session.get(TaskComment, comment_id) or abort(404)
+    if not project or task.project_id != project.id or comment.task_id != task.id:
+        abort(404)
+    if not comment.user or not (comment.user_id == task.responsible_id or comment.user.role in WORKER_ROLES):
+        abort(403)
+    log_change(task, 'comment_deleted', 'comment', comment.body, '')
+    db.session.delete(comment)
+    db.session.commit()
+    return redirect(url_for('main.assignments', view='issued', issued_day=request.form.get('issued_day', 'today')))
+
+
 @bp.route("/assignments", methods=["GET", "POST"])
 @login_required
 def assignments():
@@ -4785,6 +4863,7 @@ def assignments():
         .all()
     )
     issue_dates = _assignment_issue_date_map(issued_query)
+    issued_comment_context = _assignment_comment_context(issued_query)
     issued_groups = []
     issued_overdue_day_groups = []
     issued_total = len(issued_query)
@@ -4797,8 +4876,9 @@ def assignments():
             "employee_status": _issued_status_payload(task),
             "employee_comments": sorted(
                 [comment for comment in task.comments
-                 if can_view_task_comments(current_user) and comment.user
-                 and (comment.user_id == task.responsible_id or comment.user.role in WORKER_ROLES)],
+                 if (current_user.role == ROLE_ADMIN or current_user.role in OFFICE_MANAGER_ROLES) and comment.user
+                 and (comment.user_id == task.responsible_id or comment.user.role in WORKER_ROLES
+                      or comment.user.role == ROLE_ADMIN or comment.user.role in OFFICE_MANAGER_ROLES)],
                 key=lambda comment: (comment.created_at or datetime.min, comment.id), reverse=True,
             ),
             "overdue_days": max(overdue_days, 0),
@@ -4843,6 +4923,7 @@ def assignments():
     return render_template(
         "assignments.html",
         assignment_filter_args=assignment_filter_args,
+        issued_comment_context=issued_comment_context,
         project=project,
         tasks=tasks,
         pagination=pagination,
@@ -5318,6 +5399,35 @@ def my_task_status(task_id):
     return redirect(url_for("main.my_tasks"))
 
 
+@bp.post('/my-tasks/<int:task_id>/measurement')
+@login_required
+def my_task_measurement(task_id):
+    if current_user.role != ROLE_GLAZIER:
+        abort(403)
+    task = _assigned_worker_task(task_id)
+    form = CommentForm()
+    if not form.validate_on_submit() or not (form.body.data or '').strip():
+        abort(400)
+    measurement = _get_or_create_glass_measurement(task)
+    if _measurement_status(measurement) in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}:
+        flash('Этот замер уже заказан. Изменения согласуйте с выдающим задачи.', 'warning')
+        return redirect(url_for('main.my_tasks'))
+    old = measurement.comment or ''
+    measurement.comment = form.body.data.strip()
+    dimensions = re.findall(r'(?<![\d.,])(\d+(?:[.,]\d+)?)\s*[×xхXХ*]\s*(\d+(?:[.,]\d+)?)(?![\d.,])', measurement.comment)
+    if len(dimensions) == 1:
+        width, height = dimensions[0]
+        measurement.size = f'{width} × {height}'
+        measurement.width = float(width.replace(',', '.'))
+        measurement.height = float(height.replace(',', '.'))
+    measurement.measured_at = to_moscow_datetime(utc_now()).date()
+    measurement.status = GLASS_STATUS_MEASURE_NEEDED
+    log_change(task, 'worker_measurement_added', 'glass_measurement_comment', old, measurement.comment)
+    db.session.commit()
+    flash('Замер сохранён и передан в раздел «Заказать».', 'success')
+    return redirect(url_for('main.my_tasks'))
+
+
 @bp.route("/my-tasks/<int:task_id>/comment", methods=["POST"])
 @login_required
 def my_task_comment(task_id):
@@ -5403,7 +5513,7 @@ def my_tasks():
         _rollover_worker_tasks(project)
     midnight = to_moscow_datetime(utc_now()).replace(hour=0, minute=0, second=0, microsecond=0)
     utc_midnight = midnight.astimezone(timezone.utc).replace(tzinfo=None)
-    query = Task.query.options(selectinload(Task.project), selectinload(Task.apartment), selectinload(Task.work_point)).filter(Task.responsible_id == current_user.id)
+    query = Task.query.options(selectinload(Task.project), selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.glass_measurement), selectinload(Task.comments).selectinload(TaskComment.user)).filter(Task.responsible_id == current_user.id)
     query = query.filter(Task.project_id.in_([project.id for project in accessible_projects]))
     query = query.filter(Task.is_archived.is_(False), Task.is_missing_in_latest_sync.is_(False))
     query = query.filter(
@@ -5413,24 +5523,28 @@ def my_tasks():
             and_(Task.status == STATUS_DONE, Task.completed_date >= utc_midnight, Task.completed_date < utc_midnight + timedelta(days=1)),
         )
     )
-    tasks = query.outerjoin(Apartment).order_by(_premise_type_sort_expression(), Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), Task.updated_at.desc()).all()
+    tasks = query.outerjoin(Apartment).order_by(case((and_(Task.priority == 'critical', Task.is_done.is_(False)), 0), else_=1), _premise_type_sort_expression(), Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), Task.updated_at.desc()).all()
     counters = {
         "done": sum(1 for task in tasks if task.status == STATUS_DONE),
         "left": sum(1 for task in tasks if task.status != STATUS_DONE),
         "all": len(tasks),
     }
     own_comments = {}
-    if tasks:
-        for comment in TaskComment.query.filter(TaskComment.task_id.in_([task.id for task in tasks]),
-                                                TaskComment.user_id == current_user.id).order_by(TaskComment.created_at.desc(), TaskComment.id.desc()).all():
-            own_comments.setdefault(comment.task_id, []).append(comment)
+    for task in tasks:
+        own_comments[task.id] = sorted(
+            [comment for comment in task.comments if comment.user and
+             (comment.user_id == current_user.id or comment.user.role in WORKER_ROLES
+              or comment.user.role == ROLE_ADMIN or comment.user.role in OFFICE_MANAGER_ROLES)],
+            key=lambda comment: (comment.created_at, comment.id), reverse=True)
+    worker_comment_context = _assignment_comment_context(tasks)
     tasks_by_project = {}
     for task in tasks:
         tasks_by_project.setdefault(task.project_id, []).append(task)
     task_groups = [{"project": project, "tasks": tasks_by_project[project.id]}
                    for project in accessible_projects if project.id in tasks_by_project]
+    task_groups.sort(key=lambda group: not any(task.priority == 'critical' and not task.is_done for task in group['tasks']))
     role_label = ROLE_LABELS.get(current_user.role, "Исполнитель")
-    return render_template("my_tasks.html", task_groups=task_groups, own_comments=own_comments, tasks=tasks, counters=counters, today=today_value, role_label=role_label, next_day=midnight + timedelta(days=1))
+    return render_template("my_tasks.html", task_groups=task_groups, own_comments=own_comments, worker_comment_context=worker_comment_context, tasks=tasks, counters=counters, today=today_value, role_label=role_label, next_day=midnight + timedelta(days=1))
 
 
 def _worker_status_payload(task: Task):

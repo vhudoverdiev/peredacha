@@ -191,9 +191,10 @@
                   <span>Размер</span>
                   <input class="form-control form-control-sm" name="size[]" value="{{ measurement.size if measurement and measurement.size else '' }}" placeholder="" required>
                 </label>
+                {% if measurement and measurement.comment %}<div class="glass-worker-measurement-note"><b>Замер витражника:</b> {{ measurement.comment }}</div>{% endif %}
                 <label class="glass-field glass-comment-field">
                   <span>Комментарий</span>
-                  <input class="form-control form-control-sm" name="item_comment[]" value="" placeholder="">
+                  <input class="form-control form-control-sm" name="item_comment[]" value="{{ measurement.comment if measurement and measurement.comment else '' }}" placeholder="">
                 </label>
                 <label class="glass-field glass-qty-field">
                   <span>Кол-во</span>

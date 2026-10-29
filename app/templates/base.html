@@ -6,6 +6,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
   <script>
+    // A keyboard changes the viewport aspect ratio, never the physical orientation.
+    window.crmIsPhysicalLandscape = () => {
+      const kind = window.screen?.orientation?.type;
+      if (kind) return kind.startsWith('landscape');
+      if (typeof window.orientation === 'number') return Math.abs(window.orientation) % 180 === 90;
+      return (window.screen?.width || 0) > (window.screen?.height || Infinity);
+    };
+    const syncPhysicalOrientation = () => {
+      const touch = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+      document.documentElement.classList.toggle('mobile-landscape-locked', touch && window.crmIsPhysicalLandscape());
+    };
+    syncPhysicalOrientation();
+    window.addEventListener('orientationchange', syncPhysicalOrientation);
+    window.screen?.orientation?.addEventListener('change', syncPhysicalOrientation);
+  </script>
+  <script>
     // Recover expired AJAX sessions without replaying a user's POST request.
     (() => {
       if (typeof window.fetch !== 'function') return;
@@ -186,6 +202,7 @@
         && (isTouchAppDevice || useAdaptiveMobileViewport)
         && (/iPhone|iPod/i.test(userAgent) || isIpadOsLike)
       );
+      document.documentElement.classList.toggle('ios-standalone-bottom-chrome', shouldUseStableStandaloneAppHeight);
       if (shouldUseStableStandaloneAppHeight) {
         const layoutViewportHeight = Math.round(window.innerHeight || document.documentElement.clientHeight || DESKTOP_REFERENCE_HEIGHT);
         const visualViewportHeight = Math.round(window.visualViewport?.height || 0);
@@ -673,12 +690,12 @@
     /* The orientation cover is selected by CSS itself, before delayed iOS
        resize/orientation events can expose the rotated application layout. */
     @media (orientation: landscape) and (hover: none) and (pointer: coarse) {
-      html.touch-app-device body > :not(.portrait-orientation-guard) {
+      html.touch-app-device.mobile-landscape-locked body > :not(.portrait-orientation-guard) {
         visibility: hidden !important;
         pointer-events: none !important;
       }
 
-      html.touch-app-device .portrait-orientation-guard {
+      html.touch-app-device.mobile-landscape-locked .portrait-orientation-guard {
         position: fixed !important;
         z-index: 2147483647 !important;
         inset: 0 !important;
@@ -950,7 +967,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v258-issued-employee-comments', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v260-worker-measurement-comments', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -991,8 +1008,8 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v730-issued-employee-comments">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v97-ios-archive-scroll-shell">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v732-worker-comment-history">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v98-ios-stationary-dock">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v79-assignment-point-size-revert">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
@@ -1607,6 +1624,6 @@
   <script src="{{ url_for('static', filename='time-entry.js') }}?v=3"></script>
   <script src="{{ url_for('static', filename='form-csrf.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='remark-suggestions.js') }}?v=5-point-numbering"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=v713-assignment-persist-pagination"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v715-worker-measurement-comments"></script>
 </body>
 </html>

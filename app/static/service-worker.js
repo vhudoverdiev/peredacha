@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v258-issued-employee-comments';
+const STATIC_CACHE = 'peredacha-static-v260-worker-measurement-comments';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,11 +13,11 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v730-issued-employee-comments',
+  '/static/style.css?v=v732-worker-comment-history',
   '/static/workflows.css?v=31-named-point-sync-final',
-  '/static/mobile-only.css?v=v97-ios-archive-scroll-shell',
+  '/static/mobile-only.css?v=v98-ios-stationary-dock',
   '/static/desktop-only.css?v=v79-assignment-point-size-revert',
-  '/static/script.js?v=v713-assignment-persist-pagination',
+  '/static/script.js?v=v715-worker-measurement-comments',
   '/static/navigation-state.js?v=4',
   '/static/page-navigation.js?v=3',
   '/static/form-csrf.js?v=1',

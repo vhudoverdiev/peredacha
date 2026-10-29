@@ -2366,3 +2366,29 @@
     -webkit-overflow-scrolling:touch;
   }
 }
+
+/* A stationary installed-iOS canvas keeps the dock out of the scrolling page,
+   including while a slow network request leaves the loading state visible. */
+@media (max-width:767.98px) {
+  html.standalone-app.ios-standalone-bottom-chrome,
+  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body.app-body {
+    height:var(--mobile-physical-app-height,100dvh) !important;
+    min-height:var(--mobile-physical-app-height,100dvh) !important;
+    max-height:var(--mobile-physical-app-height,100dvh) !important;
+    overflow:hidden !important;
+    transform:none !important; filter:none !important; perspective:none !important;
+  }
+  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body.app-body { position:relative !important; }
+  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body.app-body > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    position:absolute !important; inset:auto 0 0 !important; top:auto !important; bottom:0 !important;
+    transform:none !important; translate:none !important;
+  }
+  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body.app-body :is(.app-layout,.app-main) { position:static !important; }
+  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body.app-body .app-content {
+    position:absolute !important; inset:var(--ref-mobile-topbar-height,3.82rem) 0 72px !important;
+    height:auto !important; min-height:0 !important; max-height:none !important;
+    overflow-y:auto !important; overflow-x:hidden !important;
+    margin:0 !important; width:auto !important; max-width:none !important;
+    overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch;
+  }
+}

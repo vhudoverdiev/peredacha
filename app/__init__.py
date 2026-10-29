@@ -207,6 +207,15 @@ def create_app(config_class=Config):
             if not is_session_version_valid():
                 security_event("session_revoked", "Сессия устарела или была отозвана", severity="warning")
                 return authentication_required()
+            # Renew only the three field-worker roles, without changing other accounts.
+            if current_user.role in {"painter", "glazier", "handyman"}:
+                from datetime import datetime as worker_datetime, timezone as worker_timezone
+                renewal_day = worker_datetime.now(worker_timezone.utc).date().isoformat()
+                if session.get("worker_remember_renewed") != renewal_day:
+                    session["_remember"] = "set"
+                    session["_remember_seconds"] = 365 * 24 * 60 * 60
+                    session["worker_remember_renewed"] = renewal_day
+                    session.permanent = True
             # Мягкий лимит на частые POST-действия, чтобы не сломать обычную работу, но закрыть бесконечный спам.
             if request.method == "POST" and hit_rate_limit(f"post:{request.endpoint or request.path}", 180, 60):
                 security_event("rate_limit", "Слишком много POST-запросов", severity="warning")
