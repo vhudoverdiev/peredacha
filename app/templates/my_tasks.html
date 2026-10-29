@@ -56,7 +56,7 @@
       </div>
       {% if current_user.role == 'glazier' %}
       <details class="worker-measurement-panel">
-        <summary><i class="bi bi-rulers"></i>Замер{% if task.glass_measurement and task.glass_measurement.comment %} · сохранён{% endif %}</summary>
+        <summary><i class="bi bi-rulers" aria-hidden="true"></i><span>Замер{% if task.glass_measurement and task.glass_measurement.comment %} · сохранён{% endif %}</span></summary>
         <form method="post" action="{{ url_for('main.my_task_measurement', task_id=task.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <label for="workerMeasurement{{ task.id }}">Размеры и комментарий к замеру</label>

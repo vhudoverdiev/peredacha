@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v266-issued-priority-controls';
+const STATIC_CACHE = 'peredacha-static-v267-worker-snapshot-mutations';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,7 +13,7 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v735-completed-task-comment',
+  '/static/style.css?v=v736-measurement-icon-gap',
   '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v100-ios-document-scroll-rounded',
   '/static/desktop-only.css?v=v80-issued-priority-controls',
@@ -252,7 +252,20 @@ self.addEventListener('fetch', event => {
     workerCacheEpoch++;
     event.waitUntil(clearWorkerSnapshots());
   }
-  if (request.method !== 'GET') return;
+  if (request.method !== 'GET') {
+    // Save only server-confirmed changes; never queue offline writes.
+    if (request.method === 'POST' && /^\/my-tasks\/\d+\/(?:status|comment|measurement|comments\/\d+\/delete)$/.test(url.pathname)) {
+      const epoch = workerCacheEpoch;
+      const operation = fetch(request);
+      event.respondWith(operation);
+      event.waitUntil(operation.then(async response => {
+        if (!response.ok || epoch !== workerCacheEpoch) return;
+        const fresh = await fetch(new Request(new URL('/my-tasks', self.location.origin), {credentials:'include',cache:'no-store'}));
+        await storeWorkerSnapshot(fresh, epoch);
+      }).catch(() => {}));
+    }
+    return;
+  }
 
   // File generation must bypass HTML navigation fallbacks.
   if (/\/(?:export|download)(?:\/|$)/.test(url.pathname)) return;

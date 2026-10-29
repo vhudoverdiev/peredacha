@@ -967,7 +967,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v266-issued-priority-controls', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v267-worker-snapshot-mutations', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1008,7 +1008,7 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v735-completed-task-comment">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v736-measurement-icon-gap">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v100-ios-document-scroll-rounded">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v80-issued-priority-controls">
   <script>

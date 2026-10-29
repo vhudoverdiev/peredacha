@@ -60089,3 +60089,5 @@ html body.app-body .assignment-issued-table .assignment-issued-row.done-task .ta
 html body.app-body .assignment-issued-table .assignment-issued-row.done-task .assignment-task-open-link {
   text-decoration:line-through !important;
 }
+
+.worker-measurement-panel summary { display:flex; align-items:center; gap:8px; }
