@@ -60117,7 +60117,7 @@ html body.app-body .worker-page :is(.worker-task-list,.worker-day-head).worker-o
 .object-handover strong {align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:0;border-radius:0;}
 .object-handover strong::before {content:"";width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--handover-status-color);}
 .object-handover-passed strong {--handover-status-color:#87ae54;color:#000;background:none;border:0;}
-.object-handover-pending strong {--handover-status-color:#fff5f5;color:#000;background:none;border:0;}
+.object-handover-pending strong {--handover-status-color:#87ae54;color:#000;background:none;border:0;}
 .worker-offline-state[hidden] {display:none !important;}
 
 .objects-page {--object-not-accepted-rgb:242,85,85;}
