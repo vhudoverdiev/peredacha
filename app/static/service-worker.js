@@ -1,4 +1,5 @@
-const STATIC_CACHE = 'peredacha-static-v267-worker-snapshot-mutations';
+importScripts('/static/worker-offline-store.js?v=1');
+const STATIC_CACHE = 'peredacha-static-v280-neutral-object-card';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,13 +14,15 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v736-measurement-icon-gap',
+  '/static/style.css?v=v749-neutral-object-card',
   '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v100-ios-document-scroll-rounded',
   '/static/desktop-only.css?v=v80-issued-priority-controls',
-  '/static/script.js?v=v716-assignment-priority-ajax',
+  '/static/worker-offline-store.js?v=1',
+  '/static/worker-offline.js?v=2',
+  '/static/script.js?v=v717-assignment-selection-split',
   '/static/navigation-state.js?v=4',
-  '/static/page-navigation.js?v=3',
+  '/static/page-navigation.js?v=4',
   '/static/form-csrf.js?v=1',
   '/static/remark-suggestions.js?v=5-point-numbering',
   '/static/time-entry.js?v=3',
@@ -130,7 +133,7 @@ const MOBILE_OFFLINE_HTML = `<!doctype html>
     <section class="offline-panel offline-card" aria-live="polite">
       <div class="offline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a10.9 10.9 0 0 1 14.1 0"/><path d="M8.5 16a6.1 6.1 0 0 1 7 0"/><path d="M12 19.5h.01"/><path d="m3 3 18 18"/></svg></div>
       <h1>Упссс…</h1><h2>Нет интернета</h2>
-      <p>Проверьте подключение к сети и попробуйте открыть приложение ещё раз.</p>
+      <p>Подключитесь к интернету и загрузите задачи для работы без сети.</p>
       <button class="retry" id="offlineRetryButton" type="button"><svg viewBox="-1 -1 26 26" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6v5h-5"/><path d="M20 11a8 8 0 1 0 1.2 5.7"/></svg><span>Попробовать снова</span></button>
     </section>
   </main>
@@ -236,10 +239,6 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys
-      .filter(key => key.startsWith('peredacha-') && key !== STATIC_CACHE)
-      .map(key => caches.delete(key)));
     await self.clients.claim();
   })());
 });
@@ -248,24 +247,15 @@ self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (/^\/(?:login(?:\/|$)|logout$)/.test(url.pathname)) {
-    workerCacheEpoch++;
-    event.waitUntil(clearWorkerSnapshots());
-  }
-  if (request.method !== 'GET') {
-    // Save only server-confirmed changes; never queue offline writes.
-    if (request.method === 'POST' && /^\/my-tasks\/\d+\/(?:status|comment|measurement|comments\/\d+\/delete)$/.test(url.pathname)) {
-      const epoch = workerCacheEpoch;
-      const operation = fetch(request);
-      event.respondWith(operation);
-      event.waitUntil(operation.then(async response => {
-        if (!response.ok || epoch !== workerCacheEpoch) return;
-        const fresh = await fetch(new Request(new URL('/my-tasks', self.location.origin), {credentials:'include',cache:'no-store'}));
-        await storeWorkerSnapshot(fresh, epoch);
-      }).catch(() => {}));
-    }
+  if (url.pathname === '/logout' && request.method === 'POST') {
+    event.respondWith(fetch(request).then(async response=>{if(response.ok)await clearWorkerSnapshots();return response;}));
     return;
   }
+  if (request.method === 'POST' && /^\/login(?:\/|$)/.test(url.pathname)) {
+    const result = fetch(request,{redirect:'follow'}).then(async response=>{await checkResponseAccount(response);return response.redirected?Response.redirect(response.url,303):response;});
+    event.respondWith(result); return;
+  }
+  if (request.method !== 'GET') return;
 
   // File generation must bypass HTML navigation fallbacks.
   if (/\/(?:export|download)(?:\/|$)/.test(url.pathname)) return;
@@ -282,7 +272,7 @@ self.addEventListener('fetch', event => {
       event.respondWith((async () => {
         const saved = await workerSnapshotResponse();
         if (saved) {
-          event.waitUntil(refreshWorkerSnapshotAndNotify());
+
           return saved;
         }
         return new Response(launchHtml, {status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
@@ -294,17 +284,7 @@ self.addEventListener('fetch', event => {
   }
 
   if (!url.pathname.startsWith('/static/')) return;
-  if (self.navigator.onLine === false) {
-    event.respondWith(staticCacheFirst(request));
-    return;
-  }
-
-  if (url.pathname.startsWith('/static/vendor/bootstrap/fonts/')) {
-    event.respondWith(staticCacheFirst(request));
-    return;
-  }
-
-  event.respondWith(staticNetworkFirst(request));
+  event.respondWith(staticCacheFirst(request));
 });
 
 async function fetchWithTimeout(request, timeoutMs) {
@@ -319,16 +299,15 @@ async function fetchWithTimeout(request, timeoutMs) {
 }
 
 async function navigationNetworkFirst(request) {
-  const epoch = workerCacheEpoch;
-  const eligible = ['/', '/my-tasks', '/dashboard'].includes(new URL(request.url).pathname);
-  if (eligible && self.navigator.onLine === false) {
+  const eligible = ['/', '/my-tasks'].includes(new URL(request.url).pathname);
+  if (eligible && !new URL(request.url).searchParams.has('fresh_account')) {
     const saved = await workerSnapshotResponse();
     if (saved) return saved;
   }
   try {
-    const response = await fetch(request);
-    await storeWorkerSnapshot(response.clone(), epoch);
-    return response;
+    const response = await fetch(request,{redirect:'follow'});
+    await checkResponseAccount(response);
+    return response.redirected?Response.redirect(response.url,303):response;
   } catch (error) {
     if (eligible) {
       const saved = await workerSnapshotResponse();
@@ -338,7 +317,7 @@ async function navigationNetworkFirst(request) {
     const html = offline ? MOBILE_OFFLINE_HTML : MOBILE_OFFLINE_HTML
       .replace('Передача — нет интернета', 'Передача — сервер недоступен')
       .replace('<h2>Нет интернета</h2>', '<h2>Сервер временно недоступен</h2>')
-      .replace('Проверьте подключение к сети и попробуйте открыть приложение ещё раз.', 'Не удалось получить ответ сервера. Попробуйте открыть страницу позже.');
+      .replace('Подключитесь к интернету и загрузите задачи для работы без сети.', 'Подключитесь к интернету и загрузите задачи для работы без сети. Сервер пока недоступен.');
     return new Response(html, {
       status: 503,
       headers: {
@@ -367,7 +346,8 @@ async function staticNetworkFirst(request) {
 
 async function staticCacheFirst(request) {
   const cache = await caches.open(STATIC_CACHE);
-  const cached = await cache.match(request);
+  const options={ignoreSearch: !/\.(?:css|js)$/i.test(new URL(request.url).pathname)};
+  const cached = await cache.match(request,options) || await caches.match(request,options);
   if (cached) return cached;
 
   const response = await fetchWithTimeout(request, STATIC_NETWORK_TIMEOUT_MS);
@@ -376,86 +356,29 @@ async function staticCacheFirst(request) {
 }
 
 
-// Private, read-only worker snapshots. They never enter the shared static cache.
-const WORKER_SNAPSHOTS = 'crm-private-worker-tasks-v1';
-const WORKER_ACTIVE = new URL('/__worker_snapshot__/active', self.location.origin).href;
-let workerCacheEpoch = 0;
-let workerSnapshotQueue = Promise.resolve();
-function clearWorkerSnapshots() {
-  workerSnapshotQueue = workerSnapshotQueue.catch(() => {}).then(() => caches.delete(WORKER_SNAPSHOTS));
-  return workerSnapshotQueue;
-}
-async function storeWorkerSnapshot(response, epoch) {
-  const identity = response.headers.get('X-CRM-Worker-Cache');
-  if (identity === 'clear') {
-    workerCacheEpoch++;
-    await clearWorkerSnapshots();
-    return;
-  }
-  if (!identity || !/^[a-f0-9]{64}$/.test(identity) || !response.ok) return;
-  const html = await response.text();
-  const savedAt = new Date().toISOString();
-  workerSnapshotQueue = workerSnapshotQueue.catch(() => {}).then(async () => {
-    if (epoch !== workerCacheEpoch) return;
-    const cache = await caches.open(WORKER_SNAPSHOTS);
-    const key = new URL('/__worker_snapshot__/' + identity, self.location.origin).href;
-    // Keep only the last authenticated worker account on this device.
-    for (const request of await cache.keys()) {
-      if (request.url !== key && request.url !== WORKER_ACTIVE) await cache.delete(request);
-    }
-    await cache.put(key, new Response(html, {headers:{'Content-Type':'text/html; charset=utf-8','X-CRM-Saved-At':savedAt}}));
-    await cache.put(WORKER_ACTIVE, new Response(key));
-  });
-  await workerSnapshotQueue;
+// Tasks and queued operations live in IndexedDB; asset upgrades never remove them.
+async function clearWorkerSnapshots() {
+  const account = await CRMOfflineStore.active();
+  if (account) await CRMOfflineStore.clear(account.id);
+  // Remove obsolete HTML-only snapshots after explicit logout.
+  await caches.delete('crm-private-worker-tasks-v1');
 }
 async function workerSnapshotResponse() {
-  await workerSnapshotQueue.catch(() => {});
-  const cache = await caches.open(WORKER_SNAPSHOTS);
-  const active = await cache.match(WORKER_ACTIVE);
-  if (!active) return null;
-  const key = await active.text();
-  if (!key.startsWith(self.location.origin + '/__worker_snapshot__/')) return null;
-  const snapshot = await cache.match(key);
-  if (!snapshot) return null;
-  const savedAt = snapshot.headers.get('X-CRM-Saved-At');
-  const timestamp = new Date(savedAt).toLocaleString('ru-RU', {timeZone:'Europe/Moscow',dateStyle:'short',timeStyle:'short'});
-  let html = await snapshot.text();
-  // Never submit cached CSRF tokens or queue writes against a stale assignment.
-  html = html.replace(/<input\b[^>]*\bname=["']csrf_token["'][^>]*>/gi, '');
-  const bootstrap = `<script>window.__CRM_WORKER_OFFLINE__=true;
-    document.addEventListener('submit',e=>{e.preventDefault();e.stopImmediatePropagation();},true);
-    document.addEventListener('DOMContentLoaded',()=>{
-      const notice=document.createElement('aside');notice.className='worker-offline-notice';notice.setAttribute('role','status');
-      const title=document.createElement('strong');title.textContent=navigator.onLine===false?'Нет сети · Сохранённые задачи':'Сохранённые задачи · Проверяем соединение';
-      const stamp=document.createElement('span');stamp.textContent='Обновлено: ${timestamp} МСК. Изменения доступны после подключения.';
-      const retry=document.createElement('button');retry.type='button';retry.textContent='Обновить';retry.addEventListener('click',()=>location.replace('/my-tasks'));
-      notice.append(title,stamp,retry);document.querySelector('.worker-page')?.prepend(notice);
-      navigator.serviceWorker?.addEventListener('message',event=>{if(event.data?.type==='worker-snapshot-refreshed' && navigator.onLine!==false)location.replace('/my-tasks');});
-      document.querySelectorAll('form button,form input,form textarea,form select,[data-worker-comment-toggle]').forEach(el=>el.disabled=true);
-      document.querySelectorAll('a').forEach(el=>{if(el.getAttribute('href')!=='/my-tasks'){el.setAttribute('aria-disabled','true');el.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();},true);}});
-    });<` + `/script>`;
-  html = html.replace('</head>', bootstrap + '</head>');
-  return new Response(html, {status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-CRM-Worker-Offline':'1'}});
+  try {
+    const account = await CRMOfflineStore.active();
+    if (!account?.html) return null;
+    const bootstrap = '<script>window.__CRM_WORKER_OFFLINE__=true;window.__CRM_OFFLINE_FALLBACK__=true;<'+'/script>';
+    const html = account.html.replace('<head>', '<head>'+bootstrap);
+    return new Response(html,{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-CRM-Worker-Offline':'1'}});
+  } catch (_) { return null; }
 }
-self.addEventListener('message', event => {
-  if (event.data?.type !== 'refresh-worker-tasks' || !event.source?.url || new URL(event.source.url).origin !== self.location.origin) return;
-  const epoch = workerCacheEpoch;
-  event.waitUntil((async () => {
-    try {
-      const response = await fetch(new Request(new URL('/my-tasks',self.location.origin),{credentials:'include',cache:'no-store'}));
-      await storeWorkerSnapshot(response, epoch);
-    } catch (error) { /* Keep the last confirmed snapshot during network loss. */ }
-  })());
+self.addEventListener('message',event=>{
+  if(event.data?.type==='worker-explicit-logout')event.waitUntil(clearWorkerSnapshots());
 });
 
-async function refreshWorkerSnapshotAndNotify() {
-  const epoch = workerCacheEpoch;
-  try {
-    const response = await fetch(new Request(new URL('/my-tasks', self.location.origin),{credentials:'include',cache:'no-store'}));
-    const identity = response.headers.get('X-CRM-Worker-Cache');
-    if (!response.ok || !identity) return;
-    await storeWorkerSnapshot(response, epoch);
-    if (identity !== 'clear' && epoch !== workerCacheEpoch) return;
-    for (const client of await self.clients.matchAll({type:'window'})) client.postMessage({type:'worker-snapshot-refreshed'});
-  } catch (error) { /* An offline launch continues showing the saved tasks. */ }
+async function checkResponseAccount(response) {
+ const id=response.headers.get('X-CRM-Account');
+ if(!id)return;
+ const active=await CRMOfflineStore.active();
+ if(active && active.id!==id)await CRMOfflineStore.put('meta',{key:'active',account:id});
 }

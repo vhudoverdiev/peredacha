@@ -2596,8 +2596,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return modal;
   };
 
-  document.querySelectorAll('.js-split-remark-open').forEach(button => {
-    button.addEventListener('click', () => {
+  document.addEventListener('click', event => {
+      const button = event.target.closest('.js-split-remark-open');
+      if (!button) return;
+      event.preventDefault();
       const taskId = button.dataset.taskId;
       const span = document.querySelector(`.inline-text[data-task-id="${taskId}"]`);
       if (!taskId || !span) return;
@@ -2673,7 +2675,6 @@ document.addEventListener('DOMContentLoaded', () => {
           save.disabled = false;
         }
       };
-    });
   });
 
   document.querySelectorAll('.object-card[data-href]').forEach(card => {
@@ -3907,7 +3908,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!(form instanceof HTMLFormElement)) return;
     const method = (form.getAttribute('method') || 'get').toLowerCase();
     if (method === 'get' && form.matches('.crm-filter-form, .apartments-filter-form, .assignment-search-form, .assignment-smart-form, .assignment-report-filter-form')) {
-      clearAllBulkSelectionStorage();
+      if (!document.querySelector('[data-ajax-pagination-page="assignments"]')) clearAllBulkSelectionStorage();
       return;
     }
     const scope = form.closest('.js-bulk-selectable') || document.querySelector(`.js-bulk-selectable button[form="${form.id}"]`)?.closest('.js-bulk-selectable');
@@ -9515,6 +9516,41 @@ document.addEventListener('submit', async event => {
     delete form.dataset.priorityPending;
     button.disabled = false;
     button.removeAttribute('aria-busy');
+  }
+}, true);
+
+
+// Keep search, filters and the page position while assigning a collected selection.
+document.addEventListener('submit', async event => {
+  const form = event.target;
+  const button = event.submitter;
+  if (!form.matches?.('.assignment-shell') || button?.name !== 'action' || button.value !== 'bulk_assign') return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if (form.dataset.bulkAssignPending === '1') return;
+  const body = new FormData(form);
+  body.set('action','bulk_assign');
+  if (!body.getAll('task_ids').length || !body.get('responsible_id')) {
+    window.showCrmNotice('Выберите задачи и исполнителя', 'warning');
+    return;
+  }
+  form.dataset.bulkAssignPending='1'; button.disabled=true;
+  try {
+    const response = await fetch(form.action, {method:'POST',body,credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}});
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.message || 'Не удалось выдать задачи');
+    const ids = new Set((data.assigned_task_ids || []).map(String));
+    for (const id of ids) form.__bulkSelectedIds?.delete(id);
+    form.querySelectorAll('[name="task_ids"]').forEach(el=>{if(ids.has(el.value)){if(el.type==='checkbox')el.checked=false;else el.remove();}});
+    const key = `crm-bulk-selection:${form.dataset.selectionKey}`;
+    const remaining = Array.from(form.__bulkSelectedIds || []);
+    try { localStorage.setItem(key,JSON.stringify(remaining)); } catch (_) {}
+    window.showCrmNotice(data.message,'success');
+    await window.crmUpdatePaginationPage(new URL(location.href), {push:false,scroll:false,useCache:false,replaceContent:true,fallbackToNavigation:false});
+  } catch (error) {
+    window.showCrmNotice(error.message || 'Не удалось выдать задачи. Выбор сохранён.', 'danger');
+  } finally {
+    delete form.dataset.bulkAssignPending; button.disabled=false;
   }
 }, true);
 

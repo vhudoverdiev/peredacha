@@ -389,7 +389,7 @@ SECTION_LOCK_CHOICES = [
         "key": "worker_tasks",
         "label": "Мои задачи сотрудников",
         "icon": "bi-check2-square",
-        "endpoints": {"main.my_tasks", "main.my_task_done", "main.my_task_return", "main.my_task_status", "main.my_task_comment", "main.my_task_comment_delete"},
+        "endpoints": {"main.my_tasks", "main.worker_offline_snapshot", "main.worker_offline_operation", "main.my_task_done", "main.my_task_return", "main.my_task_status", "main.my_task_comment", "main.my_task_comment_delete"},
     },
 ]
 
@@ -1375,6 +1375,7 @@ def _deny_or_redirect():
 
 
 WORKER_ALLOWED_ENDPOINTS = {
+    "main.worker_offline_snapshot", "main.worker_offline_operation",
     "main.dashboard_legacy",
     "main.my_tasks",
     "main.my_inspections",
@@ -1382,7 +1383,7 @@ WORKER_ALLOWED_ENDPOINTS = {
     "main.my_task_return",
     "main.my_task_status",
     "main.my_task_comment",
-    "main.my_task_comment_delete", "main.my_task_measurement",
+    "main.my_task_comment_delete", "main.my_task_measurement", "main.my_task_measurement_delete",
     "main.account",
     "main.account_password",
     "main.report_error",
@@ -2172,7 +2173,12 @@ def project_stats(project: Project) -> dict[str, int]:
         "parking_count": int(stats.get("parking_count") or 0),
         "premises": int(stats.get("apartments") or 0),
         "transferred": int(stats.get("accepted_apartment_count") or 0),
-        "not_transferred": int(stats.get("not_accepted") or 0),
+        "not_transferred": max(
+            int(stats.get("apartment_count") or 0)
+            - int(stats.get("accepted_apartment_count") or 0)
+            - int(stats.get("unsold_apartment_count") or 0),
+            0,
+        ),
         "unsold": int(stats.get("unsold") or 0),
     }
 
@@ -2212,6 +2218,7 @@ def object_new():
             return render_template("object_form.html", form=form, form_title="Добавить объект", submit_label="Создать объект")
         project = Project(
             name=form.name.data.strip(),
+            handover_date=form.handover_date.data,
             address=form.address.data.strip() if form.address.data else None,
             technical_customer=form.technical_customer.data.strip() if form.technical_customer.data else None,
             developer_name=form.developer_name.data.strip() if form.developer_name.data else None,
@@ -2252,6 +2259,7 @@ def object_edit(project_id: int):
         elif form.remove_signature.data:
             project.signature_image = None
         project.name = form.name.data.strip()
+        project.handover_date = form.handover_date.data
         project.address = form.address.data.strip() if form.address.data else None
         project.technical_customer = form.technical_customer.data.strip() if form.technical_customer.data else None
         project.developer_name = form.developer_name.data.strip() if form.developer_name.data else None
@@ -4144,7 +4152,7 @@ def remarks_excel_selection(category_id: int):
     query_args.pop("task_ids", None)
     query_args.pop("premise_ids", None)
     query_args.pop("excel_selection", None)
-    query = build_task_query(query_args, category_id=category_id, project_id=project.id)
+    query = build_task_query(query_args, category_id=category_id, project_id=project.id, include_assignment_manual=True)
     if current_user.role in WORKER_ROLES:
         query = query.filter(Task.responsible_id == current_user.id)
     tasks = (
@@ -4721,8 +4729,12 @@ def assignments():
         planned_date = parse_date(request.form.get("planned_date")) or to_moscow_datetime(utc_now()).date()
         responsible = db.session.get(User, responsible_id) if responsible_id else None
         if not task_ids:
+            if wants_json:
+                return assignment_error("Выберите хотя бы одну задачу")
             flash("Выберите хотя бы одну задачу", "warning")
         elif not _user_can_work_in_project(responsible, project):
+            if wants_json:
+                return assignment_error("Выберите исполнителя")
             flash("Выберите исполнителя", "warning")
         else:
             existing_tasks = (
@@ -4740,6 +4752,8 @@ def assignments():
                     flash(f"Задача уже выдана сотруднику. Повторная выдача не выполнена. Пропущено: {task_count_label(skipped)}", "warning")
                 else:
                     flash("Нет доступных задач для выдачи", "warning")
+                if wants_json:
+                    return assignment_error("Нет доступных задач для выдачи")
                 return redirect(url_for("main.assignments"))
             for task in tasks:
                 old_responsible = task.responsible_id
@@ -4755,8 +4769,10 @@ def assignments():
             message = f"Выдано: {task_count_label(len(tasks))}"
             if already_assigned:
                 message += f". Уже были выданы и пропущены: {task_count_label(len(already_assigned))}"
+            if wants_json:
+                return jsonify(ok=True, message=message, assigned_task_ids=[task.id for task in tasks])
             flash(message, "success" if not already_assigned else "warning")
-            return redirect(url_for("main.assignments"))
+            return redirect(url_for("main.assignments", **request.args.to_dict(flat=False)))
 
     query_args = {
         key: (request.args.get(key) or "").strip()
@@ -5259,7 +5275,7 @@ def assignment_manual_task_new():
                 else f"Добавлено отдельных задач: {len(tasks)}",
                 "success",
             )
-            return redirect(url_for("main.assignments"))
+            return redirect(url_for("main.assignments", view="issued", issued_day="all"))
 
     return render_template(
         "assignment_task_form.html",
@@ -5409,7 +5425,7 @@ def my_task_status(task_id):
 @bp.post('/my-tasks/<int:task_id>/measurement')
 @login_required
 def my_task_measurement(task_id):
-    if current_user.role != ROLE_GLAZIER:
+    if current_user.role not in {'painter', 'glazier', 'handyman'}:
         abort(403)
     task = _assigned_worker_task(task_id)
     form = CommentForm()
@@ -5420,6 +5436,10 @@ def my_task_measurement(task_id):
         flash('Этот замер уже заказан. Изменения согласуйте с выдающим задачи.', 'warning')
         return redirect(url_for('main.my_tasks'))
     old = measurement.comment or ''
+    measurement.size = None
+    measurement.width = None
+    measurement.height = None
+    measurement.items.clear()
     measurement.comment = form.body.data.strip()
     dimensions = re.findall(r'(?<![\d.,])(\d+(?:[.,]\d+)?)\s*[×xхXХ*]\s*(\d+(?:[.,]\d+)?)(?![\d.,])', measurement.comment)
     if len(dimensions) == 1:
@@ -5432,6 +5452,24 @@ def my_task_measurement(task_id):
     log_change(task, 'worker_measurement_added', 'glass_measurement_comment', old, measurement.comment)
     db.session.commit()
     flash('Замер сохранён и передан в раздел «Заказать».', 'success')
+    return redirect(url_for('main.my_tasks'))
+
+
+@bp.post('/my-tasks/<int:task_id>/measurement/delete')
+@login_required
+def my_task_measurement_delete(task_id):
+    if current_user.role not in {'painter', 'glazier', 'handyman'}:
+        abort(403)
+    task = _assigned_worker_task(task_id)
+    measurement = task.glass_measurement
+    if measurement is not None:
+        if (_measurement_status(measurement) in {GLASS_STATUS_ORDERED, GLASS_STATUS_REPLACED}
+                or measurement.ordered_at or measurement.material_request_item_id or measurement.material_writeoff_id):
+            abort(400, description='Замер уже передан в заказ')
+        log_change(task, 'worker_measurement_deleted', 'glass_measurement_comment', measurement.comment or '', '')
+        db.session.delete(measurement)
+        db.session.commit()
+    flash('Замер удалён. Можно внести новый.', 'success')
     return redirect(url_for('main.my_tasks'))
 
 
@@ -5508,7 +5546,7 @@ def my_inspections():
 
 @bp.route("/my-tasks")
 @login_required
-def my_tasks():
+def my_tasks(full_offline=False):
     if current_user.role == ROLE_ADMIN or current_user.role in OFFICE_MANAGER_ROLES:
         return redirect(url_for("main.dashboard"))
     projects = Project.query
@@ -5523,13 +5561,14 @@ def my_tasks():
     query = Task.query.options(selectinload(Task.project), selectinload(Task.apartment), selectinload(Task.work_point), selectinload(Task.glass_measurement), selectinload(Task.comments).selectinload(TaskComment.user)).filter(Task.responsible_id == current_user.id)
     query = query.filter(Task.project_id.in_([project.id for project in accessible_projects]))
     query = query.filter(Task.is_archived.is_(False), Task.is_missing_in_latest_sync.is_(False))
-    query = query.filter(
-        or_(
-            Task.planned_date == today_value,
-            and_(Task.planned_date.is_(None), Task.status != STATUS_DONE),
-            and_(Task.status == STATUS_DONE, Task.completed_date >= utc_midnight, Task.completed_date < utc_midnight + timedelta(days=1)),
+    if not full_offline:
+        query = query.filter(
+            or_(
+                Task.planned_date == today_value,
+                and_(Task.planned_date.is_(None), Task.status != STATUS_DONE),
+                and_(Task.status == STATUS_DONE, Task.completed_date >= utc_midnight, Task.completed_date < utc_midnight + timedelta(days=1)),
+            )
         )
-    )
     tasks = query.outerjoin(Apartment).order_by(case((and_(Task.priority == 'critical', Task.is_done.is_(False)), 0), else_=1), _premise_type_sort_expression(), Task.is_done.asc(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc(), Task.updated_at.desc()).all()
     counters = {
         "done": sum(1 for task in tasks if task.status == STATUS_DONE),
@@ -5551,7 +5590,33 @@ def my_tasks():
                    for project in accessible_projects if project.id in tasks_by_project]
     task_groups.sort(key=lambda group: not any(task.priority == 'critical' and not task.is_done for task in group['tasks']))
     role_label = ROLE_LABELS.get(current_user.role, "Исполнитель")
-    return render_template("my_tasks.html", task_groups=task_groups, own_comments=own_comments, worker_comment_context=worker_comment_context, tasks=tasks, counters=counters, today=today_value, role_label=role_label, next_day=midnight + timedelta(days=1))
+    return render_template("my_tasks.html", offline_all=full_offline, task_groups=task_groups, own_comments=own_comments, worker_comment_context=worker_comment_context, tasks=tasks, counters=counters, today=today_value, role_label=role_label, next_day=midnight + timedelta(days=1))
+
+
+@bp.get('/worker-offline/snapshot')
+def worker_offline_snapshot():
+    from flask_wtf.csrf import generate_csrf
+    from app.services.worker_offline import ROLES, serialize, error
+    if not current_user.is_authenticated:
+        return error('auth_required', 'Войдите в тот же аккаунт.', 401)
+    if current_user.role not in ROLES:
+        return error('access_revoked', 'Офлайн-доступ для этого аккаунта недоступен.', 403)
+    html = my_tasks(full_offline=True)
+    tasks = Task.query.options(selectinload(Task.project), selectinload(Task.apartment)).filter(
+        Task.responsible_id == current_user.id, Task.is_archived.is_(False),
+        Task.is_missing_in_latest_sync.is_(False)).all()
+    tasks = [task for task in tasks if current_user.can_access_project(task.project)]
+    histories = dict(db.session.query(ChangeLog.task_id, func.max(ChangeLog.id)).filter(
+        ChangeLog.task_id.in_([task.id for task in tasks])).group_by(ChangeLog.task_id).all()) if tasks else {}
+    return jsonify(ok=True, account_id=current_user.id, account_name=current_user.full_name or current_user.username,
+                   checked_at=utc_now().isoformat()+'Z', offline_hours=72, csrf_token=generate_csrf(),
+                   tasks=[serialize(task, histories.get(task.id)) for task in tasks], html=html)
+
+
+@bp.post('/worker-offline/operation')
+def worker_offline_operation():
+    from app.services.worker_offline import apply_operation
+    return apply_operation()
 
 
 def _worker_status_payload(task: Task):
@@ -7985,11 +8050,12 @@ def _create_manual_remark_tasks(
 def _create_manual_remark_task(
     *,
     project: Project,
-    apartment: Apartment,
+    apartment: Apartment | None,
     point_number: str | None,
     text: str,
     source_sheet_name: str = "manual",
     action: str = "manual_created",
+    work_point: WorkPoint | None = None,
 ) -> Task:
     return _create_manual_remark_tasks(
         project=project,
@@ -7998,6 +8064,7 @@ def _create_manual_remark_task(
         text=text,
         source_sheet_name=source_sheet_name,
         action=action,
+        work_point=work_point,
     )[0]
 
 
@@ -8975,7 +9042,7 @@ def _task_list_response(contractor_page: bool = False):
             (contractor for contractor in contractor_options if contractor.id == request.args.get("contractor_id", type=int)),
             None,
         )
-    query = build_task_query(query_args, category_id=category_id, project_id=project.id)
+    query = build_task_query(query_args, category_id=category_id, project_id=project.id, include_assignment_manual=True)
     if contractor_page:
         query = _filter_tasks_for_contractor(query, selected_contractor)
     if current_user.role in WORKER_ROLES:
@@ -13377,7 +13444,8 @@ def split_task_remark(task_id: int):
         apartment=task.apartment,
         point_number=point_number,
         text=new_text,
-        source_sheet_name="manual_split",
+        source_sheet_name="assignment_manual" if task.source_sheet_name == "assignment_manual" else "manual_split",
+        work_point=task.work_point,
         action="manual_split_created",
     )
     change_task_status(new_task, new_status, user_id=current_user.id, commit=False)

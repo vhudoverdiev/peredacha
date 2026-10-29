@@ -263,6 +263,8 @@ def create_app(config_class=Config):
             response.headers["Cache-Control"] = "private, no-store, no-cache, must-revalidate, max-age=0"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"
+        if not is_static_asset and current_user.is_authenticated:
+            response.headers['X-CRM-Account'] = str(current_user.id)
         if not is_static_asset and response.mimetype == 'text/html':
             if current_user.is_authenticated and current_user.role in {'painter', 'glazier', 'handyman'}:
                 if request.endpoint == 'main.my_tasks' and response.status_code == 200:
@@ -310,6 +312,8 @@ def create_app(config_class=Config):
             if not current_user.is_authenticated or not is_session_version_valid():
                 return authentication_required()
         if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in (request.headers.get("Accept") or ""):
+            if request.endpoint == 'main.worker_offline_operation':
+                return {"ok": False, "code": "csrf_expired", "message": "Нужно обновить защитный токен. Очередь сохранена."}, 400
             return {"ok": False, "message": "Сессия устарела. Обновите страницу и отправьте сообщение еще раз."}, 400
         return error.get_response()
 
@@ -375,6 +379,9 @@ def create_app(config_class=Config):
 
         # Additive migration: old appeals remain readable with unknown caller data.
         if _is_sqlite_database_uri(uri) or _is_mysql_database_uri(uri):
+            project_columns = {column["name"] for column in inspect(db.engine).get_columns("projects")}
+            if "handover_date" not in project_columns:
+                db.session.execute(text("ALTER TABLE projects ADD COLUMN handover_date DATE"))
             apartment_columns = {column["name"] for column in inspect(db.engine).get_columns("apartments")}
             if "call_list_hidden" not in apartment_columns:
                 db.session.execute(text("ALTER TABLE apartments ADD COLUMN call_list_hidden BOOLEAN NOT NULL DEFAULT 0"))

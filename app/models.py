@@ -7,7 +7,7 @@ from flask_login import UserMixin
 from sqlalchemy.dialects import mysql
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import db
-from app.time_utils import utc_now
+from app.time_utils import utc_now, to_moscow_datetime
 
 
 ROLE_ADMIN = "admin"
@@ -211,6 +211,7 @@ class Project(TimestampMixin, db.Model):
     queue = db.Column(db.String(120), nullable=True)
     building = db.Column(db.String(120), nullable=True)
     section = db.Column(db.String(120), nullable=True)
+    handover_date = db.Column(db.Date, nullable=True)
     address = db.Column(db.String(255), nullable=True)
     technical_customer = db.Column(db.String(255), nullable=True)
     developer_name = db.Column(db.String(255), nullable=True)
@@ -232,6 +233,18 @@ class Project(TimestampMixin, db.Model):
         nullable=True,
         index=True,
     )
+
+    def handover_countdown(self, today=None):
+        if not self.handover_date:
+            return None
+        today = today or to_moscow_datetime(utc_now()).date()
+        days = (self.handover_date - today).days
+        if days < 0:
+            return {"days": days, "label": "Передан", "passed": True}
+        ending = days % 100
+        word = "дней" if 11 <= ending <= 14 else ("день" if days % 10 == 1 else "дня" if days % 10 in (2, 3, 4) else "дней")
+        verb = "Остался" if word == "день" else "Осталось"
+        return {"days": days, "label": f"{verb} {days} {word}", "passed": False}
 
     created_by = db.relationship("User", foreign_keys=[created_by_id])
     apartments = db.relationship("Apartment", back_populates="project", cascade="all, delete-orphan")
@@ -1071,3 +1084,14 @@ class DeveloperPersonalMessage(TimestampMixin, db.Model):
     recipient=db.relationship('User',foreign_keys=[recipient_id])
     author=db.relationship('User',foreign_keys=[author_id])
     __table_args__=(db.CheckConstraint('duration_minutes >= 1 AND duration_minutes <= 10080',name='ck_personal_message_duration'),)
+
+
+class WorkerOfflineOperation(db.Model):
+    """Durable acknowledgements survive task deletion and application rollback."""
+    __tablename__ = 'worker_offline_operations'
+    id = db.Column(db.String(36), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    task_id = db.Column(db.Integer, nullable=False, index=True)
+    request_hash = db.Column(db.String(64), nullable=False)
+    response_json = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)

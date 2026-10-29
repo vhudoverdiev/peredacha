@@ -296,5 +296,7 @@ def registration_request():
 @login_required
 def logout():
     clear_auth_session()
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify(ok=True)
     flash("Вы вышли из CRM", "info")
     return redirect(url_for("auth.login"))

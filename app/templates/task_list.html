@@ -275,8 +275,8 @@
             <input class="form-check-input remark-task-check js-bulk-check" type="checkbox" value="{{ task.id }}" {% if current_user.role != 'viewer' %}name="task_ids" form="{{ bulk_delete_form_id }}"{% endif %} aria-label="Выбрать замечание">
           </td>
           <td class="task-card-premise-cell" data-label="№">{% if task.apartment %}<span class="premise-number">{{ task.apartment.label() }}</span>{% else %}—{% endif %}</td>
-          <td class="task-card-finish-cell" data-label="Отделка">{{ task.apartment.finishing_type or '' }}</td>
-          <td class="task-card-mode-cell" data-label="Режим">{% if task.apartment.is_app_mode %}<span class="status-pill status-pill-success">АПП</span>{% else %}<span class="status-pill status-pill-warning">Не принята</span>{% endif %}</td>
+          <td class="task-card-finish-cell" data-label="Отделка">{{ task.apartment.finishing_type or '' if task.apartment else '—' }}</td>
+          <td class="task-card-mode-cell" data-label="Режим">{% if not task.apartment %}—{% elif task.apartment.is_app_mode %}<span class="status-pill status-pill-success">АПП</span>{% else %}<span class="status-pill status-pill-warning">Не принята</span>{% endif %}</td>
           <td class="task-card-deadline-cell" data-label="Срок">
             {% if task.apartment %}
               <div>{{ task.apartment.app_deadline_label() }}</div>

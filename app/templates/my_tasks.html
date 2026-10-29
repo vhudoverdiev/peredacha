@@ -5,7 +5,7 @@
   <div class="worker-day-head">
     <div>
       <p class="worker-person-name">{{ current_user.full_name or current_user.username }}</p>
-      <h1>Задачи на сегодня</h1>
+      <h1>{{ 'Мои задачи' if offline_all else 'Задачи на сегодня' }}</h1>
       <p>{{ format_ru_weekday(today) }} · {{ format_ru_date(today) }}</p>
     </div>
     <div class="worker-day-counts" aria-label="Статистика задач">
@@ -54,7 +54,7 @@
         </div>
         {% endfor %}
       </div>
-      {% if current_user.role == 'glazier' %}
+      {% if current_user.role in ['painter', 'glazier', 'handyman'] %}
       <details class="worker-measurement-panel">
         <summary><i class="bi bi-rulers" aria-hidden="true"></i><span>Замер{% if task.glass_measurement and task.glass_measurement.comment %} · сохранён{% endif %}</span></summary>
         <form method="post" action="{{ url_for('main.my_task_measurement', task_id=task.id) }}">
@@ -63,6 +63,12 @@
           <textarea class="form-control" id="workerMeasurement{{ task.id }}" name="body" rows="3" maxlength="4000" required placeholder="Например: 740 × 1260 мм, стеклопакет правой створки">{{ task.glass_measurement.comment if task.glass_measurement and task.glass_measurement.comment else '' }}</textarea>
           <button type="submit" class="btn btn-primary btn-sm mt-2">Передать замер</button>
         </form>
+        {% if task.glass_measurement and task.glass_measurement.comment and task.glass_measurement.status not in ['ordered', 'replaced'] %}
+        <form method="post" action="{{ url_for('main.my_task_measurement_delete', task_id=task.id) }}" data-confirm="Удалить замер? После удаления можно внести новый.">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-danger btn-sm">Удалить замер</button>
+        </form>
+        {% endif %}
       </details>
       {% endif %}
       <div class="worker-task-discussion" id="workerComposer{{ task.id }}" hidden>
@@ -86,19 +92,4 @@
     {% endfor %}
   </div>
 </section>
-{% if current_user.role in ['painter', 'glazier', 'handyman'] %}
-<script>
-(() => {
-  if (!('serviceWorker' in navigator) || window.__CRM_WORKER_OFFLINE__) return;
-  let primed = false;
-  const prime = () => {
-    if (primed || !navigator.serviceWorker.controller || !navigator.onLine) return;
-    primed = true;
-    navigator.serviceWorker.controller.postMessage({type:'refresh-worker-tasks'});
-  };
-  navigator.serviceWorker.addEventListener('controllerchange', prime);
-  navigator.serviceWorker.ready.then(prime).catch(() => {});
-})();
-</script>
-{% endif %}
 {% endblock %}

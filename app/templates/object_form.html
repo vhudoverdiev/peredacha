@@ -21,6 +21,11 @@
         {{ form.address(class="form-control") }}
       </div>
       <div class="mb-3">
+        {{ form.handover_date.label(class="form-label") }}
+        {{ form.handover_date(class="form-control", type="date") }}
+        {% for error in form.handover_date.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="mb-3">
         {{ form.technical_customer.label(class="form-label") }}
         {{ form.technical_customer(class="form-control") }}
       </div>

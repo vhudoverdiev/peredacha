@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
-from wtforms import BooleanField, PasswordField, RadioField, SelectField, StringField, SubmitField, TextAreaField
+from wtforms import DateField, BooleanField, PasswordField, RadioField, SelectField, StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Length, Optional, ValidationError
 from app.models import TASK_STATUSES, PRIORITIES, USER_ROLE_CHOICES
 
@@ -40,6 +40,7 @@ class ProjectForm(FlaskForm):
         except ValueError as exc:
             raise ValidationError(str(exc)) from exc
 
+    handover_date = DateField("Срок передачи", validators=[Optional()], format="%Y-%m-%d")
     name = StringField("Название объекта", validators=[DataRequired(), Length(max=180)])
     address = StringField("Адрес", validators=[Optional(), Length(max=255)])
     technical_customer = StringField("Тех.заказчик", validators=[Optional(), Length(max=255)])

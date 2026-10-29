@@ -16,6 +16,7 @@
   window.setTimeout=(handler,delay,...args)=>{const id=nativeTimeout(()=>{timeouts.delete(id);if(typeof handler==='function')handler(...args);},delay);timeouts.add(id);return id;};
   window.setInterval=(handler,delay,...args)=>{const id=nativeInterval(handler,delay,...args);intervals.add(id);return id;};
   function dispose(){
+    window.crmOfflineDispose?.();
     for(const [target,type,handler,capture]of listeners)nativeRemove.call(target,type,handler,capture);
     listeners=[];observers.forEach(observer=>observer.disconnect());observers=[];
     timeouts.forEach(clearTimeout);intervals.forEach(clearInterval);timeouts.clear();intervals.clear();ready=[];
