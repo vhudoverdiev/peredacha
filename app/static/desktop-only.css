@@ -2122,3 +2122,23 @@ html.desktop-like-pointer body.app-body:has(.objects-page) .object-card {
   }
 }
 
+/* Four issued-task actions must fit inside their own cell, not under status. */
+@media (min-width: 768px) {
+ html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+ .assignment-issued-table .assignment-issued-actions {
+   display:flex !important;
+   flex-wrap:wrap !important;
+   justify-content:flex-end !important;
+   width:100% !important;
+   max-width:100% !important;
+   min-width:0 !important;
+   box-sizing:border-box !important;
+   white-space:normal !important;
+ }
+ html.desktop-like-pointer body.app-body:has(.assignments-page-head)
+ .assignment-issued-table .assignment-issued-actions .js-assignment-priority-form button {
+   flex:0 0 38px !important;
+   width:38px !important;
+   min-width:38px !important;
+ }
+}

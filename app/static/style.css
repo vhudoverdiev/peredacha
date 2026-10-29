@@ -60082,3 +60082,10 @@ html body.app-body .worker-page .worker-progress-action {
 .worker-offline-notice button { justify-self:start; padding:7px 14px; border:1px solid #d9b867; border-radius:10px; background:#fff; color:#493b1e; }
 
 .assignment-worker-instruction summary { display:flex; align-items:center; gap:8px; }
+/* Strike only the remark itself, never its comments or action controls. */
+html body.app-body .assignment-issued-table .assignment-issued-row.done-task .task-text {
+  text-decoration:none !important;
+}
+html body.app-body .assignment-issued-table .assignment-issued-row.done-task .assignment-task-open-link {
+  text-decoration:line-through !important;
+}

@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v263-mobile-scroll-rounded';
+const STATIC_CACHE = 'peredacha-static-v266-issued-priority-controls';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,11 +13,11 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v734-comment-spacing',
+  '/static/style.css?v=v735-completed-task-comment',
   '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v100-ios-document-scroll-rounded',
-  '/static/desktop-only.css?v=v79-assignment-point-size-revert',
-  '/static/script.js?v=v715-worker-measurement-comments',
+  '/static/desktop-only.css?v=v80-issued-priority-controls',
+  '/static/script.js?v=v716-assignment-priority-ajax',
   '/static/navigation-state.js?v=4',
   '/static/page-navigation.js?v=3',
   '/static/form-csrf.js?v=1',
@@ -417,7 +417,7 @@ async function workerSnapshotResponse() {
       const stamp=document.createElement('span');stamp.textContent='Обновлено: ${timestamp} МСК. Изменения доступны после подключения.';
       const retry=document.createElement('button');retry.type='button';retry.textContent='Обновить';retry.addEventListener('click',()=>location.replace('/my-tasks'));
       notice.append(title,stamp,retry);document.querySelector('.worker-page')?.prepend(notice);
-      navigator.serviceWorker?.addEventListener('message',event=>{if(event.data?.type==='worker-snapshot-refreshed')location.replace('/my-tasks');});
+      navigator.serviceWorker?.addEventListener('message',event=>{if(event.data?.type==='worker-snapshot-refreshed' && navigator.onLine!==false)location.replace('/my-tasks');});
       document.querySelectorAll('form button,form input,form textarea,form select,[data-worker-comment-toggle]').forEach(el=>el.disabled=true);
       document.querySelectorAll('a').forEach(el=>{if(el.getAttribute('href')!=='/my-tasks'){el.setAttribute('aria-disabled','true');el.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();},true);}});
     });<` + `/script>`;

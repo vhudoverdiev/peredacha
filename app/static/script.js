@@ -9467,4 +9467,55 @@ document.addEventListener('change', event => {
   select.required = !toggle.checked;
 });
 
+
+// Priority is an independent action, including for tasks already assigned.
+document.addEventListener('submit', async event => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement) || !form.matches('.js-assignment-priority-form')) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if (form.dataset.priorityPending === '1') return;
+  const button = event.submitter || form.querySelector('button[type="submit"]');
+  if (!button) return;
+  const body = new FormData(form);
+  if (button.name) body.set(button.name, button.value);
+  const row = button.closest('[data-task-id]');
+  form.dataset.priorityPending = '1';
+  button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  try {
+    const response = await fetch(button.getAttribute('formaction') || form.action, {
+      method:'POST', body, credentials:'same-origin',
+      headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'},
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.message || 'Не удалось изменить срочность');
+    const urgent = data.priority === 'critical';
+    const next = urgent ? 'normal' : 'critical';
+    const label = urgent ? 'Снять срочность' : 'Пометить срочной';
+    if (button.name === 'priority') button.value = next;
+    const input = form.querySelector('input[name="priority"]');
+    if (input) input.value = next;
+    button.classList.toggle('btn-danger', urgent);
+    button.classList.toggle('btn-outline-danger', !urgent);
+    button.title = label;
+    button.setAttribute('aria-label', label);
+    const copy = row?.querySelector('.assignment-issued-task-copy, .assignment-task-inline-anchor');
+    let badge = copy?.querySelector('.task-urgent-badge');
+    if (urgent && copy && !badge) {
+      badge = document.createElement('span');
+      badge.className = 'task-urgent-badge';
+      badge.innerHTML = '<i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>Срочно';
+      copy.querySelector('.assignment-task-text')?.after(badge);
+    } else if (!urgent) badge?.remove();
+    showCrmNotice(data.message, 'success');
+  } catch (error) {
+    showCrmNotice(error.message || 'Не удалось сохранить срочность. Повторите попытку.', 'danger');
+  } finally {
+    delete form.dataset.priorityPending;
+    button.disabled = false;
+    button.removeAttribute('aria-busy');
+  }
+}, true);
+
 })();

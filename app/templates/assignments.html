@@ -82,7 +82,7 @@
             <td class="text-end assignment-issued-actions-cell">
               <div class="assignment-issued-actions">
                 {% if not task.is_done and task.status != 'done' or task.priority == 'critical' %}
-                <form method="post" action="{{ url_for('main.assignment_task_priority', task_id=task.id) }}">
+                <form class="js-assignment-priority-form" method="post" action="{{ url_for('main.assignment_task_priority', task_id=task.id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="hidden" name="issued_day" value="{{ issued_filter }}">
                   <input type="hidden" name="priority" value="{{ 'normal' if task.priority == 'critical' else 'critical' }}">
@@ -527,7 +527,7 @@
 <div data-assignment-tab-content-end hidden></div>
 </div>
 {% for task in tasks %}
-<form id="assignment-priority-{{ task.id }}" method="post" action="{{ url_for('main.assignment_task_priority', task_id=task.id, view='issue') }}">
+<form class="js-assignment-priority-form" id="assignment-priority-{{ task.id }}" method="post" action="{{ url_for('main.assignment_task_priority', task_id=task.id, view='issue') }}">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 </form>
 {% endfor %}

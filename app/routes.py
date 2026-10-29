@@ -4534,12 +4534,17 @@ def assignment_task_priority(task_id):
     if priority not in {'normal', 'critical'}:
         abort(400)
     if priority == 'critical' and (task.is_done or task.status == STATUS_DONE):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(ok=False, message='Срочность доступна только для невыполненных задач'), 400
         abort(400, description='Срочность доступна только для невыполненных задач')
     old = task.priority
     task.priority = priority
     task.manually_edited = True
     log_change(task, 'field_update', 'priority', old, priority)
     db.session.commit()
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify(ok=True, task_id=task.id, priority=task.priority,
+                       message='Задача помечена срочной' if priority == 'critical' else 'Срочность снята')
     return redirect(url_for('main.assignments', view=request.form.get('view') or request.args.get('view', 'issued'),
                             issued_day=request.form.get('issued_day', 'today')))
 
