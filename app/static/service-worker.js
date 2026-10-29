@@ -1,5 +1,5 @@
 importScripts('/static/worker-offline-store.js?v=1');
-const STATIC_CACHE = 'peredacha-static-v285-worker-offline-navigation';
+const STATIC_CACHE = 'peredacha-static-v286-worker-instant-shell';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -19,7 +19,7 @@ const STATIC_ASSETS = [
   '/static/mobile-only.css?v=v100-ios-document-scroll-rounded',
   '/static/desktop-only.css?v=v80-issued-priority-controls',
   '/static/worker-offline-store.js?v=1',
-  '/static/worker-offline.js?v=3',
+  '/static/worker-offline.js?v=4',
   '/static/script.js?v=v717-assignment-selection-split',
   '/static/navigation-state.js?v=4',
   '/static/page-navigation.js?v=5',
@@ -374,7 +374,7 @@ async function workerSnapshotResponse() {
   try {
     const account = await CRMOfflineStore.active();
     if (!account?.html) return null;
-    const bootstrap = '<script>window.__CRM_WORKER_OFFLINE__=true;window.__CRM_OFFLINE_FALLBACK__=true;<'+'/script>';
+    const bootstrap = '<style>html body .mobile-standalone-boot-screen,html body .js-app-launch-loader,html body .js-success-loader,html body .mobile-dev-screen.site-page-loader,html body .viewport-transition-loader{display:none!important;pointer-events:none!important}</style><script>window.__CRM_WORKER_OFFLINE__=true;window.__CRM_OFFLINE_FALLBACK__=true;document.documentElement.classList.add("crm-offline-fallback","crm-loader-suppressed","mobile-standalone-boot-complete");<'+'/script>';
     const html = account.html.replace('<head>', '<head>'+bootstrap);
     return new Response(html,{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-CRM-Worker-Offline':'1'}});
   } catch (_) { return null; }

@@ -967,7 +967,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v285-worker-offline-navigation', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v286-worker-instant-shell', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1626,7 +1626,7 @@
   <script src="{{ url_for('static', filename='remark-suggestions.js') }}?v=5-point-numbering"></script>
   {% if not current_user.is_authenticated or current_user.role in ['painter','glazier','handyman'] %}
   <script src="{{ url_for('static', filename='worker-offline-store.js') }}?v=1"></script>
-  <script src="{{ url_for('static', filename='worker-offline.js') }}?v=3"></script>
+  <script src="{{ url_for('static', filename='worker-offline.js') }}?v=4"></script>
   {% endif %}
   <script src="{{ url_for('static', filename='script.js') }}?v=v717-assignment-selection-split"></script>
 </body>
