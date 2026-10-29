@@ -42,7 +42,7 @@
       const response=await nativeFetch(url.href,{credentials:'same-origin',cache:'no-store',signal:controller.signal,headers:{Accept:'text/html','X-Requested-With':'XMLHttpRequest'}});
       if(response.status===401){location.assign('/login');return;}
       if(!response.ok)throw new Error('Не удалось открыть раздел. Повторите попытку.');
-      const html=await response.text(),next=new DOMParser().parseFromString(html,'text/html'),finalUrl=new URL(response.url||url.href);
+      const html=await response.text(),next=new DOMParser().parseFromString(html,'text/html'),finalUrl=new URL(response.headers.get('X-CRM-Offline-URL')||response.url||url.href,location.origin);
       if(response.headers.get('X-CRM-Worker-Offline')==='1'){window.__CRM_WORKER_OFFLINE__=true;window.__CRM_OFFLINE_FALLBACK__=true;}
       if(next.body.dataset.navigationUser!==document.body.dataset.navigationUser){location.assign(finalUrl.href);return;}
       const scripts=[...next.body.querySelectorAll('script')].filter(script=>!script.src||!/(?:page-navigation|navigation-state)\.js(?:\?|$)/.test(script.src));

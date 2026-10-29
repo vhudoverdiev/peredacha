@@ -23,7 +23,7 @@
     root.querySelectorAll('[data-worker-task-card]').forEach(card=>{const task=map.get(card.dataset.taskId);if(!task)return;const local=ops.filter(o=>o.task_id===task.id);const status=task.status;card.dataset.offlineStatus=status;card.classList.toggle('done',status==='done');const pill=card.querySelector('[data-worker-status-pill]');if(pill){pill.textContent=labels[status]||status;pill.className='worker-status-pill badge bg-'+(status==='done'?'success':(status==='in_progress'?'secondary':'secondary'));}
       const toggle=card.querySelector('[data-worker-done-toggle]');if(toggle){toggle.value=status==='done'?'not_started':'done';toggle.textContent=status==='done'?'Не выполнено':'Выполнено';toggle.classList.toggle('is-active',status==='done');toggle.setAttribute('aria-pressed',String(status==='done'));}
       const progress=card.querySelector('.worker-progress-action');if(progress){progress.classList.toggle('is-active',status==='in_progress');progress.setAttribute('aria-pressed',String(status==='in_progress'));}
-      let state=card.querySelector('[data-offline-task-state]');if(!state){state=document.createElement('small');state.dataset.offlineTaskState='';state.className='worker-offline-task-state';card.querySelector('.worker-task-status-zone')?.append(state);}state.textContent=blocked.has(task.id)?'Не удалось применить — требуется проверка':local.length?(local.some(o=>o.state==='sending'&&Date.now()-(o.sentAt||0)<15000)?'Отправляется':'Сохранено на устройстве'):(connected?'Синхронизировано':'Сохранено на устройстве');
+      let state=card.querySelector('[data-offline-task-state]');if(!state){state=document.createElement('small');state.dataset.offlineTaskState='';state.className='worker-offline-task-state';card.querySelector('.worker-task-status-zone')?.append(state);}state.hidden=!blocked.has(task.id)&&!local.length;state.textContent=blocked.has(task.id)?'Не удалось применить — требуется проверка':local.length?(local.some(o=>o.state==='sending'&&Date.now()-(o.sentAt||0)<15000)?'Отправляется':'Сохранено на устройстве'):(connected?'Синхронизировано':'Сохранено на устройстве');
       card.querySelectorAll('[data-worker-status-form] button[type=submit]').forEach(b=>b.disabled=expired()||blocked.has(task.id)||!task.allowed_statuses.includes(b.value));
       card.querySelectorAll('form:not([data-worker-status-form]) button, form:not([data-worker-status-form]) input, form:not([data-worker-status-form]) textarea,[data-worker-comment-toggle]').forEach(e=>{e.disabled=!connected||expired();});
     });
@@ -39,8 +39,12 @@
       account=null;root?.querySelector('[data-worker-task-list]')?.replaceChildren();
       location.replace('/my-tasks?fresh_account=1');
       const e=Error('Войдите в тот же аккаунт для синхронизации.');e.status=401;throw e;
-    }csrfToken=data.csrf_token;const doc=new DOMParser().parseFromString(data.html,'text/html');doc.querySelectorAll('input[name=csrf_token],meta[name=csrf-token]').forEach(e=>e.remove());data.html='<!doctype html>\n'+doc.documentElement.outerHTML;await S.saveSnapshot(data);account=await S.active();connected=true;
-    if(root&&!root.querySelector('textarea:focus,input:focus')){
+    }const previousTasks=(await S.all('tasks')).filter(t=>t.account===user);
+    const previousVersions=new Map(previousTasks.map(t=>[String(t.id),t.serverVersion]));
+    const currentIds=[...root?.querySelectorAll('[data-worker-task-card]')||[]].map(c=>c.dataset.taskId);
+    const listChanged=currentIds.length!==data.tasks.length||data.tasks.some(t=>!currentIds.includes(String(t.id))||previousVersions.get(String(t.id))!==t.version);
+    csrfToken=data.csrf_token;const doc=new DOMParser().parseFromString(data.html,'text/html');doc.querySelectorAll('input[name=csrf_token],meta[name=csrf-token]').forEach(e=>e.remove());data.html='<!doctype html>\n'+doc.documentElement.outerHTML;await S.saveSnapshot(data);account=await S.active();connected=true;
+    if(root&&listChanged&&!root.querySelector('textarea:focus,input:focus')){
       const next=new DOMParser().parseFromString(data.html,'text/html').querySelector('[data-worker-task-list]');
       const current=root.querySelector('[data-worker-task-list]');
       if(next&&current){

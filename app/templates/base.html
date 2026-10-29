@@ -8,18 +8,40 @@
   <script>
     // A keyboard changes the viewport aspect ratio, never the physical orientation.
     window.crmIsPhysicalLandscape = () => {
+      // iOS updates window.orientation before screen.orientation during rotation.
+      if (typeof window.orientation === 'number') return Math.abs(window.orientation) % 180 === 90;
       const kind = window.screen?.orientation?.type;
       if (kind) return kind.startsWith('landscape');
-      if (typeof window.orientation === 'number') return Math.abs(window.orientation) % 180 === 90;
       return (window.screen?.width || 0) > (window.screen?.height || Infinity);
+    };
+    let portraitViewportHeight = 0;
+    let keyboardWasFocused = false;
+    const syncKeyboardOrientationGuard = () => {
+      const landscape = window.crmIsPhysicalLandscape();
+      const focused = document.activeElement?.matches('input,textarea,[contenteditable]');
+      const height = window.visualViewport?.height || window.innerHeight;
+      if (landscape) {
+        document.documentElement.classList.remove('crm-orientation-keyboard');
+        return;
+      }
+      if (!focused && !keyboardWasFocused) portraitViewportHeight = Math.max(portraitViewportHeight, height);
+      if (focused) keyboardWasFocused = true;
+      const keyboardVisible = keyboardWasFocused && height < portraitViewportHeight * .8;
+      document.documentElement.classList.toggle('crm-orientation-keyboard', !!focused || keyboardVisible);
+      if (!focused && !keyboardVisible) keyboardWasFocused = false;
     };
     const syncPhysicalOrientation = () => {
       const touch = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
       document.documentElement.classList.toggle('mobile-landscape-locked', touch && window.crmIsPhysicalLandscape());
+      syncKeyboardOrientationGuard();
     };
+    document.addEventListener('focusin', syncKeyboardOrientationGuard);
+    document.addEventListener('focusout', () => setTimeout(syncKeyboardOrientationGuard, 0));
+    window.visualViewport?.addEventListener('resize', syncKeyboardOrientationGuard);
     syncPhysicalOrientation();
     window.addEventListener('orientationchange', syncPhysicalOrientation);
     window.screen?.orientation?.addEventListener('change', syncPhysicalOrientation);
+    window.addEventListener('resize', syncPhysicalOrientation, {passive:true});
   </script>
   <script>
     // Recover expired AJAX sessions without replaying a user's POST request.
@@ -690,12 +712,12 @@
     /* The orientation cover is selected by CSS itself, before delayed iOS
        resize/orientation events can expose the rotated application layout. */
     @media (orientation: landscape) and (hover: none) and (pointer: coarse) {
-      html.touch-app-device.mobile-landscape-locked body > :not(.portrait-orientation-guard) {
+      html.touch-app-device:is(.mobile-landscape-locked, :not(.crm-orientation-keyboard):not(:has(input:focus, textarea:focus, [contenteditable]:focus))) body > :not(.portrait-orientation-guard) {
         visibility: hidden !important;
         pointer-events: none !important;
       }
 
-      html.touch-app-device.mobile-landscape-locked .portrait-orientation-guard {
+      html.touch-app-device:is(.mobile-landscape-locked, :not(.crm-orientation-keyboard):not(:has(input:focus, textarea:focus, [contenteditable]:focus))) .portrait-orientation-guard {
         position: fixed !important;
         z-index: 2147483647 !important;
         inset: 0 !important;
@@ -967,7 +989,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v286-worker-instant-shell', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v288-worker-stable-cards', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1008,7 +1030,7 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v753-green-handover-dot">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v754-worker-stable-cards">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v100-ios-document-scroll-rounded">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v80-issued-priority-controls">
   <script>
@@ -1030,7 +1052,7 @@
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-navigation-user="{{ current_user.id if current_user.is_authenticated else 0 }}" data-navigation-project="{{ current_project.id if current_project else 0 }}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <script src="{{ url_for('static', filename='navigation-state.js') }}?v=4"></script>
-<script src="{{ url_for('static', filename='page-navigation.js') }}?v=5"></script>
+<script src="{{ url_for('static', filename='page-navigation.js') }}?v=6"></script>
 <div class="crm-offline-banner js-crm-offline-banner" hidden>Не удается обновить. Показана сохраненная версия.</div>
 <div class="mobile-standalone-boot-screen" aria-hidden="true">
   <div class="mobile-standalone-boot-screen__orbit" aria-hidden="true">
@@ -1626,7 +1648,7 @@
   <script src="{{ url_for('static', filename='remark-suggestions.js') }}?v=5-point-numbering"></script>
   {% if not current_user.is_authenticated or current_user.role in ['painter','glazier','handyman'] %}
   <script src="{{ url_for('static', filename='worker-offline-store.js') }}?v=1"></script>
-  <script src="{{ url_for('static', filename='worker-offline.js') }}?v=4"></script>
+  <script src="{{ url_for('static', filename='worker-offline.js') }}?v=5"></script>
   {% endif %}
   <script src="{{ url_for('static', filename='script.js') }}?v=v717-assignment-selection-split"></script>
 </body>

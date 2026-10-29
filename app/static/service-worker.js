@@ -1,5 +1,5 @@
 importScripts('/static/worker-offline-store.js?v=1');
-const STATIC_CACHE = 'peredacha-static-v286-worker-instant-shell';
+const STATIC_CACHE = 'peredacha-static-v288-worker-stable-cards';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -14,15 +14,15 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v753-green-handover-dot',
+  '/static/style.css?v=v754-worker-stable-cards',
   '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v100-ios-document-scroll-rounded',
   '/static/desktop-only.css?v=v80-issued-priority-controls',
   '/static/worker-offline-store.js?v=1',
-  '/static/worker-offline.js?v=4',
+  '/static/worker-offline.js?v=5',
   '/static/script.js?v=v717-assignment-selection-split',
   '/static/navigation-state.js?v=4',
-  '/static/page-navigation.js?v=5',
+  '/static/page-navigation.js?v=6',
   '/static/form-csrf.js?v=1',
   '/static/remark-suggestions.js?v=5-point-numbering',
   '/static/time-entry.js?v=3',
@@ -261,7 +261,7 @@ self.addEventListener('fetch', event => {
   if (/\/(?:export|download)(?:\/|$)/.test(url.pathname)) return;
 
   // SPA transitions request HTML with fetch; they need the same saved shell as navigations.
-  const workerHtmlRequest = ['/', '/my-tasks'].includes(url.pathname) &&
+  const workerHtmlRequest = !/^\/(?:login|logout|static|worker-offline)(?:\/|$)/.test(url.pathname) &&
     (request.headers.get('Accept') || '').includes('text/html');
   if (request.mode === 'navigate' || workerHtmlRequest) {
     const isHomescreenLaunch = url.searchParams.get('source') === 'homescreen';
@@ -302,13 +302,12 @@ async function fetchWithTimeout(request, timeoutMs) {
 }
 
 async function navigationNetworkFirst(request) {
-  const eligible = ['/', '/my-tasks'].includes(new URL(request.url).pathname);
-  if (eligible && !new URL(request.url).searchParams.has('fresh_account')) {
-    const saved = await workerSnapshotResponse();
-    if (saved) return saved;
-  }
+  const url = new URL(request.url);
+  const eligible = !/^\/(?:login|logout)(?:\/|$)/.test(url.pathname) && !url.searchParams.has('fresh_account');
+  const saved = eligible ? await workerSnapshotResponse() : null;
+  if (saved && (['/', '/my-tasks'].includes(url.pathname) || self.navigator.onLine === false)) return saved;
   try {
-    const response = await fetch(request,{redirect:'follow'});
+    const response = saved ? await fetchWithTimeout(request, 2500) : await fetch(request,{redirect:'follow'});
     if (eligible && response.status >= 500) {
       const saved = await workerSnapshotResponse();
       if (saved) return saved;
@@ -374,9 +373,9 @@ async function workerSnapshotResponse() {
   try {
     const account = await CRMOfflineStore.active();
     if (!account?.html) return null;
-    const bootstrap = '<style>html body .mobile-standalone-boot-screen,html body .js-app-launch-loader,html body .js-success-loader,html body .mobile-dev-screen.site-page-loader,html body .viewport-transition-loader{display:none!important;pointer-events:none!important}</style><script>window.__CRM_WORKER_OFFLINE__=true;window.__CRM_OFFLINE_FALLBACK__=true;document.documentElement.classList.add("crm-offline-fallback","crm-loader-suppressed","mobile-standalone-boot-complete");<'+'/script>';
+    const bootstrap = '<style>html body .mobile-standalone-boot-screen,html body .js-app-launch-loader,html body .js-success-loader,html body .mobile-dev-screen.site-page-loader,html body .viewport-transition-loader{display:none!important;pointer-events:none!important}</style><script>window.__CRM_WORKER_OFFLINE__=true;window.__CRM_OFFLINE_FALLBACK__=true;history.replaceState(null,"","/my-tasks");document.documentElement.classList.add("crm-offline-fallback","crm-loader-suppressed","mobile-standalone-boot-complete");<'+'/script>';
     const html = account.html.replace('<head>', '<head>'+bootstrap);
-    return new Response(html,{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-CRM-Worker-Offline':'1'}});
+    return new Response(html,{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-CRM-Worker-Offline':'1','X-CRM-Offline-URL':'/my-tasks'}});
   } catch (_) { return null; }
 }
 self.addEventListener('message',event=>{

@@ -60122,3 +60122,7 @@ html body.app-body .worker-page :is(.worker-task-list,.worker-day-head).worker-o
 
 .objects-page {--object-not-accepted-rgb:242,85,85;}
 .objects-page .stat-badge-danger {border-color:rgba(var(--object-not-accepted-rgb),.28) !important;}
+
+html body.app-body .worker-page .worker-task-card-minimal:hover,
+html body.app-body .worker-page .worker-task-card-minimal:focus-within {transform:none !important;}
+html body.app-body .worker-page [data-offline-task-state][hidden] {display:none !important;}
