@@ -60076,3 +60076,9 @@ html body.app-body .worker-page .worker-progress-action {
   html body.app-body .worker-page .worker-task-status-actions { grid-template-columns:minmax(0,1fr) !important; }
   html body.app-body .worker-page .worker-task-status-actions > button { width:100% !important; }
 }
+
+.worker-offline-notice { display:grid; gap:8px; padding:16px; margin-bottom:16px; border:1px solid #e5bc6b; border-radius:16px; background:#fff7df; color:#493b1e; font-size:14px; line-height:1.45; }
+.worker-offline-notice strong { font-size:16px; }
+.worker-offline-notice button { justify-self:start; padding:7px 14px; border:1px solid #d9b867; border-radius:10px; background:#fff; color:#493b1e; }
+
+.assignment-worker-instruction summary { display:flex; align-items:center; gap:8px; }

@@ -4533,6 +4533,8 @@ def assignment_task_priority(task_id):
     priority = request.form.get('priority')
     if priority not in {'normal', 'critical'}:
         abort(400)
+    if priority == 'critical' and (task.is_done or task.status == STATUS_DONE):
+        abort(400, description='Срочность доступна только для невыполненных задач')
     old = task.priority
     task.priority = priority
     task.manually_edited = True

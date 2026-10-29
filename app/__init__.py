@@ -263,6 +263,14 @@ def create_app(config_class=Config):
             response.headers["Cache-Control"] = "private, no-store, no-cache, must-revalidate, max-age=0"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"
+        if not is_static_asset and response.mimetype == 'text/html':
+            if current_user.is_authenticated and current_user.role in {'painter', 'glazier', 'handyman'}:
+                if request.endpoint == 'main.my_tasks' and response.status_code == 200:
+                    import hashlib
+                    identity = f'{current_user.id}:{current_user.session_version}:{current_user.role}'
+                    response.headers['X-CRM-Worker-Cache'] = hashlib.sha256(identity.encode()).hexdigest()
+            else:
+                response.headers['X-CRM-Worker-Cache'] = 'clear'
         # Only metadata: never log query strings, form contents, tokens or cookies.
         if response.status_code >= 400:
             request_id = uuid4().hex

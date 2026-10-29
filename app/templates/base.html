@@ -967,7 +967,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v260-worker-measurement-comments', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v263-mobile-scroll-rounded', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1008,8 +1008,8 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v732-worker-comment-history">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v98-ios-stationary-dock">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v734-comment-spacing">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v100-ios-document-scroll-rounded">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v79-assignment-point-size-revert">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.

@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'peredacha-static-v260-worker-measurement-comments';
+const STATIC_CACHE = 'peredacha-static-v263-mobile-scroll-rounded';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -13,9 +13,9 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v732-worker-comment-history',
+  '/static/style.css?v=v734-comment-spacing',
   '/static/workflows.css?v=31-named-point-sync-final',
-  '/static/mobile-only.css?v=v98-ios-stationary-dock',
+  '/static/mobile-only.css?v=v100-ios-document-scroll-rounded',
   '/static/desktop-only.css?v=v79-assignment-point-size-revert',
   '/static/script.js?v=v715-worker-measurement-comments',
   '/static/navigation-state.js?v=4',
@@ -246,30 +246,34 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const { request } = event;
-  if (request.method !== 'GET') return;
-
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  if (/^\/(?:login(?:\/|$)|logout$)/.test(url.pathname)) {
+    workerCacheEpoch++;
+    event.waitUntil(clearWorkerSnapshots());
+  }
+  if (request.method !== 'GET') return;
 
   // File generation must bypass HTML navigation fallbacks.
   if (/\/(?:export|download)(?:\/|$)/.test(url.pathname)) return;
 
   if (request.mode === 'navigate') {
     const isHomescreenLaunch = url.searchParams.get('source') === 'homescreen';
-    if (isHomescreenLaunch && !url.searchParams.has('_crm_retry')) {
+    if (isHomescreenLaunch && self.navigator.onLine !== false && !url.searchParams.has('_crm_retry')) {
       const launchUrl = new URL(request.url);
       launchUrl.searchParams.set('_crm_launch_probe', '1');
       const launchHtml = MOBILE_OFFLINE_HTML.replace(
         '<script>',
         `<script>history.replaceState(null, '', ${JSON.stringify(launchUrl.pathname + launchUrl.search + launchUrl.hash)});`,
       );
-      event.respondWith(new Response(launchHtml, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'no-store',
-        },
-      }));
+      event.respondWith((async () => {
+        const saved = await workerSnapshotResponse();
+        if (saved) {
+          event.waitUntil(refreshWorkerSnapshotAndNotify());
+          return saved;
+        }
+        return new Response(launchHtml, {status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+      })());
       return;
     }
     event.respondWith(navigationNetworkFirst(request));
@@ -277,6 +281,10 @@ self.addEventListener('fetch', event => {
   }
 
   if (!url.pathname.startsWith('/static/')) return;
+  if (self.navigator.onLine === false) {
+    event.respondWith(staticCacheFirst(request));
+    return;
+  }
 
   if (url.pathname.startsWith('/static/vendor/bootstrap/fonts/')) {
     event.respondWith(staticCacheFirst(request));
@@ -298,9 +306,21 @@ async function fetchWithTimeout(request, timeoutMs) {
 }
 
 async function navigationNetworkFirst(request) {
+  const epoch = workerCacheEpoch;
+  const eligible = ['/', '/my-tasks', '/dashboard'].includes(new URL(request.url).pathname);
+  if (eligible && self.navigator.onLine === false) {
+    const saved = await workerSnapshotResponse();
+    if (saved) return saved;
+  }
   try {
-    return await fetch(request);
+    const response = await fetch(request);
+    await storeWorkerSnapshot(response.clone(), epoch);
+    return response;
   } catch (error) {
+    if (eligible) {
+      const saved = await workerSnapshotResponse();
+      if (saved) return saved;
+    }
     const offline = self.navigator.onLine === false;
     const html = offline ? MOBILE_OFFLINE_HTML : MOBILE_OFFLINE_HTML
       .replace('Передача — нет интернета', 'Передача — сервер недоступен')
@@ -340,4 +360,89 @@ async function staticCacheFirst(request) {
   const response = await fetchWithTimeout(request, STATIC_NETWORK_TIMEOUT_MS);
   if (response && response.ok) await cache.put(request, response.clone());
   return response;
+}
+
+
+// Private, read-only worker snapshots. They never enter the shared static cache.
+const WORKER_SNAPSHOTS = 'crm-private-worker-tasks-v1';
+const WORKER_ACTIVE = new URL('/__worker_snapshot__/active', self.location.origin).href;
+let workerCacheEpoch = 0;
+let workerSnapshotQueue = Promise.resolve();
+function clearWorkerSnapshots() {
+  workerSnapshotQueue = workerSnapshotQueue.catch(() => {}).then(() => caches.delete(WORKER_SNAPSHOTS));
+  return workerSnapshotQueue;
+}
+async function storeWorkerSnapshot(response, epoch) {
+  const identity = response.headers.get('X-CRM-Worker-Cache');
+  if (identity === 'clear') {
+    workerCacheEpoch++;
+    await clearWorkerSnapshots();
+    return;
+  }
+  if (!identity || !/^[a-f0-9]{64}$/.test(identity) || !response.ok) return;
+  const html = await response.text();
+  const savedAt = new Date().toISOString();
+  workerSnapshotQueue = workerSnapshotQueue.catch(() => {}).then(async () => {
+    if (epoch !== workerCacheEpoch) return;
+    const cache = await caches.open(WORKER_SNAPSHOTS);
+    const key = new URL('/__worker_snapshot__/' + identity, self.location.origin).href;
+    // Keep only the last authenticated worker account on this device.
+    for (const request of await cache.keys()) {
+      if (request.url !== key && request.url !== WORKER_ACTIVE) await cache.delete(request);
+    }
+    await cache.put(key, new Response(html, {headers:{'Content-Type':'text/html; charset=utf-8','X-CRM-Saved-At':savedAt}}));
+    await cache.put(WORKER_ACTIVE, new Response(key));
+  });
+  await workerSnapshotQueue;
+}
+async function workerSnapshotResponse() {
+  await workerSnapshotQueue.catch(() => {});
+  const cache = await caches.open(WORKER_SNAPSHOTS);
+  const active = await cache.match(WORKER_ACTIVE);
+  if (!active) return null;
+  const key = await active.text();
+  if (!key.startsWith(self.location.origin + '/__worker_snapshot__/')) return null;
+  const snapshot = await cache.match(key);
+  if (!snapshot) return null;
+  const savedAt = snapshot.headers.get('X-CRM-Saved-At');
+  const timestamp = new Date(savedAt).toLocaleString('ru-RU', {timeZone:'Europe/Moscow',dateStyle:'short',timeStyle:'short'});
+  let html = await snapshot.text();
+  // Never submit cached CSRF tokens or queue writes against a stale assignment.
+  html = html.replace(/<input\b[^>]*\bname=["']csrf_token["'][^>]*>/gi, '');
+  const bootstrap = `<script>window.__CRM_WORKER_OFFLINE__=true;
+    document.addEventListener('submit',e=>{e.preventDefault();e.stopImmediatePropagation();},true);
+    document.addEventListener('DOMContentLoaded',()=>{
+      const notice=document.createElement('aside');notice.className='worker-offline-notice';notice.setAttribute('role','status');
+      const title=document.createElement('strong');title.textContent=navigator.onLine===false?'Нет сети · Сохранённые задачи':'Сохранённые задачи · Проверяем соединение';
+      const stamp=document.createElement('span');stamp.textContent='Обновлено: ${timestamp} МСК. Изменения доступны после подключения.';
+      const retry=document.createElement('button');retry.type='button';retry.textContent='Обновить';retry.addEventListener('click',()=>location.replace('/my-tasks'));
+      notice.append(title,stamp,retry);document.querySelector('.worker-page')?.prepend(notice);
+      navigator.serviceWorker?.addEventListener('message',event=>{if(event.data?.type==='worker-snapshot-refreshed')location.replace('/my-tasks');});
+      document.querySelectorAll('form button,form input,form textarea,form select,[data-worker-comment-toggle]').forEach(el=>el.disabled=true);
+      document.querySelectorAll('a').forEach(el=>{if(el.getAttribute('href')!=='/my-tasks'){el.setAttribute('aria-disabled','true');el.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();},true);}});
+    });<` + `/script>`;
+  html = html.replace('</head>', bootstrap + '</head>');
+  return new Response(html, {status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-CRM-Worker-Offline':'1'}});
+}
+self.addEventListener('message', event => {
+  if (event.data?.type !== 'refresh-worker-tasks' || !event.source?.url || new URL(event.source.url).origin !== self.location.origin) return;
+  const epoch = workerCacheEpoch;
+  event.waitUntil((async () => {
+    try {
+      const response = await fetch(new Request(new URL('/my-tasks',self.location.origin),{credentials:'include',cache:'no-store'}));
+      await storeWorkerSnapshot(response, epoch);
+    } catch (error) { /* Keep the last confirmed snapshot during network loss. */ }
+  })());
+});
+
+async function refreshWorkerSnapshotAndNotify() {
+  const epoch = workerCacheEpoch;
+  try {
+    const response = await fetch(new Request(new URL('/my-tasks', self.location.origin),{credentials:'include',cache:'no-store'}));
+    const identity = response.headers.get('X-CRM-Worker-Cache');
+    if (!response.ok || !identity) return;
+    await storeWorkerSnapshot(response, epoch);
+    if (identity !== 'clear' && epoch !== workerCacheEpoch) return;
+    for (const client of await self.clients.matchAll({type:'window'})) client.postMessage({type:'worker-snapshot-refreshed'});
+  } catch (error) { /* An offline launch continues showing the saved tasks. */ }
 }

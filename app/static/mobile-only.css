@@ -2332,63 +2332,44 @@
   html body.app-body .apartment-detail-page :is(.apartment-source-export-btn, .apartment-detail-export-btn) { display: none !important; }
 }
 
-/* iOS clips fixed elements to its shorter layout viewport on these pages.
-   Keep one stationary app canvas and scroll only the content between bars. */
+/* Preserve native page scrolling; the dock alone is a fixed viewport layer. */
 @media (max-width:767.98px) {
-  html.standalone-app.ios-standalone-bottom-chrome:has(:is(.workflow-page, .dev-news-archive)),
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(:is(.workflow-page, .dev-news-archive)) {
-    min-height:var(--mobile-physical-app-height, 100dvh) !important;
-    height:var(--mobile-physical-app-height, 100dvh) !important;
-    max-height:var(--mobile-physical-app-height, 100dvh) !important;
-    overflow:hidden !important;
-  }
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(:is(.workflow-page, .dev-news-archive)) {
-    position:relative !important;
-  }
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(:is(.workflow-page, .dev-news-archive))
-    > nav.mobile-bottom-nav.mobile-bottom-nav-root {
-    position:absolute !important;
+  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body.app-body > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+    position:fixed !important;
     inset:auto 0 0 !important;
-    top:auto !important; bottom:0 !important;
-  }
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(:is(.workflow-page, .dev-news-archive)) :is(.app-layout, .app-main) {
-    position:static !important;
-  }
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(:is(.workflow-page, .dev-news-archive)) .app-content {
-    position:absolute !important;
-    inset:var(--ref-mobile-topbar-height, 3.82rem) 0 72px !important;
-    min-height:0 !important; height:auto !important; max-height:none !important;
-    overflow-x:hidden !important; overflow-y:auto !important;
-    width:auto !important; max-width:none !important; min-width:0 !important;
-    margin:0 !important; box-sizing:border-box !important;
-    padding:20px 12px 18px !important;
-    overscroll-behavior-y:contain;
-    -webkit-overflow-scrolling:touch;
+    top:auto !important;
+    bottom:0 !important;
+    transform:translateZ(0) !important;
+    will-change:transform;
   }
 }
 
-/* A stationary installed-iOS canvas keeps the dock out of the scrolling page,
-   including while a slow network request leaves the loading state visible. */
 @media (max-width:767.98px) {
-  html.standalone-app.ios-standalone-bottom-chrome,
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body.app-body {
-    height:var(--mobile-physical-app-height,100dvh) !important;
-    min-height:var(--mobile-physical-app-height,100dvh) !important;
-    max-height:var(--mobile-physical-app-height,100dvh) !important;
-    overflow:hidden !important;
-    transform:none !important; filter:none !important; perspective:none !important;
-  }
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body.app-body { position:relative !important; }
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body.app-body > nav.mobile-bottom-nav.mobile-bottom-nav-root {
-    position:absolute !important; inset:auto 0 0 !important; top:auto !important; bottom:0 !important;
-    transform:none !important; translate:none !important;
-  }
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body.app-body :is(.app-layout,.app-main) { position:static !important; }
-  html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body.app-body .app-content {
-    position:absolute !important; inset:var(--ref-mobile-topbar-height,3.82rem) 0 72px !important;
-    height:auto !important; min-height:0 !important; max-height:none !important;
-    overflow-y:auto !important; overflow-x:hidden !important;
-    margin:0 !important; width:auto !important; max-width:none !important;
-    overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch;
-  }
+ html body.app-body.app-body .mobile-shell-topbar.mobile-shell-topbar {
+   border-radius:0 0 22px 22px !important;
+ }
+ html body.app-body.app-body > nav.mobile-bottom-nav.mobile-bottom-nav-root {
+   border-radius:30px 30px 0 0 !important;
+ }
+ html body.app-body .mobile-fixed-top-scroll-mask { background:transparent !important; }
+}
+
+/* A single document scroller is required by iOS, including the account page. */
+@media(max-width:767.98px) {
+ html.standalone-app.ios-standalone-bottom-chrome {
+   height:auto !important; min-height:100% !important; max-height:none !important;
+   overflow-x:hidden !important; overflow-y:auto !important;
+ }
+ html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body {
+   height:auto !important; min-height:100dvh !important; max-height:none !important;
+   overflow:visible !important;
+ }
+}
+@media(max-width:767.98px) {
+ html.standalone-app.ios-standalone-bottom-chrome body.app-body.app-body.app-body:has(.account-page) {
+   overflow:visible !important; height:auto !important; max-height:none !important;
+ }
+ html.standalone-app body.app-body.app-body.app-body:has(.account-page) .documents-content {
+   padding-bottom:calc(90px + env(safe-area-inset-bottom, 0px)) !important;
+ }
 }

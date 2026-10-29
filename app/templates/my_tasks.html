@@ -86,4 +86,19 @@
     {% endfor %}
   </div>
 </section>
+{% if current_user.role in ['painter', 'glazier', 'handyman'] %}
+<script>
+(() => {
+  if (!('serviceWorker' in navigator) || window.__CRM_WORKER_OFFLINE__) return;
+  let primed = false;
+  const prime = () => {
+    if (primed || !navigator.serviceWorker.controller || !navigator.onLine) return;
+    primed = true;
+    navigator.serviceWorker.controller.postMessage({type:'refresh-worker-tasks'});
+  };
+  navigator.serviceWorker.addEventListener('controllerchange', prime);
+  navigator.serviceWorker.ready.then(prime).catch(() => {});
+})();
+</script>
+{% endif %}
 {% endblock %}

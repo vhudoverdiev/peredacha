@@ -59,7 +59,7 @@
                 </div>
                 {% endfor %}
                 <details class="assignment-worker-instruction">
-                  <summary><i class="bi bi-chat-left-text"></i>Комментарий работнику</summary>
+                  <summary><i class="bi bi-chat-left-text" aria-hidden="true"></i><span>Комментарий работнику</span></summary>
                   <form method="post" action="{{ url_for('main.assignment_worker_instruction', task_id=task.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="issued_day" value="{{ issued_filter }}">
@@ -81,12 +81,14 @@
             </td>
             <td class="text-end assignment-issued-actions-cell">
               <div class="assignment-issued-actions">
+                {% if not task.is_done and task.status != 'done' or task.priority == 'critical' %}
                 <form method="post" action="{{ url_for('main.assignment_task_priority', task_id=task.id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="hidden" name="issued_day" value="{{ issued_filter }}">
                   <input type="hidden" name="priority" value="{{ 'normal' if task.priority == 'critical' else 'critical' }}">
                   <button class="btn btn-sm {{ 'btn-danger' if task.priority == 'critical' else 'btn-outline-danger' }}" type="submit" title="{{ 'Снять срочность' if task.priority == 'critical' else 'Пометить срочной' }}" aria-label="{{ 'Снять срочность' if task.priority == 'critical' else 'Пометить срочной' }}"><i class="bi bi-lightning-charge-fill"></i></button>
                 </form>
+                {% endif %}
                 <form method="post" action="{{ url_for('main.assignments', view='issued', issued_day=issued_filter) }}" class="assignment-date-action-form">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="hidden" name="update_date_task_id" value="{{ task.id }}">
@@ -450,7 +452,9 @@
             <td class="task-text">
               <div class="d-flex align-items-start gap-2 inline-editor-anchor assignment-task-inline-anchor">
                 <span class="assignment-task-text inline-text js-highlight-text" data-task-id="{{ task.id }}" title="{{ task.description or task.source_cell_value }}">{{ remark_text(task.description or task.source_cell_value) }}</span>
-                <button class="btn btn-sm {{ 'btn-danger' if task.priority == 'critical' else 'btn-outline-danger' }}" type="submit" name="priority" value="{{ 'normal' if task.priority == 'critical' else 'critical' }}" formaction="{{ url_for('main.assignment_task_priority', task_id=task.id, view='issue') }}" title="{{ 'Снять срочность' if task.priority == 'critical' else 'Пометить срочной' }}" aria-label="Срочная задача"><i class="bi bi-lightning-charge-fill"></i></button>
+                {% if not task.is_done and task.status != 'done' or task.priority == 'critical' %}
+                <button class="btn btn-sm {{ 'btn-danger' if task.priority == 'critical' else 'btn-outline-danger' }}" type="submit" form="assignment-priority-{{ task.id }}" formnovalidate name="priority" value="{{ 'normal' if task.priority == 'critical' else 'critical' }}" formaction="{{ url_for('main.assignment_task_priority', task_id=task.id, view='issue') }}" title="{{ 'Снять срочность' if task.priority == 'critical' else 'Пометить срочной' }}" aria-label="Срочная задача"><i class="bi bi-lightning-charge-fill"></i></button>
+                {% endif %}
                 {% if current_user.role != 'viewer' %}
                 <button class="inline-edit-btn inline-edit assignment-mobile-task-edit-btn d-none" type="button" title="Редактировать замечание" aria-label="Редактировать замечание" data-task-id="{{ task.id }}"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
                 <button class="inline-edit-btn inline-split-btn js-split-remark-open" type="button" title="Разделить замечание" data-task-id="{{ task.id }}" data-task-status="{{ task.status }}"><i class="bi bi-scissors"></i></button>
@@ -522,4 +526,9 @@
 {% endif %}
 <div data-assignment-tab-content-end hidden></div>
 </div>
+{% for task in tasks %}
+<form id="assignment-priority-{{ task.id }}" method="post" action="{{ url_for('main.assignment_task_priority', task_id=task.id, view='issue') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+{% endfor %}
 {% endblock %}
