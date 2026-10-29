@@ -60107,16 +60107,17 @@ html.crm-offline-fallback:has(.worker-offline-state) .crm-offline-banner {displa
 
 .object-card-topline {display:flex;align-items:center;gap:12px;padding-right:34px;min-width:0;}
 .object-card-topline .object-icon {flex:0 0 auto;}
-.object-handover {display:flex;flex-direction:column;gap:4px;min-width:0;color:#172033;}
-.object-handover span {font-size:.78rem;line-height:1.3;}
-.object-handover strong {font-size:.84rem;line-height:1.3;overflow-wrap:anywhere;}
+.object-handover {display:flex;flex-direction:column;gap:3px;min-width:0;color:#172033;}
+.object-handover span {font-size:.72rem;line-height:1.25;}
+.object-handover strong {font-size:.76rem;line-height:1.25;overflow-wrap:anywhere;}
 html body.app-body .worker-page [data-worker-task-card][hidden],
 html body.app-body .worker-page [data-worker-project-group][hidden] {display:none!important;}
 html body.app-body .worker-page :is(.worker-task-list,.worker-day-head).worker-offline-expired {display:none!important;}
 
-.object-handover strong {align-self:flex-start;padding:4px 8px;border-radius:8px;}
-.object-handover-passed strong {color:#000;background:linear-gradient(180deg,#f6f8f2,#eef2e8);border:1px solid rgba(135,174,84,.28);}
-.object-handover-pending strong {color:#000;background:#fff5f5;border:1px solid rgba(var(--object-not-accepted-rgb),.28);}
+.object-handover strong {align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:0;border-radius:0;}
+.object-handover strong::before {content:"";width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--handover-status-color);}
+.object-handover-passed strong {--handover-status-color:#87ae54;color:#000;background:none;border:0;}
+.object-handover-pending strong {--handover-status-color:rgb(var(--object-not-accepted-rgb));color:#000;background:none;border:0;}
 .worker-offline-state[hidden] {display:none !important;}
 
 .objects-page {--object-not-accepted-rgb:242,85,85;}
