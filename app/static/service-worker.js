@@ -1,5 +1,5 @@
 importScripts('/static/worker-offline-store.js?v=1');
-const STATIC_CACHE = 'peredacha-static-v284-green-handover-dot';
+const STATIC_CACHE = 'peredacha-static-v285-worker-offline-navigation';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -19,10 +19,10 @@ const STATIC_ASSETS = [
   '/static/mobile-only.css?v=v100-ios-document-scroll-rounded',
   '/static/desktop-only.css?v=v80-issued-priority-controls',
   '/static/worker-offline-store.js?v=1',
-  '/static/worker-offline.js?v=2',
+  '/static/worker-offline.js?v=3',
   '/static/script.js?v=v717-assignment-selection-split',
   '/static/navigation-state.js?v=4',
-  '/static/page-navigation.js?v=4',
+  '/static/page-navigation.js?v=5',
   '/static/form-csrf.js?v=1',
   '/static/remark-suggestions.js?v=5-point-numbering',
   '/static/time-entry.js?v=3',
@@ -260,7 +260,10 @@ self.addEventListener('fetch', event => {
   // File generation must bypass HTML navigation fallbacks.
   if (/\/(?:export|download)(?:\/|$)/.test(url.pathname)) return;
 
-  if (request.mode === 'navigate') {
+  // SPA transitions request HTML with fetch; they need the same saved shell as navigations.
+  const workerHtmlRequest = ['/', '/my-tasks'].includes(url.pathname) &&
+    (request.headers.get('Accept') || '').includes('text/html');
+  if (request.mode === 'navigate' || workerHtmlRequest) {
     const isHomescreenLaunch = url.searchParams.get('source') === 'homescreen';
     if (isHomescreenLaunch && self.navigator.onLine !== false && !url.searchParams.has('_crm_retry')) {
       const launchUrl = new URL(request.url);
@@ -306,6 +309,10 @@ async function navigationNetworkFirst(request) {
   }
   try {
     const response = await fetch(request,{redirect:'follow'});
+    if (eligible && response.status >= 500) {
+      const saved = await workerSnapshotResponse();
+      if (saved) return saved;
+    }
     await checkResponseAccount(response);
     return response.redirected?Response.redirect(response.url,303):response;
   } catch (error) {

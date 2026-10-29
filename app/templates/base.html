@@ -967,7 +967,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v284-green-handover-dot', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v285-worker-offline-navigation', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1030,7 +1030,7 @@
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-navigation-user="{{ current_user.id if current_user.is_authenticated else 0 }}" data-navigation-project="{{ current_project.id if current_project else 0 }}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <script src="{{ url_for('static', filename='navigation-state.js') }}?v=4"></script>
-<script src="{{ url_for('static', filename='page-navigation.js') }}?v=4"></script>
+<script src="{{ url_for('static', filename='page-navigation.js') }}?v=5"></script>
 <div class="crm-offline-banner js-crm-offline-banner" hidden>Не удается обновить. Показана сохраненная версия.</div>
 <div class="mobile-standalone-boot-screen" aria-hidden="true">
   <div class="mobile-standalone-boot-screen__orbit" aria-hidden="true">
@@ -1626,7 +1626,7 @@
   <script src="{{ url_for('static', filename='remark-suggestions.js') }}?v=5-point-numbering"></script>
   {% if not current_user.is_authenticated or current_user.role in ['painter','glazier','handyman'] %}
   <script src="{{ url_for('static', filename='worker-offline-store.js') }}?v=1"></script>
-  <script src="{{ url_for('static', filename='worker-offline.js') }}?v=2"></script>
+  <script src="{{ url_for('static', filename='worker-offline.js') }}?v=3"></script>
   {% endif %}
   <script src="{{ url_for('static', filename='script.js') }}?v=v717-assignment-selection-split"></script>
 </body>
