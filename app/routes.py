@@ -10768,7 +10768,13 @@ def update_apartment_details(apartment_id: int):
     if any(len(value) > 255 for value in (owner_name, phone, finishing_type)) or any(len(value) > 80 for value in (contract_number, construction_number)):
         return reject_details("ФИО, телефон и отделка не должны превышать 255 символов, номера по договору и строительный — 80 символов.")
 
-    if construction_number and construction_number != old_construction_number:
+    # The card can display a construction number from another imported row
+    # of the same premise. Submitting that unchanged display value is not an
+    # identity edit of the representative row (which may have an empty number).
+    displayed_construction_number = str(old_overview.get("construction_number") or "").strip()
+    construction_changed = construction_number != displayed_construction_number
+
+    if construction_changed and construction_number:
         duplicate = Apartment.query.filter(
             Apartment.project_id == project.id,
             Apartment.apartment_number == apartment.apartment_number,
@@ -10793,10 +10799,11 @@ def update_apartment_details(apartment_id: int):
 
         # Construction numbers identify individual imported rows; changing the
         # selected record must not collapse other source rows in the same card.
-        apartment.construction_number = construction_number or None
+        if construction_changed:
+            apartment.construction_number = construction_number or None
         new_mode = APARTMENT_DETAIL_MODE_LABELS[mode_value]
         history_changes = [
-            _log_apartment_field_change([apartment], "construction_number", old_construction_number, construction_number),
+            _log_apartment_field_change([apartment], "construction_number", old_construction_number, construction_number) if construction_changed else None,
             _log_apartment_field_change(target_group, "owner_name", old_owner, owner_name),
             _log_apartment_field_change(target_group, "phone", old_phone, phone),
             _log_apartment_field_change(target_group, "contract_number", old_contract_number, contract_number),
