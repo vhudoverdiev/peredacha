@@ -4666,7 +4666,12 @@ def assignments():
                 abort(404)
             if not task.responsible_id:
                 return assignment_error("Сначала назначьте исполнителя")
-            new_status = STATUS_NOT_STARTED if (task.is_done or task.status == STATUS_DONE) else STATUS_DONE
+            if task.is_done or task.status == STATUS_DONE:
+                new_status = STATUS_IN_PROGRESS
+            elif task.status == STATUS_IN_PROGRESS:
+                new_status = STATUS_NOT_STARTED
+            else:
+                new_status = STATUS_DONE
             change_task_status(task, new_status, user_id=current_user.id)
             if wants_json:
                 return jsonify(assignment_task_payload(task) | {"status_label": task.status_label(), "status_class": task.status_class(), "is_done": task.is_done, "message": f"Статус сотрудника изменён: {task.status_label()}"})
