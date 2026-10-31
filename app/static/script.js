@@ -788,7 +788,9 @@ window.addEventListener('load', () => {
 // token and the active session always belong together.
 document.addEventListener('submit', async event => {
   const form = event.target.closest?.('.js-login-fresh-csrf');
-  if (!form || form.dataset.csrfReady === '1') return;
+  if (!form) return;
+  if (form.dataset.csrfReady === '1') { delete form.dataset.csrfReady; return; }
+  if (form.dataset.csrfRefreshing === '1') {event.preventDefault();event.stopImmediatePropagation();return;}
 
   event.preventDefault();
   event.stopImmediatePropagation();
@@ -798,6 +800,7 @@ document.addEventListener('submit', async event => {
     return;
   }
 
+  form.dataset.csrfRefreshing = '1';
   if (submitter) submitter.disabled = true;
   try {
     const response = await fetch(form.dataset.csrfRefreshUrl || '/csrf-token', {
@@ -813,9 +816,11 @@ document.addEventListener('submit', async event => {
     field.value = data.csrf_token;
     form.dataset.csrfReady = '1';
     if (submitter) submitter.disabled = false;
+    delete form.dataset.csrfRefreshing;
     form.requestSubmit(submitter || undefined);
   } catch (error) {
     if (submitter) submitter.disabled = false;
+    delete form.dataset.csrfRefreshing;
     window.location.replace(form.action || '/login');
   }
 }, true);

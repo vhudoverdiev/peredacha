@@ -989,7 +989,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v288-worker-stable-cards', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v289-auth-csrf-recovery', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1650,6 +1650,6 @@
   <script src="{{ url_for('static', filename='worker-offline-store.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='worker-offline.js') }}?v=5"></script>
   {% endif %}
-  <script src="{{ url_for('static', filename='script.js') }}?v=v717-assignment-selection-split"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v718-auth-csrf-recovery"></script>
 </body>
 </html>

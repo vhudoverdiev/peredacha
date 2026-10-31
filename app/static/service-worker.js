@@ -1,5 +1,5 @@
 importScripts('/static/worker-offline-store.js?v=1');
-const STATIC_CACHE = 'peredacha-static-v288-worker-stable-cards';
+const STATIC_CACHE = 'peredacha-static-v289-auth-csrf-recovery';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -20,7 +20,7 @@ const STATIC_ASSETS = [
   '/static/desktop-only.css?v=v80-issued-priority-controls',
   '/static/worker-offline-store.js?v=1',
   '/static/worker-offline.js?v=5',
-  '/static/script.js?v=v717-assignment-selection-split',
+  '/static/script.js?v=v718-auth-csrf-recovery',
   '/static/navigation-state.js?v=4',
   '/static/page-navigation.js?v=6',
   '/static/form-csrf.js?v=1',

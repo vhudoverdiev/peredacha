@@ -295,9 +295,11 @@ def create_app(config_class=Config):
         g.http_error_reason = f"csrf_validation: {error.description}"
         # Do not leave the PWA on Flask's raw 400 page when WebKit restored a
         # stale login form.  A fresh GET creates a matching session/token pair.
-        if request.endpoint == "auth.login" or request.path == "/login":
-            session.pop("csrf_token", None)
-            return redirect(url_for("auth.login"), code=303)
+        if request.endpoint in {"auth.login", "auth.login_2fa"} or request.path in {"/login", "/login/2fa"}:
+            # Reject the stale POST, then render a fresh form. Preserve the
+            # pending 2FA challenge and never replay credentials or codes.
+            destination = "auth.login_2fa" if request.endpoint == "auth.login_2fa" else "auth.login"
+            return redirect(url_for(destination), code=303)
         # CSRF runs before the authentication guard. An old form from an
         # expired/revoked session must use the same login recovery as GETs;
         # the rejected mutation is never executed or replayed.
