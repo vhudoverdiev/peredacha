@@ -55,6 +55,8 @@ def readonly(user) -> bool:
 
 
 def can_view_task_comments(user) -> bool:
+    if not getattr(user, "is_authenticated", False):
+        return False
     from app.role_settings import definitions, effective
     if user.role != ROLE_ADMIN and user.role in definitions():
         policy=effective(user.role)

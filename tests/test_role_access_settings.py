@@ -10,6 +10,17 @@ class AccessSettingsTests(unittest.TestCase):
     tearDown=fixture.WorkerTaskUpdatesTests.tearDown
     login=fixture.WorkerTaskUpdatesTests.login
 
+    def test_anonymous_login_renders_without_role(self):
+        from flask_login import AnonymousUserMixin
+        from app.permissions import can_view_task_comments
+        self.assertFalse(can_view_task_comments(AnonymousUserMixin()))
+        from flask import g
+        g.pop("_login_user", None)
+        with self.client.session_transaction() as session:
+            session.clear()
+        response = self.client.get("/login")
+        self.assertEqual(response.status_code, 200)
+
     def configure(self,role,sections,actions):
         set_setting('role_section_permissions',json.dumps({role:{'name':'Тестовая роль','sections':sections,'actions':actions}}))
         db.session.commit()
