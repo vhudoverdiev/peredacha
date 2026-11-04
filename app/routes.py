@@ -12651,10 +12651,12 @@ def account_password():
     return render_template("account_password.html")
 
 
+@bp.route("/users/new", methods=["GET", "POST"], endpoint="user_new")
 @bp.route("/users", methods=["GET", "POST"])
 @login_required
 @role_required(ROLE_ADMIN)
 def users():
+    create_mode = request.endpoint == "main.user_new" or request.method == "POST"
     form = UserForm()
     all_projects = Project.query.order_by(Project.name.asc(), Project.id.asc()).all()
     if form.validate_on_submit():
@@ -12672,7 +12674,7 @@ def users():
             if not all_projects_access and not project_ids:
                 flash("Выберите хотя бы один объект.", "danger")
                 users = User.query.order_by(User.created_at.desc()).all()
-                return render_template("users.html", users=users, form=form, project=project, all_projects=all_projects, protected_user_ids=_protected_user_ids(users))
+                return render_template("users.html", create_mode=True, users=users, form=form, project=project, all_projects=all_projects, protected_user_ids=_protected_user_ids(users))
             user = User(
                 username=form.username.data.strip(),
                 full_name=form.full_name.data.strip() if form.full_name.data else None,
@@ -12693,6 +12695,7 @@ def users():
     protected_user_ids = _protected_user_ids(users)
     return render_template(
         "users.html",
+        create_mode=create_mode,
         users=users,
         form=form,
         project=project,

@@ -45,6 +45,8 @@
       const html=await response.text(),next=new DOMParser().parseFromString(html,'text/html'),finalUrl=new URL(response.headers.get('X-CRM-Offline-URL')||response.url||url.href,location.origin);
       if(response.headers.get('X-CRM-Worker-Offline')==='1'){window.__CRM_WORKER_OFFLINE__=true;window.__CRM_OFFLINE_FALLBACK__=true;}
       if(next.body.dataset.navigationUser!==document.body.dataset.navigationUser){location.assign(finalUrl.href);return;}
+      const destinationObjects=!!next.body.querySelector('.objects-page');
+      const destinationFloating=next.body.querySelector('.floating-error-corner')?.cloneNode(true);
       const scripts=[...next.body.querySelectorAll('script')].filter(script=>!script.src||!/(?:page-navigation|navigation-state)\.js(?:\?|$)/.test(script.src));
       const codes=await Promise.all(scripts.map(source));if(ticket!==serial)return;
       // Preserve the visible chrome, but copy server-rendered active states and labels.
@@ -75,6 +77,7 @@
       const scale=parseFloat(document.documentElement.style.getPropertyValue('--desktop-stage-scale'))||1;
       document.documentElement.style.setProperty('--desktop-shell-sidebar-visual-width',`${hasSidebar?230*scale:0}px`);
       document.documentElement.style.setProperty('--desktop-shell-topbar-visual-height',`${(hasSidebar?78.4:92)*scale}px`);
+      for(const attr of [...document.body.attributes])if(!next.body.hasAttribute(attr.name))document.body.removeAttribute(attr.name);
       document.body.className=next.body.className;
       for(const attr of [...next.body.attributes])if(attr.name!=='class')document.body.setAttribute(attr.name,attr.value);
       function updateMounted(incoming){
@@ -99,10 +102,15 @@
       }
       updateMounted(next.body);
       document.title=next.title;
-      // Restore destination shell styles rather than retaining a prior page's offsets.
-      if(next.body.querySelector('.objects-layout')) {
-        document.documentElement.style.removeProperty('--desktop-shell-topbar-visual-height');
+      // A retained settings shell must not supply offsets or omit object shortcuts.
+      document.documentElement.classList.toggle('crm-objects-destination',destinationObjects);
+      if(destinationObjects){
         document.documentElement.style.setProperty('--desktop-shell-sidebar-visual-width','0px');
+        document.documentElement.style.setProperty('--desktop-shell-topbar-visual-height',`${92*scale}px`);
+        if(destinationFloating){
+          document.querySelectorAll('.floating-error-corner').forEach(node=>node.remove());
+          document.body.append(destinationFloating);
+        }
       }
       for(const sheet of next.head.querySelectorAll('link[rel=stylesheet]')){
         const href=sheet.getAttribute('href');if(![...document.head.querySelectorAll('link[rel=stylesheet]')].some(node=>node.getAttribute('href')===href))document.head.append(document.importNode(sheet,true));

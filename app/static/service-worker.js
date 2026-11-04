@@ -1,5 +1,5 @@
 importScripts('/static/worker-offline-store.js?v=1');
-const STATIC_CACHE = 'peredacha-static-v303-users-wide-list';
+const STATIC_CACHE = 'peredacha-static-v310-users-access-divider';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -14,7 +14,7 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v766-users-wide-list',
+  '/static/style.css?v=v773-users-access-divider',
   '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v100-ios-document-scroll-rounded',
   '/static/desktop-only.css?v=v80-issued-priority-controls',
@@ -22,7 +22,7 @@ const STATIC_ASSETS = [
   '/static/worker-offline.js?v=5',
   '/static/script.js?v=v719-developer-object-tools',
   '/static/navigation-state.js?v=4',
-  '/static/page-navigation.js?v=8',
+  '/static/page-navigation.js?v=9',
   '/static/form-csrf.js?v=1',
   '/static/remark-suggestions.js?v=5-point-numbering',
   '/static/time-entry.js?v=3',

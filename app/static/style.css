@@ -60241,7 +60241,7 @@ html body.app-body .objects-floating-actions > :is(.inspections-hub-floating,.re
 html body.app-body .objects-floating-actions > :is(.inspections-hub-floating,.report-error-floating)::before,
 html body.app-body .objects-floating-actions > :is(.inspections-hub-floating,.report-error-floating)::after {content:none !important;}
 html body.app-body .objects-floating-actions .inspections-hub-floating > i {display:block;line-height:1;font-size:18px;transform:none !important;}
-html body.app-body .users-settings-page .users-create-card {width:100% !important;max-width:680px !important;}
+html body.app-body .users-settings-page .users-create-card {width:100% !important;max-width:900px !important;}
 html body.app-body .users-settings-page .users-create-form {width:100% !important;max-width:none !important;}
 html body.app-body .users-settings-page .users-table-shell {width:100% !important;max-width:100% !important;min-width:0 !important;overflow:hidden !important;}
 html body.app-body .users-settings-page .users-table-shell > .table-responsive {display:block !important;width:100% !important;max-width:100% !important;overflow-x:auto !important;overflow-y:hidden !important;}
@@ -60266,3 +60266,60 @@ html body.app-body .users-settings-page .users-layout {margin:0 !important;gap:2
 html body.app-body .users-settings-page .users-layout > .col-lg-4 {width:min(100%,900px) !important;max-width:900px !important;margin:0 auto !important;padding:0 !important;}
 html body.app-body .users-settings-page .users-layout > .col-lg-8 {margin:0 !important;padding:0 !important;}
 html body.app-body .users-settings-page .users-table {min-width:1240px !important;}
+
+@media(min-width:768px){
+ html.desktop-like-pointer.crm-objects-destination body.app-body {padding-top:0 !important;margin-top:0 !important;}
+ html.desktop-like-pointer.crm-objects-destination body.app-body > .objects-layout {margin-top:0 !important;transform:none !important;filter:none !important;contain:none !important;}
+ html.desktop-like-pointer.crm-objects-destination .objects-layout > .objects-topbar {position:fixed !important;top:0 !important;margin-top:0 !important;transform:none !important;}
+}
+/* The creation form must not shrink the shared settings heading and tabs. */
+html body.app-body:has(.users-settings-page) .documents-content > .crm-mobile-page-shell {
+ width:100% !important;min-width:0 !important;align-self:stretch !important;box-sizing:border-box !important;
+}
+
+/* Compact field groups within the full-width user creation card. */
+html body.app-body .users-settings-page .users-create-form {
+ display:grid !important;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 24px !important;
+}
+html body.app-body .users-settings-page .users-create-form > :not(.users-create-identity):not(input[type="hidden"]) {grid-column:1 / -1;}
+html body.app-body .users-settings-page .users-create-form > :is(div,fieldset) {margin-bottom:0 !important;min-width:0;}
+html body.app-body .users-settings-page .users-create-card > .card-body {padding:24px !important;}
+html body.app-body .users-settings-page .users-create-form .users-role-grid {grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:10px !important;}
+html body.app-body .users-settings-page .users-create-form .users-role-fieldset {padding-top:18px;border-top:1px solid #e8ecE3;}
+html body.app-body .users-settings-page .users-create-form .users-role-option {min-height:44px !important;padding:10px 12px !important;}
+html body.app-body .users-settings-page .users-create-form .users-create-access-dropdown {grid-column:1 !important;}
+html body.app-body .users-settings-page .users-create-form .users-submit-btn {grid-column:2 !important;justify-self:end;align-self:center;}
+@media(max-width:767.98px) {
+ html body.app-body .users-settings-page .users-create-form {grid-template-columns:minmax(0,1fr);gap:16px !important;}
+ html body.app-body .users-settings-page .users-create-form .users-role-grid {grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+ html body.app-body .users-settings-page .users-create-form .users-submit-btn {grid-column:1 !important;}
+}
+
+/* Object access selector in the user creation form. */
+html body.app-body .users-settings-page .users-create-access-dropdown .users-access-toggle {
+ display:flex !important;justify-content:flex-start !important;gap:12px !important;padding:12px 14px !important;
+ border:1px solid #dfe6d7 !important;border-radius:16px !important;min-height:68px;
+ text-align:left !important;transition:border-color .18s ease,box-shadow .18s ease !important;
+}
+html body.app-body .users-settings-page .users-create-access-dropdown .users-access-toggle:is(:hover,.show) {border-color:#92bd5a !important;box-shadow:0 4px 14px rgba(57,77,31,.08) !important;}
+html body.app-body .users-settings-page .users-create-access-dropdown .users-access-toggle::after {display:none !important;}
+html body.app-body .users-settings-page .users-create-access-icon {display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border-radius:12px;background:#eff6e6;font-size:20px;}
+html body.app-body .users-settings-page .users-create-access-copy {display:flex;flex-direction:column;gap:3px;min-width:0;}
+html body.app-body .users-settings-page .users-create-access-title {font-size:14px;font-weight:600;line-height:1.25;}
+html body.app-body .users-settings-page .users-create-access-copy [data-project-access-label] {font-size:12px;font-weight:400;line-height:1.3;opacity:.65;}
+html body.app-body .users-settings-page .users-create-access-arrow {margin-left:auto;font-size:13px;transition:transform .18s ease;}
+html body.app-body .users-settings-page .users-access-toggle.show .users-create-access-arrow {transform:rotate(180deg);}
+
+/* Shared interaction motion for every settings tab, including Create. */
+html body.app-body [data-settings-tabs] > a.btn {
+ transition:background-color .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s ease !important;
+ animation:none !important;transform:translateY(0);
+}
+html body.app-body [data-settings-tabs] > a.btn:hover {transform:translateY(-2px) !important;}
+html body.app-body [data-settings-tabs] > a.btn:active {transform:translateY(0) !important;}
+@media(prefers-reduced-motion:reduce){html body.app-body [data-settings-tabs] > a.btn {transition:none !important;}}
+
+/* Separate role selection from project access with the same section divider. */
+html body.app-body .users-settings-page .users-create-form .users-role-fieldset {
+ padding-bottom:18px;border-bottom:1px solid #e8ece3;
+}
