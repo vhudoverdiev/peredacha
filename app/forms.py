@@ -40,6 +40,7 @@ class ProjectForm(FlaskForm):
         except ValueError as exc:
             raise ValidationError(str(exc)) from exc
 
+    handover_waiting = BooleanField("Ждёт передачи")
     handover_date = DateField("Срок передачи", validators=[Optional()], format="%Y-%m-%d")
     name = StringField("Название объекта", validators=[DataRequired(), Length(max=180)])
     address = StringField("Адрес", validators=[Optional(), Length(max=255)])
@@ -74,6 +75,11 @@ class CommentForm(FlaskForm):
 
 
 class UserForm(FlaskForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from app.role_settings import choices
+        self.role.choices = choices()
+
     username = StringField("Логин", validators=[DataRequired(), Length(max=80)])
     full_name = StringField("ФИО", validators=[Optional(), Length(max=160)])
     email = StringField("Email", validators=[Optional(), Length(max=180)])
@@ -90,3 +96,14 @@ class UserPasswordForm(FlaskForm):
 
 class MappingForm(FlaskForm):
     submit = SubmitField("Сохранить соответствия")
+
+
+class PremiseCreateForm(FlaskForm):
+    premise_type = SelectField("Тип помещения", choices=[("apartment", "Квартира"), ("commercial", "Коммерция"), ("storeroom", "Кладовка"), ("parking", "Парковка")], validators=[DataRequired()])
+    apartment_number = StringField("Номер помещения", validators=[DataRequired(), Length(max=80)])
+    construction_number = StringField("Строительный номер", validators=[Optional(), Length(max=80)])
+    floor = StringField("Этаж", validators=[Optional(), Length(max=50)])
+    finishing_type = StringField("Отделка", validators=[Optional(), Length(max=160)])
+    owner_name = StringField("ФИО собственника", validators=[Optional(), Length(max=180)])
+    phone = StringField("Телефон", validators=[Optional(), Length(max=100)])
+    submit = SubmitField("Добавить помещение")

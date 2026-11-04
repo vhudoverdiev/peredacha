@@ -3,12 +3,23 @@
 {% from '_time_field.html' import time_field %}
 {% block content %}
 <section class="workflow-page records-page" data-ajax-pagination-page="records" data-records-view="{{ view }}" data-records-date="{{ selected.isoformat() }}">
-  <div class="workflow-head"><div class="workflow-heading-copy"><h1 class="page-title">Записи на осмотры</h1><p class="text-muted">{{ project.name }} · Расписание осмотров</p></div><div class="workflow-actions records-header-actions"><a class="btn btn-outline-secondary workflow-mobile-back" href="{{ url_for('main.dashboard') }}" aria-label="Назад" title="Назад"><i class="bi bi-arrow-left" aria-hidden="true"></i></a><a class="btn btn-outline-secondary records-icon-action" data-records-desktop-action aria-label="Обзвонить" title="Обзвонить" href="{{ url_for('main.records_call_list') }}"><i class="bi bi-telephone-outbound me-2"></i><span class="records-action-label">Обзвонить</span>{% if call_list_count %}<span class="nav-count-badge ms-2" aria-label="Помещений для обзвона: {{ call_list_count }}">{{ call_list_count }}</span>{% endif %}</a>{% if can_configure_inspections %}<a class="btn btn-primary records-icon-action" aria-label="Настроить время" title="Настроить время" href="{{ url_for('main.records_availability') }}"><i class="bi bi-clock me-2"></i><span class="records-action-label">Настроить время</span></a>{% endif %}{% if can_configure_inspections %}<button class="btn btn-outline-secondary records-icon-action" aria-label="Закрыть интервал" title="Закрыть интервал" type="button" data-close-interval-open data-records-day-action="close" {% if view!='day' %}hidden{% endif %}><i class="bi bi-lock me-2"></i><span class="records-action-label">Закрыть интервал</span></button>{% endif %}<a class="btn btn-outline-secondary records-icon-action" data-records-desktop-action aria-label="Скачать" title="Скачать" data-records-day-action="download" {% if view!='day' %}hidden{% endif %} href="{{ url_for('main.records_download',date=selected.isoformat()) }}"><i class="bi bi-download me-2"></i><span class="records-action-label">Скачать</span></a></div></div>
+  {% if inspection_hub %}
+  <div class="card content-card mb-3"><div class="card-body d-flex align-items-end flex-wrap gap-3">
+    <form method="get" action="{{ url_for('main.inspections') }}" class="flex-grow-1 w-100">
+      <input type="hidden" name="hub" value="1"><input type="hidden" name="view" value="{{ view }}"><input type="hidden" name="date" value="{{ selected.isoformat() }}">
+      <label class="form-label" for="inspectionHubProject">Объект</label>
+      <div class="d-flex gap-2"><select id="inspectionHubProject" name="project_id" class="form-select" data-inspection-project-switch>
+        {% for item in inspection_projects %}<option value="{{ item.id }}" {% if item.id == project.id %}selected{% endif %}>{{ item.name }}</option>{% endfor %}
+      </select><button class="btn btn-primary inspection-hub-open" type="submit">Открыть</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+  <div class="workflow-head" data-ajax-pagination-sync="records-heading"><div class="workflow-heading-copy"><h1 class="page-title">Записи на осмотры</h1><p class="text-muted">{{ project.name }} · Расписание осмотров</p></div><div class="workflow-actions records-header-actions"><a class="btn btn-outline-secondary workflow-mobile-back" href="{{ url_for('main.dashboard') }}" aria-label="Назад" title="Назад"><i class="bi bi-arrow-left" aria-hidden="true"></i></a><a class="btn btn-outline-secondary records-icon-action" data-records-desktop-action aria-label="Обзвонить" title="Обзвонить" href="{{ url_for('main.records_call_list') }}"><i class="bi bi-telephone-outbound me-2"></i><span class="records-action-label">Обзвонить</span>{% if call_list_count %}<span class="nav-count-badge ms-2" aria-label="Помещений для обзвона: {{ call_list_count }}">{{ call_list_count }}</span>{% endif %}</a>{% if can_configure_inspections %}<a class="btn btn-primary records-icon-action" aria-label="Настроить время" title="Настроить время" href="{{ url_for('main.records_availability') }}"><i class="bi bi-clock me-2"></i><span class="records-action-label">Настроить время</span></a>{% endif %}{% if can_configure_inspections %}<button class="btn btn-outline-secondary records-icon-action" aria-label="Закрыть интервал" title="Закрыть интервал" type="button" data-close-interval-open data-records-day-action="close" {% if view!='day' %}hidden{% endif %}><i class="bi bi-lock me-2"></i><span class="records-action-label">Закрыть интервал</span></button>{% endif %}<a class="btn btn-outline-secondary records-icon-action" data-records-desktop-action aria-label="Скачать" title="Скачать" data-records-day-action="download" {% if view!='day' %}hidden{% endif %} href="{{ url_for('main.records_download',date=selected.isoformat()) }}"><i class="bi bi-download me-2"></i><span class="records-action-label">Скачать</span></a></div></div>
   <div class="card content-card workflow-calendar-toolbar">
     <nav data-ajax-pagination-tabs class="workflow-view-switch" aria-label="Вид расписания">{% for key,label in [('day','День'),('week','Неделя'),('month','Месяц')] %}<a class="{{ 'is-active' if view==key else '' }}" href="{{ url_for('main.records',view=key,date=selected.isoformat()) }}">{{ label }}</a>{% endfor %}</nav>
     <div class="records-period-controls" data-ajax-pagination-head>
     <div class="workflow-actions records-period-navigation"><a class="btn btn-outline-secondary" aria-label="Предыдущий период" href="{{ url_for('main.records',view=view,date=previous.isoformat()) }}"><i class="bi bi-chevron-left"></i></a><a class="btn btn-outline-secondary {{ 'workflow-today-active' if view=='day' and selected==today else '' }}" href="{{ url_for('main.records') }}" {% if view=='day' and selected==today %}aria-current="date"{% endif %}>Сегодня</a><a class="btn btn-outline-secondary" aria-label="Следующий период" href="{{ url_for('main.records',view=view,date=following.isoformat()) }}"><i class="bi bi-chevron-right"></i></a></div>
-    {% if view=='day' %}<form method="get" class="crm-filter-form workflow-date-filter" data-ajax-pagination-form><input type="hidden" name="view" value="{{ view }}"><label for="recordDate">Дата</label><input id="recordDate" class="form-control" type="date" name="date" value="{{ selected.isoformat() }}"><button class="btn btn-outline-secondary" type="submit">Показать</button></form>{% endif %}
+    {% if view=='day' %}<form method="get" class="crm-filter-form workflow-date-filter" data-ajax-pagination-form><input type="hidden" name="view" value="{{ view }}">{% if inspection_hub %}<input type="hidden" name="hub" value="1"><input type="hidden" name="project_id" value="{{ project.id }}">{% endif %}<label for="recordDate">Дата</label><input id="recordDate" class="form-control" type="date" name="date" value="{{ selected.isoformat() }}"><button class="btn btn-outline-secondary" type="submit">Показать</button></form>{% endif %}
     </div>
   </div>
   <div class="workflow-calendar-content" data-ajax-pagination-content>
@@ -58,6 +69,19 @@
 <script>
 (() => {
   const root = document.querySelector('[data-ajax-pagination-page="records"]');
+  const projectSwitch = root.querySelector('[data-inspection-project-switch]');
+  const switchProject = event => {
+    event?.preventDefault(); event?.stopImmediatePropagation();
+    const activeSwitch=root.querySelector('[data-inspection-project-switch]');
+    const form = activeSwitch.form;
+    const url = new URL(form.action, location.origin);
+    const params = new URLSearchParams(new FormData(form));
+    params.set("view",root.dataset.recordsView);params.set("date",root.dataset.recordsDate);params.set("project_id",activeSwitch.value);
+    url.search = params.toString();
+    void window.crmUpdatePaginationPage(url, {root, scroll:false, useCache:false, replaceContent:true, fallbackToNavigation:false});
+  };
+  root.addEventListener('change',event=>{if(event.target.matches('[data-inspection-project-switch]'))switchProject(event);});
+  projectSwitch?.form.addEventListener('submit', switchProject, true);
   const loadCalendar = url => window.crmUpdatePaginationPage(url, {
     root, scroll: false, useCache: false, replaceContent: true, fallbackToNavigation: false,
   });
@@ -70,7 +94,7 @@
     const href = link?.href || (card && !event.target.closest('button, form, input, select, textarea') ? card.dataset.dayUrl : null);
     if (!href) return;
     const url = new URL(href, window.location.href);
-    if (url.origin !== window.location.origin || url.pathname !== '{{ url_for("main.records") }}') return;
+    if (url.origin !== window.location.origin || url.pathname !== new URL({{ url_for('main.records')|tojson }}, location.origin).pathname) return;
     event.preventDefault();
     void loadCalendar(url);
   });
@@ -148,6 +172,12 @@
     root.querySelectorAll('[data-records-day-action]').forEach(action => { action.hidden = root.dataset.recordsView !== 'day'; });
     const download = root.querySelector('[data-records-day-action=download]');
     if (download) { const url = new URL(download.href); url.searchParams.set('date', root.dataset.recordsDate); download.href = url.href; }
+    const currentSwitch=root.querySelector('[data-inspection-project-switch]');
+    if(currentSwitch){const form=currentSwitch.form;form.querySelector('[name=view]').value=root.dataset.recordsView;form.querySelector('[name=date]').value=root.dataset.recordsDate;}
+    if (currentSwitch && modal) {
+      const form = modal.querySelector('form');
+      if(form){const url=new URL(form.action);url.searchParams.set('project_id',currentSwitch.value);url.searchParams.set('hub','1');form.action=url.href;}
+    }
     const day = modal?.querySelector('[name=day]');
     if (day) day.value = root.dataset.recordsDate;
   });

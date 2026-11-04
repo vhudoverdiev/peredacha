@@ -1,15 +1,17 @@
 {% extends "base.html" %}
+{% block layout_mode %}settings{% endblock %}
 {% block title %}Пользователи{% endblock %}
 {% block content %}
-<div class="users-page">
-  <div class="page-head users-page-head">
+<div class="settings-page-shell users-page users-settings-page">
+  <div class="page-head settings-page-head">
     <div>
-      <h1 class="page-title">Пользователи</h1>
+      <h1 class="page-title">Настройки</h1>
     </div>
   </div>
+  {% include '_settings_tabs.html' %}
   <div class="row g-3 users-layout">
     <div class="col-lg-4">
-      <div class="card content-card users-create-card">
+      <div class="card content-card settings-card users-create-card">
         <div class="card-body">
           <h2 class="section-title">Создать пользователя</h2>
           <form method="post" class="users-create-form">

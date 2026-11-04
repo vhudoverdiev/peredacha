@@ -1,0 +1,91 @@
+import json
+import unittest
+from app import db
+from app.models import User
+from app.services.task_service import set_setting
+from tests import test_worker_task_updates as fixture
+
+class AccessSettingsTests(unittest.TestCase):
+    setUp=fixture.WorkerTaskUpdatesTests.setUp
+    tearDown=fixture.WorkerTaskUpdatesTests.tearDown
+    login=fixture.WorkerTaskUpdatesTests.login
+
+    def configure(self,role,sections,actions):
+        set_setting('role_section_permissions',json.dumps({role:{'name':'Тестовая роль','sections':sections,'actions':actions}}))
+        db.session.commit()
+
+    def test_developer_page_prefills_existing_permissions(self):
+        self.manager.role='admin';db.session.commit();self.login(self.manager)
+        response=self.client.get('/settings/roles?role=office')
+        self.assertEqual(response.status_code,200)
+        import re
+        html=response.get_data(as_text=True)
+        self.assertIn('Настройка доступа',html)
+        def checked(name,value):
+            tag=re.search(r'<input[^>]*name="'+name+r'"[^>]*value="'+value+r'"[^>]*>',html)
+            return bool(tag and 'checked' in tag.group(0))
+        self.assertTrue(checked('sections','assignments'))
+        self.assertTrue(checked('actions','object_create'))
+        self.assertFalse(checked('actions','object_delete'))
+        self.assertFalse(checked('sections','glass'))
+
+    def test_manager_cannot_manage_access(self):
+        self.login(self.manager)
+        self.assertEqual(self.client.get('/settings/roles').status_code,403)
+        self.assertEqual(self.client.post('/settings/roles',data={'role':'new','name':'X'}).status_code,403)
+
+    def test_disable_create_and_direct_url(self):
+        self.configure('manager',['objects','apartments'],[])
+        self.login(self.manager)
+        self.assertEqual(self.client.get('/objects').status_code,200)
+        self.assertEqual(self.client.get('/objects/new').status_code,403)
+        self.assertEqual(self.client.post('/objects/new',data={'name':'Forbidden'}).status_code,403)
+        self.assertEqual(self.client.get(f'/objects/{self.project.id}/edit').status_code,403)
+        self.assertEqual(self.client.get('/assignments').status_code,403)
+
+    def test_custom_role_section_and_actions(self):
+        role='custom_permission_test'
+        self.configure(role,['objects','apartments'],['premise_create'])
+        self.manager.role=role;db.session.commit();self.login(self.manager)
+        self.assertEqual(self.client.get(f'/objects/{self.project.id}/premises/new').status_code,200)
+        self.assertEqual(self.client.get('/assignments').status_code,403)
+        self.assertEqual(self.client.get('/settings/roles').status_code,403)
+        self.assertEqual(self.client.get('/users').status_code,403)
+        self.assertEqual(self.client.get('/settings').status_code,403)
+
+    def test_new_role_save_and_selection(self):
+        self.manager.role='admin';db.session.commit();self.login(self.manager)
+        response=self.client.post('/settings/roles',data={'role':'new','name':'Контроль осмотров','sections':['records'],'actions':['record_book','unknown']})
+        self.assertEqual(response.status_code,302)
+        response=self.client.get(response.location)
+        self.assertEqual(response.status_code,200)
+        self.assertIn('Контроль осмотров',response.get_data(as_text=True))
+        html=self.client.get('/users').get_data(as_text=True)
+        self.assertIn('Контроль осмотров',html)
+
+    def test_grant_create_but_keep_delete_and_other_project_protected(self):
+        self.configure('manager',['objects'],['object_create'])
+        self.login(self.manager)
+        self.assertEqual(self.client.get('/objects/new').status_code,200)
+        self.assertEqual(self.client.post(f'/objects/{self.project.id}/delete').status_code,403)
+        self.assertEqual(self.client.get('/users').status_code,403)
+        self.assertEqual(self.client.post('/objects/order',json={'ids':[self.project.id]}).status_code,403)
+
+    def test_view_assignments_without_permission_to_change(self):
+        self.configure('manager',['objects','assignments'],[])
+        self.login(self.manager)
+        self.assertEqual(self.client.get('/assignments?view=issued').status_code,200)
+        self.assertEqual(self.client.post('/assignments?view=issued',data={'toggle_employee_status_task_id':self.task.id}).status_code,403)
+        db.session.refresh(self.task)
+        self.assertEqual(self.task.status,'not_started')
+
+    def test_developer_badge_includes_other_objects_before_opening_inbox(self):
+        from app.models import Project,SiteErrorReport
+        self.manager.role='admin';db.session.commit();self.login(self.manager)
+        other=Project(name='Другой объект');db.session.add(other);db.session.flush()
+        db.session.add(SiteErrorReport(project_id=other.id,message='Новое сообщение',status='new'))
+        db.session.commit()
+        html=self.client.get('/assignments?view=issued').get_data(as_text=True)
+        self.assertIn('Новые уведомления: 1',html)
+
+if __name__=='__main__':unittest.main()

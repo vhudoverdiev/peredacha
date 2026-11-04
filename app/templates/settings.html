@@ -9,6 +9,7 @@
     </div>
   </div>
 
+  {% include '_settings_tabs.html' %}
   <form method="post" class="settings-grid js-settings-autosave">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 

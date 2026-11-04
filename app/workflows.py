@@ -5,7 +5,7 @@ from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 
-from flask import abort, current_app, flash, g, jsonify, redirect, render_template, request, send_file, url_for
+from flask import abort, current_app, flash, g, jsonify, redirect, render_template, request, send_file, session, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 from app import db
 from app.models import Appeal, AppealAttachment, AppealComment, Apartment, InspectionBooking, InspectionCallNote, InspectionSlot, Project, ROLE_ADMIN, ROLE_MANAGER, ROLE_OFFICE, ROLE_OFFICE_MANAGER, ROLE_SUPERVISOR, User
 from app.permissions import can_use_project_workflows, can_create_appeal
+from app.role_settings import allowed as access_allowed
 from app.routes import bp, selected_project, _project_apartment_options, _is_visible_apartment_row, _active_users_for_project, _group_project_apartments, _build_apartment_overview, _apartment_sort_value, PO_STATUS_THROWN, format_ru_datetime
 from app.security import hit_rate_limit, validate_upload
 from app.services.inspection_schedule import has_prior_inspection, inspection_contact_lines, inspection_phone_lines
@@ -28,6 +29,19 @@ APPEAL_ATTACHMENT_TYPES = {'pdf': 'application/pdf', 'jpg': 'image/jpeg', 'jpeg'
 def project_context():
     if not can_use_project_workflows(current_user):
         abort(403)
+    if request.args.get('hub') == '1' or request.endpoint == 'main.inspections':
+        from app.routes import _is_mobile_phone_request
+        if _is_mobile_phone_request():
+            abort(404)
+        project_id = request.args.get('project_id', type=int)
+        project = db.session.get(Project, project_id) if project_id else selected_project()
+        if project is None:
+            project = next((item for item in Project.query.order_by(Project.name).all() if current_user.can_access_project(item)), None)
+        if project and not current_user.can_access_project(project):
+            abort(403)
+        if project:
+            session['current_project_id'] = project.id
+        return project
     return selected_project()
 
 
@@ -355,7 +369,7 @@ def records_call_list():
 @login_required
 def records_call_list_visibility(apartment_id):
     project = project_context()
-    if current_user.role == 'viewer':
+    if current_user.role == 'viewer' and not getattr(g, 'role_access_granted', False):
         abort(403)
     apartment = project_item(Apartment, apartment_id, project)
     hidden = request.form.get('hidden')
@@ -413,6 +427,15 @@ def records_call_list_comment_delete(apartment_id, note_id):
     return redirect(url_for('main.records_call_list') + f'#call-list-{apartment_id}')
 
 
+@bp.url_defaults
+def inspection_hub_urls(endpoint, values):
+    from app.routes import PROJECT_RECORD_ENDPOINTS
+    if request.endpoint and (request.endpoint == 'main.inspections' or request.args.get('hub') == '1') and endpoint in PROJECT_RECORD_ENDPOINTS:
+        values.setdefault('hub', '1')
+        values.setdefault('project_id', request.args.get('project_id', type=int) or session.get('current_project_id'))
+
+
+@bp.route('/inspections', endpoint='inspections')
 @bp.route('/records')
 @login_required
 def records():
@@ -441,21 +464,21 @@ def records():
         unavailable = not booked.get(slot.id) and any(begins < finish and begins + timedelta(minutes=slot.duration_minutes) > start_time for start_time, finish in occupied_intervals)
         by_day[slot.day]['slots'].append({'slot': slot, 'booking': booked.get(slot.id), 'unavailable': unavailable})
     cancelled = InspectionBooking.query.join(InspectionSlot, InspectionBooking.slot_id == InspectionSlot.id).filter(InspectionSlot.project_id == project.id, InspectionSlot.day.between(start, end), InspectionBooking.status == 'cancelled').order_by(InspectionSlot.day, InspectionSlot.start_time).all()
-    return render_template('records.html', project=project, today=today, selected=value, view=view, start=start, end=end,
+    return render_template('records.html', inspection_hub=request.endpoint == 'main.inspections' or request.args.get('hub') == '1', inspection_projects=[item for item in Project.query.order_by(Project.name).all() if current_user.can_access_project(item)], project=project, today=today, selected=value, view=view, start=start, end=end,
                            previous=previous, following=following, days=days, cancelled=cancelled, statuses=BOOKING_STATUSES,
                            leading=0, availability=request.args.get('availability')=='1', availability_end=(value + timedelta(days=62)).isoformat(),
                            has_prior_inspection=has_prior_inspection, inspection_contact_lines=inspection_contact_lines,
                            inspection_phone_lines=inspection_phone_lines,
                            can_manage_closed_interval=current_user.role in {ROLE_ADMIN, ROLE_OFFICE_MANAGER},
                            can_view_closed_slots=can_view_closed_slots,
-                           can_configure_inspections=current_user.role != ROLE_SUPERVISOR,
+                           can_configure_inspections=access_allowed(current_user, 'main.records_availability'),
                            call_list_count=call_list_count)
 
 
 @bp.route('/records/availability', methods=['GET'])
 @login_required
 def records_availability_page():
-    if current_user.role == ROLE_SUPERVISOR:
+    if current_user.role == ROLE_SUPERVISOR and not getattr(g, 'role_access_granted', False):
         abort(403)
     project = project_context()
     if project is None:
@@ -469,7 +492,7 @@ def records_availability_page():
 @bp.route('/records/availability', methods=['POST'])
 @login_required
 def records_availability():
-    if current_user.role == ROLE_SUPERVISOR:
+    if current_user.role == ROLE_SUPERVISOR and not getattr(g, 'role_access_granted', False):
         abort(403)
     project = project_context()
     if project is None:
@@ -530,7 +553,7 @@ def records_availability():
 @bp.route('/records/slots/<int:slot_id>/toggle', methods=['POST'])
 @login_required
 def record_slot_toggle(slot_id):
-    if current_user.role == ROLE_SUPERVISOR:
+    if current_user.role == ROLE_SUPERVISOR and not getattr(g, 'role_access_granted', False):
         abort(403)
     project = project_context()
     slot = project_item(InspectionSlot,slot_id,project)
@@ -568,7 +591,7 @@ def record_slot_toggle(slot_id):
 @bp.route('/records/slots/close-interval', methods=['POST'])
 @login_required
 def record_slots_close_interval():
-    if current_user.role == ROLE_SUPERVISOR:
+    if current_user.role == ROLE_SUPERVISOR and not getattr(g, 'role_access_granted', False):
         abort(403)
     project = project_context()
     if project is None:

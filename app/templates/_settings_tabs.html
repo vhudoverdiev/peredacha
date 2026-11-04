@@ -1,0 +1,5 @@
+<nav class="d-flex flex-wrap gap-2 mb-4" data-settings-tabs aria-label="Разделы настроек">
+{% for endpoint,label in [('main.site_settings','Настройки сайта'),('main.role_settings','Настройка доступа'),('main.users','Пользователи')] %}
+<a class="btn {{ 'btn-primary' if request.endpoint==endpoint else 'btn-outline-secondary' }}" href="{{ url_for(endpoint) }}">{{ label }}</a>
+{% endfor %}
+</nav>

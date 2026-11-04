@@ -60126,3 +60126,143 @@ html body.app-body .worker-page :is(.worker-task-list,.worker-day-head).worker-o
 html body.app-body .worker-page .worker-task-card-minimal:hover,
 html body.app-body .worker-page .worker-task-card-minimal:focus-within {transform:none !important;}
 html body.app-body .worker-page [data-offline-task-state][hidden] {display:none !important;}
+
+html body.app-body .premise-create-page {
+  width:100%;
+  max-width:760px;
+  margin-left:0 !important;
+  margin-right:auto !important;
+  text-align:left;
+}
+html body.app-body .premise-create-page .premise-create-back,
+html body.app-body .premise-create-page .premise-create-back:hover,
+html body.app-body .premise-create-page .premise-create-back:focus {
+  color:#000 !important;
+}
+
+html body.app-body .inspections-hub-floating {position:fixed;right:calc(1.25rem + 42px + .75rem);bottom:1.25rem;z-index:1052;color:#000 !important;}
+@media (hover:none) and (pointer:coarse) {.inspections-hub-floating {display:none !important;}}
+
+html body.app-body .inspections-hub-floating {
+  width:42px !important;height:42px !important;min-width:42px !important;
+  padding:0 !important;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:14px !important;
+}
+.records-page .inspection-hub-open {flex:0 0 auto;white-space:nowrap;}
+
+html body.app-body .objects-floating-actions {display:flex !important;align-items:center !important;gap:12px;}
+html body.app-body .objects-floating-actions .inspections-hub-floating {position:static !important;right:auto !important;bottom:auto !important;margin:0 !important;}
+html body.app-body .objects-floating-actions .report-error-floating {width:42px !important;height:42px !important;min-width:42px !important;min-height:42px !important;margin:0 !important;}
+
+html body.app-body .objects-floating-actions .inspections-hub-floating {transition:transform .16s ease,box-shadow .16s ease !important;}
+html body.app-body .objects-floating-actions .inspections-hub-floating:hover {transform:translateY(-2px);box-shadow:0 18px 42px rgba(15,23,42,.3) !important;}
+.objects-action-tooltip {z-index:2147483647 !important;--bs-tooltip-color:#fff;--bs-tooltip-bg:#000;}
+.objects-action-tooltip .tooltip-inner {color:#fff !important;background:#000 !important;box-shadow:0 4px 18px rgba(0,0,0,.14);}
+
+html body.app-body .objects-floating-actions > :is(.inspections-hub-floating,.report-error-floating) {
+  position:relative !important;inset:auto !important;box-sizing:border-box !important;
+  display:inline-flex !important;align-items:center !important;justify-content:center !important;
+  flex:0 0 42px !important;width:42px !important;height:42px !important;
+  min-width:42px !important;max-width:42px !important;min-height:42px !important;max-height:42px !important;
+  padding:0 !important;margin:0 !important;border:1px solid transparent !important;
+  border-radius:14px !important;vertical-align:middle !important;line-height:1 !important;
+  transform:none !important;animation:none !important;
+  transition:transform .16s ease,box-shadow .16s ease !important;
+}
+html body.app-body .objects-floating-actions > :is(.inspections-hub-floating,.report-error-floating):hover {transform:translateY(-2px) !important;}
+
+/* Access cards keep a natural height instead of stretching short sections. */
+html body.app-body .access-settings-page .access-settings-grid {
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  align-items:start !important;
+  gap:18px !important;
+}
+html body.app-body .access-settings-page .settings-card {
+  align-self:start !important;height:auto !important;min-height:0 !important;
+}
+html body.app-body .access-settings-page .settings-card > .card-body {
+  display:block !important;height:auto !important;min-height:0 !important;padding:20px !important;
+}
+html body.app-body .access-settings-page .settings-card-head {
+  display:flex !important;align-items:center !important;justify-content:flex-start !important;
+  gap:12px !important;margin:0 0 16px !important;min-height:40px !important;
+}
+html body.app-body .access-settings-page .settings-switch-row {
+  display:flex !important;align-items:center !important;justify-content:space-between !important;
+  flex:none !important;gap:16px !important;min-height:56px !important;height:auto !important;
+  padding:12px 14px !important;margin:10px 0 0 !important;
+}
+html body.app-body .access-settings-page .settings-switch-row > span {min-width:0;line-height:1.4;}
+html body.app-body .access-settings-page .settings-switch {flex:0 0 auto !important;margin:0 !important;}
+@media (max-width:767.98px) {
+ html body.app-body .access-settings-page .access-settings-grid {grid-template-columns:minmax(0,1fr) !important;}
+}
+
+/* Independent columns fill the space below short access cards. */
+html body.app-body .access-settings-page .access-settings-cards {
+ display:block !important;columns:2;column-gap:18px;min-width:0;
+}
+html body.app-body .access-settings-page .access-settings-cards > .settings-card {
+ display:inline-block !important;width:100% !important;break-inside:avoid;
+ margin:0 0 18px !important;vertical-align:top;box-sizing:border-box;
+}
+html body.app-body .users-settings-page .users-layout {display:flex !important;flex-direction:column;}
+html body.app-body .users-settings-page .users-layout > :is(.col-lg-4,.col-lg-8) {width:100% !important;max-width:100% !important;flex:none !important;}
+html body.app-body .users-settings-page .users-create-card .card-body {display:block !important;}
+html body.app-body .users-settings-page .table-responsive {max-width:100%;overflow-x:auto;}
+@media(max-width:767.98px){html body.app-body .access-settings-page .access-settings-cards{columns:1;}}
+
+/* Avoid composited animations flashing above CSS columns during scroll. */
+html body.app-body .access-settings-page,
+html body.app-body .access-settings-page :is(.settings-card,.card-body,.settings-card-head) {
+ animation:none !important;transform:none !important;opacity:1 !important;
+ content-visibility:visible !important;will-change:auto !important;
+}
+html body.app-body .access-settings-page .settings-card {backdrop-filter:none !important;-webkit-backdrop-filter:none !important;isolation:auto !important;}
+html body.app-body .users-settings-page .users-create-form {max-width:640px !important;}
+html body.app-body .users-settings-page .users-role-grid {grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:8px !important;}
+html body.app-body .users-settings-page .users-role-option {min-height:42px !important;padding:10px 12px !important;}
+html body.app-body .users-settings-page .users-table {table-layout:auto !important;min-width:1050px !important;}
+html body.app-body .users-settings-page .users-table :is(th,td) {padding:14px 18px !important;}
+html body.app-body .users-settings-page .users-captcha-cell {min-width:130px !important;white-space:nowrap;}
+html body.app-body .users-settings-page .users-created-cell {min-width:145px !important;white-space:nowrap;}
+html body.app-body .users-settings-page .users-captcha-toggle {display:inline-flex !important;gap:8px !important;align-items:center;}
+html body.app-body .users-settings-page .users-col-captcha {width:130px !important;}
+html body.app-body .users-settings-page .users-col-created {width:145px !important;}
+
+/* Both shortcuts use the question button's paint and box metrics. */
+html body.app-body .objects-floating-actions > :is(.inspections-hub-floating,.report-error-floating) {
+ top:auto !important;bottom:auto !important;left:auto !important;right:auto !important;
+ background:linear-gradient(180deg,var(--peredacha-action-green),var(--peredacha-action-green-hover)) !important;
+ box-shadow:0 10px 22px var(--peredacha-action-green-shadow) !important;
+ color:#fff !important;-webkit-text-fill-color:#fff !important;
+ align-self:center !important;filter:none !important;scale:1 !important;
+}
+html body.app-body .objects-floating-actions > :is(.inspections-hub-floating,.report-error-floating)::before,
+html body.app-body .objects-floating-actions > :is(.inspections-hub-floating,.report-error-floating)::after {content:none !important;}
+html body.app-body .objects-floating-actions .inspections-hub-floating > i {display:block;line-height:1;font-size:18px;transform:none !important;}
+html body.app-body .users-settings-page .users-create-card {width:100% !important;max-width:680px !important;}
+html body.app-body .users-settings-page .users-create-form {width:100% !important;max-width:none !important;}
+html body.app-body .users-settings-page .users-table-shell {width:100% !important;max-width:100% !important;min-width:0 !important;overflow:hidden !important;}
+html body.app-body .users-settings-page .users-table-shell > .table-responsive {display:block !important;width:100% !important;max-width:100% !important;overflow-x:auto !important;overflow-y:hidden !important;}
+html body.app-body .users-settings-page .users-table {width:100% !important;min-width:1240px !important;table-layout:fixed !important;}
+html body.app-body .users-settings-page .users-col-login {width:135px !important;}
+html body.app-body .users-settings-page .users-col-name {width:260px !important;}
+html body.app-body .users-settings-page .users-col-role {width:210px !important;}
+html body.app-body .users-settings-page .users-col-project {width:190px !important;}
+html body.app-body .users-settings-page .users-col-actions {width:130px !important;}
+html body.app-body .users-settings-page .users-name-autosave,
+html body.app-body .users-settings-page .users-name-input-wrap {width:100% !important;max-width:none !important;min-width:0 !important;}
+html body.app-body .users-settings-page .users-name-input {width:100% !important;min-width:0 !important;text-overflow:clip !important;}
+html body.app-body .users-settings-page .users-table .users-col-name {width:300px !important;}
+html body.app-body .users-settings-page .users-table tbody td:nth-child(2) {width:300px !important;min-width:300px !important;}
+html body.app-body .users-settings-page .users-table tbody td:nth-child(2) .users-name-autosave,
+html body.app-body .users-settings-page .users-table tbody td:nth-child(2) .users-name-input-wrap {display:flex !important;width:100% !important;max-width:none !important;}
+html body.app-body .users-settings-page .users-table tbody td:nth-child(2) .users-name-input {flex:1 1 auto !important;width:100% !important;max-width:none !important;}
+/* Give the complete user list room for name, creation date and actions. */
+html body.app-body .users-settings-page {width:min(100%,1440px) !important;max-width:1440px !important;}
+html body.app-body .users-settings-page > :is(.settings-page-head,[data-settings-tabs]) {width:min(100%,900px) !important;margin-left:auto !important;margin-right:auto !important;}
+html body.app-body .users-settings-page .users-layout {margin:0 !important;gap:28px !important;}
+html body.app-body .users-settings-page .users-layout > .col-lg-4 {width:min(100%,900px) !important;max-width:900px !important;margin:0 auto !important;padding:0 !important;}
+html body.app-body .users-settings-page .users-layout > .col-lg-8 {margin:0 !important;padding:0 !important;}
+html body.app-body .users-settings-page .users-table {min-width:1240px !important;}

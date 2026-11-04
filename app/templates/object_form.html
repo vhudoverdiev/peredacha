@@ -22,7 +22,8 @@
       </div>
       <div class="mb-3">
         {{ form.handover_date.label(class="form-label") }}
-        {{ form.handover_date(class="form-control", type="date") }}
+        {{ form.handover_date(class="form-control", type="date", disabled=form.handover_waiting.data) }}
+        <label class="form-check mt-2">{{ form.handover_waiting(class="form-check-input") }}<span class="form-check-label">Ждёт передачи</span></label>
         {% for error in form.handover_date.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
       </div>
       <div class="mb-3">
@@ -113,4 +114,11 @@
     </form>
   </div>
 </section>
+<script>
+(() => {
+  const waiting = document.getElementById('handover_waiting');
+  const date = document.getElementById('handover_date');
+  if (waiting && date) waiting.addEventListener('change', () => {date.disabled = waiting.checked;});
+})();
+</script>
 {% endblock %}

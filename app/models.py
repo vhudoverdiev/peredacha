@@ -212,6 +212,7 @@ class Project(TimestampMixin, db.Model):
     building = db.Column(db.String(120), nullable=True)
     section = db.Column(db.String(120), nullable=True)
     handover_date = db.Column(db.Date, nullable=True)
+    handover_waiting = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
     address = db.Column(db.String(255), nullable=True)
     technical_customer = db.Column(db.String(255), nullable=True)
     developer_name = db.Column(db.String(255), nullable=True)
@@ -235,6 +236,8 @@ class Project(TimestampMixin, db.Model):
     )
 
     def handover_countdown(self, today=None):
+        if self.handover_waiting:
+            return {"days": None, "label": "Ждёт", "passed": False}
         if not self.handover_date:
             return None
         today = today or to_moscow_datetime(utc_now()).date()

@@ -34,6 +34,9 @@ def can_manage_mapping(user) -> bool:
 
 
 def can_change_task(user, task) -> bool:
+    from app.role_settings import definitions, allowed
+    if user.role in definitions():
+        return allowed(user, 'main.update_task', mutation=True)
     if user.role == ROLE_ADMIN or user.role in OFFICE_MANAGER_ROLES:
         return True
     if user.role in WORKER_ROLES and task.responsible_id == user.id:
@@ -42,6 +45,8 @@ def can_change_task(user, task) -> bool:
 
 
 def can_export(user) -> bool:
+    if getattr(g, "role_access_granted", False):
+        return True
     return user.role == ROLE_ADMIN or user.role in OFFICE_MANAGER_ROLES
 
 
@@ -50,12 +55,18 @@ def readonly(user) -> bool:
 
 
 def can_view_task_comments(user) -> bool:
+    from app.role_settings import definitions, effective
+    if user.role != ROLE_ADMIN and user.role in definitions():
+        policy=effective(user.role)
+        return 'remarks' in policy['sections'] and 'remark_view_comments' in policy['actions']
     return getattr(user, "role", None) in {ROLE_ADMIN, ROLE_MANAGER}
 
 
 def can_use_project_workflows(user) -> bool:
-    return getattr(user, 'role', None) in {ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_OFFICE, ROLE_OFFICE_MANAGER, ROLE_VIEWER}
+    return getattr(user, 'role', None) in {ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_OFFICE, ROLE_OFFICE_MANAGER, ROLE_VIEWER} or getattr(user, 'role', '').startswith('custom_')
 
 
 def can_create_appeal(user) -> bool:
+    if getattr(g, "role_access_granted", False):
+        return True
     return getattr(user, 'role', None) in {ROLE_ADMIN, ROLE_OFFICE, ROLE_OFFICE_MANAGER}

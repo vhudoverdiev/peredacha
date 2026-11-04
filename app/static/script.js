@@ -9560,3 +9560,45 @@ document.addEventListener('submit', async event => {
 }, true);
 
 })();
+
+// Only developer pages render the reorder capability; the server checks the role too.
+document.addEventListener('DOMContentLoaded', () => {
+  const grid = document.querySelector('[data-object-reorder]');
+  if (!grid) return;
+  let dragged, original, saving = false, suppressUntil = 0;
+  grid.addEventListener('click', event => {
+    if (Date.now() < suppressUntil) { event.preventDefault(); event.stopImmediatePropagation(); }
+  }, true);
+  grid.addEventListener('dragstart', event => {
+    if (saving || event.target.closest('a,button,input')) { event.preventDefault(); return; }
+    dragged = event.target.closest('.object-card');
+    if (!dragged) return;
+    original = [...grid.children];
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', dragged.dataset.projectId);
+    dragged.style.opacity = '.6';
+  });
+  grid.addEventListener('dragover', event => {
+    if (!dragged) return;
+    event.preventDefault();
+    const target = event.target.closest('.object-card');
+    if (!target || target === dragged) return;
+    const cards = [...grid.children];
+    grid.insertBefore(dragged, cards.indexOf(dragged) < cards.indexOf(target) ? target.nextSibling : target);
+  });
+  grid.addEventListener('drop', async event => {
+    if (!dragged) return;
+    event.preventDefault(); saving = true; suppressUntil = Date.now() + 600;
+    const before = original;
+    try {
+      const token = grid.dataset.csrfToken;
+      const response = await fetch('/objects/order', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json','X-CSRFToken':token || '',Accept:'application/json'}, body:JSON.stringify({ids:[...grid.children].map(card => Number(card.dataset.projectId))})});
+      if (!response.ok) throw new Error('Не удалось сохранить порядок объектов');
+    } catch (error) { before.forEach(card => grid.append(card)); window.showCrmNotice?.(error.message, 'danger'); }
+    finally { saving = false; }
+  });
+  grid.addEventListener('dragend', () => {
+    if (dragged) dragged.style.opacity = '';
+    dragged = null; suppressUntil = Date.now() + 600;
+  });
+});

@@ -21,19 +21,20 @@
   </div>
 
   {% if project_cards %}
-  <div class="objects-grid">
+  <div class="objects-grid" {% if role_action_access('main.object_order') %}data-object-reorder data-csrf-token="{{ csrf_token() }}"{% endif %}>
     {% for item in project_cards %}
     {% set project = item.project %}
     {% set stats = item.stats %}
     {% set has_object_details = project.technical_customer or project.developer_name or project.developer_representative or project.developer_representative_phone %}
     {% set handover = project.handover_countdown() %}
-    <article class="object-card" role="link" tabindex="0" data-href="{{ url_for('main.object_open', project_id=project.id) }}">
-      {% if current_user.role in ['admin', 'manager', 'supervisor', 'office', 'office_manager'] and not is_mobile_phone_request %}
+    <article data-project-id="{{ project.id }}" {% if role_action_access('main.object_order') %}draggable="true"{% endif %} class="object-card" role="link" tabindex="0" data-href="{{ url_for('main.object_open', project_id=project.id) }}">
+      {% if (role_action_access('main.object_edit') or role_action_access('main.object_delete')) and not is_mobile_phone_request %}
       <div class="object-card-actions">
-        <a class="object-action" href="{{ url_for('main.object_edit', project_id=project.id) }}" title="Редактировать объект">
+        {% if role_action_access('main.object_edit') %}<a class="object-action" href="{{ url_for('main.object_edit', project_id=project.id) }}" title="Редактировать объект">
           <i class="bi bi-pencil"></i>
         </a>
-        {% if current_user.role == 'admin' %}
+        {% endif %}
+        {% if role_action_access('main.object_delete') %}
         <a class="object-action object-action-danger" href="{{ url_for('main.object_delete_confirm', project_id=project.id) }}" title="Удалить объект">
           <i class="bi bi-trash"></i>
         </a>

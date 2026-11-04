@@ -38,7 +38,7 @@ MEASUREMENT_REQUEST_COMMENT = "Заявка создана из раздела �
 MEASUREMENT_REQUEST_TITLE_PATTERN = re.compile(r"^Заявка из замеров №(\d+)$")
 MEASUREMENT_WRITEOFF_COMMENT_PREFIX = "Автоматическое списание из замеров"
 from app import csrf, db
-from app.forms import CommentForm, ProjectForm, TaskEditForm, UploadExcelForm, UserForm, UserPasswordForm
+from app.forms import PremiseCreateForm, CommentForm, ProjectForm, TaskEditForm, UploadExcelForm, UserForm, UserPasswordForm
 from app.models import (
     Apartment,
     Appeal,
@@ -241,6 +241,7 @@ def _set_setting_csv(key: str, values) -> None:
 
 
 PROJECT_RECORD_ENDPOINTS = {
+    "main.inspections",
     "main.records", "main.records_availability", "main.records_availability_page",
     "main.record_slot_toggle", "main.record_slots_close_interval", "main.record_new",
     "main.record_detail", "main.record_status", "main.records_download", "main.record_apartment_new",
@@ -260,7 +261,7 @@ SECTION_LOCK_CHOICES = [
         "icon": "bi-buildings",
         "endpoints": {
             "main.objects", "main.object_new", "main.object_edit", "main.object_delete",
-            "main.object_delete_confirm", "main.object_open",
+            "main.object_delete_confirm", "main.object_open", "main.object_order",
         },
     },
     {"key": "dashboard", "label": "Главная", "icon": "bi-grid-1x2", "endpoints": {"main.dashboard", "main.dashboard_legacy"}},
@@ -290,7 +291,7 @@ SECTION_LOCK_CHOICES = [
         "label": "Помещения",
         "icon": "bi-building",
         "endpoints": {
-            "main.apartments", "main.apartments_export", "main.apartment_remarks_export", "main.apartment_source_export", "main.apartment_detail", "main.update_apartment_po_status",
+            "main.premise_new", "main.apartments", "main.apartments_export", "main.apartment_remarks_export", "main.apartment_source_export", "main.apartment_detail", "main.update_apartment_po_status",
             "main.update_apartment_inspection_status", "main.update_apartment_inspection_date", "main.update_apartment_inspection_note",
             "main.delete_apartment_inspection_date", "main.update_apartment_comment", "main.update_apartment_office_manager_comment",
             "main.update_apartment_avr_status", "main.update_apartment_app_status", "main.update_apartment_addendum_status", "main.update_apartment_details",
@@ -382,14 +383,14 @@ SECTION_LOCK_CHOICES = [
         },
     },
     {"key": "appeals", "label": "Обращения", "icon": "bi-chat-square-text",
-     "endpoints": {"main.appeals", "main.appeal_new", "main.appeal_detail", "main.appeal_status", "main.appeal_attachment", "main.appeal_delete"}},
+     "endpoints": {"main.appeals", "main.appeal_new", "main.appeal_detail", "main.appeal_edit", "main.appeal_status", "main.appeal_attachment", "main.appeal_delete"}},
     {"key": "records", "label": "Записи", "icon": "bi-calendar2-week",
      "endpoints": PROJECT_RECORD_ENDPOINTS},
     {
         "key": "worker_tasks",
         "label": "Мои задачи сотрудников",
         "icon": "bi-check2-square",
-        "endpoints": {"main.my_tasks", "main.worker_offline_snapshot", "main.worker_offline_operation", "main.my_task_done", "main.my_task_return", "main.my_task_status", "main.my_task_comment", "main.my_task_comment_delete"},
+        "endpoints": {"main.my_tasks", "main.worker_offline_snapshot", "main.worker_offline_operation", "main.my_task_done", "main.my_task_return", "main.my_task_status", "main.my_task_comment", "main.my_task_comment_delete", "main.my_task_measurement", "main.my_task_measurement_delete"},
     },
 ]
 
@@ -1135,6 +1136,9 @@ def _objects_created_today_by_user(user_id: int | None) -> int:
 
 def can_open_object_creation(user: User | None = None) -> bool:
     user = user or current_user
+    from app.role_settings import definitions, allowed
+    if getattr(user, "is_authenticated", False) and user.role in definitions():
+        return allowed(user, 'main.object_new')
     return bool(
         getattr(user, "is_authenticated", False)
         and (user.role == ROLE_ADMIN or user.role in OFFICE_MANAGER_ROLES)
@@ -1201,6 +1205,19 @@ def _messenger_unread_count(user: User | None = None) -> int:
     ).count()
     return unread_messages + unread_replies
 
+def role_section_access(endpoint):
+    if not current_user.is_authenticated:
+        return False
+    from app.role_settings import allowed
+    return allowed(current_user, endpoint)
+
+
+@bp.app_context_processor
+def role_permission_context():
+    from app.role_settings import definitions
+    return {'role_section_access': role_section_access, 'role_action_access': role_section_access, 'role_access_configured': current_user.is_authenticated and current_user.role in definitions()}
+
+
 @bp.app_context_processor
 def inject_globals():
     has_all_projects = current_user.is_authenticated and current_user.can_access_all_projects
@@ -1217,9 +1234,7 @@ def inject_globals():
     new_site_errors_count = 0
     if current_user.is_authenticated and current_user.role == ROLE_ADMIN:
         error_query = SiteErrorReport.query.filter(SiteErrorReport.status == "new")
-        developer_endpoint = (request.endpoint or "").startswith("main.developer_") or (request.endpoint or "").startswith("main.site_error")
-        if current_project and not developer_endpoint:
-            error_query = error_query.filter(or_(SiteErrorReport.project_id == current_project.id, SiteErrorReport.project_id.is_(None)))
+        # Developer inbox is global on every page, independent of the selected object.
         new_site_errors_count = error_query.count()
     new_appeals_count = 0
     if can_use_project_workflows(current_user):
@@ -1250,6 +1265,7 @@ def inject_globals():
         "blocked_site_sections": _setting_csv("blocked_site_sections"),
         "section_lock_choices": SECTION_LOCK_CHOICES,
         "is_mobile_phone_request": _is_mobile_phone_request(),
+        "inspection_hub_endpoints": PROJECT_RECORD_ENDPOINTS,
         "fmt_quantity": fmt_quantity,
         "display_material_name": display_material_name,
         "ru_plural": ru_plural,
@@ -1483,17 +1499,30 @@ def enforce_role_access():
             return login_view()
         return current_app.login_manager.unauthorized()
 
+    from app.role_settings import definitions, refresh_custom_roles, allowed
+    refresh_custom_roles()
+    configured_role = definitions().get(current_user.role)
+    g.role_access_granted = False
+    if current_user.role != ROLE_ADMIN and configured_role:
+        section = _section_lock_choice_for_endpoint(endpoint)
+        common = {"main.objects", "main.object_open", "main.account", "main.account_password", "main.updates_archive", "main.updates_card"} | MESSENGER_ENDPOINTS
+        if endpoint not in common:
+            if endpoint in {'main.dashboard','main.dashboard_legacy'} and not allowed(current_user, endpoint):
+                return redirect(url_for('main.objects'))
+            if not allowed(current_user, endpoint, request.method not in {'GET','HEAD','OPTIONS'}):
+                abort(403)
+            g.role_access_granted = bool(section and section['key'] not in {'users','service','site_errors','worker_tasks'})
     locked_section = _section_lock_choice_for_endpoint(endpoint)
     if current_user.role != ROLE_ADMIN and locked_section and locked_section["key"] in _blocked_section_keys():
         return _blocked_section_response(locked_section["label"])
 
-    if current_user.role == ROLE_SUPERVISOR and (
+    if not g.role_access_granted and current_user.role == ROLE_SUPERVISOR and (
         endpoint in SUPERVISOR_FORBIDDEN_ENDPOINTS
         or (locked_section and locked_section["key"] in SUPERVISOR_FORBIDDEN_SECTION_KEYS)
     ):
         return _deny_or_redirect()
 
-    if current_user.role == ROLE_OFFICE_MANAGER and (
+    if not g.role_access_granted and current_user.role == ROLE_OFFICE_MANAGER and (
         endpoint in OFFICE_MANAGER_INSPECTION_ENDPOINTS
         or (locked_section and locked_section["key"] in OFFICE_MANAGER_FORBIDDEN_SECTION_KEYS)
     ):
@@ -1510,8 +1539,9 @@ def enforce_role_access():
     if _setting_bool("site_maintenance_mode") and current_user.role != ROLE_ADMIN:
         return _maintenance_response()
 
-    if current_user.role in OFFICE_ROLES and endpoint in OFFICE_FORBIDDEN_ENDPOINTS and not (
-        current_user.role == ROLE_OFFICE_MANAGER and endpoint == "main.update_apartment_po_status"
+    if not g.role_access_granted and current_user.role in OFFICE_ROLES and endpoint in OFFICE_FORBIDDEN_ENDPOINTS and not (
+        (current_user.role == ROLE_OFFICE_MANAGER and endpoint == "main.update_apartment_po_status")
+        or (current_user.role == ROLE_OFFICE and endpoint in {"main.assignments", "main.assignment_unassign", "main.assignment_delete_from_employee", "main.assignment_task_priority", "main.assignment_comment_delete", "main.assignment_worker_instruction", "main.assignment_manual_task_new", "main.assignment_issued_employee_export"})
     ):
         return _deny_or_redirect()
 
@@ -1530,11 +1560,14 @@ def enforce_role_access():
             )
         abort(403)
 
-    if is_mobile_phone:
+    if is_mobile_phone and not g.role_access_granted:
         if endpoint not in _mobile_phone_allowed_endpoints():
             if request.method in {"GET", "HEAD", "OPTIONS"}:
                 return redirect(url_for(_mobile_phone_home_endpoint()))
             abort(403)
+
+    if g.role_access_granted:
+        return None
 
     if endpoint in PROJECT_WORKFLOW_ENDPOINTS:
         if can_use_project_workflows(current_user):
@@ -2188,6 +2221,9 @@ def project_stats(project: Project) -> dict[str, int]:
 def objects():
     projects_query = Project.query.order_by(Project.created_at.desc())
     projects = [project for project in projects_query.all() if current_user.can_access_project(project)]
+    order = str(get_setting("object_card_order", "") or "").split(",")
+    positions = {value: index for index, value in enumerate(order)}
+    projects.sort(key=lambda project: positions.get(str(project.id), len(positions)))
     changed = False
     for project in projects:
         if project.name == "100 Квартал 7 очередь":
@@ -2200,10 +2236,58 @@ def objects():
     return render_template("objects.html", project_cards=project_cards)
 
 
+@bp.post("/objects/order")
+@login_required
+def object_order():
+    if current_user.role != ROLE_ADMIN and not getattr(g, "role_access_granted", False):
+        abort(403)
+    ids = (request.get_json(silent=True) or {}).get("ids")
+    existing = {project.id for project in Project.query.all()}
+    if not isinstance(ids, list) or any(type(value) is not int for value in ids) or len(ids) != len(set(ids)) or set(ids) != existing:
+        abort(400)
+    set_setting("object_card_order", ",".join(map(str, ids)))
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@bp.route("/objects/<int:project_id>/premises/new", methods=["GET", "POST"])
+@login_required
+def premise_new(project_id):
+    if current_user.role != ROLE_ADMIN and not getattr(g, "role_access_granted", False):
+        abort(403)
+    project = db.session.get(Project, project_id) or abort(404)
+    form = PremiseCreateForm()
+    if form.validate_on_submit():
+        number = form.apartment_number.data.strip()
+        construction = (form.construction_number.data or "").strip() or None
+        duplicate = Apartment.query.filter_by(project_id=project.id, premise_type=form.premise_type.data, apartment_number=number).first()
+        identity_duplicate = Apartment.query.filter_by(project_id=project.id, apartment_number=number, construction_number=construction).first()
+        if not number:
+            form.apartment_number.errors.append("Укажите номер помещения.")
+        elif duplicate or identity_duplicate:
+            form.apartment_number.errors.append("Помещение с таким номером уже существует.")
+        else:
+            apartment = Apartment(project=project, premise_type=form.premise_type.data, apartment_number=number, construction_number=construction,
+                floor=(form.floor.data or "").strip() or None, finishing_type=(form.finishing_type.data or "").strip() or None,
+                owner_name=(form.owner_name.data or "").strip() or None, phone=(form.phone.data or "").strip() or None)
+            setattr(project, {"apartment":"has_apartments", "commercial":"has_commercial", "storeroom":"has_storerooms", "parking":"has_parking"}[form.premise_type.data], True)
+            db.session.add(apartment)
+            try:
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                form.apartment_number.errors.append("Помещение с таким номером уже существует.")
+            else:
+                session["current_project_id"] = project.id
+                flash("Помещение добавлено", "success")
+                return redirect(url_for("main.apartment_detail", apartment_id=apartment.id))
+    return render_template("premise_form.html", form=form, project=project)
+
+
 @bp.route("/objects/new", methods=["GET", "POST"])
 @login_required
 def object_new():
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     if not can_create_object_today(current_user):
         flash(object_creation_limit_message(current_user), "warning")
@@ -2218,7 +2302,8 @@ def object_new():
             return render_template("object_form.html", form=form, form_title="Добавить объект", submit_label="Создать объект")
         project = Project(
             name=form.name.data.strip(),
-            handover_date=form.handover_date.data,
+            handover_date=None if form.handover_waiting.data else form.handover_date.data,
+            handover_waiting=bool(form.handover_waiting.data),
             address=form.address.data.strip() if form.address.data else None,
             technical_customer=form.technical_customer.data.strip() if form.technical_customer.data else None,
             developer_name=form.developer_name.data.strip() if form.developer_name.data else None,
@@ -2246,7 +2331,7 @@ def object_new():
 @bp.route("/objects/<int:project_id>/edit", methods=["GET", "POST"])
 @login_required
 def object_edit(project_id: int):
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = _abort_if_project_forbidden(db.session.get(Project, project_id) or abort(404))
     form = ProjectForm(obj=project)
@@ -2259,7 +2344,8 @@ def object_edit(project_id: int):
         elif form.remove_signature.data:
             project.signature_image = None
         project.name = form.name.data.strip()
-        project.handover_date = form.handover_date.data
+        project.handover_waiting = bool(form.handover_waiting.data)
+        project.handover_date = None if form.handover_waiting.data else form.handover_date.data
         project.address = form.address.data.strip() if form.address.data else None
         project.technical_customer = form.technical_customer.data.strip() if form.technical_customer.data else None
         project.developer_name = form.developer_name.data.strip() if form.developer_name.data else None
@@ -2282,7 +2368,7 @@ def object_edit(project_id: int):
 @bp.route("/objects/<int:project_id>/delete", methods=["POST"])
 @login_required
 def object_delete(project_id: int):
-    if current_user.role != ROLE_ADMIN:
+    if current_user.role != ROLE_ADMIN and not getattr(g, "role_access_granted", False):
         abort(403)
     project = _abort_if_project_forbidden(db.session.get(Project, project_id) or abort(404))
     _record_simple_deletion(
@@ -2311,7 +2397,7 @@ def object_delete(project_id: int):
 @bp.route("/objects/<int:project_id>/delete/confirm", methods=["GET"])
 @login_required
 def object_delete_confirm(project_id: int):
-    if current_user.role != ROLE_ADMIN:
+    if current_user.role != ROLE_ADMIN and not getattr(g, "role_access_granted", False):
         abort(403)
     project = _abort_if_project_forbidden(db.session.get(Project, project_id) or abort(404))
     return render_template("object_delete_confirm.html", project=project)
@@ -2415,6 +2501,7 @@ def _mobile_phone_allowed_endpoints() -> set[str]:
         return set(WORKER_ALLOWED_ENDPOINTS) | ({"main.objects", "main.object_open"} if current_user.role == ROLE_EXECUTOR else set())
 
     allowed = {
+        "main.object_order", "main.premise_new",
         "main.updates_archive", "main.updates_card",
         "main.report_error",
         "main.messenger_thread",
@@ -2466,7 +2553,7 @@ def _mobile_phone_allowed_endpoints() -> set[str]:
         "main.update_apartment_addendum_status",
         "main.update_apartment_details",
     }
-    if current_user.role in {ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR}:
+    if current_user.role in {ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_OFFICE}:
         allowed.update({
             "main.assignments",
             "main.assignment_unassign",
@@ -3783,7 +3870,7 @@ def contractor_points():
 @bp.route("/contractors/statuses", methods=["GET", "POST"])
 @login_required
 def contractor_response_statuses():
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     if project is None:
@@ -3853,7 +3940,7 @@ def contractor_edit(contractor_id: int):
 @bp.route("/contractors/<int:contractor_id>/delete", methods=["POST"])
 @login_required
 def contractor_delete(contractor_id: int):
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     if project is None:
@@ -3869,7 +3956,7 @@ def contractor_delete(contractor_id: int):
 
 
 def _contractor_form_response(contractor: Contractor | None = None):
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     if project is None:
@@ -4513,7 +4600,7 @@ def _assignment_comment_context(tasks):
 @bp.post("/assignments/tasks/<int:task_id>/comment")
 @login_required
 def assignment_worker_instruction(task_id):
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     task = db.session.get(Task, task_id) or abort(404)
@@ -4532,7 +4619,7 @@ def assignment_worker_instruction(task_id):
 @bp.post("/assignments/tasks/<int:task_id>/priority")
 @login_required
 def assignment_task_priority(task_id):
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     task = db.session.get(Task, task_id) or abort(404)
@@ -4560,7 +4647,7 @@ def assignment_task_priority(task_id):
 @bp.post("/assignments/tasks/<int:task_id>/comments/<int:comment_id>/delete")
 @login_required
 def assignment_comment_delete(task_id, comment_id):
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     task = db.session.get(Task, task_id) or abort(404)
@@ -4578,7 +4665,7 @@ def assignment_comment_delete(task_id, comment_id):
 @bp.route("/assignments", methods=["GET", "POST"])
 @login_required
 def assignments():
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     _rollover_worker_tasks(project)
@@ -4984,7 +5071,7 @@ def assignments():
 @bp.route("/assignments/<int:task_id>/unassign", methods=["POST"])
 @login_required
 def assignment_unassign(task_id: int):
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     if project is None:
@@ -5027,7 +5114,7 @@ def assignment_unassign(task_id: int):
 @login_required
 def assignment_delete_from_employee(task_id: int):
     wants_json = _wants_json_response()
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     if project is None:
@@ -5112,7 +5199,7 @@ def assignment_delete_from_employee(task_id: int):
 @bp.route("/assignments/issued/<int:user_id>/export")
 @login_required
 def assignment_issued_employee_export(user_id: int):
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     _rollover_worker_tasks(project)
@@ -5237,7 +5324,7 @@ def _manual_assignment_work_point() -> WorkPoint:
 @bp.route("/assignments/manual/new", methods=["GET", "POST"])
 @login_required
 def assignment_manual_task_new():
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     if project is None:
@@ -5293,7 +5380,7 @@ def assignment_manual_task_new():
 @bp.route("/assignments/report")
 @login_required
 def assignments_report():
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     _rollover_worker_tasks(project)
@@ -5354,7 +5441,7 @@ def assignments_report():
 @bp.route("/assignments/report/<int:user_id>/excel")
 @login_required
 def assignments_report_worker_pdf(user_id: int):
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     _rollover_worker_tasks(project)
@@ -6240,7 +6327,7 @@ def glass_measurements():
 @bp.route("/glass/<int:task_id>/need-measure", methods=["POST"])
 @login_required
 def glass_need_measure(task_id: int):
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     if project is None:
@@ -6272,7 +6359,7 @@ def glass_need_measure(task_id: int):
 @bp.route("/glass/<int:task_id>/add-measurement", methods=["POST"])
 @login_required
 def glass_measurement_add(task_id: int):
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     if _is_mobile_phone_request():
         abort(404)
@@ -6340,7 +6427,7 @@ def glass_measurement_add(task_id: int):
 @bp.route("/glass/<int:task_id>/save", methods=["POST"])
 @login_required
 def glass_measurement_save(task_id: int):
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     if project is None:
@@ -6429,7 +6516,7 @@ def glass_measurement_save(task_id: int):
 @bp.route("/glass/<int:measurement_id>/return-to-all", methods=["POST"])
 @login_required
 def glass_measurement_return_to_all(measurement_id: int):
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     if project is None:
@@ -6471,7 +6558,7 @@ def glass_measurement_return_to_all(measurement_id: int):
 @bp.route("/glass/<int:measurement_id>/status", methods=["POST"])
 @login_required
 def glass_status_update(measurement_id: int):
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     if project is None:
@@ -6606,7 +6693,7 @@ def glass_order_export():
 @bp.route("/glass/ordered/create-material-request", methods=["POST"])
 @login_required
 def glass_create_material_request():
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     if project is None:
@@ -6707,7 +6794,7 @@ def glass_create_material_request():
 @bp.route("/glass/delete", methods=["POST"])
 @login_required
 def glass_measurements_delete():
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     wants_json = _wants_json_response()
     project = selected_project()
@@ -6784,7 +6871,7 @@ def glass_manual_task_new():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
 
     apartment_id = request.form.get("apartment_id", type=int)
@@ -8360,7 +8447,7 @@ def task_new():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
 
     add_mode = (request.form.get("add_mode") or request.args.get("mode") or "").strip()
@@ -8681,7 +8768,7 @@ def task_recognition():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
 
     apartments = _project_apartment_options(project.id)
@@ -10331,6 +10418,7 @@ def apartments():
     ]
     return render_template(
         "apartments.html",
+        project=project,
         rows=rows,
         args=request.args,
         export_args=request.args.to_dict(flat=False),
@@ -10692,7 +10780,7 @@ def update_apartment_po_status(apartment_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     apartment = db.session.get(Apartment, apartment_id) or abort(404)
     if apartment.project_id != project.id:
@@ -10734,7 +10822,7 @@ def update_apartment_details(apartment_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     apartment = db.session.get(Apartment, apartment_id) or abort(404)
     if apartment.project_id != project.id:
@@ -10844,7 +10932,7 @@ def update_apartment_inspection_status(apartment_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     apartment = db.session.get(Apartment, apartment_id) or abort(404)
     if apartment.project_id != project.id:
@@ -10929,7 +11017,7 @@ def update_apartment_inspection_date(apartment_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     apartment = db.session.get(Apartment, apartment_id) or abort(404)
     if apartment.project_id != project.id:
@@ -11003,7 +11091,7 @@ def delete_apartment_inspection_date(apartment_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     apartment = db.session.get(Apartment, apartment_id) or abort(404)
     if apartment.project_id != project.id:
@@ -11124,7 +11212,7 @@ def update_apartment_comment(apartment_id: int):
 @bp.route("/apartments/<int:apartment_id>/office-manager-comment", methods=["POST"])
 @login_required
 def update_apartment_office_manager_comment(apartment_id: int):
-    if current_user.role not in {ROLE_ADMIN, ROLE_OFFICE_MANAGER}:
+    if current_user.role not in {ROLE_ADMIN, ROLE_OFFICE_MANAGER} and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     if project is None:
@@ -11169,7 +11257,7 @@ def update_apartment_app_status(apartment_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     apartment = db.session.get(Apartment, apartment_id) or abort(404)
     if apartment.project_id != project.id:
@@ -11272,7 +11360,7 @@ def update_apartment_avr_status(apartment_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     apartment = db.session.get(Apartment, apartment_id) or abort(404)
     if apartment.project_id != project.id:
@@ -11328,7 +11416,7 @@ def update_apartment_addendum_status(apartment_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     apartment = db.session.get(Apartment, apartment_id) or abort(404)
     if apartment.project_id != project.id:
@@ -11569,7 +11657,7 @@ def work_report():
 @bp.route("/report/export")
 @login_required
 def work_report_export():
-    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES:
+    if current_user.role != ROLE_ADMIN and current_user.role not in OFFICE_MANAGER_ROLES and not getattr(g, "role_access_granted", False):
         abort(403)
     project = selected_project()
     if project is None:
@@ -11754,7 +11842,7 @@ def tasks_bulk_delete():
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
 
     next_url = request.form.get("next")
@@ -11863,7 +11951,7 @@ def task_delete(task_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role == "viewer":
+    if current_user.role == "viewer" and not getattr(g, "role_access_granted", False):
         abort(403)
     task = (
         Task.query.filter(Task.id == task_id, Task.project_id == project.id)
@@ -12386,6 +12474,41 @@ def mapping_settings():
 
 
 
+@bp.route("/settings/roles", methods=["GET", "POST"])
+@login_required
+def role_settings():
+    if current_user.role != ROLE_ADMIN:
+        abort(403)
+    from app.role_settings import definitions, choices, effective, ACTIONS
+    data=definitions()
+    sections=[item for item in SECTION_LOCK_CHOICES if item['key'] not in {'service','users','site_errors'} and not item['key'].startswith('developer')]
+    if request.method == 'POST':
+        role=(request.form.get('role') or '').strip()
+        name=(request.form.get('name') or '').strip()
+        if role == 'new':
+            draft=(request.form.get('draft_id') or '').strip()
+            role='custom_'+(draft[:16] if re.fullmatch(r'[0-9a-f]{32}',draft) else uuid4().hex[:16])
+        elif role not in dict(choices()) or role == ROLE_ADMIN:
+            abort(400)
+        if not name or len(name)>80:
+            if _wants_json_response():
+                return jsonify(ok=False,message='Укажите название роли до 80 символов.'),400
+            flash('Укажите название роли до 80 символов.', 'warning')
+        else:
+            valid={item['key'] for item in sections}
+            data[role]={'name':name, 'sections':[value for value in request.form.getlist('sections') if value in valid], 'actions':[value for value in request.form.getlist('actions') if value in {item[0] for item in ACTIONS}]}
+            set_setting('role_section_permissions',json.dumps(data,ensure_ascii=False))
+            db.session.commit()
+            if _wants_json_response():
+                return jsonify(ok=True,role=role,name=name)
+            flash('Роль сохранена', 'success')
+            return redirect(url_for('main.role_settings',role=role))
+    selected=request.args.get('role','new')
+    if selected != 'new' and selected not in dict(choices()):
+        abort(400)
+    return render_template('role_settings.html',roles=[(key,label) for key,label in choices() if key != ROLE_ADMIN], definitions=data, sections=sections, selected=selected, policy=effective(selected), actions=ACTIONS, draft_id=uuid4().hex)
+
+
 @bp.route("/settings", methods=["GET", "POST"])
 @login_required
 def site_settings():
@@ -12539,7 +12662,7 @@ def users():
         if user:
             flash("Пользователь с таким логином уже есть", "danger")
         else:
-            project = selected_project()
+            project = None
             requested_project_ids = {
                 value for value in request.form.getlist("project_ids") if str(value).isdigit()
             }
@@ -12565,14 +12688,9 @@ def users():
             db.session.commit()
             flash("Поздравляем, пользователь создан.", "success")
             return redirect(url_for("main.users"))
-    project = selected_project()
+    project = None
     users = User.query.order_by(User.created_at.desc()).all()
     protected_user_ids = _protected_user_ids(users)
-    if project:
-        users = [
-            user for user in users
-            if user.role in {ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_OFFICE, ROLE_OFFICE_MANAGER} or user.can_access_project(project)
-        ]
     return render_template(
         "users.html",
         users=users,
@@ -12649,7 +12767,8 @@ def user_update_role(user_id: int):
         flash("Нельзя изменить роль текущего пользователя.", "danger")
         return redirect(url_for("main.users"))
 
-    role_choices = dict(USER_ROLE_CHOICES)
+    from app.role_settings import choices
+    role_choices = dict(choices())
     role = str(request.form.get("role") or "").strip()
     if role not in role_choices:
         if wants_json:

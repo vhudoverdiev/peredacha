@@ -48,11 +48,17 @@
       const scripts=[...next.body.querySelectorAll('script')].filter(script=>!script.src||!/(?:page-navigation|navigation-state)\.js(?:\?|$)/.test(script.src));
       const codes=await Promise.all(scripts.map(source));if(ticket!==serial)return;
       // Preserve the visible chrome, but copy server-rendered active states and labels.
-      const selectors=['.app-sidebar','.app-topbar','.mobile-project-topbar','.mobile-app-topbar','.mobile-bottom-nav-root'];
+      const selectors=['.settings-page-head','[data-settings-tabs]','.objects-topbar','.app-sidebar','.app-topbar','.mobile-project-topbar','.mobile-app-topbar','.mobile-bottom-nav-root'];
       const retained=[], mounted=new Map([[next.body,document.body]]);
       for(const selector of selectors){const old=document.querySelector(selector),replacement=next.querySelector(selector);if(old&&replacement&&!retained.some(node=>node.contains(old))){
         // Preserve the shell node itself; descendants receive the destination markup.
-        old.innerHTML=replacement.innerHTML;for(const attr of [...old.attributes])old.removeAttribute(attr.name);for(const attr of replacement.attributes)old.setAttribute(attr.name,attr.value);
+        if(selector === '[data-settings-tabs]') {
+          for(const link of old.querySelectorAll('a[href]')) {
+            const nextLink=[...replacement.querySelectorAll('a[href]')].find(item=>item.getAttribute('href')===link.getAttribute('href'));
+            if(nextLink)link.className=nextLink.className;
+          }
+        } else if(selector !== '.settings-page-head') old.innerHTML=replacement.innerHTML;
+        for(const attr of [...old.attributes])old.removeAttribute(attr.name);for(const attr of replacement.attributes)old.setAttribute(attr.name,attr.value);
         // Preserve the shared ancestors as well as the shell node: moving
         // either into a detached document drops the browser paint layer.
         let incoming=replacement,current=old;
@@ -93,6 +99,11 @@
       }
       updateMounted(next.body);
       document.title=next.title;
+      // Restore destination shell styles rather than retaining a prior page's offsets.
+      if(next.body.querySelector('.objects-layout')) {
+        document.documentElement.style.removeProperty('--desktop-shell-topbar-visual-height');
+        document.documentElement.style.setProperty('--desktop-shell-sidebar-visual-width','0px');
+      }
       for(const sheet of next.head.querySelectorAll('link[rel=stylesheet]')){
         const href=sheet.getAttribute('href');if(![...document.head.querySelectorAll('link[rel=stylesheet]')].some(node=>node.getAttribute('href')===href))document.head.append(document.importNode(sheet,true));
       }

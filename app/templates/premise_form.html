@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Добавить помещение{% endblock %}
+{% block content %}
+<div class="premise-create-page py-4">
+<a href="{{ url_for('main.apartments') }}" class="btn btn-outline-secondary mb-3 premise-create-back">К помещениям</a>
+<h1>Добавить помещение</h1>
+<form method="post" class="card content-card"><div class="card-body">
+{{ form.hidden_tag() }}
+{% for field in [form.premise_type, form.apartment_number, form.construction_number, form.floor, form.finishing_type, form.owner_name, form.phone] %}
+<div class="mb-3">{{ field.label(class="form-label") }}{{ field(class="form-select" if field.type == 'SelectField' else "form-control") }}{% for error in field.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}</div>
+{% endfor %}
+{{ form.submit(class="btn btn-primary") }}
+</div></form></div>
+{% endblock %}
