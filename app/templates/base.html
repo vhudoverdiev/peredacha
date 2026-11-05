@@ -990,7 +990,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v311-record-search-assignment', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v312-assignment-form-url', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1653,6 +1653,6 @@
   <script src="{{ url_for('static', filename='worker-offline-store.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='worker-offline.js') }}?v=5"></script>
   {% endif %}
-  <script src="{{ url_for('static', filename='script.js') }}?v=v720-record-search-assignment"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v721-assignment-form-url"></script>
 </body>
 </html>

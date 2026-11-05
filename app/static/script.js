@@ -9579,7 +9579,7 @@ document.addEventListener('submit', async event => {
   }
   form.dataset.bulkAssignPending='1'; button.disabled=true;
   try {
-    const response = await fetch(form.action, {method:'POST',body,credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}});
+    const response = await fetch(form.getAttribute('action'), {method:'POST',body,credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}});
     const data = await response.json().catch(() => null);
     if (!response.ok || data?.ok !== true) {
       const fallback = response.status === 403
