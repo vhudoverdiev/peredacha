@@ -1,5 +1,5 @@
 importScripts('/static/worker-offline-store.js?v=1');
-const STATIC_CACHE = 'peredacha-static-v310-users-access-divider';
+const STATIC_CACHE = 'peredacha-static-v311-record-search-assignment';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -20,7 +20,7 @@ const STATIC_ASSETS = [
   '/static/desktop-only.css?v=v80-issued-priority-controls',
   '/static/worker-offline-store.js?v=1',
   '/static/worker-offline.js?v=5',
-  '/static/script.js?v=v719-developer-object-tools',
+  '/static/script.js?v=v720-record-search-assignment',
   '/static/navigation-state.js?v=4',
   '/static/page-navigation.js?v=9',
   '/static/form-csrf.js?v=1',

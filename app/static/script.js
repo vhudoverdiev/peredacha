@@ -1366,6 +1366,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       };
 
+      const search = select.hasAttribute('data-select-search') ? document.createElement('input') : null;
+      if (search) {
+        search.type = 'search';
+        search.className = 'form-control mb-2';
+        search.placeholder = 'Введите номер помещения';
+        search.setAttribute('aria-label', search.placeholder);
+        menu.removeAttribute('role');
+        menu.appendChild(search);
+      }
+      const optionList = search ? document.createElement('div') : menu;
+      if (search) {
+        optionList.setAttribute('role', 'listbox');
+        menu.appendChild(optionList);
+      }
+
       const options = Array.from(select.options).map(option => {
         const item = document.createElement('button');
         item.type = 'button';
@@ -1382,9 +1397,19 @@ document.addEventListener('DOMContentLoaded', () => {
           closeSelect();
           button.focus({ preventScroll: true });
         });
-        menu.appendChild(item);
+        optionList.appendChild(item);
         return item;
       });
+
+      const filterOptions = () => {
+        const query = search.value.trim().toLowerCase();
+        for (const item of options) {
+          const matches = !query || (item.dataset.value && item.textContent.toLowerCase().includes(query));
+          item.classList.toggle('d-none', !matches);
+        }
+        menu.scrollTop = 0;
+      };
+      search?.addEventListener('input', filterOptions);
 
       const currentOption = () => select.options[select.selectedIndex] || select.options[0];
       function setActiveOption() {
@@ -1447,11 +1472,16 @@ document.addEventListener('DOMContentLoaded', () => {
         button.setAttribute('aria-expanded', 'true');
         menu.hidden = false;
         menu.classList.add('is-portal-open');
+        if (search) {
+          search.value = '';
+          filterOptions();
+        }
         placeMenu();
         window.addEventListener('scroll', placeMenu, true);
         window.addEventListener('resize', placeMenu);
         const activeItem = menu.querySelector('.developer-select-option.is-selected:not(:disabled)') || menu.querySelector('.developer-select-option:not(:disabled)');
-        window.setTimeout(() => activeItem?.focus({ preventScroll: true }), 0);
+        if (search) search.focus({ preventScroll: true });
+        else window.setTimeout(() => activeItem?.focus({ preventScroll: true }), 0);
       };
 
       button.addEventListener('click', () => {
@@ -1467,7 +1497,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       menu.addEventListener('keydown', event => {
-        const enabledOptions = options.filter(item => !item.disabled);
+        const enabledOptions = options.filter(item => !item.disabled && !item.classList.contains('d-none'));
         const currentIndex = enabledOptions.indexOf(document.activeElement);
         if (event.key === 'Escape') {
           event.preventDefault();
@@ -1483,6 +1513,14 @@ document.addEventListener('DOMContentLoaded', () => {
           event.preventDefault();
           const prev = enabledOptions[Math.max(currentIndex - 1, 0)] || enabledOptions[0];
           prev?.focus({ preventScroll: true });
+        }
+        if (search && event.target === search) {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            const matches = enabledOptions.filter(item => item.dataset.value);
+            if (matches.length === 1) matches[0].click();
+          }
+          return;
         }
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
@@ -9542,8 +9580,13 @@ document.addEventListener('submit', async event => {
   form.dataset.bulkAssignPending='1'; button.disabled=true;
   try {
     const response = await fetch(form.action, {method:'POST',body,credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}});
-    const data = await response.json();
-    if (!response.ok || !data.ok) throw new Error(data.message || 'Не удалось выдать задачи');
+    const data = await response.json().catch(() => null);
+    if (!response.ok || data?.ok !== true) {
+      const fallback = response.status === 403
+        ? 'Нет доступа к выдаче задач.'
+        : 'Не удалось подтвердить выдачу задач. Выбор сохранён.';
+      throw new Error(data?.message || fallback);
+    }
     const ids = new Set((data.assigned_task_ids || []).map(String));
     for (const id of ids) form.__bulkSelectedIds?.delete(id);
     form.querySelectorAll('[name="task_ids"]').forEach(el=>{if(ids.has(el.value)){if(el.type==='checkbox')el.checked=false;else el.remove();}});

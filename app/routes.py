@@ -3714,6 +3714,8 @@ def handle_unexpected_exception(exc):
     except Exception:
         current_app.logger.exception("Failed to save site error report")
         db.session.rollback()
+    if request.endpoint == "main.assignments" and request.method == "POST" and _wants_json_response():
+        return jsonify(ok=False, message="Сервер не смог подтвердить выдачу задач. Выбор сохранён."), 500
     return render_template("site_error_500.html"), 500
 
 
@@ -4670,6 +4672,8 @@ def assignments():
     project = selected_project()
     _rollover_worker_tasks(project)
     if project is None:
+        if request.method == "POST" and _wants_json_response():
+            return jsonify(ok=False, message="Сначала выберите объект."), 409
         return redirect(url_for("main.objects"))
     repair_completed_source_marker_statuses(project_id=project.id)
     users = _executor_users(project.id)

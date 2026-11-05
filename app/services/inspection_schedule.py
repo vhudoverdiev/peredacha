@@ -84,6 +84,12 @@ def render_schedule_png(project, day, bookings, slots=None):
                     line = word
                 else:
                     line = candidate
+                while probe.textlength(line, font=regular) > width:
+                    split = 1
+                    while split < len(line) and probe.textlength(line[:split + 1], font=regular) <= width:
+                        split += 1
+                    lines.append(line[:split])
+                    line = line[split:]
             lines.append(line)
         return lines or ['']
 
@@ -91,7 +97,13 @@ def render_schedule_png(project, day, bookings, slots=None):
     if slots is None:
         slots = [booking.slot for booking in bookings]
     slots = sorted(slots, key=lambda slot: slot.start_time)
+    headers = ['№', 'Время', 'Квартира', 'Отделка', 'ФИО', 'Телефон']
     widths = [72, 160, 175, 160, 710, 459]
+    notes = {slot_id: (booking.note or '').strip() for slot_id, booking in booked.items()}
+    show_notes = any(notes.get(slot.id) for slot in slots)
+    if show_notes:
+        headers.append('Примечание')
+        widths[4:] = [510, 260, 399]
     rows = []
     for index, slot in enumerate(slots, 1):
         booking = booked.get(slot.id)
@@ -101,6 +113,8 @@ def render_schedule_png(project, day, bookings, slots=None):
                   apartment.finishing_type if apartment else '',
                   (inspection_contact_lines(booking.contact or apartment.owner_name) + (' (ПО)' if has_prior_inspection(apartment, day) else '')) if booking else '',
                   (booking.contact_phone or apartment.phone) if booking else '']
+        if show_notes:
+            values.append(notes.get(slot.id, ''))
         lines = [wrapped(value, width - 32) for value, width in zip(values, widths)]
         rows.append((lines, max(70, 28 + max(map(len, lines)) * 32), bool(booking)))
     width = 1888
@@ -135,7 +149,7 @@ def render_schedule_png(project, day, bookings, slots=None):
     draw.text((1383, 177), f'{day.year}  ·  {weekdays[day.weekday()]}', font=regular, fill='#c9d8cb')
     y = 281
     x = 76
-    for label, col_width in zip(['№','Время','Квартира','Отделка','ФИО','Телефон'], widths):
+    for label, col_width in zip(headers, widths):
         draw.rectangle((x, y, x+col_width, y+63), fill='#f0f3eb')
         draw.text((x+16, y+20), label, font=_font(21, True), fill='#3a4b3c')
         x += col_width
