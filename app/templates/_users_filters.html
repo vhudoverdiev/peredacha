@@ -1,0 +1,19 @@
+<form method="get" action="{{ url_for('main.users') }}" class="card content-card users-filters mb-3">
+  <label>Поиск
+    <input class="form-control" type="search" name="q" value="{{ user_filters.q }}" placeholder="Логин или ФИО">
+  </label>
+  {% for key, label, options in user_filter_options %}
+  <label>{{ label }}
+    <select class="form-select" name="{{ key }}">
+      <option value="">Все</option>
+      {% for value, title in options %}
+      <option value="{{ value }}" {% if user_filters[key] == value|string %}selected{% endif %}>{{ title }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  {% endfor %}
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary" type="submit">Найти</button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.users') }}">Сброс</a>
+  </div>
+</form>

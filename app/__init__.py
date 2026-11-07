@@ -382,6 +382,13 @@ def create_app(config_class=Config):
         # Additive migration: old appeals remain readable with unknown caller data.
         if _is_sqlite_database_uri(uri) or _is_mysql_database_uri(uri):
             project_columns = {column["name"] for column in inspect(db.engine).get_columns("projects")}
+            if "group_id" not in project_columns:
+                db.session.execute(text("ALTER TABLE projects ADD COLUMN group_id INTEGER REFERENCES project_groups(id)"))
+            user_columns = {column["name"] for column in inspect(db.engine).get_columns("users")}
+            if "city" not in user_columns:
+                db.session.execute(text("ALTER TABLE users ADD COLUMN city VARCHAR(40)"))
+            if "project_group_ids_json" not in user_columns:
+                db.session.execute(text("ALTER TABLE users ADD COLUMN project_group_ids_json TEXT"))
             if "handover_waiting" not in project_columns:
                 db.session.execute(text("ALTER TABLE projects ADD COLUMN handover_waiting BOOLEAN NOT NULL DEFAULT 0"))
             if "handover_date" not in project_columns:

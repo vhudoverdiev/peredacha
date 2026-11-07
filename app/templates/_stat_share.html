@@ -1,0 +1,3 @@
+{% macro stat_share(count, total, show_zero_total=false) -%}
+  {{ count }}{% if total > 0 or show_zero_total %}<small class="stat-share-percent">&nbsp;({{ ('%.1f'|format((count * 100 / total) if total > 0 else 0)).removesuffix('.0')|replace('.', ',') }}%)</small>{% endif %}
+{%- endmacro %}

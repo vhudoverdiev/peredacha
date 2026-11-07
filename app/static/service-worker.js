@@ -1,5 +1,5 @@
 importScripts('/static/worker-offline-store.js?v=1');
-const STATIC_CACHE = 'peredacha-static-v312-assignment-form-url';
+const STATIC_CACHE = 'peredacha-static-v335-users-navigation';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -14,13 +14,13 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v773-users-access-divider',
+  '/static/style.css?v=v794-support-static',
   '/static/workflows.css?v=31-named-point-sync-final',
   '/static/mobile-only.css?v=v100-ios-document-scroll-rounded',
   '/static/desktop-only.css?v=v80-issued-priority-controls',
   '/static/worker-offline-store.js?v=1',
   '/static/worker-offline.js?v=5',
-  '/static/script.js?v=v721-assignment-form-url',
+  '/static/script.js?v=v729-users-navigation',
   '/static/navigation-state.js?v=4',
   '/static/page-navigation.js?v=9',
   '/static/form-csrf.js?v=1',

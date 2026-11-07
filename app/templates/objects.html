@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_stat_share.html' import stat_share %}
 {% block layout_mode %}objects{% endblock %}
 {% block title %}Объекты{% endblock %}
 {% block content %}
@@ -21,8 +22,15 @@
   </div>
 
   {% if project_cards %}
-  <div class="objects-grid" {% if role_action_access('main.object_order') %}data-object-reorder data-csrf-token="{{ csrf_token() }}"{% endif %}>
-    {% for item in project_cards %}
+  <div {% if role_action_access('main.object_order') %}data-object-reorder data-csrf-token="{{ csrf_token() }}"{% endif %}>
+  {% set grouped = object_groups and (object_groups|length > 1 or object_groups[0][0]) %}
+  {% for group, cards in object_groups %}
+  {% if grouped %}
+  <details class="object-group" open>
+    <summary>{{ group.name if group else 'Без раздела' }}</summary>
+  {% endif %}
+  <div class="objects-grid">
+    {% for item in cards %}
     {% set project = item.project %}
     {% set stats = item.stats %}
     {% set has_object_details = project.technical_customer or project.developer_name or project.developer_representative or project.developer_representative_phone %}
@@ -67,11 +75,14 @@
         {% if project.has_parking %}
         <div class="object-stat-row"><span>Парковок:</span><b class="stat-badge stat-badge-white">{{ stats.parking_count }}</b></div>
         {% endif %}
-        <div class="object-stat-row"><span>Принятых (квартир) — АПП:</span><b class="stat-badge stat-badge-success">{{ stats.transferred }}</b></div>
-        <div class="object-stat-row"><span>Не принятых (квартир):</span><b class="stat-badge stat-badge-danger">{{ stats.not_transferred }}</b></div>
+        <div class="object-stat-row"><span>Принятых (квартир) — АПП:</span><b class="stat-badge stat-badge-success">{{ stat_share(stats.transferred, stats.apartments) }}</b></div>
+        <div class="object-stat-row"><span>Не принятых (квартир):</span><b class="stat-badge stat-badge-danger">{{ stat_share(stats.not_transferred, stats.apartments) }}</b></div>
       </div>
     </article>
     {% endfor %}
+  </div>
+  {% if grouped %}</details>{% endif %}
+  {% endfor %}
   </div>
   {% else %}
   <div class="objects-empty objects-empty-minimal">
@@ -82,4 +93,18 @@
   </div>
   {% endif %}
 </section>
+{% endblock %}
+
+{% block floating_support %}
+  {% if support_phone and support_tel %}
+  <aside class="objects-support-card" aria-label="Контакты поддержки">
+    <i class="bi bi-headset" aria-hidden="true"></i>
+    <div>
+      <strong>Поддержка</strong>
+      {% if support_text %}<span>{{ support_text }}</span>{% endif %}
+      <span class="objects-support-phone">{{ support_phone }}</span>
+    </div>
+  </aside>
+  {% endif %}
+
 {% endblock %}

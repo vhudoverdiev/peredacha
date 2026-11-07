@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block layout_mode %}objects{% endblock %}
 {% block title %}Удаление объекта{% endblock %}
-{% block content %}
-<section class="confirm-modal-page">
+{% block page_modal %}
+<section class="confirm-modal-page object-delete-overlay">
   <div class="confirm-modal-backdrop" aria-hidden="true"></div>
   <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="deleteObjectTitle">
     <a class="confirm-modal-close" href="{{ url_for('main.objects') }}" aria-label="Закрыть">

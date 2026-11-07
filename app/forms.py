@@ -75,6 +75,8 @@ class CommentForm(FlaskForm):
 
 
 class UserForm(FlaskForm):
+    city = StringField("Город", filters=[lambda value: (value or "").strip()],
+                       validators=[DataRequired(), Length(max=40)])
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from app.role_settings import choices

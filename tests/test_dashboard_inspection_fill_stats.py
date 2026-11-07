@@ -246,8 +246,8 @@ class DashboardInspectionFillStatsTests(unittest.TestCase):
                     re.DOTALL,
                 )
                 self.assertIsNotNone(inspection_card)
-                self.assertIn("<b>3</b>", inspection_card.group(0))
-                self.assertIn("<b>2</b>", inspection_card.group(0))
+                self.assertIn("Квартир были на осмотре</span><b>3<small", inspection_card.group(0))
+                self.assertIn("Квартир не были на осмотре</span><b>2<small", inspection_card.group(0))
 
     def test_transfer_upload_notification_uses_grouped_dashboard_counts(self):
         path = self._duplicated_transfer_workbook()

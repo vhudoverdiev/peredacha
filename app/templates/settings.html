@@ -64,6 +64,32 @@
       </div>
     </article>
 
+    <article class="card content-card settings-card settings-card-wide settings-support-card">
+      <div class="card-body">
+        <div class="settings-card-head">
+          <div class="settings-card-icon"><i class="bi bi-headset" aria-hidden="true"></i></div>
+          <div><h2 class="section-title mb-1">Поддержка</h2>
+            <p class="text-muted mb-0">Контакты на экране выбора объекта.</p>
+          </div>
+        </div>
+        <div class="settings-support-fields">
+        <label class="form-label d-block mt-3">Текст обращения
+          <input class="form-control mt-1" type="text" name="objects_support_text" maxlength="180"
+                 value="{{ objects_support_text }}">
+        </label>
+        <label class="form-label d-block mt-3">Телефон поддержки
+          <input class="form-control mt-1" type="tel" name="objects_support_phone" maxlength="40"
+                 value="{{ objects_support_phone }}" placeholder="+7 (000) 000-00-00">
+        </label>
+        <label class="settings-switch-row mt-2">
+          <span><b>Показывать карточку</b></span>
+          <input class="form-check-input settings-switch" type="checkbox" name="objects_support_enabled" value="1"
+                 {% if objects_support_enabled %}checked{% endif %}>
+        </label>
+        </div>
+      </div>
+    </article>
+
     <article class="card content-card settings-card settings-card-wide settings-card-locks">
       <div class="card-body">
         <div class="settings-card-head">

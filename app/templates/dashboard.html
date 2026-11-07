@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_stat_share.html' import stat_share %}
 {% block title %}Главная{% endblock %}
 {% block content %}
 {% if current_project and can_use_project_workflows %}
@@ -18,7 +19,7 @@
 
 {% set task_total = stats.tasks if stats.tasks else 1 %}
 {% set task_done_percent = (stats.done / task_total * 100) if stats.tasks else 0 %}
-{% set task_not_done_percent = (stats.not_done / task_total * 100) if stats.tasks else 0 %}
+{% set task_not_done_percent = ((stats.not_done - stats.problem) / task_total * 100) if stats.tasks else 0 %}
 {% set task_problem_percent = (stats.problem / task_total * 100) if stats.tasks else 0 %}
 <section class="dashboard-page dashboard-redesign">
   <div class="dashboard-redesign-hero">
@@ -75,7 +76,7 @@
           <div class="dashboard-task-legend-item is-open">
             <span class="dashboard-task-legend-dot"></span>
             <div>
-              <small>В работе</small>
+              <small>Осталось</small>
               <b>{{ task_not_done_percent|round(1) }}%</b>
             </div>
           </div>
@@ -120,7 +121,7 @@
     <article class="dashboard-info-card">
       <div class="dashboard-info-title dashboard-soft-section-title"><i class="bi bi-clipboard-check"></i> Приемка</div>
       <div class="dashboard-line-list">
-        <div><span>Принятых (квартир)</span><b>{{ stats.accepted_apartment_count }}</b></div>
+        <div><span>Принятых (квартир)</span><b>{{ stat_share(stats.accepted_apartment_count, stats.apartment_count) }}</b></div>
         <div><span>Не проданных всего</span><b>{{ stats.unsold }}</b></div>
         <div><span>Квартир не продано</span><b>{{ stats.unsold_apartment_count }}</b></div>
         {% if project.has_commercial %}
@@ -128,7 +129,7 @@
         {% endif %}
         {% if project.has_storerooms %}
         <div><span>Кладовки не продано</span><b>{{ stats.unsold_storeroom_count }}</b></div>
-        <div><span>Кладовок не принято</span><b>{{ stats.not_accepted_storeroom_count }}</b></div>
+        <div><span>Кладовок не принято</span><b>{{ stat_share(stats.not_accepted_storeroom_count, stats.storeroom_count, show_zero_total=true) }}</b></div>
         {% endif %}
         {% if project.has_parking %}
         <div><span>Парковки не продано</span><b>{{ stats.unsold_parking_count }}</b></div>
@@ -139,34 +140,35 @@
 
     <article class="dashboard-info-card">
       <div class="dashboard-info-title dashboard-soft-section-title"><i class="bi bi-eye"></i> Осмотры</div>
+      <p class="small text-muted mb-2">Доля от проданных помещений каждого типа</p>
       <div class="dashboard-accepted-types">
         <section class="dashboard-accepted-type">
           <div class="dashboard-accepted-summary-grid">
-            <div><span>Квартир были на осмотре</span><b>{{ stats.inspection_by_type.apartment.inspected }}</b></div>
-            <div><span>Квартир не были на осмотре</span><b>{{ stats.inspection_by_type.apartment.not_inspected }}</b></div>
+            <div><span>Квартир были на осмотре</span><b>{{ stat_share(stats.inspection_by_type.apartment.inspected, stats.inspection_by_type.apartment.inspected + stats.inspection_by_type.apartment.not_inspected) }}</b></div>
+            <div><span>Квартир не были на осмотре</span><b>{{ stat_share(stats.inspection_by_type.apartment.not_inspected, stats.inspection_by_type.apartment.inspected + stats.inspection_by_type.apartment.not_inspected) }}</b></div>
           </div>
         </section>
         {% if project.has_storerooms %}
         <section class="dashboard-accepted-type">
           <div class="dashboard-accepted-summary-grid">
-            <div><span>Кладовок были на осмотре</span><b>{{ stats.inspection_by_type.storeroom.inspected }}</b></div>
-            <div><span>Кладовок не были на осмотре</span><b>{{ stats.inspection_by_type.storeroom.not_inspected }}</b></div>
+            <div><span>Кладовок были на осмотре</span><b>{{ stat_share(stats.inspection_by_type.storeroom.inspected, stats.inspection_by_type.storeroom.inspected + stats.inspection_by_type.storeroom.not_inspected, show_zero_total=true) }}</b></div>
+            <div><span>Кладовок не были на осмотре</span><b>{{ stat_share(stats.inspection_by_type.storeroom.not_inspected, stats.inspection_by_type.storeroom.inspected + stats.inspection_by_type.storeroom.not_inspected, show_zero_total=true) }}</b></div>
           </div>
         </section>
         {% endif %}
         {% if project.has_parking %}
         <section class="dashboard-accepted-type">
           <div class="dashboard-accepted-summary-grid">
-            <div><span>Парковок были на осмотре</span><b>{{ stats.inspection_by_type.parking.inspected }}</b></div>
-            <div><span>Парковок не были на осмотре</span><b>{{ stats.inspection_by_type.parking.not_inspected }}</b></div>
+            <div><span>Парковок были на осмотре</span><b>{{ stat_share(stats.inspection_by_type.parking.inspected, stats.inspection_by_type.parking.inspected + stats.inspection_by_type.parking.not_inspected, show_zero_total=true) }}</b></div>
+            <div><span>Парковок не были на осмотре</span><b>{{ stat_share(stats.inspection_by_type.parking.not_inspected, stats.inspection_by_type.parking.inspected + stats.inspection_by_type.parking.not_inspected, show_zero_total=true) }}</b></div>
           </div>
         </section>
         {% endif %}
         {% if project.has_commercial %}
         <section class="dashboard-accepted-type">
           <div class="dashboard-accepted-summary-grid">
-            <div><span>Коммерций были на осмотре</span><b>{{ stats.inspection_by_type.commercial.inspected }}</b></div>
-            <div><span>Коммерций не были на осмотре</span><b>{{ stats.inspection_by_type.commercial.not_inspected }}</b></div>
+            <div><span>Коммерций были на осмотре</span><b>{{ stat_share(stats.inspection_by_type.commercial.inspected, stats.inspection_by_type.commercial.inspected + stats.inspection_by_type.commercial.not_inspected) }}</b></div>
+            <div><span>Коммерций не были на осмотре</span><b>{{ stat_share(stats.inspection_by_type.commercial.not_inspected, stats.inspection_by_type.commercial.inspected + stats.inspection_by_type.commercial.not_inspected) }}</b></div>
           </div>
         </section>
         {% endif %}
@@ -178,34 +180,35 @@
         <i class="bi bi-check2-circle"></i>
         Принято
       </div>
+      <p class="small text-muted mb-2">Доля от принятых помещений каждого типа</p>
       <div class="dashboard-accepted-types">
         <section class="dashboard-accepted-type">
           <div class="dashboard-accepted-summary-grid">
-            <div><span>Квартир с замечаниями</span><b>{{ stats.accepted_with_remarks_apartment }}</b></div>
-            <div><span>Квартир без замечаний</span><b>{{ stats.accepted_no_remarks_apartment }}</b></div>
+            <div><span>Квартир с замечаниями</span><b>{{ stat_share(stats.accepted_with_remarks_apartment, stats.accepted_with_remarks_apartment + stats.accepted_no_remarks_apartment) }}</b></div>
+            <div><span>Квартир без замечаний</span><b>{{ stat_share(stats.accepted_no_remarks_apartment, stats.accepted_with_remarks_apartment + stats.accepted_no_remarks_apartment) }}</b></div>
           </div>
         </section>
         {% if project.has_storerooms %}
         <section class="dashboard-accepted-type">
           <div class="dashboard-accepted-summary-grid">
-            <div><span>Кладовок с замечаниями</span><b>{{ stats.accepted_with_remarks_storeroom }}</b></div>
-            <div><span>Кладовок без замечаний</span><b>{{ stats.accepted_no_remarks_storeroom }}</b></div>
+            <div><span>Кладовок с замечаниями</span><b>{{ stat_share(stats.accepted_with_remarks_storeroom, stats.accepted_with_remarks_storeroom + stats.accepted_no_remarks_storeroom, show_zero_total=true) }}</b></div>
+            <div><span>Кладовок без замечаний</span><b>{{ stat_share(stats.accepted_no_remarks_storeroom, stats.accepted_with_remarks_storeroom + stats.accepted_no_remarks_storeroom, show_zero_total=true) }}</b></div>
           </div>
         </section>
         {% endif %}
         {% if project.has_parking %}
         <section class="dashboard-accepted-type">
           <div class="dashboard-accepted-summary-grid">
-            <div><span>Парковок с замечаниями</span><b>{{ stats.accepted_with_remarks_parking }}</b></div>
-            <div><span>Парковок без замечаний</span><b>{{ stats.accepted_no_remarks_parking }}</b></div>
+            <div><span>Парковок с замечаниями</span><b>{{ stat_share(stats.accepted_with_remarks_parking, stats.accepted_with_remarks_parking + stats.accepted_no_remarks_parking, show_zero_total=true) }}</b></div>
+            <div><span>Парковок без замечаний</span><b>{{ stat_share(stats.accepted_no_remarks_parking, stats.accepted_with_remarks_parking + stats.accepted_no_remarks_parking, show_zero_total=true) }}</b></div>
           </div>
         </section>
         {% endif %}
         {% if project.has_commercial %}
         <section class="dashboard-accepted-type">
           <div class="dashboard-accepted-summary-grid">
-            <div><span>Коммерций с замечаниями</span><b>{{ stats.accepted_with_remarks_commercial }}</b></div>
-            <div><span>Коммерций без замечаний</span><b>{{ stats.accepted_no_remarks_commercial }}</b></div>
+            <div><span>Коммерций с замечаниями</span><b>{{ stat_share(stats.accepted_with_remarks_commercial, stats.accepted_with_remarks_commercial + stats.accepted_no_remarks_commercial) }}</b></div>
+            <div><span>Коммерций без замечаний</span><b>{{ stat_share(stats.accepted_no_remarks_commercial, stats.accepted_with_remarks_commercial + stats.accepted_no_remarks_commercial) }}</b></div>
           </div>
         </section>
         {% endif %}

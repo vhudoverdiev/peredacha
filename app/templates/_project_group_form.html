@@ -1,0 +1,20 @@
+<form method="post" action="{{ url_for('main.project_groups_save') }}" class="mt-2" data-project-group-form data-group-id="{{ group.id if group else '' }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if group %}
+  <input type="hidden" name="group_id" value="{{ group.id }}">
+  {% else %}
+  <label class="form-label d-block">Название раздела
+    <input class="form-control" name="group_name" maxlength="120" required placeholder="Например, Архангельск">
+  </label>
+  {% endif %}
+  <fieldset class="mb-3">
+    <legend class="form-label fs-6">Объекты</legend>
+    {% for item in all_projects %}
+    <label class="users-access-project-option" {% if item.group_id and (not group or item.group_id != group.id) %}hidden{% endif %}>
+      <input type="checkbox" name="group_project_ids" value="{{ item.id }}" {% if item.group_id and (not group or item.group_id != group.id) %}disabled{% endif %} {% if group and item.group_id == group.id %}checked{% endif %}>
+      <span>{{ item.name }}</span>
+    </label>
+    {% endfor %}
+  </fieldset>
+  {% if not group %}<button class="btn btn-primary" type="submit">Создать раздел</button>{% endif %}
+</form>

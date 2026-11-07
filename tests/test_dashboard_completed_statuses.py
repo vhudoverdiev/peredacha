@@ -217,7 +217,10 @@ class DashboardCompletedStatusesTests(unittest.TestCase):
 
         self.assertEqual(stats["not_accepted_storeroom_count"], 1)
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Кладовок не принято</span><b>1</b>", response.get_data(as_text=True))
+        self.assertEqual(stats["acceptance_by_type"]["storeroom"], {"accepted": 1, "not_accepted": 1})
+        html = response.get_data(as_text=True)
+        self.assertIn('Кладовок не принято</span><b>1<small class="stat-share-percent">&nbsp;(33,3%)', html)
+        self.assertIn('Кладовок принято</span><b>1<small class="stat-share-percent">&nbsp;(33,3%)', html)
 
     def test_dashboard_breaks_inspection_counts_down_by_premise_type(self):
         self.project.has_storerooms = True
@@ -280,6 +283,7 @@ class DashboardCompletedStatusesTests(unittest.TestCase):
         self.assertIn("Кладовок не были на осмотре", inspections_card.group(0))
         self.assertIn("Парковок были на осмотре", inspections_card.group(0))
         self.assertIn("Коммерций не были на осмотре", inspections_card.group(0))
+        self.assertIn("Коммерций не были на осмотре</span><b>1<small class=\"stat-share-percent\">&nbsp;(100%)", inspections_card.group(0))
 
     def test_apartment_detail_mode_change_updates_dashboard_transfer_stats(self):
         before = dashboard_stats(self.project.id)

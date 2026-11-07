@@ -113,12 +113,14 @@ class User(UserMixin, TimestampMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     password_plain = db.Column(db.String(255), nullable=True)
     full_name = db.Column(db.String(160), nullable=True)
+    city = db.Column(db.String(40), nullable=True)
     email = db.Column(db.String(180), nullable=True)
     phone = db.Column(db.String(80), nullable=True)
     role = db.Column(db.String(30), default=ROLE_VIEWER, nullable=False, index=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=True, index=True)
     all_projects_access = db.Column(db.Boolean, default=False, nullable=False)
+    project_group_ids_json = db.Column(db.Text, nullable=True)
     project_access_ids_json = db.Column(db.Text, nullable=True)
     failed_login_count = db.Column(db.Integer, default=0, nullable=False)
     locked_until = db.Column(db.DateTime, nullable=True)
@@ -148,7 +150,7 @@ class User(UserMixin, TimestampMixin, db.Model):
         return self.role == ROLE_ADMIN or bool(self.all_projects_access)
 
     @property
-    def project_access_ids(self) -> set[int]:
+    def direct_project_access_ids(self) -> set[int]:
         values: set[int] = set()
         try:
             raw_values = json.loads(self.project_access_ids_json or "[]")
@@ -164,22 +166,64 @@ class User(UserMixin, TimestampMixin, db.Model):
             values.add(int(self.project_id))
         return values
 
+    @property
+    def project_group_ids(self) -> set[int]:
+        return set(self.project_group_policy.get("groups", []))
+
+    @property
+    def project_group_policy(self):
+        try:
+            policy = json.loads(self.project_group_ids_json or "{}")
+        except (TypeError, ValueError):
+            return {}
+        return policy if isinstance(policy, dict) else {}
+
+    @property
+    def project_access_ids(self) -> set[int]:
+        ids = self.direct_project_access_ids
+        if self.project_group_policy.get("all_sections"):
+            return {project_id for (project_id,) in db.session.query(Project.id)
+                    .filter(Project.group_id.isnot(None))}
+        scope = self.project_group_policy.get("scope")
+        if scope:
+            ids = {project_id for (project_id,) in db.session.query(Project.id)
+                   .filter(Project.group_id == scope, Project.id.in_(ids))}
+        if self.project_group_ids:
+            ids.update(project_id for (project_id,) in db.session.query(Project.id)
+                       .filter(Project.group_id.in_(self.project_group_ids)))
+        return ids
+
     def can_access_project(self, project_or_id) -> bool:
         if self.can_access_all_projects:
             return True
-        project_id = getattr(project_or_id, "id", project_or_id)
+        if isinstance(project_or_id, Project):
+            policy = self.project_group_policy
+            group_id = project_or_id.group_id
+            if policy.get("all_sections"):
+                return group_id is not None
+            if group_id in policy.get("groups", []):
+                return True
+            scope = policy.get("scope")
+            return (not scope or group_id == scope) and project_or_id.id in self.direct_project_access_ids
+        project_id = project_or_id
         try:
             return int(project_id) in self.project_access_ids
         except (TypeError, ValueError):
             return False
 
-    def set_project_access(self, project_ids=None, *, all_projects: bool = False) -> None:
+    def set_project_access(self, project_ids=None, *, all_projects: bool = False, group_ids=(), group_scope=None) -> None:
         if self.role == ROLE_ADMIN:
             all_projects = True
         normalized_ids = sorted({int(value) for value in (project_ids or []) if value is not None})
+        policy = {
+            "groups": sorted(set(group_ids)),
+            "scope": group_scope if group_scope != "all" else None,
+            "all_sections": group_scope == "all",
+        }
+        self.project_group_ids_json = json.dumps({} if all_projects else policy)
         self.all_projects_access = bool(all_projects)
         self.project_access_ids_json = json.dumps([] if all_projects else normalized_ids)
-        self.project_id = normalized_ids[0] if not all_projects and len(normalized_ids) == 1 else None
+        self.project_id = normalized_ids[0] if not all_projects and not group_scope and len(normalized_ids) == 1 else None
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -203,10 +247,19 @@ class User(UserMixin, TimestampMixin, db.Model):
         return f"<User {self.username}>"
 
 
+class ProjectGroup(db.Model):
+    __tablename__ = "project_groups"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False, unique=True)
+
+
 class Project(TimestampMixin, db.Model):
     __tablename__ = "projects"
 
     id = db.Column(db.Integer, primary_key=True)
+    group_id = db.Column(db.Integer, db.ForeignKey("project_groups.id"), nullable=True)
+    group = db.relationship("ProjectGroup")
     name = db.Column(db.String(180), nullable=False, index=True)
     queue = db.Column(db.String(120), nullable=True)
     building = db.Column(db.String(120), nullable=True)

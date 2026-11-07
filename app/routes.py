@@ -54,6 +54,7 @@ from app.models import (
     InspectionBooking,
     InspectionSlot,
     Project,
+    ProjectGroup,
     SyncConflict,
     SyncLog,
     SiteErrorReport,
@@ -240,6 +241,19 @@ def _set_setting_csv(key: str, values) -> None:
     set_setting(key, ",".join(cleaned))
 
 
+def _objects_support_roles() -> set[str]:
+    if get_setting("objects_support_roles") is not None:
+        return _setting_csv("objects_support_roles")
+    return set(ROLE_LABELS) - WORKER_ROLES
+
+
+def _role_shows_support(role: str) -> bool:
+    from app.role_settings import definitions
+
+    policy = definitions().get(role, {})
+    return policy.get("show_support", role in _objects_support_roles())
+
+
 PROJECT_RECORD_ENDPOINTS = {
     "main.inspections",
     "main.records", "main.records_availability", "main.records_availability_page",
@@ -350,7 +364,8 @@ SECTION_LOCK_CHOICES = [
         "label": "Пользователи",
         "icon": "bi-people",
         "endpoints": {
-            "main.users", "main.user_set_password", "main.user_set_password_page",
+            "main.users", "main.user_new", "main.user_update_projects", "main.user_update_city", "main.project_groups_save", "main.project_group_delete",
+            "main.user_set_password", "main.user_set_password_page",
             "main.user_delete_confirm", "main.user_delete",
         },
     },
@@ -2233,7 +2248,22 @@ def objects():
     if changed:
         db.session.commit()
     project_cards = [{"project": project, "stats": project_stats(project)} for project in projects]
-    return render_template("objects.html", project_cards=project_cards)
+    groups = {}
+    for card in project_cards:
+        group = card["project"].group
+        groups.setdefault(group, []).append(card)
+    object_groups = sorted(groups.items(), key=lambda item: (item[0] is None, item[0].name.casefold() if item[0] else ""))
+    show_support = (
+        _setting_bool("objects_support_enabled")
+        and not _is_mobile_phone_request()
+        and _role_shows_support(current_user.role)
+    )
+    support_phone = (get_setting("objects_support_phone", "") or "") if show_support else ""
+    return render_template(
+        "objects.html", project_cards=project_cards, object_groups=object_groups,
+        support_text=get_setting("objects_support_text", "По вопросам работы с CRM") or "",
+        support_phone=support_phone, support_tel=re.sub(r"[^+0-9]", "", support_phone),
+    )
 
 
 @bp.post("/objects/order")
@@ -12500,7 +12530,12 @@ def role_settings():
             flash('Укажите название роли до 80 символов.', 'warning')
         else:
             valid={item['key'] for item in sections}
+            previous_policy = data.get(role, {})
             data[role]={'name':name, 'sections':[value for value in request.form.getlist('sections') if value in valid], 'actions':[value for value in request.form.getlist('actions') if value in {item[0] for item in ACTIONS}]}
+            if "show_support_present" in request.form:
+                data[role]["show_support"] = request.form.get("show_support") == "1"
+            elif "show_support" in previous_policy:
+                data[role]["show_support"] = previous_policy["show_support"]
             set_setting('role_section_permissions',json.dumps(data,ensure_ascii=False))
             db.session.commit()
             if _wants_json_response():
@@ -12510,7 +12545,7 @@ def role_settings():
     selected=request.args.get('role','new')
     if selected != 'new' and selected not in dict(choices()):
         abort(400)
-    return render_template('role_settings.html',roles=[(key,label) for key,label in choices() if key != ROLE_ADMIN], definitions=data, sections=sections, selected=selected, policy=effective(selected), actions=ACTIONS, draft_id=uuid4().hex)
+    return render_template('role_settings.html',roles=[(key,label) for key,label in choices() if key != ROLE_ADMIN], definitions=data, sections=sections, selected=selected, policy=effective(selected), actions=ACTIONS, show_support=selected != "new" and _role_shows_support(selected), draft_id=uuid4().hex)
 
 
 @bp.route("/settings", methods=["GET", "POST"])
@@ -12519,6 +12554,25 @@ def site_settings():
     if current_user.role != ROLE_ADMIN:
         abort(403)
     if request.method == "POST":
+        if "objects_support_phone" in request.form:
+            phone = request.form["objects_support_phone"].strip()
+            if phone and (len(phone) > 40 or not re.fullmatch(r"\+?[0-9 ()-]+", phone) or not re.search(r"[0-9]", phone)):
+                message = "Укажите корректный номер телефона поддержки."
+                if _wants_json_response():
+                    return jsonify(ok=False, message=message), 400
+                flash(message, "warning")
+                return redirect(url_for("main.site_settings"))
+            if "objects_support_text" in request.form:
+                support_text = request.form["objects_support_text"].strip()
+                if len(support_text) > 180:
+                    message = "Текст обращения должен быть не длиннее 180 символов."
+                    if _wants_json_response():
+                        return jsonify(ok=False, message=message), 400
+                    flash(message, "warning")
+                    return redirect(url_for("main.site_settings"))
+                set_setting("objects_support_text", support_text)
+            set_setting("objects_support_phone", phone)
+            _set_setting_bool("objects_support_enabled", request.form.get("objects_support_enabled") == "1")
         _set_setting_bool("mobile_version_under_development", request.form.get("mobile_version_under_development") == "1")
         _set_setting_bool("site_maintenance_mode", request.form.get("site_maintenance_mode") == "1")
         _set_setting_bool("two_factor_every_login", request.form.get("two_factor_every_login") == "1")
@@ -12536,6 +12590,9 @@ def site_settings():
         two_factor_every_login=_setting_bool("two_factor_every_login"),
         blocked_site_sections={key for key, _, members in SECTION_LOCK_GROUPS if members & _blocked_section_keys()},
         section_lock_choices=_section_lock_controls(),
+        objects_support_enabled=_setting_bool("objects_support_enabled"),
+        objects_support_text=get_setting("objects_support_text", "По вопросам работы с CRM") or "",
+        objects_support_phone=get_setting("objects_support_phone", "") or "",
     )
 
 
@@ -12655,6 +12712,106 @@ def account_password():
     return render_template("account_password.html")
 
 
+def _requested_project_access():
+    selection = request.form.get("access_group", "")
+    if selection == "all":
+        return [], False, [], "all"
+    group_id = request.form.get("access_group", type=int)
+    group = db.session.get(ProjectGroup, group_id) if group_id else None
+    if group is None:
+        return [], False, [], None
+    if request.form.get("limit_group_projects") != "1":
+        return [], False, [group.id], None
+    requested = set(request.form.getlist("project_ids"))
+    ids = [project.id for project in Project.query.filter_by(group_id=group.id)
+           if str(project.id) in requested]
+    return ids, False, [], group.id
+
+
+@bp.post("/users/project-groups")
+@login_required
+@role_required(ROLE_ADMIN)
+def project_groups_save():
+    group_id = request.form.get("group_id", type=int)
+    if group_id is not None:
+        group = db.session.get(ProjectGroup, group_id) or abort(404)
+        project_id = request.form.get("project_id", type=int)
+        if project_id is None:
+            return jsonify(ok=False, message="Выберите объект."), 400
+        assigned = request.form.get("assigned") == "1"
+        projects = Project.query.filter_by(id=project_id)
+        if assigned:
+            updated = projects.filter(Project.group_id.is_(None)).update({"group_id": group.id})
+            if not updated and not projects.filter_by(group_id=group.id).first():
+                db.session.rollback()
+                return jsonify(ok=False, message="Объект уже занят или удалён. Обновите страницу."), 409
+        else:
+            projects.filter_by(group_id=group.id).update({"group_id": None})
+        db.session.commit()
+        return jsonify(ok=True, group_id=group.id if assigned else None)
+
+    name = (request.form.get("group_name") or "").strip()
+    if not name or len(name) > 120:
+        flash("Укажите название раздела длиной до 120 символов.", "warning")
+        return redirect(url_for("main.user_new"))
+    group = ProjectGroup(name=name)
+    db.session.add(group)
+    try:
+        db.session.flush()
+        selected_ids = {int(value) for value in request.form.getlist("group_project_ids") if value.isdigit()}
+        if selected_ids:
+            updated = Project.query.filter(Project.id.in_(selected_ids), Project.group_id.is_(None)).update({"group_id": group.id})
+            if updated != len(selected_ids):
+                db.session.rollback()
+                flash("Один из объектов уже занят или удалён. Выберите объекты заново.", "warning")
+                return redirect(url_for("main.user_new"))
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash("Раздел с таким названием уже существует.", "warning")
+    else:
+        flash("Раздел сохранён.", "success")
+    return redirect(url_for("main.user_new"))
+
+
+@bp.post("/users/project-groups/<int:group_id>/delete")
+@login_required
+@role_required(ROLE_ADMIN)
+def project_group_delete(group_id):
+    group = db.session.get(ProjectGroup, group_id) or abort(404)
+    Project.query.filter_by(group_id=group.id).update({"group_id": None})
+    for user in User.query.filter(User.project_group_ids_json.isnot(None)):
+        policy = user.project_group_policy
+        groups = user.project_group_ids
+        if policy.get("scope") == group.id:
+            user.set_project_access(group_ids=groups - {group.id})
+        elif group.id in groups:
+            policy["groups"] = sorted(groups - {group.id})
+            user.project_group_ids_json = json.dumps(policy)
+    db.session.delete(group)
+    db.session.commit()
+    flash("Раздел удалён. Объекты сохранены без раздела.", "success")
+    return redirect(url_for("main.user_new"))
+
+
+USER_CITIES = ("Северодвинск", "Архангельск")
+
+
+@bp.post("/users/<int:user_id>/city")
+@login_required
+@role_required(ROLE_ADMIN)
+def user_update_city(user_id):
+    city = request.form.get("city", "")
+    if city not in USER_CITIES:
+        return jsonify(ok=False, message="Выберите город из списка."), 400
+    updated = User.query.filter(User.id == user_id, db.or_(User.city.is_(None), User.city == "")).update({"city": city})
+    if not updated:
+        db.session.rollback()
+        return jsonify(ok=False, message="Город уже указан. Обновите страницу."), 409
+    db.session.commit()
+    return jsonify(ok=True, city=city)
+
+
 @bp.route("/users/new", methods=["GET", "POST"], endpoint="user_new")
 @bp.route("/users", methods=["GET", "POST"])
 @login_required
@@ -12662,6 +12819,7 @@ def account_password():
 def users():
     create_mode = request.endpoint == "main.user_new" or request.method == "POST"
     form = UserForm()
+    project_groups = ProjectGroup.query.order_by(ProjectGroup.name).all()
     all_projects = Project.query.order_by(Project.name.asc(), Project.id.asc()).all()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data.strip()).first()
@@ -12669,25 +12827,21 @@ def users():
             flash("Пользователь с таким логином уже есть", "danger")
         else:
             project = None
-            requested_project_ids = {
-                value for value in request.form.getlist("project_ids") if str(value).isdigit()
-            }
-            all_projects_access = request.form.get("all_projects_access") == "1"
-            valid_project_ids = {project.id for project in all_projects}
-            project_ids = sorted({int(value) for value in requested_project_ids if int(value) in valid_project_ids})
-            if not all_projects_access and not project_ids:
-                flash("Выберите хотя бы один объект.", "danger")
+            project_ids, all_projects_access, group_ids, group_scope = _requested_project_access()
+            if not all_projects_access and not project_ids and not group_ids and group_scope != "all":
+                flash("Выберите хотя бы один объект или раздел.", "danger")
                 users = User.query.order_by(User.created_at.desc()).all()
-                return render_template("users.html", create_mode=True, users=users, form=form, project=project, all_projects=all_projects, protected_user_ids=_protected_user_ids(users))
+                return render_template("users.html", create_mode=True, users=users, form=form, project=project, all_projects=all_projects, project_groups=project_groups, protected_user_ids=_protected_user_ids(users))
             user = User(
                 username=form.username.data.strip(),
                 full_name=form.full_name.data.strip() if form.full_name.data else None,
+                city=form.city.data,
                 email=form.email.data.strip() if form.email.data else None,
                 phone=form.phone.data.strip() if form.phone.data else None,
                 role=form.role.data,
                 is_active=True,
             )
-            user.set_project_access(project_ids, all_projects=all_projects_access)
+            user.set_project_access(project_ids, all_projects=all_projects_access, group_ids=group_ids, group_scope=group_scope)
             password = form.password.data
             user.set_password(password)
             db.session.add(user)
@@ -12696,6 +12850,27 @@ def users():
             return redirect(url_for("main.users"))
     project = None
     users = User.query.order_by(User.created_at.desc()).all()
+    filters = {key: request.args.get(key, "").strip()
+               for key in ("q", "role", "section")}
+    if not create_mode:
+        query = filters["q"].casefold().split()
+        section_id = request.args.get("section", type=int)
+        section_project_ids = {item.id for item in all_projects if item.group_id == section_id} if section_id else set()
+        all_project_ids = {item.id for item in all_projects}
+
+        def matches(user):
+            name = f"{user.username} {user.full_name or ''}".casefold()
+            if any(word not in name for word in query):
+                return False
+            if filters["role"] and user.role != filters["role"]:
+                return False
+            if section_id:
+                ids = all_project_ids if user.can_access_all_projects else user.project_access_ids
+                if not (ids & section_project_ids or section_id in user.project_group_ids):
+                    return False
+            return True
+
+        users = [user for user in users if matches(user)]
     protected_user_ids = _protected_user_ids(users)
     return render_template(
         "users.html",
@@ -12704,6 +12879,13 @@ def users():
         form=form,
         project=project,
         all_projects=all_projects,
+        project_groups=project_groups,
+        user_filters=filters,
+        user_filter_options=[
+            ("role", "Роль", ROLE_LABELS.items()),
+            ("section", "Раздел", [(item.id, item.name) for item in project_groups]),
+        ],
+        user_cities=USER_CITIES,
         protected_user_ids=protected_user_ids,
     )
 
@@ -12722,28 +12904,23 @@ def user_update_projects(user_id: int):
             return jsonify(ok=False, message="Разработчику всегда доступны все объекты."), 400
         flash("Разработчику всегда доступны все объекты.", "info")
         return redirect(url_for("main.users"))
-    all_projects = Project.query.with_entities(Project.id).all()
-    valid_project_ids = {project_id for (project_id,) in all_projects}
-    requested_ids = {
-        int(value) for value in request.form.getlist("project_ids") if str(value).isdigit()
-    }
-    all_projects_access = request.form.get("all_projects_access") == "1"
-    project_ids = sorted(requested_ids & valid_project_ids)
-    if not all_projects_access and not project_ids:
+    project_ids, all_projects_access, group_ids, group_scope = _requested_project_access()
+    if not all_projects_access and not project_ids and not group_ids and group_scope != "all":
         if wants_json:
-            return jsonify(ok=False, message="Выберите хотя бы один объект."), 400
+            return jsonify(ok=False, message="Выберите хотя бы один объект или раздел."), 400
         flash("Выберите хотя бы один объект.", "danger")
         return redirect(url_for("main.users"))
-    user.set_project_access(project_ids, all_projects=all_projects_access)
+    user.set_project_access(project_ids, all_projects=all_projects_access, group_ids=group_ids, group_scope=group_scope)
     db.session.commit()
     if wants_json:
-        count = len(valid_project_ids) if all_projects_access else len(project_ids)
+        count = Project.query.count() if all_projects_access else len(user.project_access_ids)
         label = "1 объект" if count == 1 else (f"{count} объекта" if 2 <= count <= 4 else f"{count} объектов")
         if all_projects_access:
             label = "Все объекты"
         return jsonify(
             ok=True,
             project_ids=project_ids,
+            project_group_ids=sorted(user.project_group_ids),
             all_projects_access=all_projects_access,
             count=count,
             label=label,

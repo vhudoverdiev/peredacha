@@ -17,6 +17,16 @@
 <input aria-label="Название роли" class="form-control mt-3" name="name" maxlength="80" required value="{{ definitions.get(selected,{}).get('name',dict(roles).get(selected,'')) }}">
 </div></article>
 <div class="access-settings-cards settings-card-wide">
+<article class="card content-card settings-card">
+  <div class="card-body">
+    <div class="settings-card-head"><div class="settings-card-icon"><i class="bi bi-headset" aria-hidden="true"></i></div><h2 class="section-title mb-1">Поддержка</h2></div>
+    <input type="hidden" name="show_support_present" value="1">
+    <label class="settings-switch-row mt-3">
+      <span><b>Показывать карточку поддержки</b></span>
+      <input class="form-check-input settings-switch" type="checkbox" name="show_support" value="1" {% if show_support %}checked{% endif %}>
+    </label>
+  </div>
+</article>
 {% for section in sections %}
 <article class="card content-card settings-card"><div class="card-body">
 <div class="settings-card-head"><div class="settings-card-icon"><i class="bi {{ section.icon }}"></i></div><h2 class="section-title mb-1">{{ section.label }}</h2></div>

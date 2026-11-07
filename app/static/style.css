@@ -60273,7 +60273,7 @@ html body.app-body .users-settings-page .users-table {min-width:1240px !importan
  html.desktop-like-pointer.crm-objects-destination .objects-layout > .objects-topbar {position:fixed !important;top:0 !important;margin-top:0 !important;transform:none !important;}
 }
 /* The creation form must not shrink the shared settings heading and tabs. */
-html body.app-body:has(.users-settings-page) .documents-content > .crm-mobile-page-shell {
+html body.app-body .settings-standalone-layout .documents-content > .crm-mobile-page-shell {
  width:100% !important;min-width:0 !important;align-self:stretch !important;box-sizing:border-box !important;
 }
 
@@ -60322,4 +60322,197 @@ html body.app-body [data-settings-tabs] > a.btn:active {transform:translateY(0) 
 /* Separate role selection from project access with the same section divider. */
 html body.app-body .users-settings-page .users-create-form .users-role-fieldset {
  padding-bottom:18px;border-bottom:1px solid #e8ece3;
+}
+
+.stat-share-percent {
+  font-size: .78em;
+  font-weight: 400;
+  opacity: .78;
+  white-space: nowrap;
+}
+
+.object-group {
+  margin-bottom: 24px;
+}
+
+.object-group > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.object-group > summary {
+  width: fit-content;
+  padding: 6px 0;
+  margin-bottom: 10px;
+}
+
+[data-user-section-access] [hidden],
+[data-project-group-form] [hidden],
+.object-group[hidden] {
+  display: none !important;
+}
+
+.users-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) repeat(2, minmax(140px, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 16px;
+}
+
+.users-filters > label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+html body.app-body .users-settings-page .users-table:has(.users-col-city) {
+  min-width: 880px !important;
+}
+
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-login { width: 10% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-name { width: 20% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-role { width: 14% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-project { width: 14% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-captcha { width: 9% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-created { width: 12% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-actions { width: 8% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-city { width: 13% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) tbody td:nth-child(2) {
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+.users-city-cell {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  .users-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .users-filters > label:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Keep the settings header anchored as tab content changes height. */
+html body.app-body .settings-standalone-layout .documents-content {
+  scrollbar-gutter: stable both-edges;
+}
+
+/* Native and enhanced selects must occupy the same space on the first paint. */
+html body.app-body .users-settings-page :is(.users-filters, .users-table) :is(select.form-select, .developer-select-button) {
+  box-sizing: border-box;
+  height: 46px !important;
+  min-height: 46px !important;
+}
+
+html body.app-body .settings-page-shell > [data-settings-tabs] ~ * .settings-card {
+  animation: none;
+  transform: none;
+}
+
+html body.app-body .settings-page-shell > .settings-page-head {
+  animation: none;
+  transform: none;
+}
+
+.objects-support-card {
+  display: none;
+  align-items: center;
+  gap: 7px;
+  box-sizing: border-box;
+  height: 42px;
+  font-size: 10px;
+  line-height: 11px;
+  max-width: min(280px, calc(100vw - 32px));
+  width: max-content;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .09);
+  padding: 3px 9px;
+  border: 1px solid #e1e8da;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.objects-support-card > i {
+  color: #568d20;
+  font-size: 14px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .objects-support-card {
+    transform-origin: right center;
+    transition: transform .2s ease;
+  }
+
+  .objects-support-card:is(:hover, :active) {
+    transform: scale(1.12);
+  }
+}
+
+.objects-support-card > div {
+  display: grid;
+}
+
+.objects-support-card > div > span:not(.objects-support-phone) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #555e66;
+}
+
+.objects-support-phone {
+  color: #365d13;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.objects-support-card > div {
+  min-width: 0;
+}
+
+
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+  html:not(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .objects-support-card {
+    display: flex;
+  }
+}
+
+.settings-support-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.settings-support-fields > .settings-switch-row {
+  margin-top: 2rem !important;
+}
+
+html body.app-body .settings-standalone-layout :is(.settings-page-head, .settings-card, .users-layout, .users-filters, .users-table-shell) {
+  animation: none !important;
+  transform: none !important;
+}
+
+@media (max-width: 767px) {
+  .settings-support-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .settings-support-fields > .settings-switch-row {
+    margin-top: 0 !important;
+  }
+}
+
+body.app-body > .object-delete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  min-height: 0;
+  overflow: auto;
+}
+
+body.app-body > .object-delete-overlay .confirm-modal-backdrop {
+  width: auto !important;
+  height: auto !important;
 }

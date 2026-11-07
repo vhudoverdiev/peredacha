@@ -1720,15 +1720,14 @@ document.addEventListener('DOMContentLoaded', () => {
           },
           credentials: 'same-origin'
         });
-        if (!response.ok) throw new Error('settings save failed');
         const data = await response.json().catch(() => ({}));
-        if (data.ok === false) throw new Error('settings save rejected');
+        if (!response.ok || data.ok !== true) throw new Error(data.message || 'Не удалось сохранить настройку. Попробуйте ещё раз.');
       } catch (error) {
-        showCrmNotice('Не удалось сохранить настройку. Попробуйте ещё раз.', 'danger');
+        showCrmNotice(error.message, 'danger');
       }
     };
     form.addEventListener('change', event => {
-      const control = event.target.closest('input[type="checkbox"]');
+      const control = event.target.closest('input[type="checkbox"], input[name="objects_support_phone"], input[name="objects_support_text"]');
       if (!control) return;
       syncSectionLockState(control);
       window.clearTimeout(saveTimer);
@@ -7818,8 +7817,13 @@ document.addEventListener('DOMContentLoaded', () => {
   objectSearch.addEventListener('input', () => {
     const query = objectSearch.value.trim().toLowerCase();
     cards.forEach(card => {
-      const haystack = card.textContent.toLowerCase();
+      const groupName = card.closest('.object-group')?.querySelector('summary')?.textContent || '';
+      const haystack = (card.textContent + groupName).toLowerCase();
       card.hidden = Boolean(query) && !haystack.includes(query);
+    });
+    document.querySelectorAll('.object-group').forEach(group => {
+      group.hidden = Boolean(query) && !group.querySelector('.object-card:not([hidden])');
+      if (query && !group.hidden) group.open = true;
     });
   });
 });
@@ -9616,7 +9620,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saving || event.target.closest('a,button,input')) { event.preventDefault(); return; }
     dragged = event.target.closest('.object-card');
     if (!dragged) return;
-    original = [...grid.children];
+    original = [...dragged.parentElement.children];
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', dragged.dataset.projectId);
     dragged.style.opacity = '.6';
@@ -9625,23 +9629,107 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!dragged) return;
     event.preventDefault();
     const target = event.target.closest('.object-card');
-    if (!target || target === dragged) return;
-    const cards = [...grid.children];
-    grid.insertBefore(dragged, cards.indexOf(dragged) < cards.indexOf(target) ? target.nextSibling : target);
+    if (!target || target === dragged || target.parentElement !== dragged.parentElement) return;
+    const groupGrid = dragged.parentElement;
+    const cards = [...groupGrid.children];
+    groupGrid.insertBefore(dragged, cards.indexOf(dragged) < cards.indexOf(target) ? target.nextSibling : target);
   });
   grid.addEventListener('drop', async event => {
     if (!dragged) return;
     event.preventDefault(); saving = true; suppressUntil = Date.now() + 600;
     const before = original;
+    const groupGrid = dragged.parentElement;
     try {
       const token = grid.dataset.csrfToken;
-      const response = await fetch('/objects/order', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json','X-CSRFToken':token || '',Accept:'application/json'}, body:JSON.stringify({ids:[...grid.children].map(card => Number(card.dataset.projectId))})});
+      const response = await fetch('/objects/order', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json','X-CSRFToken':token || '',Accept:'application/json'}, body:JSON.stringify({ids:[...grid.querySelectorAll('.object-card')].map(card => Number(card.dataset.projectId))})});
       if (!response.ok) throw new Error('Не удалось сохранить порядок объектов');
-    } catch (error) { before.forEach(card => grid.append(card)); window.showCrmNotice?.(error.message, 'danger'); }
+    } catch (error) { before.forEach(card => groupGrid.append(card)); window.showCrmNotice?.(error.message, 'danger'); }
     finally { saving = false; }
   });
   grid.addEventListener('dragend', () => {
     if (dragged) dragged.style.opacity = '';
     dragged = null; suppressUntil = Date.now() + 600;
   });
+});
+
+function syncUserSectionAccess(fieldset) {
+  const group = fieldset.querySelector('[name="access_group"]').value;
+  const limit = fieldset.querySelector('[name="limit_group_projects"]');
+  if (!limit) return;
+  const specificGroup = Boolean(group && group !== 'all');
+  limit.closest('label').hidden = !specificGroup;
+  limit.disabled = !specificGroup;
+  const limited = specificGroup && limit.checked;
+  fieldset.querySelector('[data-section-projects]').hidden = !limited;
+  fieldset.querySelectorAll('[data-access-group]').forEach(option => {
+    const available = limited && option.dataset.accessGroup === group;
+    option.hidden = !available;
+    option.querySelector('input').disabled = !available;
+  });
+}
+
+document.addEventListener('change', event => {
+  const fieldset = event.target.closest('[data-user-section-access]');
+  if (fieldset) syncUserSectionAccess(fieldset);
+});
+for (const eventName of ['DOMContentLoaded', 'crm:navigation-ready']) {
+  document.addEventListener(eventName, () => {
+    document.querySelectorAll('[data-user-section-access]').forEach(syncUserSectionAccess);
+  });
+}
+document.addEventListener('change', async event => {
+  const input = event.target;
+  const accessForm = input.closest('[data-user-section-autosave]');
+  const groupForm = input.closest('[data-project-group-form]');
+  const savingAccess = accessForm && ['access_group', 'city'].includes(input.name);
+  const savingGroup = groupForm?.dataset.groupId && input.name === 'group_project_ids';
+  if (!savingAccess && !savingGroup) return;
+
+  const form = savingAccess ? accessForm : groupForm;
+  const body = new FormData(form);
+  const previous = savingAccess
+    ? (input.dataset.savedSection ?? Array.from(input.options).find(option => option.defaultSelected)?.value ?? '')
+    : !input.checked;
+  const controls = savingGroup
+    ? Array.from(document.querySelectorAll('[data-project-group-form] input[name="group_project_ids"], [data-project-group-form] button[type="submit"]'))
+    : [input, form.querySelector('.developer-select-button')].filter(Boolean);
+  const disabled = controls.map(control => control.disabled);
+  if (savingGroup) {
+    body.set('project_id', input.value);
+    body.set('assigned', input.checked ? '1' : '0');
+  }
+  controls.forEach(control => { control.disabled = true; });
+  let membership;
+  try {
+    const response = await fetch(form.action, {
+      method: 'POST',
+      body,
+      headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.ok) throw new Error(data?.message || 'Не удалось сохранить изменения.');
+    if (savingAccess && input.name === 'city') form.replaceWith(document.createTextNode(data.city));
+    else if (savingAccess) input.dataset.savedSection = input.value;
+    else membership = String(data.group_id ?? '');
+  } catch (error) {
+    if (savingAccess) {
+      input.value = previous;
+      input.dispatchEvent(new Event('change'));
+    } else {
+      input.checked = previous;
+    }
+    window.showCrmNotice?.(error.message, 'danger');
+  } finally {
+    controls.forEach((control, index) => { control.disabled = disabled[index]; });
+  }
+  if (membership !== undefined) {
+    for (const checkbox of controls) {
+      if (checkbox.name !== 'group_project_ids' || checkbox.value !== input.value) continue;
+      const groupId = checkbox.form.dataset.groupId;
+      const unavailable = Boolean(membership && membership !== groupId);
+      checkbox.checked = Boolean(membership && membership === groupId);
+      checkbox.disabled = unavailable;
+      checkbox.closest('label').hidden = unavailable;
+    }
+  }
 });

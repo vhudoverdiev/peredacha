@@ -2710,6 +2710,7 @@ def dashboard_stats(
     inspected = sum(1 for rows in inspection_rows if _has_first_inspection(rows))
     not_inspected = max(len(inspection_rows) - inspected, 0)
     inspection_by_type = {}
+    acceptance_by_type = {}
     for premise_type in ("apartment", "storeroom", "parking", "commercial"):
         type_rows = [
             rows
@@ -2717,6 +2718,11 @@ def dashboard_stats(
             if rows and _row_premise_type(rows[0]) == premise_type
         ]
         type_inspected = sum(1 for rows in type_rows if _has_first_inspection(rows))
+        type_accepted = sum(1 for rows in type_rows if _group_is_accepted(rows))
+        acceptance_by_type[premise_type] = {
+            "accepted": type_accepted,
+            "not_accepted": len(type_rows) - type_accepted,
+        }
         inspection_by_type[premise_type] = {
             "inspected": type_inspected,
             "not_inspected": max(len(type_rows) - type_inspected, 0),
@@ -2770,6 +2776,7 @@ def dashboard_stats(
         "inspected": inspected,
         "not_inspected": not_inspected,
         "inspection_by_type": inspection_by_type,
+        "acceptance_by_type": acceptance_by_type,
         "clean_apartments": clean,
         "white_apartments": white,
         "unknown_finishing_apartments": unknown_finishing,

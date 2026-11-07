@@ -1,0 +1,29 @@
+{% set policy = access_user.project_group_policy if access_user else {} %}
+{% set groups = policy.get('groups', []) %}
+{% set scope = policy.get('scope') %}
+{% set selected_group = ('all' if policy.get('all_sections') else (scope or groups|first|default(''))) %}
+{% if not access_user %}{% set selected_group = request.form.get('access_group', '') %}{% endif %}
+<fieldset class="{{ 'mb-0' if access_user else 'mb-3' }}" data-user-section-access>
+  {% if not access_user %}<label class="form-label d-block">Доступ по разделу{% endif %}
+    <select class="form-select" name="access_group" data-force-custom-select required>
+      <option value="" disabled {% if not selected_group %}selected{% endif %}>{{ 'Прежний доступ' if access_user else 'Выберите раздел' }}</option>
+      <option value="all" {% if selected_group == 'all' %}selected{% endif %}>Все разделы</option>
+      {% for group in project_groups %}
+      <option value="{{ group.id }}" {% if selected_group|string == group.id|string %}selected{% endif %}>{{ group.name }}</option>
+      {% endfor %}
+    </select>
+  {% if not access_user %}</label>
+  <label class="d-block" data-section-limit hidden>
+    <input type="checkbox" name="limit_group_projects" value="1" {% if scope or (not access_user and request.form.get('limit_group_projects')) %}checked{% endif %}>
+    Только выбранные объекты раздела
+  </label>
+  <div data-section-projects hidden>
+    {% for item in all_projects if item.group_id %}
+    <label class="users-access-project-option" data-access-group="{{ item.group_id }}" hidden>
+      <input type="checkbox" name="project_ids" value="{{ item.id }}" {% if (access_user and item.id in access_user.direct_project_access_ids) or (not access_user and item.id|string in request.form.getlist('project_ids')) %}checked{% endif %}>
+      <span>{{ item.name }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  {% endif %}
+</fieldset>

@@ -990,7 +990,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v312-assignment-form-url', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v335-users-navigation', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1031,7 +1031,7 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v773-users-access-divider">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v794-support-static">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v100-ios-document-scroll-rounded">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v80-issued-priority-controls">
   <script>
@@ -1409,7 +1409,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {{ flash_toasts(messages) }}
     {% endwith %}
-    <div class="crm-mobile-page-shell crm-page-entry-surface">{{ page_content }}</div>
+    <div class="crm-mobile-page-shell{% if layout_mode.strip() != 'settings' %} crm-page-entry-surface{% endif %}">{{ page_content }}</div>
   </main>
 </div>
 {{ mobile_bottom_nav(mobile_active) }}
@@ -1573,11 +1573,13 @@
 
 {% block floating_content %}{% endblock %}
 <div class="floating-error-corner{% if request.endpoint == 'main.objects' %} objects-floating-actions{% endif %}">
+{% block floating_support %}{% endblock %}
 {% if request.endpoint == 'main.objects' and can_use_project_workflows and not is_mobile_phone_request %}
 <a href="{{ url_for('main.inspections', hub=1) }}" class="btn btn-sm report-error-btn report-error-floating inspections-hub-floating" title="Осмотры" aria-label="Осмотры" data-bs-placement="left" data-bs-custom-class="objects-action-tooltip"><i class="bi bi-calendar2-week" aria-hidden="true"></i></a>
 {% endif %}
   {{ report_error_button('report-error-floating') }}
 </div>
+{% block page_modal %}{% endblock %}
 <div class="modal fade" id="reportErrorModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <form class="modal-content error-report-modal" method="post" action="{{ url_for('main.report_error') }}">
@@ -1653,6 +1655,6 @@
   <script src="{{ url_for('static', filename='worker-offline-store.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='worker-offline.js') }}?v=5"></script>
   {% endif %}
-  <script src="{{ url_for('static', filename='script.js') }}?v=v721-assignment-form-url"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v729-users-navigation"></script>
 </body>
 </html>
