@@ -756,6 +756,23 @@ def _parse_inspection_schedule_value(value) -> date | datetime | None:
     return parse_date(text)
 
 
+def _parse_import_inspection_dates(value) -> list[date | datetime]:
+    parsed = _parse_inspection_schedule_value(value)
+    if parsed is not None:
+        return [parsed]
+    if not isinstance(value, str):
+        return []
+    # The combined inspection column may contain several dates and times.
+    pattern = r"(?<!\d)(\d{1,2}\.\d{1,2}\.(?:\d{4}|\d{2}))(?!\d)(?:[ \t]+(?:в[ \t]+)?(\d{1,2}[:.]\d{2})(?![.\d]))?"
+    dates = {}
+    for match in re.finditer(pattern, value, re.IGNORECASE):
+        day, time = match.groups()
+        parsed = _parse_inspection_schedule_value(f"{day} {time.replace('.', ':')}" if time else day)
+        if parsed is not None:
+            dates.setdefault(parsed.date() if isinstance(parsed, datetime) else parsed, parsed)
+    return [dates[day] for day in sorted(dates)]
+
+
 def _inspection_schedule_marker(value: datetime | date | None) -> str | None:
     if value is None:
         return None
@@ -1558,7 +1575,16 @@ def get_or_update_apartment(
         conflict_on_change=not created_apartment,
     )
     raw_inspection_value = value_at(row, base_mapping.get("inspection_date"))
-    inspection_schedule = _parse_inspection_schedule_value(raw_inspection_value)
+    inspection_dates = _parse_import_inspection_dates(raw_inspection_value)
+    inspection_schedule = next(iter(inspection_dates), None)
+    repeat_column = base_mapping.get("reinspection_date")
+    if repeat_column == base_mapping.get("inspection_date"):
+        repeat_column = None
+    repeat_dates = _parse_import_inspection_dates(value_at(row, repeat_column))
+    remaining_dates = dict.fromkeys(
+        value.date() if isinstance(value, datetime) else value
+        for value in [*inspection_dates[1:], *repeat_dates]
+    )
     inspection_date = inspection_schedule.date() if isinstance(inspection_schedule, datetime) else inspection_schedule
     _set_apartment_import_field(
         apartment,
@@ -1569,31 +1595,33 @@ def get_or_update_apartment(
         column_index=col_for("inspection_date"),
         conflict_on_change=not created_apartment,
     )
-    schedule_marker = _inspection_schedule_marker(inspection_schedule)
-    has_raw_inspection_value = raw_inspection_value is not None and str(raw_inspection_value).strip() != ""
-    old_note_is_marker = _is_inspection_schedule_marker(apartment.inspection_note)
-    old_note_has_comment = _has_meaningful_import_value(apartment.inspection_note) and not old_note_is_marker
-    if old_note_has_comment:
-        _discard_pending_inspection_schedule_conflicts(apartment)
-    elif schedule_marker or (has_raw_inspection_value and old_note_is_marker):
-        _set_apartment_import_field(
-            apartment,
-            "inspection_note",
-            schedule_marker,
-            sheet_name=sheet_name,
-            row_index=row_index,
-            column_index=col_for("inspection_date"),
-            conflict_on_change=False,
-        )
+    remaining_dates.pop(inspection_date, None)
+    reinspection_date = min(remaining_dates, default=None)
     _set_apartment_import_field(
         apartment,
         "reinspection_date",
-        parse_date(value_at(row, base_mapping.get("reinspection_date"))),
+        reinspection_date,
         sheet_name=sheet_name,
         row_index=row_index,
-        column_index=col_for("reinspection_date"),
+        column_index=repeat_column + 1 if repeat_column is not None else col_for("inspection_date"),
         conflict_on_change=not created_apartment,
     )
+
+    if apartment.inspection_date == inspection_date and apartment.reinspection_date == reinspection_date:
+        note_lines = (apartment.inspection_note or "").splitlines()
+        if note_lines and _is_inspection_schedule_marker(note_lines[0]):
+            if str(raw_inspection_value or "").strip():
+                note_lines.pop(0)
+        elif note_lines:
+            _discard_pending_inspection_schedule_conflicts(apartment)
+        schedule_marker = _inspection_schedule_marker(inspection_schedule)
+        if schedule_marker:
+            note_lines.insert(0, schedule_marker)
+        for extra_date in sorted(remaining_dates)[1:]:
+            line = f"Дополнительный осмотр: {extra_date:%d.%m.%Y}"
+            if line not in note_lines:
+                note_lines.append(line)
+        apartment.inspection_note = "\n".join(note_lines) or None
 
     transfer_deadline = parse_date(value_at(row, base_mapping.get("deadline_date")))
     if transfer_deadline:

@@ -43,6 +43,27 @@ class ExcelImportContractsTests(unittest.TestCase):
         db.drop_all()
         self.context.pop()
 
+    def test_imports_multiple_inspection_dates_from_combined_column(self):
+        from app.routes import _apartment_inspection_status, _apartment_inspection_values
+
+        sync_rows(
+            [
+                ["№ квартиры", "Строительный номер", "Дата осмотра/ повторный осмотр", "10. Вентиляция"],
+                ["11", "1-2-1", "30.07.2020 в 12.30 13.08.2020 в 10.00", "Замечание"],
+                ["12", "1-2-2", "13.08.2099 в 10.00", "Замечание"],
+            ],
+            sheet_name="Таблица",
+            project_name="Inspection import QA",
+        )
+        past = Apartment.query.filter_by(apartment_number="11").one()
+        future = Apartment.query.filter_by(apartment_number="12").one()
+        self.assertEqual(
+            [value.strftime("%d.%m.%Y") for value in _apartment_inspection_values(past)],
+            ["30.07.2020", "13.08.2020"],
+        )
+        self.assertEqual(_apartment_inspection_status([past]), "Был")
+        self.assertEqual(_apartment_inspection_status([future]), "Будет")
+
     def _workbook_path(self, name="excel-import-contract.xlsx"):
         return self.app.config["UPLOAD_FOLDER"] / name if hasattr(self.app.config["UPLOAD_FOLDER"], "__truediv__") else None
 
