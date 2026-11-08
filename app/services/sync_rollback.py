@@ -5,10 +5,11 @@ import hashlib
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import or_
+from sqlalchemy import or_, select
+from sqlalchemy.orm.exc import StaleDataError
 
 from app import db
-from app.models import Apartment, ChangeLog, SyncConflict, SyncLog, Task, WorkPoint
+from app.models import Apartment, ChangeLog, Project, SyncConflict, SyncLog, Task, WorkPoint
 from app.time_utils import utc_now
 
 
@@ -338,15 +339,32 @@ def _project_conflicts_query(project_id: int, started_at: datetime, end_at: date
     return query
 
 
-def apply_sync_rollback(log: SyncLog) -> tuple[bool, str]:
+def apply_sync_rollback(log: SyncLog, *, commit: bool = True) -> tuple[bool, str]:
     """Откатывает синхронизацию и возвращает (успешно, сообщение)."""
+    if log.project_id is not None:
+        db.session.execute(
+            select(Project.id).where(Project.id == log.project_id).with_for_update()
+        ).scalar_one_or_none()
+    log = db.session.execute(
+        select(SyncLog).where(SyncLog.id == log.id)
+        .with_for_update().execution_options(populate_existing=True)
+    ).scalar_one_or_none()
+    if log is None:
+        return False, "Запись синхронизации уже удалена"
     if log.source_type == "maintenance":
         return False, "Снимок обслуживания предназначен для восстановления разработчиком."
     if log.rolled_back_at:
         return False, "Эта синхронизация уже была откатана"
-    if log.rollback_data:
-        return _rollback_from_snapshot(log)
-    return _rollback_from_legacy_change_log(log)
+    try:
+        result = _rollback_from_snapshot(log) if log.rollback_data else _rollback_from_legacy_change_log(log)
+        if result[0]:
+            db.session.flush()
+            if commit:
+                db.session.commit()
+        return result
+    except StaleDataError:
+        db.session.rollback()
+        return False, "Данные синхронизации изменились. Обновите журнал и повторите попытку."
 
 
 def _rollback_from_snapshot(log: SyncLog) -> tuple[bool, str]:
@@ -460,7 +478,6 @@ def _rollback_from_snapshot(log: SyncLog) -> tuple[bool, str]:
 
     log.rolled_back_at = utc_now()
     log.rollback_note = None
-    db.session.commit()
     return (
         True,
         f"Синхронизация откатана: восстановлено квартир/помещений {restored_apartments}, замечаний {restored_tasks}, удалено новых замечаний {deleted_tasks}, удалено новых помещений {deleted_apartments}, несостыковок {deleted_conflicts}, заново разделено составных замечаний {split_result.get('split_tasks', 0)}.",
@@ -499,5 +516,4 @@ def _rollback_from_legacy_change_log(log: SyncLog) -> tuple[bool, str]:
 
     log.rolled_back_at = utc_now()
     log.rollback_note = None
-    db.session.commit()
     return True, f"Старая синхронизация частично откатана: удалено новых замечаний {deleted_tasks}, возвращено пропавших {restored_missing}. Для полного отката следующих загрузок теперь сохраняется снимок восстановления."

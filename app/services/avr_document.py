@@ -101,7 +101,7 @@ def _fill_document_xml(data: bytes, values: dict[str, str]) -> bytes:
     _set_table_cell_text(tables, 0, 0, 1, values.get("apartment_number", ""))
     _set_table_cell_text(tables, 0, 0, 3, values.get("floor", ""))
     _set_table_cell_text(tables, 0, 0, 5, values.get("address", ""))
-    _set_table_cell_text(tables, 1, 0, 1, str(values.get("developer_representative") or "").strip())
+    _set_table_cell_text(tables, 1, 0, 1, format_avr_person_name(values.get("developer_representative"), decline_surname=False))
     _set_table_cell_text(tables, 2, 0, 1, format_avr_person_lines(values.get("owner_name", "")))
     _set_table_cell_text(tables, 3, 0, 1, values.get("inspection_date", ""))
 
@@ -119,7 +119,7 @@ def _fill_linear_template(root: ET.Element, values: dict[str, str]) -> None:
     act_date = _date_with_year_word(values.get("act_date", ""))
     premise_type = (values.get("premise_type") or "apartment").strip().lower()
     premise_number = values.get("apartment_number", "")
-    developer = str(values.get("developer_representative") or "").strip()
+    developer = format_avr_person_name(values.get("developer_representative"), decline_surname=False)
     owner = format_avr_person_lines(values.get("owner_name", ""))
     date_index = _set_first_matching_paragraph_segments(paragraphs, "дата", [(act_date, True)])
     if date_index is None and len(paragraphs) > 1:
@@ -183,7 +183,7 @@ def format_avr_person_lines(value: str | None) -> str:
     return "\n".join(format_avr_person_name(line) for line in lines)
 
 
-def format_avr_person_name(value: str | None) -> str:
+def format_avr_person_name(value: str | None, *, decline_surname: bool = True) -> str:
     text = re.sub(r"\([^)]*\)", "", str(value or "")).strip()
     text = re.sub(r"\s+", " ", text)
     if not text:
@@ -191,9 +191,9 @@ def format_avr_person_name(value: str | None) -> str:
     parts = text.split(" ")
     surname = parts[0]
     initials = _person_initials(parts[1:])
-    gender = _person_gender(surname, parts[1:])
-    declined = _decline_surname_genitive(surname, gender)
-    return f"{declined} {initials}".strip()
+    if decline_surname:
+        surname = _decline_surname_genitive(surname, _person_gender(surname, parts[1:]))
+    return f"{surname} {initials}".strip()
 
 
 def _person_initials(parts: list[str]) -> str:

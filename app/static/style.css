@@ -60267,10 +60267,22 @@ html body.app-body .users-settings-page .users-layout > .col-lg-4 {width:min(100
 html body.app-body .users-settings-page .users-layout > .col-lg-8 {margin:0 !important;padding:0 !important;}
 html body.app-body .users-settings-page .users-table {min-width:1240px !important;}
 
-@media(min-width:768px){
- html.desktop-like-pointer.crm-objects-destination body.app-body {padding-top:0 !important;margin-top:0 !important;}
- html.desktop-like-pointer.crm-objects-destination body.app-body > .objects-layout {margin-top:0 !important;transform:none !important;filter:none !important;contain:none !important;}
- html.desktop-like-pointer.crm-objects-destination .objects-layout > .objects-topbar {position:fixed !important;top:0 !important;margin-top:0 !important;transform:none !important;}
+/* Keep the fixed objects header out of the layout's reserved top space. */
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body:has(> .objects-layout) {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+  html.desktop-like-pointer body.app-body > .objects-layout {
+    margin-top: 0 !important;
+    transform: none !important;
+    filter: none !important;
+    contain: none !important;
+  }
+  html.desktop-like-pointer body.app-body > .objects-layout > .objects-topbar {
+    position: fixed !important;
+    inset: 0 auto auto 0 !important;
+  }
 }
 /* The creation form must not shrink the shared settings heading and tabs. */
 html body.app-body .settings-standalone-layout .documents-content > .crm-mobile-page-shell {
@@ -60522,7 +60534,7 @@ body.app-body > .object-delete-overlay .confirm-modal-backdrop {
 @media (min-width: 768px) {
   html.desktop-like-pointer body.app-body:has(.objects-floating-actions) .crm-toast-stack {
     right: max(1rem, env(safe-area-inset-right)) !important;
-    bottom: calc(1.25rem + 42px + .75rem) !important;
+    bottom: calc(1.25rem + 42px + 2.5rem) !important;
   }
 }
 

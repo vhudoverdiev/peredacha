@@ -10070,7 +10070,7 @@ def _apartment_inspection_status(apartments: list[Apartment]) -> str | None:
         ):
             return "Будет"
         return "Был"
-    if any(apartment.first_inspection_present for apartment in apartments):
+    if any(apartment.first_inspection_present or apartment.is_app_mode for apartment in apartments):
         return "Был"
     return "Не был"
 
@@ -13354,21 +13354,25 @@ def delete_sync_log(log_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    log = db.session.get(SyncLog, log_id) or abort(404)
-    if not log.project_id or log.project_id != project.id:
-        abort(404)
     if current_user.role != ROLE_ADMIN:
         abort(403)
+    Project.query.filter_by(id=project.id).with_for_update().first_or_404()
+    log = SyncLog.query.filter_by(id=log_id).with_for_update().first()
+    if log is None:
+        flash("Запись синхронизации уже удалена", "warning")
+        return redirect(url_for("main.sync_logs"))
+    if log.project_id != project.id:
+        abort(404)
     delete_from = log.started_at
     if not log.rolled_back_at:
-        ok, message = apply_sync_rollback(log)
+        ok, message = apply_sync_rollback(log, commit=False)
         if not ok:
             flash(message, "warning")
             return redirect(url_for("main.sync_logs"))
         affected_logs = SyncLog.query.filter(
             SyncLog.project_id == project.id,
             SyncLog.started_at >= delete_from,
-        ).all()
+        ).with_for_update().all()
     else:
         affected_logs = [log]
     deleted_logs = len(affected_logs)
@@ -13399,7 +13403,7 @@ def rollback_sync_log(log_id: int):
         abort(404)
     if current_user.role != ROLE_ADMIN:
         abort(403)
-    ok, message = apply_sync_rollback(log)
+    ok, message = apply_sync_rollback(log, commit=False)
     if ok:
         _refresh_sync_dashboard_settings(project.id)
         db.session.commit()
@@ -13641,7 +13645,7 @@ def cancel_sync_from_conflicts():
     try:
         rollback_message = None
         if log is not None:
-            ok, rollback_message = apply_sync_rollback(log)
+            ok, rollback_message = apply_sync_rollback(log, commit=False)
             if not ok:
                 db.session.rollback()
                 flash(rollback_message, "warning")

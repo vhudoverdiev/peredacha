@@ -216,6 +216,16 @@ class ApartmentHistoryContractsTests(unittest.TestCase):
         self.assertEqual(delete_response.status_code, 200)
         self.assertEqual(delete_response.get_json()["inspection_date_labels"], ["20.09.2026"])
 
+    def test_accepted_apartment_without_inspection_date_shows_completed_inspection(self):
+        self.apartment.is_app_mode = True
+        self.apartment.app_deadline_status = "no_remarks"
+        db.session.commit()
+
+        response = self.client.get(f"/apartments/{self.apartment.id}")
+        self.assertEqual(response.status_code, 200)
+        self.assertRegex(response.get_data(as_text=True), r'data-apartment-inspection-display>\s*<span[^>]*>Был</span>')
+        self.assertEqual(_apartment_inspection_displays([self.apartment]), [])
+
     def test_not_was_clears_all_inspection_dates_and_schedule_marker(self):
         self.apartment.inspection_date = date(2026, 9, 15)
         self.apartment.first_inspection_date = date(2026, 9, 15)

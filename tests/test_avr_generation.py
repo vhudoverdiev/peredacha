@@ -67,10 +67,11 @@ class AvrGenerationTests(unittest.TestCase):
         text = ''.join(node.text or '' for node in root.iter('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t'))
         return text
 
-    def test_document_uses_current_full_name_and_first_inspection(self):
+    def test_document_uses_current_representative_initials_and_first_inspection(self):
         text = self.generate(inspection_date='2030-01-01',
                              completion_phrase='Все замечания с акта осмотра от __.__.____ устранены.\nДополнительный текст')
-        self.assertIn('Иванов Иван Иванович', text)
+        self.assertIn('Иванов И.И.', text)
+        self.assertNotIn('Иванов Иван Иванович', text)
         self.assertIn('Все замечания с акта осмотра от 21.04.2026 устранены.', text)
         self.assertIn('Дополнительный текст', text)
         self.assertNotIn('2030', text)
@@ -79,7 +80,7 @@ class AvrGenerationTests(unittest.TestCase):
         self.user.full_name = 'Смирнова Анна Сергеевна'
         db.session.commit()
         text = self.generate()
-        self.assertIn('Смирнова Анна Сергеевна', text)
+        self.assertIn('Смирнова А.С.', text)
         self.assertNotIn('Иванов Иван Иванович', text)
 
     def test_date_falls_back_to_earliest_stored_inspection(self):
@@ -131,14 +132,14 @@ class AvrGenerationTests(unittest.TestCase):
 
     def test_manual_representative_is_used_without_changing_account(self):
         text = self.generate(developer_representative='  Смирнова  Анна Сергеевна  ')
-        self.assertIn('Смирнова Анна Сергеевна', text)
+        self.assertIn('Смирнова А.С.', text)
         self.assertNotIn('Иванов Иван Иванович', text)
         self.assertEqual(self.user.full_name, 'Иванов Иван Иванович')
 
     def test_manual_representative_works_without_profile_name(self):
         self.user.full_name = None
         db.session.commit()
-        self.assertIn('Смирнова Анна Сергеевна', self.generate(developer_representative='Смирнова Анна Сергеевна'))
+        self.assertIn('Смирнова А.С.', self.generate(developer_representative='Смирнова Анна Сергеевна'))
 
     def test_explicitly_empty_representative_is_rejected(self):
         with patch('app.routes.build_avr_docx') as build:
