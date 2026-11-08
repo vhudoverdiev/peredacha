@@ -60367,17 +60367,19 @@ html body.app-body .users-settings-page .users-create-form .users-role-fieldset 
 }
 
 html body.app-body .users-settings-page .users-table:has(.users-col-city) {
-  min-width: 880px !important;
+  min-width: 1380px !important;
 }
 
-html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-login { width: 10% !important; }
-html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-name { width: 20% !important; }
-html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-role { width: 14% !important; }
-html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-project { width: 14% !important; }
-html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-captcha { width: 9% !important; }
-html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-created { width: 12% !important; }
-html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-actions { width: 8% !important; }
-html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-city { width: 13% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-login { width: 8% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-name { width: 16% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-role { width: 11% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-project { width: 11% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-captcha { width: 7% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-created { width: 9% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-actions { width: 6% !important; }
+html body.app-body .users-settings-page .users-table:has(.users-col-city) .users-col-city { width: 10% !important; }
+html body.app-body .users-settings-page .users-table .users-col-phone { width: 10%; }
+html body.app-body .users-settings-page .users-table .users-col-email { width: 12%; }
 html body.app-body .users-settings-page .users-table:has(.users-col-city) tbody td:nth-child(2) {
   width: auto !important;
   min-width: 0 !important;
@@ -60515,4 +60517,42 @@ body.app-body > .object-delete-overlay {
 body.app-body > .object-delete-overlay .confirm-modal-backdrop {
   width: auto !important;
   height: auto !important;
+}
+
+@media (min-width: 768px) {
+  html.desktop-like-pointer body.app-body:has(.objects-floating-actions) .crm-toast-stack {
+    right: max(1rem, env(safe-area-inset-right)) !important;
+    bottom: calc(1.25rem + 42px + .75rem) !important;
+  }
+}
+
+/* Give the user directory and its filters the full desktop content width. */
+@media (min-width: 1024px) {
+  html.desktop-like-pointer body.app-body .settings-standalone-layout .documents-content:has(.users-table) {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .users-settings-page:has(.users-table) {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  html.desktop-like-pointer body.app-body .users-settings-page .users-table:has(.users-col-city) {
+    min-width: 0 !important;
+  }
+
+  html.desktop-like-pointer body.app-body .users-settings-page .users-table :is(th, td) {
+    overflow-wrap: anywhere;
+  }
+}
+
+.project-group-drag-handle {
+  display: inline-flex;
+  padding: .2rem .35rem;
+  cursor: grab;
+}
+
+.project-group-drag-handle:active {
+  cursor: grabbing;
 }

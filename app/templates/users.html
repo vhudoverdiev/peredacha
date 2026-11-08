@@ -58,9 +58,10 @@
           <h2 class="h5 mb-3">Создать раздел</h2>
           {% set group = none %}
           {% include '_project_group_form.html' %}
+          <div data-project-group-order="{{ url_for('main.project_group_order') }}" data-csrf-token="{{ csrf_token() }}">
           {% for group in project_groups %}
-          <details class="mt-3">
-            <summary>{{ group.name }}</summary>
+          <details class="mt-3" data-order-group-id="{{ group.id }}">
+            <summary><span class="project-group-drag-handle" draggable="true" title="Перетащить раздел"><i class="bi bi-grip-vertical" aria-hidden="true"></i></span> {{ group.name }}</summary>
             {% include '_project_group_form.html' %}
             <form method="post" action="{{ url_for('main.project_group_delete', group_id=group.id) }}" class="mt-2"
                   data-confirm="Удалить раздел «{{ group.name }}»? Объекты останутся, а доступ через этот раздел будет снят.">
@@ -69,6 +70,7 @@
             </form>
           </details>
           {% endfor %}
+          </div>
         </div>
       </div>
     </div>
@@ -87,6 +89,8 @@
               <col class="users-col-created">
               <col class="users-col-actions">
               <col class="users-col-city">
+              <col class="users-col-phone">
+              <col class="users-col-email">
             </colgroup>
             <thead>
               <tr>
@@ -98,6 +102,8 @@
                 <th>Создан</th>
                 <th class="users-actions-heading">Действия</th>
                 <th>Город</th>
+                <th>Телефон</th>
+                <th>Электронная почта</th>
               </tr>
             </thead>
             <tbody>
@@ -188,9 +194,21 @@
                   </form>
                   {% endif %}
                 </td>
+                {% for field, type, label, limit in [('phone', 'tel', 'Телефон', 80), ('email', 'email', 'Электронная почта', 180)] %}
+                {% set contact = user|attr(field) or '' %}
+                <td>
+                  <form class="users-name-autosave" method="post" action="{{ url_for('main.user_update_contact', user_id=user.id, field=field) }}" data-saved-value="{{ contact }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <span class="users-name-input-wrap">
+                      <input class="users-name-input" type="{{ type }}" name="{{ field }}" value="{{ contact }}" maxlength="{{ limit }}" placeholder="—" aria-label="{{ label }} пользователя {{ user.username }}" {% if user.id in protected_user_ids and user.id != current_user.id %}readonly{% endif %}>
+                      <i class="bi bi-pencil" aria-hidden="true"></i>
+                    </span>
+                  </form>
+                </td>
+                {% endfor %}
               </tr>
             {% else %}
-              <tr><td colspan="8" class="text-center py-4">Пользователи не найдены</td></tr>
+              <tr><td colspan="10" class="text-center py-4">Пользователи не найдены</td></tr>
             {% endfor %}
             </tbody>
           </table>

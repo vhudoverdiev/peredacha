@@ -102,6 +102,12 @@
 
       <div class="site-error-meta">
         <span><i class="bi bi-person me-1"></i>{% if report.user %}{{ report.user.full_name or report.user.username }}{% elif report.kind == 'registration' %}Заявка с экрана входа{% else %}Система{% endif %}</span>
+        {% if report.user and report.user.phone %}
+        <span><i class="bi bi-telephone me-1" aria-hidden="true"></i><a href="tel:{{ report.user.phone|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}">{{ report.user.phone }}</a></span>
+        {% endif %}
+        {% if report.user and report.user.email %}
+        <span><i class="bi bi-envelope me-1" aria-hidden="true"></i><a href="mailto:{{ report.user.email|urlencode }}">{{ report.user.email }}</a></span>
+        {% endif %}
         {% if report.project %}<span><i class="bi bi-building me-1"></i>{{ report.project.name }}</span>{% endif %}
         {% if report.page_url %}<span class="site-error-url"><i class="bi bi-link-45deg me-1"></i>{{ report.page_url }}</span>{% endif %}
       </div>

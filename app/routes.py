@@ -364,7 +364,7 @@ SECTION_LOCK_CHOICES = [
         "label": "Пользователи",
         "icon": "bi-people",
         "endpoints": {
-            "main.users", "main.user_new", "main.user_update_projects", "main.user_update_city", "main.project_groups_save", "main.project_group_delete",
+            "main.users", "main.user_new", "main.user_update_projects", "main.user_update_city", "main.project_groups_save", "main.project_group_delete", "main.project_group_order",
             "main.user_set_password", "main.user_set_password_page",
             "main.user_delete_confirm", "main.user_delete",
         },
@@ -2231,6 +2231,12 @@ def project_stats(project: Project) -> dict[str, int]:
     }
 
 
+def _project_group_sort_key():
+    order = (get_setting("project_group_order", "") or "").split(",")
+    positions = {group_id: index for index, group_id in enumerate(order)}
+    return lambda group: (positions.get(str(group.id), len(positions)), group.name.casefold(), group.id)
+
+
 @bp.route("/objects")
 @login_required
 def objects():
@@ -2252,7 +2258,8 @@ def objects():
     for card in project_cards:
         group = card["project"].group
         groups.setdefault(group, []).append(card)
-    object_groups = sorted(groups.items(), key=lambda item: (item[0] is None, item[0].name.casefold() if item[0] else ""))
+    group_order = _project_group_sort_key()
+    object_groups = sorted(groups.items(), key=lambda item: (item[0] is None, group_order(item[0]) if item[0] else ()))
     show_support = (
         _setting_bool("objects_support_enabled")
         and not _is_mobile_phone_request()
@@ -12774,6 +12781,20 @@ def project_groups_save():
     return redirect(url_for("main.user_new"))
 
 
+@bp.post("/users/project-groups/order")
+@login_required
+@role_required(ROLE_ADMIN)
+def project_group_order():
+    payload = request.get_json(silent=True)
+    ids = payload.get("ids") if isinstance(payload, dict) else None
+    existing = {group.id for group in ProjectGroup.query.all()}
+    if not isinstance(ids, list) or any(type(value) is not int for value in ids) or len(ids) != len(existing) or set(ids) != existing:
+        return jsonify(ok=False, message="Список разделов изменился. Обновите страницу."), 409
+    set_setting("project_group_order", ",".join(map(str, ids)))
+    db.session.commit()
+    return jsonify(ok=True)
+
+
 @bp.post("/users/project-groups/<int:group_id>/delete")
 @login_required
 @role_required(ROLE_ADMIN)
@@ -12819,7 +12840,7 @@ def user_update_city(user_id):
 def users():
     create_mode = request.endpoint == "main.user_new" or request.method == "POST"
     form = UserForm()
-    project_groups = ProjectGroup.query.order_by(ProjectGroup.name).all()
+    project_groups = sorted(ProjectGroup.query.all(), key=_project_group_sort_key())
     all_projects = Project.query.order_by(Project.name.asc(), Project.id.asc()).all()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data.strip()).first()
@@ -12864,6 +12885,8 @@ def users():
                 return False
             if filters["role"] and user.role != filters["role"]:
                 return False
+            if filters["section"] == "all":
+                return user.can_access_all_projects or bool(user.project_group_policy.get("all_sections"))
             if section_id:
                 ids = all_project_ids if user.can_access_all_projects else user.project_access_ids
                 if not (ids & section_project_ids or section_id in user.project_group_ids):
@@ -12882,8 +12905,8 @@ def users():
         project_groups=project_groups,
         user_filters=filters,
         user_filter_options=[
-            ("role", "Роль", ROLE_LABELS.items()),
-            ("section", "Раздел", [(item.id, item.name) for item in project_groups]),
+            ("role", "Роль", {**ROLE_LABELS, **dict(form.role.choices)}.items()),
+            ("section", "Раздел", [("all", "Все разделы"), *((item.id, item.name) for item in project_groups)]),
         ],
         user_cities=USER_CITIES,
         protected_user_ids=protected_user_ids,
@@ -12994,6 +13017,27 @@ def user_update_name(user_id: int):
         return jsonify(ok=True, full_name=user.full_name or "", label=user.full_name or "—", message="ФИО сохранено.")
     flash("ФИО пользователя обновлено.", "success")
     return redirect(url_for("main.users"))
+
+
+@bp.post("/users/<int:user_id>/contacts/<field>")
+@login_required
+@role_required(ROLE_ADMIN)
+def user_update_contact(user_id: int, field: str):
+    if field not in {"phone", "email"}:
+        abort(404)
+    user = db.session.get(User, user_id) or abort(404)
+    if is_protected_developer_user(user) and user.id != current_user.id:
+        abort(403)
+    if field not in request.form:
+        abort(400)
+    value = request.form[field].strip()
+    if field == "phone" and len(value) > 80:
+        return jsonify(ok=False, message="Номер телефона не должен превышать 80 символов."), 400
+    if field == "email" and value and (len(value) > 180 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value)):
+        return jsonify(ok=False, message="Укажите корректный email."), 400
+    setattr(user, field, value or None)
+    db.session.commit()
+    return jsonify(ok=True, **{field: value})
 
 
 @bp.route("/users/<int:user_id>/captcha", methods=["POST"])

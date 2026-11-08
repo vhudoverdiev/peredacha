@@ -75,8 +75,9 @@
         {% if project.has_parking %}
         <div class="object-stat-row"><span>Парковок:</span><b class="stat-badge stat-badge-white">{{ stats.parking_count }}</b></div>
         {% endif %}
-        <div class="object-stat-row"><span>Принятых (квартир) — АПП:</span><b class="stat-badge stat-badge-success">{{ stat_share(stats.transferred, stats.apartments) }}</b></div>
-        <div class="object-stat-row"><span>Не принятых (квартир):</span><b class="stat-badge stat-badge-danger">{{ stat_share(stats.not_transferred, stats.apartments) }}</b></div>
+        {% set sold_apartments = stats.transferred + stats.not_transferred %}
+        <div class="object-stat-row"><span>Принятых (квартир) — АПП:</span><b class="stat-badge stat-badge-success">{{ stat_share(stats.transferred, sold_apartments) }}</b></div>
+        <div class="object-stat-row"><span>Не принятых (квартир):</span><b class="stat-badge stat-badge-danger">{{ stat_share(stats.not_transferred, sold_apartments) }}</b></div>
       </div>
     </article>
     {% endfor %}

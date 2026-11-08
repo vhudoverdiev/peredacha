@@ -121,7 +121,7 @@
     <article class="dashboard-info-card">
       <div class="dashboard-info-title dashboard-soft-section-title"><i class="bi bi-clipboard-check"></i> Приемка</div>
       <div class="dashboard-line-list">
-        <div><span>Принятых (квартир)</span><b>{{ stat_share(stats.accepted_apartment_count, stats.apartment_count) }}</b></div>
+        <div><span>Принятых (квартир)</span><b>{{ stat_share(stats.accepted_apartment_count, stats.apartment_count - stats.unsold_apartment_count) }}</b></div>
         <div><span>Не проданных всего</span><b>{{ stats.unsold }}</b></div>
         <div><span>Квартир не продано</span><b>{{ stats.unsold_apartment_count }}</b></div>
         {% if project.has_commercial %}
@@ -129,7 +129,7 @@
         {% endif %}
         {% if project.has_storerooms %}
         <div><span>Кладовки не продано</span><b>{{ stats.unsold_storeroom_count }}</b></div>
-        <div><span>Кладовок не принято</span><b>{{ stat_share(stats.not_accepted_storeroom_count, stats.storeroom_count, show_zero_total=true) }}</b></div>
+        <div><span>Кладовок не принято</span><b>{{ stat_share(stats.not_accepted_storeroom_count, stats.storeroom_count - stats.unsold_storeroom_count, show_zero_total=true) }}</b></div>
         {% endif %}
         {% if project.has_parking %}
         <div><span>Парковки не продано</span><b>{{ stats.unsold_parking_count }}</b></div>
@@ -140,7 +140,6 @@
 
     <article class="dashboard-info-card">
       <div class="dashboard-info-title dashboard-soft-section-title"><i class="bi bi-eye"></i> Осмотры</div>
-      <p class="small text-muted mb-2">Доля от проданных помещений каждого типа</p>
       <div class="dashboard-accepted-types">
         <section class="dashboard-accepted-type">
           <div class="dashboard-accepted-summary-grid">
@@ -180,7 +179,6 @@
         <i class="bi bi-check2-circle"></i>
         Принято
       </div>
-      <p class="small text-muted mb-2">Доля от принятых помещений каждого типа</p>
       <div class="dashboard-accepted-types">
         <section class="dashboard-accepted-type">
           <div class="dashboard-accepted-summary-grid">

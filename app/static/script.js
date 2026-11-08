@@ -9156,7 +9156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let savedValue = form.dataset.savedValue || '';
     let saving = false;
 
-    const saveName = async () => {
+    const saveField = async () => {
       const requestedValue = input.value.trim();
       if (saving || requestedValue === savedValue) {
         input.value = requestedValue;
@@ -9167,7 +9167,7 @@ document.addEventListener('DOMContentLoaded', () => {
       form.classList.add('is-saving');
       try {
         const formData = new FormData(form);
-        formData.set('full_name', requestedValue);
+        formData.set(input.name, requestedValue);
         const response = await fetch(form.action, {
           method: 'POST',
           body: formData,
@@ -9178,15 +9178,15 @@ document.addEventListener('DOMContentLoaded', () => {
           },
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось сохранить имя');
-        savedValue = data.full_name ?? requestedValue;
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось сохранить данные');
+        savedValue = data[input.name] ?? requestedValue;
         form.dataset.savedValue = savedValue;
         input.value = savedValue;
         form.classList.add('is-saved');
         window.setTimeout(() => form.classList.remove('is-saved'), 900);
       } catch (error) {
         input.value = savedValue;
-        window.showCrmNotice?.(error.message || 'Не удалось сохранить имя', 'danger');
+        window.showCrmNotice?.(error.message || 'Не удалось сохранить данные', 'danger');
       } finally {
         saving = false;
         input.disabled = false;
@@ -9198,7 +9198,7 @@ document.addEventListener('DOMContentLoaded', () => {
       event.preventDefault();
       input.blur();
     });
-    input.addEventListener('blur', saveName);
+    input.addEventListener('blur', saveField);
     input.addEventListener('keydown', event => {
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -9732,4 +9732,47 @@ document.addEventListener('change', async event => {
       checkbox.closest('label').hidden = unavailable;
     }
   }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const list = document.querySelector('[data-project-group-order]');
+  if (!list) return;
+  let dragged, saving = false;
+  const groupAt = event => event.target.closest('[data-order-group-id]');
+
+  list.addEventListener('dragstart', event => {
+    if (saving || !event.target.closest('.project-group-drag-handle')) {
+      event.preventDefault();
+      return;
+    }
+    dragged = groupAt(event);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', dragged.dataset.orderGroupId);
+  });
+  list.addEventListener('dragover', event => {
+    if (dragged && groupAt(event) !== dragged) event.preventDefault();
+  });
+  list.addEventListener('dragend', () => { dragged = null; });
+  list.addEventListener('drop', async event => {
+    if (!dragged) return;
+    event.preventDefault();
+    const target = groupAt(event);
+    if (!target || target === dragged) return;
+    const before = [...list.children];
+    list.insertBefore(dragged, before.indexOf(dragged) < before.indexOf(target) ? target.nextSibling : target);
+    saving = true;
+    try {
+      const response = await fetch(list.dataset.projectGroupOrder, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': list.dataset.csrfToken },
+        body: JSON.stringify({ ids: [...list.children].map(group => Number(group.dataset.orderGroupId)) }),
+      });
+      if (!response.ok) throw new Error('Не удалось сохранить порядок разделов.');
+    } catch (error) {
+      list.append(...before);
+      window.showCrmNotice?.(error.message, 'danger');
+    } finally {
+      saving = false;
+    }
+  });
 });

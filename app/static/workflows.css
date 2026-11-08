@@ -129,6 +129,7 @@
 .record-apartment-time input:focus-visible + span { outline: 3px solid #79b443; }
 @media(max-width:767.98px) { .record-apartment-contact { grid-template-columns: minmax(0,1fr); } }
 .workflow-mobile-shortcuts { display: none; }
+html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .workflow-mobile-shortcuts { display: grid; grid-template-columns: minmax(0,1fr); gap: 10px; margin-bottom: 14px; }
 .workflow-month-tally, .workflow-month-legend { display: none; }
 @media (max-width:767.98px) {
  /* The shared app-main already reserves the fixed header's height. */
@@ -157,7 +158,6 @@
  .workflow-month-legend { display: block; font-size: 13px; color: #4e6144; }
  .workflow-month-tally { display: grid; gap: 4px; justify-content: center; color: #3f612c; text-decoration: none; font-size: 12px; line-height: 1.2; }
  .workflow-calendar-month .workflow-day > small { font-size: 10px; text-align: center; overflow-wrap: anywhere; }
- .workflow-mobile-shortcuts { display: grid; grid-template-columns: minmax(0,1fr); gap: 10px; margin-bottom: 14px; }
  .workflow-mobile-shortcuts .mobile-section-shortcut > span { min-width: 0; overflow-wrap: anywhere; }
  .workflow-mobile-shortcuts .workflow-count { display: inline-block; margin-left: 7px; vertical-align: middle; }
 }
