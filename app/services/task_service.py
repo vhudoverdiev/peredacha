@@ -2100,6 +2100,15 @@ def sync_rows(
     if base_mapping.get("apartment_number") is None and base_mapping.get("construction_number") is None:
         return result.as_dict() | {"seen_uids": set()}
 
+    # Some storeroom sheets keep their project numbers after the remarks,
+    # while the numbered column before the remarks is left empty.
+    storeroom_project_number_col = next(
+        (idx for idx, header in enumerate(headers)
+         if normalize_text(header).rstrip(".") == "№ кв. проект"
+         and idx > max(point_columns, default=-1)),
+        None,
+    )
+
     for row_zero_idx, row in enumerate(rows[data_start:], start=data_start + 1):
         if not any(str(c or "").strip() for c in row):
             continue
@@ -2130,8 +2139,16 @@ def sync_rows(
         if current_premise_type == "parking" and not getattr(project, "has_parking", False):
             continue
 
-        raw_apartment_number = normalize_apartment_number_cell(value_at(row, base_mapping.get("apartment_number")))
-        raw_construction_number = normalize_number_cell(value_at(row, base_mapping.get("construction_number")))
+        row_mapping = base_mapping
+        raw_apartment_number = normalize_apartment_number_cell(value_at(row, row_mapping.get("apartment_number")))
+        raw_construction_number = normalize_number_cell(value_at(row, row_mapping.get("construction_number")))
+        if (
+            current_premise_type == "storeroom"
+            and not (raw_apartment_number or raw_construction_number)
+            and storeroom_project_number_col is not None
+        ):
+            row_mapping = {**base_mapping, "apartment_number": storeroom_project_number_col}
+            raw_apartment_number = normalize_apartment_number_cell(value_at(row, storeroom_project_number_col))
         if current_premise_type == "apartment":
             apartment_number_looks_valid = looks_like_apartment_identifier(raw_apartment_number)
             construction_number_looks_valid = looks_like_apartment_identifier(raw_construction_number)
@@ -2163,11 +2180,11 @@ def sync_rows(
                 commercial_numbers_in_building.add(raw_apartment_number)
 
         unsold_marker_columns = [
-            base_mapping.get("apartment_number"),
-            base_mapping.get("construction_number"),
-            base_mapping.get("owner_name"),
-            base_mapping.get("phone"),
-            base_mapping.get("finishing_type"),
+            row_mapping.get("apartment_number"),
+            row_mapping.get("construction_number"),
+            row_mapping.get("owner_name"),
+            row_mapping.get("phone"),
+            row_mapping.get("finishing_type"),
         ]
         unsold_by_number_color = bool(
             unsold_color_cells
@@ -2180,7 +2197,7 @@ def sync_rows(
             project,
             row,
             row_zero_idx,
-            base_mapping,
+            row_mapping,
             fallback_apartment_number=str(row_zero_idx),
             premise_type=current_premise_type,
             sheet_name=sheet_name,
@@ -2189,8 +2206,8 @@ def sync_rows(
         )
         if not (apartment.apartment_number or apartment.construction_number):
             continue
-        legacy_apartment_number = str(value_at(row, base_mapping.get("apartment_number")) or "").strip()
-        legacy_construction_number = str(value_at(row, base_mapping.get("construction_number")) or "").strip()
+        legacy_apartment_number = str(value_at(row, row_mapping.get("apartment_number")) or "").strip()
+        legacy_construction_number = str(value_at(row, row_mapping.get("construction_number")) or "").strip()
         for col_zero_idx, header in point_columns.items():
             cell_value = value_at(row, col_zero_idx)
             point_number = extract_point_number(header, col_zero_idx + 1)

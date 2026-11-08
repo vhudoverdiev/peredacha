@@ -15,7 +15,7 @@ class ApartmentCardContactsTests(unittest.TestCase):
     def test_group_contacts_are_trimmed_and_deduplicated(self):
         apartments = [
             SimpleNamespace(owner_name="Иванов Иван\nПетров Пётр", phone="+7 900 000-00-01"),
-            SimpleNamespace(owner_name="иванов иван\nСидорова Анна", phone="+7 900 000-00-01\n+7 900 000-00-02"),
+            SimpleNamespace(owner_name="иванов иван\nСидорова Анна", phone="+7 900 000-00-01, +7 900 000-00-02;\n+7 900 000-00-02"),
         ]
 
         self.assertEqual(

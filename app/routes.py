@@ -10242,7 +10242,8 @@ def _apartment_group_contact_values(apartments: list[Apartment], field_name: str
     seen: set[str] = set()
     for apartment in apartments:
         raw_value = str(getattr(apartment, field_name, "") or "")
-        for part in raw_value.splitlines():
+        parts = re.split(r"[,;\r\n]+", raw_value) if field_name == "phone" else raw_value.splitlines()
+        for part in parts:
             value = part.strip()
             if field_name == "owner_name" and is_unsold_owner_name(value):
                 continue
