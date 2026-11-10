@@ -123,6 +123,31 @@ class AccessSettingsTests(unittest.TestCase):
         created = User.query.filter_by(username="section-user").one()
         self.assertEqual(created.project_group_policy["groups"], [group.id])
 
+    def test_user_edit_rejects_object_only_access_and_preserves_legacy_access(self):
+        from app.models import ProjectGroup
+
+        self.manager.role = "admin"
+        group = ProjectGroup(name="Раздел для редактирования")
+        self.project.group = group
+        db.session.flush()
+        self.worker.set_project_access([self.project.id], group_scope=group.id)
+        db.session.commit()
+        self.login(self.manager)
+        page = self.client.get("/users")
+        self.assertEqual(page.status_code, 200)
+        self.assertNotIn('name="limit_group_projects"', page.text)
+        self.assertIn('selected>Прежний доступ', page.text)
+
+        path = f"/users/{self.worker.id}/projects"
+        headers = {"Accept": "application/json"}
+        selection = {"access_group": str(group.id)}
+        response = self.client.post(path, data={**selection, "limit_group_projects": "1",
+                                               "project_ids": str(self.project.id)}, headers=headers)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(self.worker.project_group_policy["scope"], group.id)
+        self.assertEqual(self.client.post(path, data=selection, headers=headers).status_code, 200)
+        self.assertEqual(self.worker.project_group_policy["groups"], [group.id])
+
     def test_manager_cannot_manage_access(self):
         self.login(self.manager)
         self.assertEqual(self.client.get('/settings/roles').status_code,403)

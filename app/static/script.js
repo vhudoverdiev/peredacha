@@ -9669,31 +9669,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-function syncUserSectionAccess(fieldset) {
-  const group = fieldset.querySelector('[name="access_group"]').value;
-  const limit = fieldset.querySelector('[name="limit_group_projects"]');
-  if (!limit) return;
-  const specificGroup = Boolean(group && group !== 'all');
-  limit.closest('label').hidden = !specificGroup;
-  limit.disabled = !specificGroup;
-  const limited = specificGroup && limit.checked;
-  fieldset.querySelector('[data-section-projects]').hidden = !limited;
-  fieldset.querySelectorAll('[data-access-group]').forEach(option => {
-    const available = limited && option.dataset.accessGroup === group;
-    option.hidden = !available;
-    option.querySelector('input').disabled = !available;
-  });
-}
-
-document.addEventListener('change', event => {
-  const fieldset = event.target.closest('[data-user-section-access]');
-  if (fieldset) syncUserSectionAccess(fieldset);
-});
-for (const eventName of ['DOMContentLoaded', 'crm:navigation-ready']) {
-  document.addEventListener(eventName, () => {
-    document.querySelectorAll('[data-user-section-access]').forEach(syncUserSectionAccess);
-  });
-}
 document.addEventListener('change', async event => {
   const input = event.target;
   const accessForm = input.closest('[data-user-section-autosave]');

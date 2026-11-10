@@ -69,6 +69,21 @@ class ApartmentsFilteredExportTests(unittest.TestCase):
         self.context.pop()
         login_manager.session_protection = self.previous_session_protection
 
+    def test_commercial_abbreviation_does_not_match_apartment_owner(self):
+        self.matching.owner_name = "Комарова"
+        db.session.add(Apartment(project=self.project, apartment_number="201", premise_type="commercial", building="1"))
+        db.session.commit()
+
+        for query in ("ком", "КОМ.", "комм", "коммерция"):
+            with self.subTest(query=query):
+                response = self.client.get("/apartments", query_string={"q": query})
+                self.assertEqual(response.status_code, 200)
+                self.assertIn("Найдено помещений: <b>1</b>", response.text)
+                self.assertNotIn("Комарова", response.text)
+        response = self.client.get("/apartments", query_string={"q": "Комарова"})
+        self.assertIn("Комарова", response.text)
+        self.assertIn("Найдено помещений: <b>1</b>", response.text)
+
     def test_latin_building_search_counts_only_matching_cards(self):
         from unittest.mock import patch
         from app.routes import _build_apartment_overview

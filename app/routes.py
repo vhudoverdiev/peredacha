@@ -10586,6 +10586,9 @@ def _filtered_apartment_overview_rows(
     q = re.sub(r"(?i)(?<!\w)k(?=\s*\d)", "к", q)
     premise_selectors, tail_query = parse_multi_premise_search(q)
     search_mode, search_value = detect_search_mode(q)
+    if q.casefold().rstrip(".") in {"ком", "комм", "коммерция", "коммерции"}:
+        search_mode, search_value = "premise_type", "commercial"
+
     po_only = args.get("po") == "1"
     inspection_filter = (args.get("inspection_status") or "").strip()
     inspection_order = (args.get("inspection_order") or "").strip()
@@ -10604,15 +10607,19 @@ def _filtered_apartment_overview_rows(
             premise_matches_selector(item, selector) for item in group for selector in premise_selectors
         ):
             continue
+        if search_mode == "premise_type" and not any(
+            premise_matches_search(item, search_mode, search_value) for item in group
+        ):
+            continue
         row = _build_apartment_overview(group, include_activity=source_groups is None)
         if q:
             if premise_selectors:
                 if tail_query and tail_query.lower().replace("ё", "е") not in _apartment_overview_search_haystack(row):
                     continue
-            elif search_mode in {"premise_number", "premise_number_or_building", "commercial_pair", "construction_number", "premise_type", "typed_premise_number"}:
+            elif search_mode in {"premise_number", "premise_number_or_building", "commercial_pair", "construction_number", "typed_premise_number"}:
                 if not any(premise_matches_search(item, search_mode, search_value) for item in group):
                     continue
-            elif search_value.lower().replace("ё", "е") not in _apartment_overview_search_haystack(row):
+            elif search_mode != "premise_type" and search_value.lower().replace("ё", "е") not in _apartment_overview_search_haystack(row):
                 continue
         if entrance_filter and not any(
             (item.premise_type or "apartment") == "apartment"
@@ -12792,6 +12799,8 @@ def account_password():
 
 
 def _requested_project_access():
+    if request.form.get("limit_group_projects") == "1":
+        return [], False, [], None
     selection = request.form.get("access_group", "")
     if selection == "all":
         return [], False, [], "all"
@@ -12799,12 +12808,7 @@ def _requested_project_access():
     group = db.session.get(ProjectGroup, group_id) if group_id else None
     if group is None:
         return [], False, [], None
-    if request.form.get("limit_group_projects") != "1":
-        return [], False, [group.id], None
-    requested = set(request.form.getlist("project_ids"))
-    ids = [project.id for project in Project.query.filter_by(group_id=group.id)
-           if str(project.id) in requested]
-    return ids, False, [], group.id
+    return [], False, [group.id], None
 
 
 @bp.post("/users/project-groups")
@@ -12921,7 +12925,7 @@ def users():
         else:
             project = None
             project_ids, all_projects_access, group_ids, group_scope = _requested_project_access()
-            if request.form.get("limit_group_projects") == "1" or not (group_ids or group_scope == "all"):
+            if not (group_ids or group_scope == "all"):
                 flash("Для нового пользователя выберите раздел целиком или все разделы.", "danger")
                 users = User.query.order_by(User.created_at.desc()).all()
                 return render_template("users.html", create_mode=True, users=users, form=form, project=project, all_projects=all_projects, project_groups=project_groups, protected_user_ids=_protected_user_ids(users))
@@ -13002,8 +13006,8 @@ def user_update_projects(user_id: int):
     project_ids, all_projects_access, group_ids, group_scope = _requested_project_access()
     if not all_projects_access and not project_ids and not group_ids and group_scope != "all":
         if wants_json:
-            return jsonify(ok=False, message="Выберите хотя бы один объект или раздел."), 400
-        flash("Выберите хотя бы один объект.", "danger")
+            return jsonify(ok=False, message="Выберите раздел целиком или все разделы."), 400
+        flash("Выберите раздел целиком или все разделы.", "danger")
         return redirect(url_for("main.users"))
     user.set_project_access(project_ids, all_projects=all_projects_access, group_ids=group_ids, group_scope=group_scope)
     db.session.commit()

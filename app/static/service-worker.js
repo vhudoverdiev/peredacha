@@ -1,5 +1,5 @@
 importScripts('/static/worker-offline-store.js?v=1');
-const STATIC_CACHE = 'peredacha-static-v368-developer-log-tabs';
+const STATIC_CACHE = 'peredacha-static-v369-user-section-access';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -20,7 +20,7 @@ const STATIC_ASSETS = [
   '/static/desktop-only.css?v=v80-issued-priority-controls',
   '/static/worker-offline-store.js?v=1',
   '/static/worker-offline.js?v=5',
-  '/static/script.js?v=v733-developer-log-tabs',
+  '/static/script.js?v=v734-user-section-access',
   '/static/navigation-state.js?v=4',
   '/static/page-navigation.js?v=10',
   '/static/form-csrf.js?v=1',
