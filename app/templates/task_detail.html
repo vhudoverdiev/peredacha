@@ -101,6 +101,7 @@
     </div>
 
     {% endif %}
+    {% if history_scope %}
     <div class="card content-card task-detail-history-card">
       <div class="card-body">
         <h2 class="section-title">История изменений</h2>
@@ -115,6 +116,7 @@
         <div class="text-muted" data-task-history-empty {% if history_entries %}hidden{% endif %}>Истории пока нет</div>
       </div>
     </div>
+    {% endif %}
   </div>
 
   <div class="col-lg-4">

@@ -88,6 +88,15 @@ def baseline_endpoint(role, endpoint, mutation=False):
     return role in {'manager','supervisor','office','office_manager'} or role.startswith('custom_')
 
 
+HISTORY_SCOPES = {'apartments': 'История изменений по помещению', 'remarks': 'История изменений замечания'}
+HISTORY_OWN_ACTIONS = {f'{section}_history_own' for section in HISTORY_SCOPES}
+for section, label in HISTORY_SCOPES.items():
+    ACTIONS.extend([
+        (f'{section}_history_own', section, f'{label} — только свои записи', set()),
+        (f'{section}_history_all', section, f'{label} — записи всех пользователей', set()),
+    ])
+
+
 def effective(role):
     from app.routes import SECTION_LOCK_CHOICES
     configured=definitions().get(role)
@@ -96,8 +105,14 @@ def effective(role):
     default_actions=[key for key,section,label,endpoints in ACTIONS if any(baseline_endpoint(role,ep,mutation=True) for ep in endpoints)]
     if role in {'admin','manager'}:
         default_actions.append('remark_view_comments')
+    if role not in {'painter', 'handyman', 'glazier', 'new'}:
+        default_actions.extend(sorted(HISTORY_OWN_ACTIONS))
     if configured:
-        return {'sections':configured.get('sections',[]), 'actions':configured.get('actions',default_actions)}
+        actions = [key for key in configured.get('actions', default_actions)
+                   if key not in {'dashboard_history_own', 'dashboard_history_all'}]
+        if not configured.get('history_permissions_saved'):
+            actions.extend(sorted(HISTORY_OWN_ACTIONS.intersection(default_actions).difference(actions)))
+        return {'sections': configured.get('sections', []), 'actions': actions}
     return {'sections':defaults,'actions':default_actions}
 
 

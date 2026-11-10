@@ -29,14 +29,16 @@ const base='http://127.0.0.1:5098';
   const copyBox=await hero.locator('.dashboard-redesign-copy').boundingBox();
   const transferBox=await transfer.boundingBox();
   assert.ok(Math.abs(copyBox.height-transferBox.height)<2);
-  assert.match((await news.evaluate(surface)).image,/linear-gradient/);
-  assert.ok(await news.evaluate(el=>parseFloat(getComputedStyle(el).borderLeftWidth)>0));
- } else {
-  assert.deepEqual(await news.evaluate(surface),{image:'none',color:'rgba(0, 0, 0, 0)'});
  }
+ assert.match((await news.evaluate(surface)).image,/linear-gradient/);
+ assert.ok(await news.evaluate(el=>parseFloat(getComputedStyle(el).borderLeftWidth)>0));
  assert.equal(await page.locator('.dashboard-subtitle').textContent(),'Вся самая необходимая информация в одном месте');
  assert.ok((await news.locator('.dev-news-eyebrow').textContent()).includes('Худовердиев В'));
  const archive=news.getByRole('link',{name:'Посмотреть все'});
+ if(width>767){
+  await archive.hover();
+  assert.deepEqual(await archive.evaluate(el=>[getComputedStyle(el).color,getComputedStyle(el).textDecorationLine]),['rgb(54, 87, 31)','none']);
+ }
  await archive.focus();
  assert.equal(await archive.evaluate(el=>getComputedStyle(el).outlineStyle),'solid');
  if(width<=767){

@@ -5569,6 +5569,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (['glass-measurements', 'materials', 'developer-tools', 'site-errors'].includes(pageKey)
         && !document.documentElement.classList.contains('desktop-like-pointer')) return;
     event.preventDefault();
+    if (pageKey === 'developer-delete-logs') {
+      window.history.replaceState({ ...window.history.state, ajaxPagination: true, pageKey }, '');
+    }
     tabs?.querySelectorAll('.remarks-tab-link').forEach(tab => tab.classList.toggle('active', tab === link));
     void updatePaginationPage(targetUrl, {
       push: true,
@@ -5631,6 +5634,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pageKey = event.state?.pageKey || '';
     const pageRoot = pageKey
       ? document.querySelector(`[data-ajax-pagination-page="${CSS.escape(pageKey)}"]`)
+        || (pageKey === 'developer-delete-logs' ? document.querySelector('[data-ajax-pagination-page="developer-tools"]') : null)
       : document.querySelector('[data-ajax-pagination-page]');
     if (!pageRoot) return;
     updatePaginationPage(new URL(window.location.href), { push: false, root: pageRoot });

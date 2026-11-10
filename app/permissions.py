@@ -64,6 +64,21 @@ def can_view_task_comments(user) -> bool:
     return getattr(user, "role", None) in {ROLE_ADMIN, ROLE_MANAGER}
 
 
+def history_access(user, section) -> str | None:
+    if not getattr(user, "is_authenticated", False):
+        return None
+    if user.role == ROLE_ADMIN:
+        return "all"
+    from app.role_settings import effective
+
+    actions = effective(user.role)["actions"]
+    if f"{section}_history_all" in actions:
+        return "all"
+    if f"{section}_history_own" in actions:
+        return "own"
+    return None
+
+
 def can_use_project_workflows(user) -> bool:
     return getattr(user, 'role', None) in {ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_OFFICE, ROLE_OFFICE_MANAGER, ROLE_VIEWER} or getattr(user, 'role', '').startswith('custom_')
 

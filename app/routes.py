@@ -92,7 +92,7 @@ from app.models import (
     DONE_STATUSES,
     task_guarantee_contractor_setting_key,
 )
-from app.permissions import OFFICE_MANAGER_ROLES, can_change_task, can_view_task_comments, can_use_project_workflows, can_create_appeal, can_export, can_manage_mapping, can_manage_sync, role_required
+from app.permissions import OFFICE_MANAGER_ROLES, can_change_task, can_view_task_comments, history_access, can_use_project_workflows, can_create_appeal, can_export, can_manage_mapping, can_manage_sync, role_required
 from app.security import (
     client_ip,
     hit_rate_limit,
@@ -899,8 +899,29 @@ def _build_change_history_entry(change: ChangeLog, task: Task | None = None, use
         summary = f"Замечание добавлено из синхронизации: «{str(change.new_value or '').strip() or 'без названия источника'}»."
     elif change.action == "missing_in_latest_sync":
         summary = "После синхронизации замечание пропало из последней загруженной таблицы."
+    elif change.action in {"source_header_point_repaired", "legacy_named_point_repaired", "retired_source_column_excluded"}:
+        reason = {
+            "source_header_point_repaired": "Пункт исправлен по заголовку исходной таблицы",
+            "legacy_named_point_repaired": "Пункт исправлен по прежнему названию",
+            "retired_source_column_excluded": "Замечание архивировано: столбец исключён из исходной таблицы",
+        }[change.action]
+        summary = f"{reason}. Пункт: было № {old_value}, стало № {new_value} (ID в CRM)."
+    elif change.action == "retired_point_duplicate_merged":
+        summary = f"Дубликат замечания № {old_value} объединён с замечанием № {new_value}."
+    elif change.action == "retired_point_unmatched_archived":
+        summary = f"Замечание архивировано: для прежнего пункта (ID {old_value}) не найдено соответствие."
+    elif change.action == "retired_point_completion_preserved":
+        summary = f"Отметка о выполнении перенесена из замечания № {new_value}."
+    elif change.action == "retired_point_state_preserved":
+        summary = "Сохранено прежнее состояние дубликата перед объединением."
+    elif change.action == "retired_point_review_preserved":
+        summary = "Сохранено решение по классификации пункта дубликата перед объединением."
     else:
-        summary = "В задаче выполнено системное изменение."
+        summary = f"Системная операция «{change.action}»."
+        if field_name:
+            summary += f" Поле «{field_name}»."
+        if change.old_value is not None or change.new_value is not None:
+            summary += f" Было «{old_value}», стало «{new_value}»."
 
     return {
         "timestamp": format_ru_datetime(change.created_at),
@@ -2538,7 +2559,7 @@ def _mobile_phone_allowed_endpoints() -> set[str]:
         return set(WORKER_ALLOWED_ENDPOINTS) | ({"main.objects", "main.object_open"} if current_user.role == ROLE_EXECUTOR else set())
 
     allowed = {
-        "main.object_order", "main.premise_new",
+            "main.object_order", "main.premise_new",
         "main.updates_archive", "main.updates_card",
         "main.report_error",
         "main.messenger_thread",
@@ -3483,6 +3504,36 @@ def messenger_error_replies_read():
 def developer_delete_logs():
     if current_user.role != ROLE_ADMIN:
         abort(403)
+    if request.args.get("view") == "history":
+        from app.models import CrmAuditLog
+
+        events = db.union_all(
+            db.select(CrmAuditLog.id.label("event_id"), CrmAuditLog.created_at, db.literal("audit").label("source")),
+            db.select(ChangeLog.id, ChangeLog.created_at, db.literal("object")),
+        ).subquery()
+        history = db.session.query(events).order_by(
+            events.c.created_at.desc(), events.c.source, events.c.event_id.desc(),
+        ).paginate(page=max(1, request.args.get("page", 1, type=int)), per_page=30, error_out=False)
+        rows = history.items
+        audit_ids = [row.event_id for row in rows if row.source == "audit"]
+        change_ids = [row.event_id for row in rows if row.source == "object"]
+        audits = {entry.id: entry for entry in CrmAuditLog.query.filter(CrmAuditLog.id.in_(audit_ids))}
+        changes = {entry.id: entry for entry in ChangeLog.query.filter(ChangeLog.id.in_(change_ids)).options(
+            selectinload(ChangeLog.user), selectinload(ChangeLog.task).selectinload(Task.project),
+            selectinload(ChangeLog.task).selectinload(Task.work_point),
+            selectinload(ChangeLog.task).selectinload(Task.apartment),
+        )}
+        entries = []
+        users_cache = {}
+        for row in rows:
+            if row.source == "audit":
+                if row.event_id in audits:
+                    entries.append((audits[row.event_id], None))
+            elif (change := changes.get(row.event_id)) is not None:
+                entries.append((change, _build_change_history_entry(change, change.task, users_cache)))
+        return render_template("developer_delete_logs.html", history=history, entries=entries, view="history"), 200, {
+            "Cache-Control": "private, no-store",
+        }
     project = None
     query = DeletionActionLog.query.options(
         selectinload(DeletionActionLog.user),
@@ -8337,12 +8388,10 @@ def _work_point_conflict_label(work_point: WorkPoint | None) -> str:
     return display_name or "Замечание"
 
 
-def _history_change_visible_to_current_user(change: ChangeLog) -> bool:
+def _history_change_visible_to_current_user(change: ChangeLog, scope: str | None) -> bool:
     if change.action in {"comment_added", "comment_deleted"} and not can_view_task_comments(current_user):
         return False
-    if current_user.role == ROLE_ADMIN:
-        return True
-    return change.user_id == current_user.id
+    return scope == "all" or (scope == "own" and change.user_id == current_user.id)
 
 
 def _save_remark_with_sync_fallback(
@@ -11560,11 +11609,12 @@ def apartment_detail(apartment_id: int):
         "office_manager": _apartment_comment_entries(overview["changes"], "apartment_office_manager_comment", overview["office_manager_comment"] or ""),
     }
     users_cache: dict[int, str] = {}
+    history_scope = history_access(current_user, "apartments")
     history_entries_all = [
         _build_change_history_entry(item["change"], task=item["task"], users_cache=users_cache)
         for item in overview["changes"]
         if not _is_legacy_problem_comment_change(item["change"], item["task"])
-        and _history_change_visible_to_current_user(item["change"])
+        and _history_change_visible_to_current_user(item["change"], history_scope)
         and not (current_user.role in OFFICE_ROLES and item["change"].field_name == "po_status")
     ]
     history_page = max(request.args.get("history_page", 1, type=int), 1)
@@ -11582,6 +11632,7 @@ def apartment_detail(apartment_id: int):
         row=overview,
         apartment_comment_entries=apartment_comment_entries,
         history_entries=history_entries,
+        history_scope=history_scope,
         history_page=history_page,
         history_pages=history_pages,
         apartment=overview["apartment"],
@@ -11960,11 +12011,12 @@ def task_detail(task_id: int):
     edit_form.responsible_id.data = str(task.responsible_id or "")
     edit_form.planned_date.data = task.planned_date.isoformat() if task.planned_date else ""
     comment_form = CommentForm()
+    history_scope = history_access(current_user, "remarks")
     visible_changes = [
         change
         for change in task.changes
         if not _is_legacy_problem_comment_change(change, task)
-        and _history_change_visible_to_current_user(change)
+        and _history_change_visible_to_current_user(change, history_scope)
     ]
     users_cache: dict[int, str] = {}
     history_entries = [_build_change_history_entry(change, task=task, users_cache=users_cache) for change in visible_changes]
@@ -11991,6 +12043,7 @@ def task_detail(task_id: int):
         visible_comments=list(task.comments) if can_view_task_comments(current_user) else [],
         points=_remark_point_options(min_number=10),
         visible_changes=visible_changes,
+        history_scope=history_scope,
         history_entries=history_entries,
         other_open_tasks=other_tasks,
         back_url=back_url,
@@ -12533,9 +12586,10 @@ def mapping_settings():
 def role_settings():
     if current_user.role != ROLE_ADMIN:
         abort(403)
-    from app.role_settings import definitions, choices, effective, ACTIONS
+    from app.role_settings import definitions, choices, effective, ACTIONS, HISTORY_SCOPES
     data=definitions()
     sections=[item for item in SECTION_LOCK_CHOICES if item['key'] not in {'service','users','site_errors'} and not item['key'].startswith('developer')]
+    history_keys = {f"{section}_history_{scope}" for section in HISTORY_SCOPES for scope in ("own", "all")}
     if request.method == 'POST':
         role=(request.form.get('role') or '').strip()
         name=(request.form.get('name') or '').strip()
@@ -12552,6 +12606,11 @@ def role_settings():
             valid={item['key'] for item in sections}
             previous_policy = data.get(role, {})
             data[role]={'name':name, 'sections':[value for value in request.form.getlist('sections') if value in valid], 'actions':[value for value in request.form.getlist('actions') if value in {item[0] for item in ACTIONS}]}
+            if "history_permissions_present" in request.form:
+                data[role]["history_permissions_saved"] = True
+            elif previous_policy.get("history_permissions_saved"):
+                data[role]["history_permissions_saved"] = True
+                data[role]["actions"].extend(sorted(history_keys.intersection(previous_policy.get("actions", [])).difference(data[role]["actions"])))
             if "show_support_present" in request.form:
                 data[role]["show_support"] = request.form.get("show_support") == "1"
             elif "show_support" in previous_policy:
@@ -12565,7 +12624,7 @@ def role_settings():
     selected=request.args.get('role','new')
     if selected != 'new' and selected not in dict(choices()):
         abort(400)
-    return render_template('role_settings.html',roles=[(key,label) for key,label in choices() if key != ROLE_ADMIN], definitions=data, sections=sections, selected=selected, policy=effective(selected), actions=ACTIONS, show_support=selected != "new" and _role_shows_support(selected), draft_id=uuid4().hex)
+    return render_template('role_settings.html',roles=[(key,label) for key,label in choices() if key != ROLE_ADMIN], definitions=data, sections=sections, selected=selected, policy=effective(selected), actions=[action for action in ACTIONS if action[0] not in history_keys], history_actions=[action for action in ACTIONS if action[0] in history_keys], show_support=selected != "new" and _role_shows_support(selected), draft_id=uuid4().hex)
 
 
 @bp.route("/settings", methods=["GET", "POST"])

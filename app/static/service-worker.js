@@ -1,5 +1,5 @@
 importScripts('/static/worker-offline-store.js?v=1');
-const STATIC_CACHE = 'peredacha-static-v363-personal-entry-toast';
+const STATIC_CACHE = 'peredacha-static-v368-developer-log-tabs';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -14,20 +14,20 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v811-dashboard-category-layout',
+  '/static/style.css?v=v814-developer-log-tabs',
   '/static/workflows.css?v=32-mobile-shortcuts',
   '/static/mobile-only.css?v=v101-ios-objects-dock',
   '/static/desktop-only.css?v=v80-issued-priority-controls',
   '/static/worker-offline-store.js?v=1',
   '/static/worker-offline.js?v=5',
-  '/static/script.js?v=v732-personal-entry-toast',
+  '/static/script.js?v=v733-developer-log-tabs',
   '/static/navigation-state.js?v=4',
-  '/static/page-navigation.js?v=9',
+  '/static/page-navigation.js?v=10',
   '/static/form-csrf.js?v=1',
   '/static/remark-suggestions.js?v=5-point-numbering',
   '/static/time-entry.js?v=3',
   '/static/remark-suggestions.css?v=3',
-  '/static/developer-news.css?v=19',
+  '/static/developer-news.css?v=22',
   '/static/developer-news.js?v=4',
 ];
 

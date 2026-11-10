@@ -1,11 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Для разработчика — логи удалений{% endblock %}
+{% block title %}Для разработчика — логи удалений</div>
+</div>
+{% endblock %}
 {% block content %}
 <div class="developer-tools-ajax-page" data-ajax-pagination-page="developer-tools">
 <div class="page-head remarks-page-head">
   <div>
     <h1 class="page-title">Для разработчика</h1>
-    <p class="page-subtitle">Здесь отображаются действия удаления, которые можно проверить и при необходимости отменить.</p>
+    <p class="page-subtitle">{{ 'Кто, когда и где изменил данные в CRM.' if view == 'history' else 'Здесь отображаются действия удаления, которые можно проверить и при необходимости отменить.' }}</p>
   </div>
 </div>
 
@@ -23,6 +25,19 @@
 </div>
 
 <div class="developer-tools-tab-content" data-ajax-pagination-content>
+<div data-ajax-pagination-page="developer-delete-logs">
+<nav class="site-errors-kind-tabs" data-ajax-pagination-tabs aria-label="Разделы журнала">
+  <a class="site-errors-kind-tab remarks-tab-link{% if view != 'history' %} active{% endif %}" href="{{ url_for('main.developer_delete_logs') }}"{% if view != 'history' %} aria-current="page"{% endif %}>
+    <i class="bi bi-trash3" aria-hidden="true"></i><span>Удаления</span>
+  </a>
+  <a class="site-errors-kind-tab remarks-tab-link{% if view == 'history' %} active{% endif %}" href="{{ url_for('main.developer_delete_logs', view='history') }}"{% if view == 'history' %} aria-current="page"{% endif %}>
+    <i class="bi bi-clock-history" aria-hidden="true"></i><span>История изменений CRM</span>
+  </a>
+</nav>
+<div data-ajax-pagination-content>
+{% if view == 'history' %}
+  {% include "_crm_audit_history.html" %}
+{% else %}
 <div class="developer-delete-log-list">
   {% for log in logs %}
   <article class="card content-card developer-delete-log-card {% if log.is_undone %}is-undone{% endif %} {% if not log.is_undone %}is-actionable{% endif %}">
@@ -78,6 +93,9 @@
     </div>
   </div>
   {% endfor %}
+</div>
+{% endif %}
+</div>
 </div>
 </div>
 </div>

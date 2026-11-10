@@ -478,6 +478,7 @@
     </div>
 
     {% endif %}
+    {% if history_scope %}
     <div class="card content-card" data-apartment-history-card data-ajax-pagination-content data-ajax-items-selector=".timeline-item">
       <div class="card-body">
         <h2 class="section-title">История изменений по помещению</h2>
@@ -505,6 +506,7 @@
         {% endif %}
       </div>
     </div>
+    {% endif %}
   </div>
 </div>
 

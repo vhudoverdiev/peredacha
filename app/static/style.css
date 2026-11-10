@@ -18068,15 +18068,6 @@ body:has(.documents-standalone-layout)::-webkit-scrollbar,
 .developer-delete-log-card {
   overflow: hidden;
 }
-.developer-delete-log-card::before {
-  content: "";
-  display: block;
-  height: .22rem;
-  background: linear-gradient(90deg, #ef4444, #f97316);
-}
-.developer-delete-log-card.is-undone::before {
-  background: linear-gradient(90deg, #22c55e, #14b8a6);
-}
 .developer-delete-log-head,
 .developer-delete-log-meta,
 .developer-delete-log-actions {
@@ -60678,21 +60669,21 @@ body.app-body > .object-delete-overlay .confirm-modal-backdrop {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .dashboard-handover-item:last-child:nth-child(odd),
+  .dashboard-handover-grid:has(> .dashboard-handover-item:nth-child(3):last-child) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dashboard-handover-item:only-child,
   .dashboard-handover-empty {
     grid-column: 1 / -1;
   }
 
-  .dashboard-handover-item:last-child:nth-child(odd) {
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    justify-items: start;
-    column-gap: .875rem;
-    text-align: start;
+  .dashboard-handover-item {
+    padding-inline: .25rem;
   }
 
-  .dashboard-handover-item:last-child:nth-child(odd) .dashboard-handover-ring {
-    grid-area: 1 / 1 / span 2;
+  .dashboard-handover-count {
+    display: block;
   }
 
   .dashboard-handover-ring {

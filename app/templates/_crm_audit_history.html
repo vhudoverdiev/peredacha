@@ -1,0 +1,39 @@
+{% set actions = {'create': 'Создание', 'update': 'Изменение', 'delete': 'Удаление'} %}
+{% set entities = {'projects': 'Объект', 'apartments': 'Помещение', 'tasks': 'Замечание',
+                   'task_comments': 'Комментарий к замечанию', 'users': 'Пользователь',
+                   'inspection_bookings': 'Запись на осмотр', 'appeals': 'Обращение',
+                   'developer_updates': 'Обновление CRM', 'developer_personal_messages': 'Личное сообщение'} %}
+<div class="developer-delete-log-list">
+{% for entry, detail in entries %}
+  <article class="card content-card developer-delete-log-card">
+    <div class="card-body">
+      {% if detail %}
+      <div class="developer-delete-log-head flex-wrap">
+        <strong>{{ detail.actor }}{% if entry.task and entry.task.project %} · {{ entry.task.project.name }}{% endif %}</strong>
+        <time class="text-muted small">{{ detail.timestamp }}</time>
+      </div>
+      <div class="small text-muted text-break mt-2">{% if entry.task and entry.task.apartment %}Помещение № {{ entry.task.apartment.display_number() }} · {% endif %}Замечание № {{ entry.task_id }}{% if detail.point_label %} · {{ detail.point_label }}{% endif %}</div>
+      <div class="text-break">{{ detail.summary }}</div>
+      {% else %}
+      <div class="developer-delete-log-head flex-wrap">
+        <strong>{{ actions[entry.action] }} · {{ entities.get(entry.entity, entry.entity) }}{% if entry.entity_id %} № {{ entry.entity_id }}{% endif %}</strong>
+        <time class="text-muted small">{{ entry.created_at|ru_datetime }}</time>
+      </div>
+      <div class="mt-2">Пользователь {{ entry.actor }} · № {{ entry.user_id }}{% if entry.project_id %} · Объект № {{ entry.project_id }}{% endif %}</div>
+      <div class="small text-muted text-break">{{ entry.path }}</div>
+      {% if entry.fields %}<div class="small text-break">Изменённые поля: {{ entry.fields }}</div>{% endif %}
+      {% if entry.affected_count is not none %}<div class="small">Записей: {{ entry.affected_count }}</div>{% endif %}
+      {% endif %}
+    </div>
+  </article>
+{% else %}
+  <p class="card content-card p-3 text-muted">Пока нет записей об изменениях CRM.</p>
+{% endfor %}
+</div>
+{% if history.pages > 1 %}
+<nav class="d-flex flex-wrap align-items-center gap-2 mt-3" aria-label="Страницы журнала">
+  {% if history.has_prev %}<a class="btn btn-outline-secondary" href="{{ url_for('main.developer_delete_logs', view='history', page=history.prev_num) }}">Назад</a>{% endif %}
+  <span>{{ history.page }} / {{ history.pages }}</span>
+  {% if history.has_next %}<a class="btn btn-outline-secondary" href="{{ url_for('main.developer_delete_logs', view='history', page=history.next_num) }}">Далее</a>{% endif %}
+</nav>
+{% endif %}

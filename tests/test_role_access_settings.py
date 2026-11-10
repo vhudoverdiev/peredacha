@@ -40,6 +40,41 @@ class AccessSettingsTests(unittest.TestCase):
         self.assertFalse(checked('actions','object_delete'))
         self.assertFalse(checked('sections','glass'))
 
+    def test_history_uses_separate_scopes_and_filters_authors(self):
+        from app.models import ChangeLog
+        from app.role_settings import effective
+
+        db.session.add_all([
+            ChangeLog(task_id=self.task.id, user_id=self.manager.id, action="field_update",
+                      field_name="description", new_value="OWN_HISTORY_MARKER"),
+            ChangeLog(task_id=self.task.id, user_id=self.worker.id, action="field_update",
+                      field_name="description", new_value="OTHER_HISTORY_MARKER"),
+            ChangeLog(task_id=self.task.id, user_id=self.worker.id, action="comment_added",
+                      new_value="PRIVATE_COMMENT_HISTORY"),
+        ])
+        db.session.commit()
+        self.login(self.manager)
+        with self.app.test_request_context():
+            self.assertIn("remarks_history_own", effective("manager")["actions"])
+            for role in ("painter", "handyman", "glazier"):
+                self.assertNotIn("remarks_history_own", effective(role)["actions"])
+
+        path = "/object/history"
+        self.assertEqual(self.client.get(path).status_code, 404)
+
+        set_setting("role_section_permissions", json.dumps({"manager": {
+            "name": "Менеджер", "sections": ["dashboard", "remarks", "apartments"],
+            "actions": ["dashboard_history_all", "remarks_history_own"],
+            "history_permissions_saved": True,
+        }}))
+        db.session.commit()
+        with self.app.test_request_context():
+            self.assertNotIn("dashboard_history_all", effective("manager")["actions"])
+        html = self.client.get(f"/tasks/{self.task.id}").text
+        self.assertIn("OWN_HISTORY_MARKER", html)
+        self.assertNotIn("OTHER_HISTORY_MARKER", html)
+        self.assertNotIn("История изменений по помещению", self.client.get(f"/apartments/{self.apartment.id}").text)
+
     def test_manager_cannot_manage_access(self):
         self.login(self.manager)
         self.assertEqual(self.client.get('/settings/roles').status_code,403)

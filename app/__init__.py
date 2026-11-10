@@ -365,7 +365,7 @@ def create_app(config_class=Config):
 
     # Bootstrap DB for fresh installs / new tables (no Alembic migrations yet).
     from app import models  # noqa: F401
-    from app.services import remark_learning  # noqa: F401
+    from app.services import crm_audit, remark_learning  # noqa: F401
 
     with app.app_context():
         uri = (app.config.get("SQLALCHEMY_DATABASE_URI") or "").lower()

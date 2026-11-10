@@ -954,6 +954,23 @@ class ChatMessage(TimestampMixin, db.Model):
     recipient = db.relationship("User", foreign_keys=[recipient_id])
 
 
+class CrmAuditLog(db.Model):
+    __tablename__ = "crm_audit_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False, index=True)
+    actor = db.Column(db.String(255), nullable=False)
+    endpoint = db.Column(db.String(160), nullable=False)
+    path = db.Column(db.String(512), nullable=False)
+    action = db.Column(db.String(16), nullable=False)
+    entity = db.Column(db.String(80), nullable=False)
+    entity_id = db.Column(db.Integer)
+    project_id = db.Column(db.Integer, index=True)
+    fields = db.Column(db.Text)
+    affected_count = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, nullable=False, index=True)
+
+
 class DeletionActionLog(TimestampMixin, db.Model):
     __tablename__ = "deletion_action_logs"
 
@@ -1136,6 +1153,8 @@ class DeveloperPersonalMessage(TimestampMixin, db.Model):
     duration_minutes=db.Column(db.Integer,nullable=False,default=60)
     first_seen_at=db.Column(db.DateTime,nullable=True)
     expires_at=db.Column(db.DateTime,nullable=True,index=True)
+    login_notified_at=db.Column(db.DateTime,nullable=True)
+
     revoked_at=db.Column(db.DateTime,nullable=True)
     recipient=db.relationship('User',foreign_keys=[recipient_id])
     author=db.relationship('User',foreign_keys=[author_id])

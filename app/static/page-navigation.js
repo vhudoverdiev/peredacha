@@ -147,5 +147,10 @@
     if(event.submitter?.name)url.searchParams.append(event.submitter.name,event.submitter.value);
     void navigate(url.href);
   });
-  persistent(window,'popstate',event=>{event.stopImmediatePropagation();void navigate(location.href,{push:false});});
+  persistent(window,'popstate',event=>{
+    if (event.state?.pageKey === 'developer-delete-logs'
+        && document.querySelector('[data-ajax-pagination-page="developer-delete-logs"]')) return;
+    event.stopImmediatePropagation();
+    void navigate(location.href,{push:false});
+  });
 })();
