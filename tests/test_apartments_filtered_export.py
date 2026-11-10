@@ -69,6 +69,22 @@ class ApartmentsFilteredExportTests(unittest.TestCase):
         self.context.pop()
         login_manager.session_protection = self.previous_session_protection
 
+    def test_latin_building_search_counts_only_matching_cards(self):
+        from unittest.mock import patch
+        from app.routes import _build_apartment_overview
+
+        db.session.add_all([
+            Apartment(project=self.project, apartment_number=str(number), premise_type="commercial", building=building)
+            for building in ("1", "2") for number in range(201, 206)
+        ])
+        db.session.commit()
+        with patch("app.routes._build_apartment_overview", wraps=_build_apartment_overview) as build:
+            response = self.client.get("/apartments", query_string={"q": "K1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Найдено помещений: <b>5</b>", response.text)
+        self.assertIn("data-ajax-pagination-summary", response.text)
+        self.assertEqual(build.call_count, 5)
+
     def test_filtered_page_exposes_export_link_with_the_same_query(self):
         response = self.client.get("/apartments", query_string={"q": "125"})
         self.assertEqual(response.status_code, 200)

@@ -45,7 +45,7 @@ ACTIONS = [
  ('remark_edit','remarks','Редактировать и разделять замечания',{'main.update_task','main.inline_update_text','main.split_task_remark'}),
  ('remark_status','remarks','Менять статус замечаний',{'main.quick_status'}),
  ('remark_delete','remarks','Удалять замечания',{'main.task_delete'}),
- ('remark_comments','remarks','Добавлять и удалять комментарии',{'main.add_task_comment','main.delete_task_comment'}),
+ ('remark_comments','remarks','Добавлять и удалять комментарии к замечаниям',{'main.add_task_comment','main.delete_task_comment'}),
  ('contractor_manage','contractors','Добавлять и редактировать подрядчиков',{'main.contractor_new','main.contractor_edit','main.contractor_points','main.contractor_response_statuses'}),
  ('contractor_delete','contractors','Удалять подрядчиков',{'main.contractor_delete'}),
  ('assignment_manage','assignments','Выдавать задачи и менять исполнителей, даты и статусы',{'main.assignments','main.assignment_unassign'}),
@@ -151,7 +151,7 @@ ACTIONS += [
 ]
 ACTIONS += [
  ('worker_status','worker_tasks','Менять статус своих задач',{'main.my_task_done','main.my_task_return','main.my_task_status','main.worker_offline_operation'}),
- ('worker_comment','worker_tasks','Оставлять и удалять свои комментарии',{'main.my_task_comment','main.my_task_comment_delete'}),
+ ('worker_comment','worker_tasks','Оставлять и удалять свои комментарии в разделе «Мои задачи»',{'main.my_task_comment','main.my_task_comment_delete'}),
  ('worker_measure','worker_tasks','Добавлять и удалять свои замеры',{'main.my_task_measurement','main.my_task_measurement_delete'}),
 ]
 

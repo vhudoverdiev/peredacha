@@ -10475,8 +10475,20 @@ def apartments():
     except (TypeError, ValueError):
         mobile_page = 1
 
+    groups = _group_project_apartments(project.id, include_activity=False)
+    po_alert_count = 0
+    if current_user.role in {ROLE_ADMIN, ROLE_MANAGER}:
+        for group in groups:
+            tasks = [
+                task for apartment in group for task in apartment.tasks
+                if (task.source_sheet_name or "") != "apartment_history"
+                and not task.is_archived
+                and not task.is_missing_in_latest_sync
+            ]
+            if _po_status_for_group(group, tasks) == PO_STATUS_TO_THROW:
+                po_alert_count += 1
+
     if not has_active_filters:
-        groups = _group_project_apartments(project.id, include_activity=False)
         groups.sort(key=lambda group: _apartment_sort_value(_pick_apartment_representative(group)))
         total_count = len(groups)
         mobile_total_pages = max(1, (total_count + per_page - 1) // per_page)
@@ -10486,32 +10498,15 @@ def apartments():
         rows = [_build_apartment_overview(group, include_activity=False) for group in visible_groups]
         premise_selectors = []
         po_only = False
-        po_alert_count = 0
-        for group in groups:
-            tasks = [
-                task
-                for apartment in group
-                for task in list(apartment.tasks or [])
-                if (task.source_sheet_name or "") != "apartment_history"
-                and not task.is_archived
-                and not task.is_missing_in_latest_sync
-            ]
-            if _po_status_for_group(group, tasks) == PO_STATUS_TO_THROW:
-                po_alert_count += 1
     else:
-        all_rows = [
-            _build_apartment_overview(group, include_activity=False)
-            for group in _group_project_apartments(project.id, include_activity=False)
-        ]
         rows, premise_selectors, po_only = _filtered_apartment_overview_rows(
-            project.id, request.args, source_rows=all_rows
+            project.id, request.args, source_groups=groups
         )
         total_count = len(rows)
         mobile_total_pages = max(1, (total_count + per_page - 1) // per_page)
         mobile_page = min(mobile_page, mobile_total_pages)
         start = (mobile_page - 1) * per_page
         rows = rows[start:start + per_page]
-        po_alert_count = sum(1 for row in all_rows if row.get("po_status") == PO_STATUS_TO_THROW)
     finishing_types = [
         x[0]
         for x in db.session.query(distinct(Apartment.finishing_type))
@@ -10585,10 +10580,12 @@ def _inspection_sort_rank(row: dict, order: str) -> int:
 def _filtered_apartment_overview_rows(
     project_id: int,
     args,
-    source_rows: list[dict] | None = None,
+    source_groups: list[list[Apartment]] | None = None,
 ) -> tuple[list[dict], list[dict], bool]:
     q = (args.get("q") or "").strip()
-    premise_selectors, _tail_query = parse_multi_premise_search(q)
+    q = re.sub(r"(?i)(?<!\w)k(?=\s*\d)", "к", q)
+    premise_selectors, tail_query = parse_multi_premise_search(q)
+    search_mode, search_value = detect_search_mode(q)
     po_only = args.get("po") == "1"
     inspection_filter = (args.get("inspection_status") or "").strip()
     inspection_order = (args.get("inspection_order") or "").strip()
@@ -10601,33 +10598,22 @@ def _filtered_apartment_overview_rows(
         po_status_filter = ""
     finishing_groups = set(get_multi_param_values(args, "finishing_group"))
     rows = []
-    overview_rows = source_rows
-    if overview_rows is None:
-        overview_rows = [_build_apartment_overview(group) for group in _group_project_apartments(project_id)]
-    for row in overview_rows:
+    groups = source_groups if source_groups is not None else _group_project_apartments(project_id)
+    for group in groups:
+        if premise_selectors and not any(
+            premise_matches_selector(item, selector) for item in group for selector in premise_selectors
+        ):
+            continue
+        row = _build_apartment_overview(group, include_activity=source_groups is None)
         if q:
-            premise_selectors, tail_query = parse_multi_premise_search(q)
-            search_mode, search_value = detect_search_mode(q)
             if premise_selectors:
-                if not any(
-                    premise_matches_selector(item, selector)
-                    for item in row["apartments"]
-                    for selector in premise_selectors
-                ):
+                if tail_query and tail_query.lower().replace("ё", "е") not in _apartment_overview_search_haystack(row):
                     continue
-                if tail_query:
-                    needle = tail_query.lower().replace("ё", "е")
-                    haystack = _apartment_overview_search_haystack(row)
-                    if needle not in haystack:
-                        continue
             elif search_mode in {"premise_number", "premise_number_or_building", "commercial_pair", "construction_number", "premise_type", "typed_premise_number"}:
-                if not any(premise_matches_search(item, search_mode, search_value) for item in row["apartments"]):
+                if not any(premise_matches_search(item, search_mode, search_value) for item in group):
                     continue
-            else:
-                needle = search_value.lower().replace("ё", "е")
-                haystack = _apartment_overview_search_haystack(row)
-                if needle not in haystack:
-                    continue
+            elif search_value.lower().replace("ё", "е") not in _apartment_overview_search_haystack(row):
+                continue
         if entrance_filter and not any(
             (item.premise_type or "apartment") == "apartment"
             and construction_entrance(item.construction_number) == entrance_filter
@@ -12635,7 +12621,10 @@ def role_settings():
     selected=request.args.get('role','new')
     if selected != 'new' and selected not in dict(choices()):
         abort(400)
-    return render_template('role_settings.html',roles=[(key,label) for key,label in choices() if key != ROLE_ADMIN], definitions=data, sections=sections, selected=selected, policy=effective(selected), actions=[action for action in ACTIONS if action[0] not in history_keys], history_actions=[action for action in ACTIONS if action[0] in history_keys], show_support=selected != "new" and _role_shows_support(selected), draft_id=uuid4().hex)
+    comment_keys = {"premise_comments", "remark_comments", "remark_view_comments", "assignment_comments",
+                    "worker_comment", "appeal_edit"}
+    comment_actions = [action for action in ACTIONS if action[0] in comment_keys]
+    return render_template('role_settings.html',roles=[(key,label) for key,label in choices() if key != ROLE_ADMIN], definitions=data, sections=sections, selected=selected, policy=effective(selected), actions=[action for action in ACTIONS if action[0] not in history_keys | comment_keys], comment_actions=comment_actions, history_actions=[action for action in ACTIONS if action[0] in history_keys], show_support=selected != "new" and _role_shows_support(selected), draft_id=uuid4().hex)
 
 
 @bp.route("/settings", methods=["GET", "POST"])

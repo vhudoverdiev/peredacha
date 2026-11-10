@@ -45,6 +45,18 @@
     {% endfor %}
   </div>
 </article>
+<article class="card content-card settings-card">
+  <div class="card-body">
+    <div class="settings-card-head">
+      <div class="settings-card-icon"><i class="bi bi-chat-dots" aria-hidden="true"></i></div>
+      <h2 class="section-title mb-1">Комментарии</h2>
+    </div>
+    <p class="text-muted small mt-2 mb-0">Разрешения действуют в разделах, открытых для этой роли.</p>
+    {% for key,parent,label,endpoints in comment_actions %}
+    <label class="settings-switch-row"><span>{{ label }}</span><input class="form-check-input settings-switch" type="checkbox" name="actions" value="{{ key }}" {% if key in policy.actions %}checked{% endif %}></label>
+    {% endfor %}
+  </div>
+</article>
 {% for section in sections %}
 <article class="card content-card settings-card"><div class="card-body">
 <div class="settings-card-head"><div class="settings-card-icon"><i class="bi {{ section.icon }}"></i></div><h2 class="section-title mb-1">{{ section.label }}</h2></div>
