@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Личное сообщение{% endblock %}
+{% block layout_mode %}objects{% endblock %}
+{% block content %}
+{% from "_developer_news_empty.html" import empty_card %}
+<section class="dev-news-archive dev-news-personal-page">
+  <div class="page-head">
+    <h1 class="page-title">Личное сообщение</h1>
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.dashboard') }}">На главную</a>
+  </div>
+  {% if news_card %}
+    {% include "_developer_update_card.html" %}
+  {% else %}
+    {{ empty_card('Сейчас нет активного личного сообщения', 'bi-envelope-paper') }}
+  {% endif %}
+</section>
+{% endblock %}

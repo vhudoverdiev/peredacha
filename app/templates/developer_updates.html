@@ -48,9 +48,70 @@
 <label>Единица времени<select class="form-select" name="duration_unit"><option value="1" {% if request.form.get('duration_unit')=='1' %}selected{% endif %}>Минуты</option><option value="60" {% if request.form.get('duration_unit','60')=='60' %}selected{% endif %}>Часы</option><option value="1440" {% if request.form.get('duration_unit')=='1440' %}selected{% endif %}>Дни</option></select></label></div>
 <button class="btn btn-primary" type="submit">Отправить пользователю</button>
 {% else %}
-<div class="dev-news-actions"><button class="btn btn-primary" type="submit" name="action" value="publish">{{ 'Сохранить' if edit else 'Опубликовать всем' }}</button>{% if not edit %}<button class="btn btn-outline-secondary" type="submit" name="action" value="draft">Сохранить черновик</button>{% endif %}{% if edit %}<a class="btn btn-outline-secondary" href="{{ url_for('main.developer_updates') }}">Отмена</a>{% endif %}</div>
+{% set scheduled = edit and edit.published_at and edit.published_at > now and not edit.withdrawn_at %}
+{% set can_schedule = not edit or not edit.published_at or edit.withdrawn_at or scheduled %}
+{% if can_schedule %}
+{% if request.method == 'POST' %}
+  {% set previous_schedule = request.form.get('publish_at', '').split('T', 1) %}
+  {% set schedule_date = request.form.get('publish_date', previous_schedule[0]) %}
+  {% set schedule_time = request.form.get('publish_time', previous_schedule[1]|default('')) %}
+{% else %}
+  {% set schedule_date = edit.published_at|msk_datetime('%Y-%m-%d') if scheduled else '' %}
+  {% set schedule_time = edit.published_at|msk_datetime('%H:%M') if scheduled else '' %}
+{% endif %}
+<div class="dev-news-schedule">
+  <label>Дата публикации
+    <input class="form-control" type="date" name="publish_date" value="{{ schedule_date }}">
+  </label>
+  <div class="dev-news-time-field">
+    <label id="developer-time-label" for="developer-publish-time">Время (МСК)</label>
+    <input class="form-control" id="developer-publish-time" type="time" name="publish_time" value="{{ schedule_time }}">
+    <button class="global-date-button dev-news-time-trigger" type="button" aria-haspopup="dialog" aria-controls="developer-time-picker" aria-labelledby="developer-time-label developer-time-value" hidden>
+      <span id="developer-time-value" data-time-value>Выберите время</span>
+      <span class="global-date-icon" aria-hidden="true"><i class="bi bi-clock"></i></span>
+    </button>
+  </div>
+</div>
+{% endif %}
+<div class="dev-news-actions">
+  {% if scheduled %}
+    <button class="btn btn-primary" type="submit" name="action" value="schedule">Сохранить расписание</button>
+    <button class="btn btn-outline-secondary" type="submit" name="action" value="publish">Опубликовать сейчас</button>
+  {% else %}
+    <button class="btn btn-primary" type="submit" name="action" value="publish">{{ 'Сохранить' if edit and edit.published_at and not edit.withdrawn_at else ('Опубликовать сейчас' if edit else 'Опубликовать всем') }}</button>
+    {% if can_schedule %}<button class="btn btn-outline-secondary" type="submit" name="action" value="schedule">Запланировать публикацию</button>{% endif %}
+  {% endif %}
+  {% if not edit %}<button class="btn btn-outline-secondary" type="submit" name="action" value="draft">Сохранить черновик</button>{% endif %}
+  {% if edit %}<a class="btn btn-outline-secondary" href="{{ url_for('main.developer_updates') }}">Отмена</a>{% endif %}
+</div>
 {% endif %}
 </form>
+{% if mode != 'messages' and can_schedule %}
+<dialog class="assignment-date-modal dev-news-time-dialog" id="developer-time-picker" aria-labelledby="developer-time-title">
+  <form method="dialog">
+    <div class="assignment-date-modal-head">
+      <div>
+        <div class="assignment-date-modal-kicker">Дата и время публикации</div>
+        <h2 id="developer-time-title">Выбор времени (МСК)</h2>
+      </div>
+      <button class="assignment-date-modal-close" type="button" data-time-close aria-label="Закрыть"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+    </div>
+    <div class="dev-news-time-inputs">
+      <label>Часы<input class="form-control" name="hours" type="number" inputmode="numeric" min="0" max="23" required></label>
+      <label>Минуты<input class="form-control" name="minutes" type="number" inputmode="numeric" min="0" max="59" required></label>
+    </div>
+    <div class="assignment-date-quick-row" aria-label="Быстрый выбор минут">
+      {% for minute in ('00', '15', '30', '45') %}
+        <button type="button" data-time-minute="{{ minute }}" aria-label="{{ minute }} минут">:{{ minute }}</button>
+      {% endfor %}
+    </div>
+    <div class="assignment-date-modal-actions">
+      <button class="btn btn-outline-secondary" type="button" data-time-close>Отмена</button>
+      <button class="btn btn-primary" type="submit">Выбрать время</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
 </section>
 {% endif %}
 {% if not composing %}
@@ -67,12 +128,15 @@
 {% set pagination=messages %}
 {% else %}
 <h2>Публикации и черновики</h2>
-{% for update in updates.items %}<article class="card content-card dev-news-history-item">
-<div class="dev-news-item-head"><h3>{{ update.title }}</h3><div class="dev-news-item-tools"><span class="dev-news-state">{{ 'Скрыто' if update.withdrawn_at else ('Опубликовано' if update.published_at else 'Черновик') }}</span>{{ delete_button(url_for('main.developer_update_delete',update_id=update.id), 'Удалить обновление') }}</div></div>
-{% if update.published_at %}<time>{{ update.published_at|msk_datetime('%d.%m.%Y') }}</time>{% endif %}
+{% for update in updates.items %}
+{% set scheduled = update.published_at and update.published_at > now and not update.withdrawn_at %}
+<article class="card content-card dev-news-history-item">
+<div class="dev-news-item-head"><h3>{{ update.title }}</h3><div class="dev-news-item-tools"><span class="dev-news-state">{{ 'Скрыто' if update.withdrawn_at else ('Запланировано' if scheduled else ('Опубликовано' if update.published_at else 'Черновик')) }}</span>{{ delete_button(url_for('main.developer_update_delete',update_id=update.id), 'Удалить обновление') }}</div></div>
+{% if scheduled %}<time>{{ update.published_at|msk_datetime('%d.%m.%Y в %H:%M') }} МСК</time>
+{% elif update.published_at %}<time>{{ update.published_at|msk_datetime('%d.%m.%Y') }}</time>{% endif %}
 <p>{{ update.body }}</p>
 <div class="dev-news-actions"><a class="btn btn-outline-secondary" href="{{ url_for('main.developer_update_edit',update_id=update.id) }}">Редактировать</a>
-{% if update.published_at and not update.withdrawn_at %}<form method="post" action="{{ url_for('main.developer_update_withdraw',update_id=update.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-outline-secondary">Снять с публикации</button></form>{% endif %}</div>
+{% if update.published_at and not update.withdrawn_at %}<form method="post" action="{{ url_for('main.developer_update_withdraw',update_id=update.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-outline-secondary">{{ 'Отменить расписание' if scheduled else 'Снять с публикации' }}</button></form>{% endif %}</div>
 </article>{% else %}{{ empty_card('Обновлений пока нет', 'bi-journal-richtext') }}{% endfor %}
 {% set pagination=updates %}
 {% endif %}

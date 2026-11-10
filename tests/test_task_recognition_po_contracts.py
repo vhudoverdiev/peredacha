@@ -356,6 +356,38 @@ class TaskRecognitionPoContractsTests(unittest.TestCase):
         self.assertEqual(old_other.status, STATUS_DONE)
         self.assertEqual(Task.query.filter(Task.description == "Старое замечание").count(), 1)
 
+    def test_distinct_rows_in_one_act_can_share_a_point(self):
+        self._login()
+        first = "Следы влаги в коридоре"
+        second = "Смещение перегородки"
+        form = {
+            "action": "save",
+            "confirm_import": "1",
+            "act_count": "1",
+            "act_0_filename": "same-point.pdf",
+            "act_0_template_ok": "1",
+            "act_0_project_ok": "1",
+            "act_0_apartment_id": str(self.apartment.id),
+            "act_0_row_count": "3",
+        }
+        for index, description in enumerate((first, second, first)):
+            form.update({
+                f"act_0_row_{index}_active": "1",
+                f"act_0_row_{index}_point": "11",
+                f"act_0_row_{index}_description": description,
+            })
+
+        response = self.client.post("/tasks/recognition", data=form)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, f"/apartments/{self.apartment.id}")
+
+        self.client.post("/tasks/recognition", data=form)
+        tasks = Task.query.filter_by(source_sheet_name="pdf_recognition").all()
+        self.assertCountEqual(
+            [(task.work_point.point_number, task.description) for task in tasks],
+            [("11", first), ("11", second)],
+        )
+
     def test_save_ignores_recognition_rows_before_point_ten(self):
         self._login()
 

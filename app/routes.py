@@ -8255,6 +8255,7 @@ def _find_existing_remark_duplicate_or_conflict(
     apartment: Apartment,
     point_number: str | None,
     text: str,
+    act_created_task_ids: set[int] | None = None,
 ) -> tuple[WorkPoint, Task | None, Task | None]:
     work_point = _get_or_create_manual_work_point(point_number)
     target_text = normalize_text(text)
@@ -8267,7 +8268,11 @@ def _find_existing_remark_duplicate_or_conflict(
         if target_text and (task_text == target_text or pending_text == target_text):
             duplicate_task = task
             break
-        if conflict_task is None and (task_text or pending_conflict is not None):
+        if (
+            conflict_task is None
+            and (act_created_task_ids is None or task.id not in act_created_task_ids)
+            and (task_text or pending_conflict is not None)
+        ):
             conflict_task = task
     return work_point, duplicate_task, conflict_task
 
@@ -8351,12 +8356,14 @@ def _save_remark_with_sync_fallback(
     conflict_source_type: str,
     conflict_source_name: str | None = None,
     conflict_sheet_name: str | None = None,
+    act_created_task_ids: set[int] | None = None,
 ) -> str:
     work_point, duplicate_task, conflict_task = _find_existing_remark_duplicate_or_conflict(
         project=project,
         apartment=apartment,
         point_number=point_number,
         text=text,
+        act_created_task_ids=act_created_task_ids,
     )
     if duplicate_task is not None:
         return "duplicate"
@@ -8371,7 +8378,7 @@ def _save_remark_with_sync_fallback(
             cell_address=None,
         )
         return "conflict"
-    _create_manual_remark_task(
+    created_tasks = _create_manual_remark_tasks(
         project=project,
         apartment=apartment,
         point_number=work_point.point_number,
@@ -8379,6 +8386,8 @@ def _save_remark_with_sync_fallback(
         source_sheet_name=created_source_sheet_name,
         action=created_action,
     )
+    if act_created_task_ids is not None:
+        act_created_task_ids.update(task.id for task in created_tasks)
     return "created"
 
 
@@ -8972,6 +8981,8 @@ def task_recognition():
                                     apartment=apartment,
                                     exclude_task_ids=duplicate_task_ids,
                                 )
+                        # Rows from the same act can describe different defects at one point.
+                        act_created_task_ids: set[int] = set()
                         for point_number, text in (rows_to_create if po_mode else prepared_rows):
                             if po_mode:
                                 created_count += len(_create_manual_remark_tasks(
@@ -8993,6 +9004,7 @@ def task_recognition():
                                     conflict_source_type="pdf_recognition",
                                     conflict_source_name=act_filename,
                                     conflict_sheet_name=act_filename,
+                                    act_created_task_ids=act_created_task_ids,
                                 )
                                 if outcome == "created":
                                     created_count += 1

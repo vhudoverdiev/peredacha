@@ -130,7 +130,8 @@ class DashboardCompletedStatusesTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
-        self.assertRegex(html, r'<div class="dashboard-progress-meta">1 .*? 5 .*?</div>')
+        self.assertIn('<div class="dashboard-big-number">5</div>', html)
+        self.assertIn('<div><span>Выполнено</span><b>1</b></div>', html)
 
     def test_desktop_dashboard_renders_the_expanded_completed_count(self):
         response = self.client.get(
@@ -140,7 +141,7 @@ class DashboardCompletedStatusesTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
-        self.assertRegex(html, r'<div class="dashboard-progress-meta">5 .*? 7 .*?</div>')
+        self.assertIn('<div class="dashboard-big-number">7</div>', html)
         main_card = re.search(
             r'<article class="dashboard-focus-card dashboard-focus-primary">.*?</article>',
             html,
@@ -149,6 +150,59 @@ class DashboardCompletedStatusesTests(unittest.TestCase):
         self.assertIsNotNone(main_card)
         self.assertIn("<b>5</b>", main_card.group(0))
         self.assertIn("<b>2</b>", main_card.group(0))
+
+    def test_handover_uses_sold_premises_and_keeps_task_progress_in_task_card(self):
+        self.project.has_commercial = self.project.has_parking = self.project.has_storerooms = True
+        self.apartment.is_app_mode = True
+        db.session.add_all([
+            Apartment(project=self.project, apartment_number="2"),
+            Apartment(project=self.project, apartment_number="3", is_unsold=True),
+            Apartment(project=self.project, apartment_number="К1", premise_type="commercial", is_app_mode=True),
+            Apartment(project=self.project, apartment_number="М1", premise_type="parking", is_unsold=True),
+        ])
+        db.session.commit()
+
+        for user_agent in ("Mozilla/5.0 (Linux; Android 15; Mobile)", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"):
+            with self.subTest(user_agent=user_agent):
+                response = self.client.get("/", headers={"User-Agent": user_agent})
+                self.assertEqual(response.status_code, 200)
+                html = response.get_data(as_text=True)
+                handover = html.split('aria-label="Передано помещений">', 1)[1].split("</section>", 1)[0]
+                self.assertRegex(handover, r'data-handover-type="apartment">\s*<div[^>]*>Квартиры</div>\s*<div class="dashboard-handover-ring"[^>]*>\s*<strong>50%</strong>')
+                self.assertNotIn("Передано помещений", handover)
+                self.assertNotIn("От проданных помещений", handover)
+                self.assertIn("Передано 1 из 2", handover)
+                self.assertIn("<strong>100%</strong>", handover)
+                self.assertIn("Нет проданных", handover)
+                self.assertNotIn('data-handover-type="storeroom"', handover)
+                self.assertEqual(handover.count('class="dashboard-handover-ring"'), 3)
+                task_card = html.split('class="dashboard-focus-card dashboard-focus-primary">', 1)[1].split("</article>", 1)[0]
+                self.assertNotIn("dashboard-progress-ring", task_card)
+                self.assertNotIn("dashboard-progress-meta", task_card)
+                self.assertIn("dashboard-task-bar", task_card)
+
+    def test_dashboard_parking_appears_when_enabled_or_registered(self):
+        self.project.has_parking = False
+        db.session.commit()
+
+        def handover():
+            html = self.client.get('/').get_data(as_text=True)
+            return html.split('aria-label="Передано помещений">', 1)[1].split('</section>', 1)[0]
+
+        self.assertNotIn('data-handover-type="parking"', handover())
+        self.project.has_parking = True
+        db.session.commit()
+        self.assertRegex(handover(), r'data-handover-type="parking">[\s\S]*?Нет помещений')
+
+        self.project.has_parking = False
+        db.session.add_all([
+            Apartment(project=self.project, apartment_number="М1", premise_type="parking", is_app_mode=True),
+            Apartment(project=self.project, apartment_number="М2", premise_type="parking"),
+        ])
+        db.session.commit()
+        parking = handover().split('data-handover-type="parking">', 1)[1]
+        self.assertIn('<strong>50%</strong>', parking)
+        self.assertIn('Передано 1 из 2', parking)
 
     def test_dashboard_accepted_heading_matches_inspections_and_completed_storeroom_feature_is_removed(self):
         response = self.client.get("/")

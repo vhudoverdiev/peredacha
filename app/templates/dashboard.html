@@ -21,22 +21,38 @@
 {% set task_done_percent = (stats.done / task_total * 100) if stats.tasks else 0 %}
 {% set task_not_done_percent = ((stats.not_done - stats.problem) / task_total * 100) if stats.tasks else 0 %}
 {% set task_problem_percent = (stats.problem / task_total * 100) if stats.tasks else 0 %}
+{% set show_parking = project.has_parking or stats.parking_count > 0 %}
 <section class="dashboard-page dashboard-redesign">
   <div class="dashboard-redesign-hero">
     <div class="dashboard-redesign-copy">
       <p class="dashboard-eyebrow">Сводка объекта</p>
       <h1 class="dashboard-title">{{ project.name }}</h1>
-      <p class="dashboard-subtitle">Все самая необходимая информация в одном месте</p>
+      <p class="dashboard-subtitle">Вся самая необходимая информация в одном месте</p>
     </div>
-    <div class="dashboard-progress-panel">
-      <div class="dashboard-progress-ring" style="--value: {{ stats.percent }};">
-        <span>{{ stats.percent }}%</span>
-      </div>
-      <div>
-        <div class="metric-label">Процент выполнения</div>
-        <div class="dashboard-progress-meta">{{ stats.done }} из {{ stats.tasks }} задач</div>
-      </div>
-    </div>
+    {% set handover_types = [
+      ('apartment', 'Квартиры', project.has_apartments or stats.apartment_count),
+      ('commercial', 'Коммерции', project.has_commercial and stats.commercial_count),
+      ('parking', 'Парковки', show_parking),
+      ('storeroom', 'Кладовки', project.has_storerooms and stats.storeroom_count),
+    ] %}
+    <section class="dashboard-handover dashboard-handover-grid" aria-label="Передано помещений">
+      {% for premise_type, label, shown in handover_types if shown %}
+        {% set counts = stats.acceptance_by_type[premise_type] %}
+        {% set total = counts.accepted + counts.not_accepted %}
+        {% set percent = (counts.accepted * 100 / total)|round(1) if total else 0 %}
+        <div class="dashboard-handover-item" data-handover-type="{{ premise_type }}">
+          <div class="dashboard-handover-label">{{ label }}</div>
+          <div class="dashboard-handover-ring" style="--value: {{ percent }}%;">
+            <strong>{{ ('%.1f'|format(percent)).removesuffix('.0')|replace('.', ',') ~ '%' if total else '—' }}</strong>
+          </div>
+          <small>{% if total %}Передано {{ counts.accepted }} из {{ total }}
+            {%- elif stats[premise_type ~ '_count'] %}Нет проданных
+            {%- else %}Нет помещений{% endif %}</small>
+        </div>
+      {% else %}
+        <p class="dashboard-handover-empty">Помещения ещё не добавлены</p>
+      {% endfor %}
+    </section>
   </div>
 
   {% include "_developer_update_card.html" %}
@@ -60,7 +76,7 @@
         <div class="dashboard-task-visual-head">
           <span>Распределение задач</span>
         </div>
-        <div class="dashboard-task-bar" role="progressbar" aria-valuenow="{{ stats.percent }}" aria-valuemin="0" aria-valuemax="100">
+        <div class="dashboard-task-bar" role="progressbar" aria-label="Выполнение задач" aria-valuenow="{{ stats.percent }}" aria-valuemin="0" aria-valuemax="100">
           <span class="dashboard-task-bar-segment is-done" style="width: {{ task_done_percent }}%"></span>
           <span class="dashboard-task-bar-segment is-open" style="width: {{ task_not_done_percent }}%"></span>
           <span class="dashboard-task-bar-segment is-problem" style="width: {{ task_problem_percent }}%"></span>
@@ -108,7 +124,7 @@
         {% if project.has_storerooms %}
         <div><span>Кладовки</span><b>{{ stats.storeroom_count }}</b></div>
         {% endif %}
-        {% if project.has_parking %}
+        {% if show_parking %}
         <div><span>Парковки</span><b>{{ stats.parking_count }}</b></div>
         {% endif %}
         <div><span>Чистовые</span><b>{{ stats.clean_apartments }}</b></div>
@@ -131,7 +147,7 @@
         <div><span>Кладовки не продано</span><b>{{ stats.unsold_storeroom_count }}</b></div>
         <div><span>Кладовок не принято</span><b>{{ stat_share(stats.not_accepted_storeroom_count, stats.storeroom_count - stats.unsold_storeroom_count, show_zero_total=true) }}</b></div>
         {% endif %}
-        {% if project.has_parking %}
+        {% if show_parking %}
         <div><span>Парковки не продано</span><b>{{ stats.unsold_parking_count }}</b></div>
         {% endif %}
         <div><span>Не принятых всего</span><b>{{ stats.not_accepted }}</b></div>
@@ -155,7 +171,7 @@
           </div>
         </section>
         {% endif %}
-        {% if project.has_parking %}
+        {% if show_parking %}
         <section class="dashboard-accepted-type">
           <div class="dashboard-accepted-summary-grid">
             <div><span>Парковок были на осмотре</span><b>{{ stat_share(stats.inspection_by_type.parking.inspected, stats.inspection_by_type.parking.inspected + stats.inspection_by_type.parking.not_inspected, show_zero_total=true) }}</b></div>
@@ -194,7 +210,7 @@
           </div>
         </section>
         {% endif %}
-        {% if project.has_parking %}
+        {% if show_parking %}
         <section class="dashboard-accepted-type">
           <div class="dashboard-accepted-summary-grid">
             <div><span>Парковок с замечаниями</span><b>{{ stat_share(stats.accepted_with_remarks_parking, stats.accepted_with_remarks_parking + stats.accepted_no_remarks_parking, show_zero_total=true) }}</b></div>

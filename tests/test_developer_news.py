@@ -77,6 +77,120 @@ class DeveloperNewsTests(unittest.TestCase):
             response=self.client.get(path)
             self.assertNotIn('SECRET_DRAFT',response.text);self.assertNotIn('SECRET_WITHDRAWN',response.text)
 
+    def test_scheduled_update_is_public_at_the_exact_moscow_deadline(self):
+        self.admin()
+        previous = self.update()
+        now = datetime(2026, 11, 10, 10)
+        due = datetime(2026, 11, 11, 9, 30)
+        with patch('app.developer_news.utc_now', return_value=now):
+            response = self.client.post('/developer/updates', data={
+                'title': 'Публикация по расписанию', 'body': 'Текст обновления',
+                'action': 'schedule', 'publish_date': '2026-11-11', 'publish_time': '12:30',
+            })
+            self.assertEqual(response.status_code, 303)
+            listing = self.client.get('/developer/updates').text
+            self.assertIn('Запланировано', listing)
+            self.assertIn('11.11.2026 в 12:30 МСК', listing)
+
+        update = DeveloperUpdate.query.filter_by(title='Публикация по расписанию').one()
+        self.assertEqual(update.published_at, due)
+        for path in ('/', '/updates', '/updates/card'):
+            with self.subTest(path=path):
+                with patch('app.services.developer_news.utc_now', return_value=due-timedelta(seconds=1)):
+                    response = self.client.get(path)
+                    content = response.json["html"] if response.is_json else response.text
+                    self.assertIn(previous.title, content)
+                    self.assertNotIn(update.title, content)
+                with patch('app.services.developer_news.utc_now', return_value=due):
+                    response = self.client.get(path)
+                    content = response.json["html"] if response.is_json else response.text
+                    self.assertIn(update.title, content)
+
+    def test_scheduled_update_can_be_rescheduled_cancelled_and_published_now(self):
+        self.admin()
+        now = datetime(2026, 11, 10, 10)
+        update = self.update(published=False)
+        edit = f'/developer/updates/{update.id}/edit'
+        form = {'title': update.title, 'body': update.body, 'action': 'schedule', 'publish_at': '2026-11-11T13:00'}
+        with patch('app.developer_news.utc_now', return_value=now):
+            self.assertEqual(self.client.post(edit, data=form).status_code, 303)
+            self.assertEqual(update.published_at, datetime(2026, 11, 11, 10))
+            editor = self.client.get(edit).text
+            self.assertIn('type="date" name="publish_date" value="2026-11-11"', editor)
+            self.assertIn('type="time" name="publish_time" value="13:00"', editor)
+            form['publish_at'] = '2026-11-12T14:00'
+            self.assertEqual(self.client.post(edit, data=form).status_code, 303)
+            self.assertEqual(update.published_at, datetime(2026, 11, 12, 11))
+            self.assertEqual(self.client.post(f'/developer/updates/{update.id}/withdraw').status_code, 303)
+            self.assertIsNone(update.published_at)
+            self.assertIsNone(update.withdrawn_at)
+            self.assertEqual(self.client.post(edit, data=form).status_code, 303)
+            self.assertEqual(self.client.post(edit, data={**form, 'action': 'publish'}).status_code, 303)
+            self.assertEqual(update.published_at, now)
+            self.assertEqual(self.client.post(edit, data=form).status_code, 400)
+            self.assertEqual(update.published_at, now)
+
+    def test_schedule_rejects_invalid_dates_and_keeps_editor_fields(self):
+        self.admin()
+        now = datetime(2026, 11, 10, 10)
+        with patch('app.developer_news.utc_now', return_value=now):
+            for value in ('', '2026-11-10T13:00', '2026-02-30T15:00', '2026-11-11T15:00Z'):
+                with self.subTest(value=value):
+                    response = self.client.post('/developer/updates', data={
+                        'title': 'Заголовок на проверке', 'body': 'Текст обновления',
+                        'action': 'schedule', 'publish_at': value,
+                    })
+                    self.assertEqual(response.status_code, 400)
+                    self.assertIn('Заголовок на проверке', response.text)
+                    self.assertEqual(DeveloperUpdate.query.count(), 0)
+
+    def test_direct_card_navigation_opens_archive_without_a_selected_project(self):
+        self.login(self.manager)
+        update = self.update()
+        message = self.message()
+        with patch('app.developer_news.selected_project', return_value=None):
+            response = self.client.get('/updates/card', headers={
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            }, follow_redirects=True)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.request.path, '/updates')
+            self.assertIn(update.title, response.text)
+
+            response = self.client.get('/updates/card', headers={'Accept': 'application/json'})
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.json, {'error': 'project_required'})
+        self.assertIsNone(message.first_seen_at)
+
+    def test_login_alert_opens_personal_message_without_project_selection(self):
+        self.client = self.app.test_client()
+        self.manager.captcha_disabled = True
+        self.manager.all_projects_access = True
+        self.manager.set_password("Personal-message-test-password-2026!")
+        message = self.message(title="Личная запись для получателя")
+        other = User(username="other-news-recipient", role="manager", password_hash="unused")
+        db.session.add(other)
+        db.session.commit()
+
+        response = self.client.post('/login', data={
+            'username': self.manager.username,
+            'password': "Personal-message-test-password-2026!",
+        }, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Вам пришло личное сообщение', response.text)
+        self.assertIn('/updates?personal=1', response.text)
+        self.assertIsNone(message.first_seen_at)
+
+        response = self.client.get('/updates?personal=1')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(message.title, response.text)
+        self.assertIn('no-store', response.headers['Cache-Control'])
+        self.assertIsNotNone(message.first_seen_at)
+
+        self.login(other)
+        self.assertNotIn(message.title, self.client.get('/updates?personal=1').text)
+        response = self.client.get('/updates/card?personal=1', headers={'Accept': 'application/json'})
+        self.assertEqual(response.json['html'].strip(), '')
+
     def test_personal_timer_starts_at_first_home_display_and_does_not_restart(self):
         self.login(self.manager);message=self.message();start=datetime(2026,10,23,10)
         self.client.get('/updates');db.session.refresh(message);self.assertIsNone(message.first_seen_at)

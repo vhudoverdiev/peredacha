@@ -1,5 +1,6 @@
 """Developer-only editorial tools; public releases never expose personal messages."""
-from flask import abort,flash,jsonify,redirect,render_template,request,url_for
+from datetime import datetime, timezone
+from flask import abort,flash,jsonify,redirect,render_template,request,session,url_for
 from flask_login import current_user,login_required
 from sqlalchemy.orm import selectinload
 from app import db
@@ -8,7 +9,7 @@ from app.permissions import role_required
 from app.routes import bp,selected_project
 from app.security import hit_rate_limit
 from app.services.developer_news import eligible,published_updates,card_for_user
-from app.time_utils import utc_now
+from app.time_utils import MOSCOW_TIMEZONE, utc_now
 
 
 def text_fields():
@@ -17,6 +18,28 @@ def text_fields():
     if not title or len(title)>160 or not body or len(body)>10000:
         raise ValueError('Укажите заголовок до 160 символов и текст до 10000 символов.')
     return title,body
+
+
+
+def scheduled_publication_time(now):
+    if 'publish_date' in request.form or 'publish_time' in request.form:
+        day = request.form.get('publish_date', '').strip()
+        time = request.form.get('publish_time', '').strip()
+        raw = f'{day}T{time}'
+    else:
+        raw = request.form.get('publish_at', '').strip()
+    try:
+        local_time = datetime.strptime(raw, '%Y-%m-%dT%H:%M')
+        publish_at = local_time.replace(tzinfo=MOSCOW_TIMEZONE).astimezone(timezone.utc).replace(tzinfo=None)
+    except (ValueError, OverflowError):
+        raise ValueError('Укажите дату и время публикации по Москве.') from None
+    if publish_at <= now:
+        raise ValueError('Дата и время публикации должны быть в будущем.')
+    return publish_at
+
+
+def is_scheduled(update, now):
+    return bool(update.published_at and update.published_at > now and not update.withdrawn_at)
 
 
 def editor_context(error=None,edit=None):
@@ -42,10 +65,17 @@ def developer_updates():
         try:
             title,body=text_fields()
             action=request.form.get('action')
-            if action not in {'draft','publish'}:raise ValueError('Выберите сохранение черновика или публикацию.')
+            if action not in {'draft','publish','schedule'}:raise ValueError('Выберите действие для обновления.')
+            now=utc_now()
+            published_at = scheduled_publication_time(now) if action=='schedule' else (now if action=='publish' else None)
             db.session.add(DeveloperUpdate(title=title,body=body,author_id=current_user.id,
-                published_at=utc_now() if action=='publish' else None))
-            db.session.commit();flash('Обновление опубликовано для всех объектов.' if action=='publish' else 'Черновик сохранён.','success')
+                published_at=published_at))
+            db.session.commit()
+            flash({
+                'publish': 'Обновление опубликовано для всех объектов.',
+                'draft': 'Черновик сохранён.',
+                'schedule': 'Публикация запланирована.',
+            }[action], 'success')
             return redirect(url_for('main.developer_updates'),code=303)
         except ValueError as error:
             return editor_context(str(error)),400
@@ -56,29 +86,50 @@ def developer_updates():
 @login_required
 @role_required(ROLE_ADMIN)
 def developer_update_edit(update_id):
-    update=db.session.get(DeveloperUpdate,update_id) or abort(404)
     if request.method=='POST':
         write_limit()
+        update=DeveloperUpdate.query.filter_by(id=update_id).with_for_update().first_or_404()
         try:
             title,body=text_fields()
             action=request.form.get('action')
-            if action not in {'draft','publish'}:raise ValueError('Некорректное действие.')
+            now = utc_now()
+            if action not in {'draft','publish','schedule'}:
+                raise ValueError('Некорректное действие.')
+            scheduled = is_scheduled(update, now)
+            if action == 'schedule':
+                if update.published_at and not update.withdrawn_at and not scheduled:
+                    raise ValueError('Снимите опубликованное обновление перед планированием.')
+                update.published_at = scheduled_publication_time(now)
+                update.withdrawn_at = None
+            elif action == 'publish':
+                if update.published_at is None or update.published_at > now:
+                    update.published_at = now
+                update.withdrawn_at = None
+            elif scheduled:
+                update.published_at = None
+            elif update.published_at is not None:
+                update.withdrawn_at = now
             update.title=title;update.body=body
-            if action=='publish':update.published_at=update.published_at or utc_now();update.withdrawn_at=None
-            elif update.published_at is not None:update.withdrawn_at=utc_now()
-            db.session.commit();flash('Изменения сохранены.','success')
+            db.session.commit();flash('Публикация запланирована.' if action=='schedule' else 'Изменения сохранены.','success')
             return redirect(url_for('main.developer_updates'),code=303)
         except ValueError as error:return editor_context(str(error),update),400
-    return editor_context(edit=update)
+    return editor_context(edit=db.session.get(DeveloperUpdate,update_id) or abort(404))
 
 
 @bp.post('/developer/updates/<int:update_id>/withdraw')
 @login_required
 @role_required(ROLE_ADMIN)
 def developer_update_withdraw(update_id):
-    write_limit();update=db.session.get(DeveloperUpdate,update_id) or abort(404)
-    update.withdrawn_at=utc_now();db.session.commit()
-    flash('Публикация скрыта у пользователей.','success')
+    write_limit()
+    update=DeveloperUpdate.query.filter_by(id=update_id).with_for_update().first_or_404()
+    now=utc_now()
+    scheduled=is_scheduled(update, now)
+    if scheduled:
+        update.published_at=None
+    else:
+        update.withdrawn_at=now
+    db.session.commit()
+    flash('Планирование отменено. Черновик сохранён.' if scheduled else 'Публикация скрыта у пользователей.','success')
     return redirect(url_for('main.developer_updates'),code=303)
 
 
@@ -114,6 +165,12 @@ def developer_message_revoke(message_id):
 @login_required
 def updates_archive():
     if not eligible(current_user):abort(403)
+    if request.args.get('personal') == '1':
+        if hit_rate_limit('developer-news-card',120,60,subject=f'user:{current_user.id}'):abort(429)
+        if request.method == 'GET':
+            session.pop('developer_personal_alert', None)
+        card = card_for_user(current_user, start=request.method == 'GET', personal_only=True)
+        return render_template('developer_personal_message.html', news_card=card), 200, {'Cache-Control': 'private, no-store'}
     page=max(1,min(request.args.get('page',1,type=int),10000))
     updates=published_updates().order_by(DeveloperUpdate.published_at.desc(),DeveloperUpdate.id.desc()).paginate(page=page,per_page=20,error_out=False)
     response=render_template('updates_archive.html',updates=updates)
@@ -124,11 +181,17 @@ def updates_archive():
 @login_required
 def updates_card():
     if not eligible(current_user):abort(403)
-    if selected_project() is None:abort(400)
+    personal_only = request.args.get('personal') == '1'
+    if request.accept_mimetypes.best_match(('application/json', 'text/html')) == 'text/html':
+        return redirect(url_for('main.updates_archive', **({'personal': 1} if personal_only else {})))
+    if not personal_only and selected_project() is None:
+        response = jsonify(error='project_required')
+        response.headers['Cache-Control'] = 'private, no-store'
+        return response, 400
     if hit_rate_limit('developer-news-card',120,60,subject=f'user:{current_user.id}'):abort(429)
-    card=card_for_user(current_user,start=request.method=='GET')
+    card=card_for_user(current_user,start=request.method=='GET',personal_only=personal_only)
     response=jsonify(html=render_template('_developer_update_card.html',news_card=card),
-        expires_at=card['expires_at'].isoformat(timespec='seconds')+'Z' if card['expires_at'] else None)
+        expires_at=card['expires_at'].isoformat(timespec='seconds')+'Z' if card and card['expires_at'] else None)
     response.headers['Cache-Control']='private, no-store'
     return response
 

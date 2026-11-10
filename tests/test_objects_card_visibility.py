@@ -11,15 +11,11 @@ class ObjectsCardVisibilityTests(unittest.TestCase):
     def test_sensitive_project_requisites_are_not_rendered_on_object_cards(self):
         template = (ROOT / "app" / "templates" / "objects.html").read_text(encoding="utf-8")
 
-        description_block = template.split('class="object-description{% if not has_object_details %} object-description-empty{% endif %}"', 1)[1].split("</div>", 1)[0]
-        self.assertNotIn("ИНН/КПП", description_block)
-        self.assertNotIn("ОГРН", description_block)
-        self.assertNotIn("Юр. адрес", description_block)
-        self.assertNotIn("Директор СЗ", description_block)
-        self.assertNotIn("project.inn_kpp", description_block)
-        self.assertNotIn("project.ogrn", description_block)
-        self.assertNotIn("project.legal_address", description_block)
-        self.assertNotIn("project.developer_director", description_block)
+        details = template.split("{% set object_details = [", 1)[1].split("] %}", 1)[0]
+        for field in ("technical_customer", "developer_name", "developer_representative", "developer_representative_phone"):
+            self.assertIn(f"project.{field}", details)
+        for field in ("inn_kpp", "ogrn", "legal_address", "developer_director"):
+            self.assertNotIn(f"project.{field}", details)
 
     def test_desktop_object_cards_stay_three_per_row_when_window_narrows(self):
         self.assertIn(
@@ -47,8 +43,8 @@ class ObjectsCardVisibilityTests(unittest.TestCase):
     def test_object_card_stats_start_after_a_fixed_details_area(self):
         template = (ROOT / "app" / "templates" / "objects.html").read_text(encoding="utf-8")
 
-        self.assertIn("has_object_details =", template)
-        self.assertIn('class="object-description{% if not has_object_details %} object-description-empty{% endif %}"', template)
+        self.assertIn('class="object-description"', template)
+        self.assertIn("value or 'Не указано'", template)
         self.assertNotIn("object-description-spacer\" aria-hidden=\"true\"", template)
 
         self.assertIn(
@@ -78,9 +74,11 @@ class ObjectsCardVisibilityTests(unittest.TestCase):
             "  margin-top: 0 !important;",
             STYLE_CSS,
         )
+    def test_mobile_objects_use_flat_canvas(self):
         self.assertIn(
-            "html:is(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) body.app-body:has(.objects-page) .object-description-empty {\n"
-            "    display: none !important;",
+            "body.app-body.app-body.app-body:has(.objects-page) {\n"
+            "    --crm-mobile-unified-surface: #f6f8fb !important;\n"
+            "    background: var(--crm-mobile-unified-surface) !important;",
             STYLE_CSS,
         )
 

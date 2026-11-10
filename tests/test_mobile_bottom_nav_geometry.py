@@ -472,20 +472,35 @@ class MobileBottomNavGeometryTest(unittest.TestCase):
         self.assertIn("overflow-y:auto !important;", rules)
         self.assertIn(":has(:is(.workflow-page, .dev-news-archive))", rules)
 
-    def test_objects_page_keeps_the_shared_fixed_bottom_dock(self):
-        body_selector = "body.app-body.app-body.app-body:has(.objects-page) {"
-        dock_selector = re.compile(
-            r"body\.app-body\.app-body\.app-body:has\(\.objects-page\)"
-            r"\s*>\s*nav\.mobile-bottom-nav\.mobile-bottom-nav-root"
+    def test_ios_standalone_objects_dock_uses_physical_canvas(self):
+        selector = (
+            "html.standalone-app.ios-standalone-bottom-chrome\n"
+            "    body.app-body.app-body.app-body:has(.objects-page)"
         )
-        for stylesheet in (self.base, self.mobile_css, self.style_css):
-            body_start = stylesheet.index(body_selector)
-            body_end = stylesheet.index("}", body_start)
-            body_rule = stylesheet[body_start:body_end]
-            self.assertIn("height: auto !important;", body_rule)
-            self.assertIn("max-height: none !important;", body_rule)
-            self.assertIn("background: #f6f8fb !important;", body_rule)
-            self.assertIsNone(dock_selector.search(stylesheet))
+        self.assertIn(
+            selector + " > .objects-layout {\n"
+            "    height: calc(var(--mobile-physical-app-height, 100dvh) - 72px) !important;",
+            self.mobile_css,
+        )
+        self.assertIn(
+            selector + " > nav.mobile-bottom-nav.mobile-bottom-nav-root {\n"
+            "    position: absolute !important;\n"
+            "    inset: auto 0 0 !important;",
+            self.mobile_css,
+        )
+
+    def test_objects_city_summary_uses_mobile_card_gutter(self):
+        self.assertIn(
+            "body.app-body .objects-page .object-group > summary {\n"
+            "    margin-inline-start: .625rem;",
+            self.mobile_css,
+        )
+
+    def test_objects_desktop_toast_clears_floating_actions(self):
+        self.assertIn(
+            "bottom: calc(var(--objects-toast-bottom) / var(--desktop-stage-scale, 1)) !important;",
+            self.style_css,
+        )
 
     def test_pwa_cache_uses_the_same_mobile_stylesheet_version(self):
         version_pattern = r"mobile-only\.css[^\n]*\?v=(v[\w-]+)"

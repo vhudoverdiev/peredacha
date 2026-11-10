@@ -18,6 +18,32 @@ class ProjectHandoverTests(unittest.TestCase):
         self.project.handover_date=None
         self.assertIsNone(self.project.handover_countdown(today))
 
+    def test_mobile_cards_show_saved_values_and_empty_fields(self):
+        from app import db
+
+        self.login(self.manager)
+        self.project.technical_customer = "Технический заказчик тест"
+        self.project.developer_name = "Застройщик тест"
+        self.project.developer_representative = "Представитель тест"
+        self.project.developer_representative_phone = "+7 900 000-00-00"
+        self.project.handover_waiting = True
+        db.session.commit()
+        headers = {"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148 Safari/604.1"}
+
+        response = self.client.get("/objects", headers=headers)
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        for value in ("Технический заказчик тест", "Застройщик тест", "Представитель тест", "+7 900 000-00-00", "Ждёт"):
+            self.assertIn(value, html)
+
+        self.project.developer_representative_phone = None
+        self.project.handover_waiting = False
+        self.project.handover_date = None
+        db.session.commit()
+        html = self.client.get("/objects", headers=headers).get_data(as_text=True)
+        self.assertIn("<strong>Телефон представителя:</strong> Не указано", html)
+        self.assertIn("<strong>Не указан</strong>", html)
+
     def test_date_can_be_saved_changed_and_cleared(self):
         self.login(self.manager)
         from app import db

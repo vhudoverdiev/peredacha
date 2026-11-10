@@ -1,7 +1,9 @@
 from datetime import date
+from io import BytesIO
 import builtins
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from app.services import pdf_recognition as recognition
 
@@ -88,6 +90,54 @@ class PdfRecognitionContractsTests(unittest.TestCase):
         self.assertEqual([(remark.point_number, remark.description, remark.active) for remark in remarks], [
             ("17", "sash does not close", True),
             ("21", "custom unmapped point", True),
+        ])
+
+    def test_technical_act_extracts_remarks_before_photos_and_standards(self):
+        text = """
+АКТ ТЕХНИЧЕСКОГО ОСМОТРА
+№ 496-09/11/2026
+КВАРТИРЫ № 496,
+В ЖИЛОМ КОМПЛЕКСЕ «ЛИСТВА2»,
+Северодвинск, 09.11.2026
+СОДЕРЖАНИЕ:
+3. Перечень выявленных нарушений строительных норм и правил 5-7
+В РЕЗУЛЬТАТЕ ОСМОТРА ВЫЯВЛЕНЫ СЛЕДУЮЩИЕ НАРУШЕНИЯ
+СТРОИТЕЛЬНЫХ НОРМ И ПРАВИЛ:
+1. Стены:
+1.1. Следы влаги в коридоре (Фото 1–2)
+Нормативное обоснование: СП 50.13330.2024
+2. Разбивочные оси:
+2.1. Смещение перегородки от разбивочной оси
+между спальней и кухней на 30 мм. (Фото 3,
+4)
+3. Полы:
+Замечаний не выявлено.
+8. Окна:
+8.1. Требуется очистка и регулировка изделий ПВХ
+Нормативное обоснование: ГОСТ 30674-2023
+10. Горячее и холодное водоснабжение:
+10.1. Не закреплён хомут на стояке.
+ФОТОТАБЛИЦА К АКТУ ТЕХНИЧЕСКОГО ОСМОТРА:
+Фото 1 — п. 1.1. Следы влаги в коридоре
+8.2. Повтор в фототаблице
+"""
+        with patch.object(recognition, "_extract_text_layer", return_value=(text, None)), patch.object(
+            recognition, "_extract_text_via_ocr"
+        ) as ocr:
+            preview = recognition.recognize_pdf_act(BytesIO(), "sample.pdf", "ЖК Листва 2 этап")
+            wrong_project = recognition.recognize_pdf_act(BytesIO(), "sample.pdf", "ЖК Листва 1 этап")
+            ocr.assert_not_called()
+
+        self.assertTrue(preview.template_ok)
+        self.assertTrue(preview.project_ok)
+        self.assertFalse(wrong_project.project_ok)
+        self.assertEqual(preview.apartment_number, "496")
+        self.assertEqual(preview.inspection_date, date(2026, 11, 9))
+        self.assertEqual([(r.point_number, r.description) for r in preview.remarks], [
+            ("11", "Следы влаги в коридоре"),
+            ("11", "Смещение перегородки от разбивочной оси между спальней и кухней на 30 мм"),
+            ("17", "Требуется очистка и регулировка изделий ПВХ"),
+            ("22", "Не закреплён хомут на стояке"),
         ])
 
     def test_ocr_engine_import_system_dependency_error_is_reported_not_raised(self):

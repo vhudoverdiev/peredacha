@@ -62,7 +62,7 @@ const scenarios = [
   {
     name: "dashboard",
     path: "/",
-    selectors: ["h1.dashboard-title", ".dashboard-progress-panel", ".dashboard-overview-grid"],
+    selectors: ["h1.dashboard-title", ".dashboard-handover", ".dashboard-overview-grid"],
   },
   {
     name: "apartments",

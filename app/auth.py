@@ -8,6 +8,7 @@ from flask_wtf.csrf import generate_csrf
 from app import db
 from app.forms import LoginCaptchaForm, LoginForm, LoginTwoFactorForm
 from app.models import SiteErrorReport, User, WORKER_ROLES, ROLE_ADMIN
+from app.services.developer_news import has_unread_personal_message
 from app.services.task_service import get_setting
 from app.security import (
     clear_captcha,
@@ -82,6 +83,8 @@ def _complete_pending_login(user: User):
     mark_login_success(user)
     clear_captcha()
     security_event("login_success", f"Успешный вход {user.username}", user_id=user.id)
+    if has_unread_personal_message(user):
+        session["developer_personal_alert"] = True
     return _redirect_after_login(user, next_url)
 
 

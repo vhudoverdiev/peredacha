@@ -20,6 +20,21 @@ async function login(page,name,password){await page.goto(base+'/login');await pa
    if(width>767){const nav=await editor.locator('.dev-news-modes').boundingBox(),action=await editor.locator('.dev-news-create').boundingBox();assert.ok(Math.abs(nav.y+nav.height/2-action.y-action.height/2)<2);assert.ok(action.x>nav.x+nav.width);}
    await editor.getByRole('link',{name:'Добавить',exact:true}).click();
    assert.equal(await editor.getByRole('button',{name:'Сохранить черновик',exact:true}).evaluate(el=>getComputedStyle(el).color),'rgb(0, 0, 0)');
+   const dateButton=editor.locator('.dev-news-schedule .global-date-picker .global-date-button');
+   await dateButton.click();
+   const calendar=editor.getByRole('dialog',{name:'Выбор даты'});
+   await calendar.waitFor();
+   await editor.keyboard.press('Escape');
+   await calendar.waitFor({state:'hidden'});
+   assert.ok(await dateButton.evaluate(button=>button===document.activeElement));
+   const timeButton=editor.locator('.dev-news-time-trigger');
+   await timeButton.click();
+   const timeDialog=editor.getByRole('dialog',{name:'Выбор времени (МСК)'});
+   await timeDialog.getByLabel('Часы').fill('16');
+   await timeDialog.getByRole('button',{name:'30 минут'}).click();
+   await timeDialog.getByRole('button',{name:'Выбрать время'}).click();
+   assert.equal(await editor.locator('[name=publish_time]').inputValue(),'16:30');
+   assert.ok(await timeButton.evaluate(button=>button===document.activeElement));
    const title=`Обновление ${engine} ${width} ${Date.now()}`,personal=`Спасибо за ошибку ${engine} ${width}`;
    await editor.fill('[name=title]',title);await editor.fill('[name=body]','Исправлены замечания. Добавлены новые возможности для работы с объектом.');
    await editor.getByRole('button',{name:'Опубликовать всем',exact:true}).click();

@@ -990,7 +990,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v342-objects-toasts', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v361-desktop-news-card', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1031,8 +1031,8 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v800-objects-toasts">
-  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v100-ios-document-scroll-rounded">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v811-dashboard-category-layout">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v101-ios-objects-dock">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v80-issued-priority-controls">
   <script>
     // A classic inline script waits for all previously parsed stylesheets.
@@ -1049,7 +1049,7 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='workflows.css') }}?v=32-mobile-shortcuts">
   <link rel="stylesheet" href="{{ url_for('static',filename='remark-suggestions.css') }}?v=3">
   {% endif %}
-  {% if current_user.is_authenticated %}<link rel="stylesheet" href="{{ url_for('static',filename='developer-news.css') }}?v=8">{% endif %}
+  {% if current_user.is_authenticated %}<link rel="stylesheet" href="{{ url_for('static',filename='developer-news.css') }}?v=18">{% endif %}
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-navigation-user="{{ current_user.id if current_user.is_authenticated else 0 }}" data-navigation-project="{{ current_project.id if current_project else 0 }}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <script src="{{ url_for('static', filename='navigation-state.js') }}?v=4"></script>
@@ -1125,7 +1125,15 @@
 {% if current_user.is_authenticated %}
 <div class="mobile-fixed-top-scroll-mask" aria-hidden="true"></div>
 {% endif %}
-{% set page_content %}{% block content %}{% endblock %}{% endset %}
+{% set page_content %}
+{% if current_user.is_authenticated and session.get('developer_personal_alert') %}
+<aside class="dev-news-login-notice" aria-label="Личное сообщение">
+  <i class="bi bi-envelope-paper" aria-hidden="true"></i>
+  <strong>Вам пришло личное сообщение</strong>
+  <a href="{{ url_for('main.updates_archive', personal=1) }}">Перейти к сообщению <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+</aside>
+{% endif %}
+{% block content %}{% endblock %}{% endset %}
 {% set worker_role = current_user.is_authenticated and current_user.role in ['executor', 'painter', 'handyman', 'glazier'] %}
 {% set brand_home_endpoint = 'main.my_tasks' if current_user.is_authenticated and current_user.role in ['painter', 'handyman', 'glazier'] else 'main.objects' %}
 
@@ -1277,6 +1285,9 @@
 {% if request.endpoint == 'main.account' %}
   {% set mobile_title = 'Аккаунт' %}
   {% set mobile_active = 'account' %}
+{% elif request.endpoint == 'main.updates_archive' and request.args.get('personal') == '1' %}
+  {% set mobile_title = 'Личное сообщение' %}
+  {% set mobile_active = 'objects' %}
 {% elif layout_mode.strip() == 'objects' %}
   {% set mobile_title = 'Объекты' %}
   {% set mobile_active = 'objects' %}
@@ -1647,7 +1658,7 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v=5.3.3"></script>
-  <script src="{{ url_for('static', filename='developer-news.js') }}?v=2"></script>
+  <script src="{{ url_for('static', filename='developer-news.js') }}?v=4"></script>
   <script src="{{ url_for('static', filename='time-entry.js') }}?v=3"></script>
   <script src="{{ url_for('static', filename='form-csrf.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='remark-suggestions.js') }}?v=5-point-numbering"></script>

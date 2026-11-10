@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 from dataclasses import dataclass, field
 from datetime import date
 from difflib import SequenceMatcher
@@ -15,6 +16,7 @@ NO_REMARK_MARKERS = (
     "замечания отсутствуют",
     "замечаний отсутствует",
     "замечаний нет",
+    "замечаний не выявлено",
     "без замечаний",
 )
 
@@ -27,6 +29,23 @@ COMPACT_DATE_RE = re.compile(r"дата[:\-]*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})",
 COMPACT_APARTMENT_RE = re.compile(r"^([0-9]+[a-zа-яё/-]*)", re.IGNORECASE)
 POINT_HEADER_RE = re.compile(r"^\s*([^:\n]{1,80}):\s*(.*)$", re.DOTALL)
 SIGNATURE_TAIL_RE = re.compile(r"\bинженер\s+технического\s+надзора\b.*$", re.IGNORECASE | re.DOTALL)
+TECHNICAL_ACT_TITLE_RE = re.compile(r"^акт\s+технического\s+осмотра\s*№", re.I | re.M)
+TECHNICAL_ACT_PROJECT_RE = re.compile(r'в\s+жилом\s+комплексе\s+[«"]([^»"\n]+)[»"]', re.I)
+TECHNICAL_ACT_APARTMENT_RE = re.compile(r"\bквартир[аы]\s*№\s*(\d+[а-яa-z0-9/-]*)", re.I)
+TECHNICAL_ACT_REMARKS_RE = re.compile(
+    r"^в результате осмотра выявлены следующие нарушения\s+строительных норм и правил\s*:",
+    re.I | re.M,
+)
+TECHNICAL_ACT_END_RE = re.compile(r"^(?:фототаблица\s+к\s+акту|инженер\s+технического\s+надзора)", re.I | re.M)
+TECHNICAL_ACT_ROW_RE = re.compile(
+    r"^(?P<section>\d{1,2})\.(?:(?P<item>\d{1,2})\.[ \t]+|[ \t]+(?=[а-яё][^:\n]*:))",
+    re.I | re.M,
+)
+TECHNICAL_ACT_DESCRIPTION_END_RE = re.compile(
+    r"(?:\(\s*|\s+)фото\s*№?\s*\d|^нормативное\s+обоснование\s*:"
+    r"|^\d{6},\s*Россия|^Экспертная организация:",
+    re.I | re.M,
+)
 _OCR_ENGINE = None
 _OCR_ENGINE_ERROR: str | None = None
 TEMPLATE_MARKERS = (
@@ -82,12 +101,15 @@ PDF_POINT_TO_WORK_POINT = {
 PDF_POINT_TITLE_ALIASES = (
     ("вентиляц", "10"),
     ("стен", "11"),
+    ("разбивочн", "11"),
     ("потолк", "11"),
     ("пол", "13"),
     ("входн", "23"),
     ("двер", "23"),
     ("электрик", "24"),
+    ("электрооборудован", "24"),
     ("канализац", "22"),
+    ("водоснабж", "22"),
     ("радиатор", "21"),
     ("отоплен", "21"),
     ("гви", "21"),
@@ -139,7 +161,6 @@ def _clean_recognized_text(text: str | None) -> str:
     value = value.replace("No ", "№ ").replace("N ", "№ ")
     value = re.sub(r"[ \t]+", " ", value)
     value = re.sub(r"\n{3,}", "\n\n", value)
-    value = POINT_SPLIT_RE.sub(r"\n\1", value)
     return value.strip()
 
 
@@ -229,12 +250,12 @@ def _extract_text_layer(stream: BinaryIO) -> tuple[str, str | None]:
         pdf_bytes = stream.read()
         if not pdf_bytes:
             return "", "Файл PDF пустой."
-        document = pdfium.PdfDocument(pdf_bytes)
         chunks: list[str] = []
-        for page_index in range(len(document)):
-            page = document[page_index]
-            text_page = page.get_textpage()
-            chunks.append(text_page.get_text_bounded() or "")
+        with closing(pdfium.PdfDocument(pdf_bytes)) as document:
+            for page_index in range(len(document)):
+                with closing(document[page_index]) as page:
+                    with closing(page.get_textpage()) as text_page:
+                        chunks.append(text_page.get_text_bounded() or "")
         text = _clean_recognized_text("\n".join(chunks))
         if text:
             return text, None
@@ -410,7 +431,7 @@ def _extract_point_remarks(text: str) -> list[PdfRemarkPreview]:
         current_point = None
         current_lines = []
 
-    for raw_line in (text or "").splitlines():
+    for raw_line in POINT_SPLIT_RE.sub(r"\n\1", text or "").splitlines():
         line = raw_line.strip()
         if not line:
             continue
@@ -434,12 +455,48 @@ def _extract_point_remarks(text: str) -> list[PdfRemarkPreview]:
     return remarks
 
 
+def _technical_act_fields(text: str) -> tuple[str, str, date | None, str] | None:
+    title = TECHNICAL_ACT_TITLE_RE.search(text)
+    remarks = TECHNICAL_ACT_REMARKS_RE.search(text)
+    if not title or not remarks or title.end() >= remarks.start():
+        return None
+    cover = text[title.end():remarks.start()]
+    project = TECHNICAL_ACT_PROJECT_RE.search(cover)
+    apartment = TECHNICAL_ACT_APARTMENT_RE.search(cover)
+    if not project or not apartment:
+        return None
+    block = TECHNICAL_ACT_END_RE.split(text[remarks.end():], maxsplit=1)[0]
+    return project.group(1), apartment.group(1), _find_inspection_date(cover), block
+
+
+def _extract_technical_act_remarks(block: str) -> list[PdfRemarkPreview]:
+    remarks: list[PdfRemarkPreview] = []
+    section = title = ""
+    rows = list(TECHNICAL_ACT_ROW_RE.finditer(block))
+    for index, row in enumerate(rows):
+        end = rows[index + 1].start() if index + 1 < len(rows) else len(block)
+        body = block[row.end():end].strip()
+        if not row["item"]:
+            section = row["section"]
+            title = body.partition(":")[0].splitlines()[0] if body else ""
+            continue
+        if row["section"] != section:
+            continue
+        description = TECHNICAL_ACT_DESCRIPTION_END_RE.split(body, maxsplit=1)[0]
+        description = _clean_point_description(" ".join(description.split()))
+        if description and not is_no_remark_text(description):
+            # The source section number is unrelated to the CRM point number.
+            remarks.append(PdfRemarkPreview(_map_pdf_point_to_work_point("", title), description))
+    return remarks
+
+
 def recognize_pdf_act(stream: BinaryIO, filename: str, project_name: str) -> PdfActPreview:
     text, text_error = _extract_text_layer(stream)
     used_ocr = False
     ocr_error: str | None = None
     ocr_text = ""
-    needs_ocr = (
+    technical_act = _technical_act_fields(text)
+    needs_ocr = technical_act is None and (
         not text
         or _template_marker_score(text) < 3
         or not _find_apartment_number(text)
@@ -471,8 +528,18 @@ def recognize_pdf_act(stream: BinaryIO, filename: str, project_name: str) -> Pdf
         used_ocr = used_ocr or bool(ocr_remarks)
 
     template_ok = _is_expected_pdf_template(text) or _is_expected_pdf_template(ocr_text)
+    ocr_technical_act = _technical_act_fields(ocr_text)
+    technical_fields = technical_act or ocr_technical_act
+    comparison_project_name = project_name
+    if technical_fields:
+        detected_project_name, apartment_number, inspection_date, block = technical_fields
+        used_ocr = technical_act is None
+        remarks = _extract_technical_act_remarks(block)
+        template_ok = True
+        # The technical act cover may omit the word «этап» after the same number.
+        comparison_project_name = re.sub(r"(?<=\d)\s*этап\s*$", "", project_name, flags=re.I)
     prefix = _project_prefix(project_name)
-    project_ok = _project_names_match(project_name, detected_project_name)
+    project_ok = _project_names_match(comparison_project_name, detected_project_name)
     preview = PdfActPreview(
         filename=filename,
         template_ok=template_ok,
@@ -504,7 +571,7 @@ def recognize_pdf_act(stream: BinaryIO, filename: str, project_name: str) -> Pdf
 
     if not preview.template_ok:
         preview.warnings.append(
-            "Файл не похож на PDF-акт нужного шаблона. Загрузите акт, где есть поля «Название ЖК», «Номер квартиры», «ФИО клиента» и блок «Выявленные недостатки»."
+            "Файл не похож на PDF-акт нужного шаблона. Загрузите акт, где есть поля «Название ЖК», «Номер квартиры», «ФИО клиента» и блок «Выявленные недостатки», либо акт технического осмотра с перечнем нарушений."
         )
         preview.apartment_number = None
         preview.inspection_date = None
