@@ -108,7 +108,10 @@ def _redirect_after_login(user: User, next_url: str | None = None):
     next_path = urlparse(next_url or "").path
     next_is_worker_page = next_path.startswith("/my-tasks")
 
-    if _is_safe_next(next_url) and (is_worker or not next_is_worker_page):
+    next_is_updates = next_path.rstrip("/") in {
+        url_for("main.updates_archive"), url_for("main.updates_card"),
+    }
+    if _is_safe_next(next_url) and not next_is_updates and (is_worker or not next_is_worker_page):
         return redirect(next_url)
     if is_worker:
         return redirect(url_for("main.my_tasks"))

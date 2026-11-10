@@ -114,7 +114,7 @@ class AvrGenerationTests(unittest.TestCase):
     def test_form_and_apartment_picker_use_same_values_as_document(self):
         response = self.client.get(f'/avr?apartment_id={self.apartment.id}')
         html = response.get_data(as_text=True)
-        self.assertIn('value="Иванов Иван Иванович" data-avr-developer required', html)
+        self.assertIn('value="Иванов И.И." data-avr-developer required', html)
         self.assertIn('от 21.04.2026 устранены', html)
         self.assertIn('value="2026-04-21" data-avr-inspection-date', html)
 

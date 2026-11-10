@@ -7691,15 +7691,22 @@ document.addEventListener('DOMContentLoaded', () => {
     event.preventDefault();
     event.stopImmediatePropagation();
 
-    const invalidFields = Array.from(form.querySelectorAll('input, select, textarea'))
-      .filter(field => !field.disabled && field.type !== 'hidden' && !field.checkValidity());
+    const invalidFields = Array.from(form.elements)
+      .filter(field => field.willValidate && !field.validity.valid);
     invalidFields.forEach(field => field.classList.add('is-invalid'));
     const firstVisible = invalidFields.find(field => field.offsetParent !== null) || invalidFields[0];
     if (firstVisible) {
       firstVisible.scrollIntoView({ behavior: 'smooth', block: 'center' });
       setTimeout(() => firstVisible.focus({ preventScroll: true }), 250);
     }
-    showValidationToast('Заполните выделенные поля. Обязательные поля подсвечены красным.');
+    const avrAlert = firstVisible?.closest('[data-avr-modal]')?.querySelector('[data-avr-validation]');
+    if (avrAlert) {
+      const labels = invalidFields.map(field => field.labels?.[0]?.textContent.trim()).filter(Boolean);
+      avrAlert.textContent = labels.length ? `Заполните: ${labels.join(', ')}.` : 'Заполните выделенные поля.';
+      avrAlert.classList.remove('d-none');
+    } else {
+      showValidationToast('Заполните выделенные поля. Обязательные поля подсвечены красным.');
+    }
   }, true);
 });
 
@@ -8092,6 +8099,21 @@ document.addEventListener('DOMContentLoaded', () => {
     return selected;
   };
 
+  const validation = modalElement?.querySelector('[data-avr-validation]');
+  const clearAvrValidation = () => {
+    const invalid = modalElement.querySelectorAll('.is-invalid');
+    invalid.forEach(field => {
+      if (field.validity.valid) field.classList.remove('is-invalid');
+    });
+    if (!modalElement.querySelector('.is-invalid')) validation?.classList.add('d-none');
+  };
+  modalElement?.addEventListener('input', clearAvrValidation);
+  modalElement?.addEventListener('change', clearAvrValidation);
+  modalElement?.addEventListener('hidden.bs.modal', () => {
+    modalElement.querySelectorAll('.is-invalid').forEach(field => field.classList.remove('is-invalid'));
+    validation?.classList.add('d-none');
+  });
+
   const openApartmentModal = () => {
     const selected = applyApartment();
     if (selected && modal) {
@@ -8100,7 +8122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  select?.addEventListener('change', openApartmentModal);
+  select?.addEventListener('change', () => queueMicrotask(openApartmentModal));
   openModalButton?.addEventListener('click', openApartmentModal);
   fields.inspectionDate?.addEventListener('change', () => {
     if (!fields.phrase) return;

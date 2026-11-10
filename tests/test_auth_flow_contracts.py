@@ -64,6 +64,20 @@ class AuthFlowContractsTests(unittest.TestCase):
         self.assertEqual(stored_user.failed_login_count, 0)
         self.assertEqual(stored_user.last_login_ip, "203.0.113.10")
 
+    def test_login_does_not_resume_background_updates_request(self):
+        for index, target in enumerate(("/updates/card", "/updates?personal=1")):
+            with self.subTest(target=target), self.app.test_client() as client:
+                from flask import g
+                g.pop("_login_user", None)
+                user = self._user(username=f"updates-login-{index}", role=ROLE_ADMIN)
+                response = client.post(
+                    "/login", query_string={"next": target},
+                    data={"username": user.username, "password": "correct-password"},
+                    environ_base={"REMOTE_ADDR": f"203.0.113.{20 + index}"},
+                )
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(response.location, "/")
+
     def test_password_login_matches_username_case_insensitively(self):
         user = self._user(username="vladimir", role=ROLE_ADMIN)
 

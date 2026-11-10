@@ -109,6 +109,7 @@ from app.services.avr_document import (
     completion_phrase_with_inspection_date,
     default_avr_phrase,
     format_doc_date,
+    format_avr_person_name,
     format_input_date,
     safe_avr_filename,
 )
@@ -10755,7 +10756,7 @@ def avr():
     first_inspection_dates = {
         key: _apartment_inspection_date(group) for key, group in inspection_groups.items()
     }
-    representative_name = " ".join((current_user.full_name or "").split())
+    representative_name = format_avr_person_name(current_user.full_name, decline_surname=False)
     apartment_rows = []
     for apartment in apartments:
         number = apartment.apartment_number or apartment.construction_number or ""

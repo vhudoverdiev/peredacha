@@ -27,7 +27,7 @@
       <div class="avr-picker-row">
         <div class="avr-field">
           <label class="form-label" for="avr-apartment">Номер квартиры / коммерции</label>
-          <select class="form-select" id="avr-apartment" name="apartment_id" data-avr-apartment required>
+          <select class="form-select" id="avr-apartment" name="apartment_id" data-avr-apartment data-select-search data-force-custom-select required>
             <option value="" {% if not defaults.apartment_id %}selected{% endif %}>Выберите квартиру / коммерцию</option>
             {% for apartment in apartments %}
             <option value="{{ apartment.id }}" {% if defaults.apartment_id == apartment.id|string %}selected{% endif %}>{{ apartment.label }}</option>
@@ -57,6 +57,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" data-avr-close aria-label="Закрыть"></button>
         </div>
         <div class="modal-body">
+          <div class="alert alert-danger d-none" role="alert" data-avr-validation></div>
           <div class="avr-form-grid">
         <div class="avr-field">
           <label class="form-label" for="avr-number">Номер квартиры / коммерции</label>
@@ -89,7 +90,7 @@
         <div class="avr-field">
           <label class="form-label" for="avr-developer">Представитель застройщика</label>
           <input class="form-control" id="avr-developer" name="developer_representative" value="{{ defaults.developer_representative }}" data-avr-developer required>
-          {% if not defaults.developer_representative %}<div class="form-text">Укажите ФИО представителя застройщика.</div>{% endif %}
+          {% if not defaults.developer_representative %}<div class="form-text">Укажите фамилию и инициалы представителя застройщика.</div>{% endif %}
         </div>
 
         <div class="avr-field">
