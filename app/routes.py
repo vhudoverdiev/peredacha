@@ -11243,7 +11243,7 @@ def update_apartment_inspection_note(apartment_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role in {ROLE_VIEWER, ROLE_SUPERVISOR}:
+    if current_user.role in {ROLE_VIEWER, ROLE_SUPERVISOR} and not getattr(g, "role_access_granted", False):
         abort(403)
     apartment = db.session.get(Apartment, apartment_id) or abort(404)
     if apartment.project_id != project.id:
@@ -11277,7 +11277,7 @@ def update_apartment_comment(apartment_id: int):
     project = selected_project()
     if project is None:
         return redirect(url_for("main.objects"))
-    if current_user.role in {ROLE_VIEWER, ROLE_SUPERVISOR}:
+    if current_user.role in {ROLE_VIEWER, ROLE_SUPERVISOR} and not getattr(g, "role_access_granted", False):
         abort(403)
     apartment = db.session.get(Apartment, apartment_id) or abort(404)
     if apartment.project_id != project.id:
@@ -12581,7 +12581,7 @@ def role_settings():
         abort(403)
     from app.role_settings import definitions, choices, effective, ACTIONS, HISTORY_SCOPES
     data=definitions()
-    sections=[item for item in SECTION_LOCK_CHOICES if item['key'] not in {'service','users','site_errors'} and not item['key'].startswith('developer')]
+    sections=[item for item in SECTION_LOCK_CHOICES if item['key'] not in {'service','users','site_errors','appeals'} and not item['key'].startswith('developer')]
     history_keys = {f"{section}_history_{scope}" for section in HISTORY_SCOPES for scope in ("own", "all")}
     if request.method == 'POST':
         role=(request.form.get('role') or '').strip()
@@ -12609,7 +12609,15 @@ def role_settings():
         else:
             valid={item['key'] for item in sections}
             previous_policy = data.get(role, {})
+            previous_access = effective(role if previous_policy or not role.startswith("custom_") else "new")
             data[role]={'name':name, 'sections':[value for value in request.form.getlist('sections') if value in valid], 'actions':[value for value in request.form.getlist('actions') if value in {item[0] for item in ACTIONS}]}
+            if "appeals" in previous_access["sections"]:
+                data[role]["sections"].append("appeals")
+            appeal_keys = {key for key, section, _, _ in ACTIONS if section == "appeals"}
+            data[role]["actions"] = [key for key in data[role]["actions"] if key not in appeal_keys]
+            data[role]["actions"].extend(key for key in previous_access["actions"] if key in appeal_keys)
+            if "premise_comment_permissions_present" in request.form:
+                data[role]["premise_comment_permissions_saved"] = True
             if "history_permissions_present" in request.form:
                 data[role]["history_permissions_saved"] = True
             elif previous_policy.get("history_permissions_saved"):
@@ -12628,8 +12636,8 @@ def role_settings():
     selected=request.args.get('role','new')
     if selected != 'new' and selected not in dict(choices()):
         abort(400)
-    comment_keys = {"premise_comments", "remark_comments", "remark_view_comments", "assignment_comments",
-                    "worker_comment", "appeal_edit"}
+    comment_keys = {"premise_comment_office", "premise_comment_engineer", "premise_comment_office_manager",
+                    "remark_comments", "remark_view_comments", "assignment_comments", "worker_comment"}
     comment_actions = [action for action in ACTIONS if action[0] in comment_keys]
     return render_template('role_settings.html',roles=[(key,label) for key,label in choices() if key != ROLE_ADMIN], definitions=data, sections=sections, selected=selected, policy=effective(selected), actions=[action for action in ACTIONS if action[0] not in history_keys | comment_keys], comment_actions=comment_actions, history_actions=[action for action in ACTIONS if action[0] in history_keys], show_support=selected != "new" and _role_shows_support(selected), draft_id=uuid4().hex)
 

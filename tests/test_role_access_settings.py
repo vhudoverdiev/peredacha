@@ -148,6 +148,18 @@ class AccessSettingsTests(unittest.TestCase):
         self.assertEqual(self.client.post(path, data=selection, headers=headers).status_code, 200)
         self.assertEqual(self.worker.project_group_policy["groups"], [group.id])
 
+    def test_apartment_comment_permissions_are_independent(self):
+        self.configure("manager", ["apartments"], ["premise_comment_engineer"])
+        self.login(self.manager)
+        path = f"/apartments/{self.apartment.id}"
+        html = self.client.get(path).text
+        self.assertIn('name="inspection_note"', html)
+        self.assertNotIn('name="apartment_comment"', html)
+        self.assertNotIn('name="office_manager_comment"', html)
+        self.assertEqual(self.client.post(f"{path}/comment", data={"apartment_comment": "Офис"}).status_code, 403)
+        self.assertEqual(self.client.post(f"{path}/office-manager-comment", data={"office_manager_comment": "Менеджер"}).status_code, 403)
+        self.assertEqual(self.client.post(f"{path}/inspection-note", data={"inspection_note": "Инженер"}).status_code, 302)
+
     def test_manager_cannot_manage_access(self):
         self.login(self.manager)
         self.assertEqual(self.client.get('/settings/roles').status_code,403)

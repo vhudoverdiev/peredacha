@@ -304,25 +304,25 @@
           <div class="apartment-data-note apartment-data-note-with-action">
             <span>Комментарий (Офис)</span>
             <div class="apartment-comment-entries" data-apartment-comment-display>{% for entry in apartment_comment_entries.office %}<div class="apartment-comment-entry"><p>{{ entry.body }}</p><small>{{ entry.author }}{% if entry.date %} · {{ entry.date }}{% endif %}</small></div>{% else %}—{% endfor %}</div>
-            {% if current_user.role not in ['viewer', 'office', 'office_manager', 'supervisor'] %}
+            {% if (role_action_access('main.update_apartment_comment') if role_access_configured else current_user.role not in ['viewer', 'office', 'office_manager', 'supervisor']) %}
             <button class="btn btn-sm btn-outline-danger apartment-note-clear-btn" type="button" data-clear-note-button data-clear-note-form="apartment-comment-form-{{ apartment.id }}" title="Удалить комментарий" aria-label="Удалить комментарий"{% if not has_manual_comment %} hidden{% endif %}><i class="bi bi-trash"></i></button>
             {% endif %}
           </div>
           <div class="apartment-data-note apartment-data-note-with-action">
             <span>Комментарий (Инженеры)</span>
             <div class="apartment-comment-entries" data-apartment-inspection-note-display>{% for entry in apartment_comment_entries.engineers %}<div class="apartment-comment-entry"><p>{{ entry.body }}</p><small>{{ entry.author }}{% if entry.date %} · {{ entry.date }}{% endif %}</small></div>{% else %}—{% endfor %}</div>
-            {% if current_user.role not in ['viewer', 'office', 'office_manager', 'supervisor'] %}
+            {% if (role_action_access('main.update_apartment_inspection_note') if role_access_configured else current_user.role not in ['viewer', 'office', 'office_manager', 'supervisor']) %}
             <button class="btn btn-sm btn-outline-danger apartment-note-clear-btn" type="button" data-clear-note-button data-clear-note-form="inspection-note-form-{{ apartment.id }}" title="Удалить устранение" aria-label="Удалить устранение"{% if not has_inspection_comment %} hidden{% endif %}><i class="bi bi-trash"></i></button>
             {% endif %}
           </div>
           <div class="apartment-data-note apartment-data-note-with-action">
             <span>Комментарий (Офис-Менеджер)</span>
             <div class="apartment-comment-entries" data-apartment-office-manager-comment-display>{% for entry in apartment_comment_entries.office_manager %}<div class="apartment-comment-entry"><p>{{ entry.body }}</p><small>{{ entry.author }}{% if entry.date %} · {{ entry.date }}{% endif %}</small></div>{% else %}—{% endfor %}</div>
-            {% if current_user.role in ['admin', 'office_manager'] %}
+            {% if (role_action_access('main.update_apartment_office_manager_comment') if role_access_configured else current_user.role in ['admin', 'office_manager']) %}
             <button class="btn btn-sm btn-outline-danger apartment-note-clear-btn" type="button" data-clear-note-button data-clear-note-form="office-manager-comment-form-{{ apartment.id }}" title="Удалить комментарий" aria-label="Удалить комментарий Офис-Менеджера"{% if not has_office_manager_comment %} hidden{% endif %}><i class="bi bi-trash"></i></button>
             {% endif %}
           </div>
-          {% if current_user.role not in ['viewer', 'office', 'office_manager', 'supervisor'] %}
+          {% if (role_action_access('main.update_apartment_comment') if role_access_configured else current_user.role not in ['viewer', 'office', 'office_manager', 'supervisor']) %}
           <form method="post" action="{{ url_for('main.update_apartment_comment', apartment_id=apartment.id) }}" class="inspection-note-form apartment-comment-append-form" data-apartment-async="1" id="apartment-comment-form-{{ apartment.id }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="apartment-note-form-head">
@@ -331,6 +331,8 @@
             <textarea class="form-control" id="apartment-comment-{{ apartment.id }}" name="apartment_comment" rows="3" placeholder="Новый комментарий"></textarea>
             <button class="btn btn-sm btn-primary" type="submit">Добавить комментарий</button>
           </form>
+          {% endif %}
+          {% if (role_action_access('main.update_apartment_inspection_note') if role_access_configured else current_user.role not in ['viewer', 'office', 'office_manager', 'supervisor']) %}
           <form method="post" action="{{ url_for('main.update_apartment_inspection_note', apartment_id=apartment.id) }}" class="inspection-note-form apartment-comment-append-form" data-apartment-async="1" id="inspection-note-form-{{ apartment.id }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="apartment-note-form-head">
@@ -340,7 +342,7 @@
             <button class="btn btn-sm btn-primary" type="submit">Добавить комментарий</button>
           </form>
           {% endif %}
-          {% if current_user.role in ['admin', 'office_manager'] %}
+          {% if (role_action_access('main.update_apartment_office_manager_comment') if role_access_configured else current_user.role in ['admin', 'office_manager']) %}
           <form method="post" action="{{ url_for('main.update_apartment_office_manager_comment', apartment_id=apartment.id) }}" class="inspection-note-form apartment-comment-append-form" data-apartment-async="1" id="office-manager-comment-form-{{ apartment.id }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="apartment-note-form-head">

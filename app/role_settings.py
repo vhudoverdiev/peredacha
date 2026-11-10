@@ -37,8 +37,10 @@ ACTIONS = [
  ('object_order','objects','Менять порядок объектов',{'main.object_order'}),
  ('premise_create','apartments','Добавлять помещения',{'main.premise_new','main.record_apartment_new'}),
  ('premise_edit','apartments','Редактировать данные помещений и режим АПП',{'main.update_apartment_details','main.update_apartment_app_status'}),
- ('premise_inspection','apartments','Изменять сведения об осмотрах',{'main.update_apartment_inspection_status','main.update_apartment_inspection_date','main.delete_apartment_inspection_date','main.update_apartment_inspection_note'}),
- ('premise_comments','apartments','Добавлять комментарии к помещениям',{'main.update_apartment_comment','main.update_apartment_office_manager_comment'}),
+ ('premise_inspection','apartments','Изменять сведения об осмотрах',{'main.update_apartment_inspection_status','main.update_apartment_inspection_date','main.delete_apartment_inspection_date'}),
+ ('premise_comment_office','apartments','Добавлять комментарии к помещениям · Офис',{'main.update_apartment_comment'}),
+ ('premise_comment_engineer','apartments','Добавлять комментарии к помещениям · Инженеры',{'main.update_apartment_inspection_note'}),
+ ('premise_comment_office_manager','apartments','Добавлять комментарии к помещениям · Офис-менеджер',{'main.update_apartment_office_manager_comment'}),
  ('premise_internal','apartments','Изменять внутренний статус помещения',{'main.update_apartment_po_status'}),
  ('premise_documents','apartments','Изменять статусы АВР и соглашений',{'main.update_apartment_avr_status','main.update_apartment_addendum_status'}),
  ('remark_create','remarks','Добавлять замечания и распознавать акты',{'main.task_new','main.task_recognition'}),
@@ -110,6 +112,14 @@ def effective(role):
     if configured:
         actions = [key for key in configured.get('actions', default_actions)
                    if key not in {'dashboard_history_own', 'dashboard_history_all'}]
+        legacy_comments = {
+            'premise_comments': ('premise_comment_office', 'premise_comment_office_manager'),
+            'premise_inspection': ('premise_comment_engineer',),
+        }
+        if not configured.get('premise_comment_permissions_saved'):
+            for legacy_key, comment_keys in legacy_comments.items():
+                if legacy_key in actions:
+                    actions.extend(key for key in comment_keys if key not in actions)
         if not configured.get('history_permissions_saved'):
             actions.extend(sorted(HISTORY_OWN_ACTIONS.intersection(default_actions).difference(actions)))
         return {'sections': configured.get('sections', []), 'actions': actions}
