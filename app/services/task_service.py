@@ -1432,7 +1432,8 @@ def get_or_update_apartment(
     is_unsold_by_color: bool = False,
 ) -> Apartment:
     construction_number = normalize_number_cell(value_at(row, base_mapping.get("construction_number")))
-    apartment_number = normalize_apartment_number_cell(value_at(row, base_mapping.get("apartment_number")))
+    raw_apartment_number = normalize_number_cell(value_at(row, base_mapping.get("apartment_number")))
+    apartment_number = normalize_apartment_number_cell(raw_apartment_number)
     if apartment_number and apartment_number.startswith("="):
         apartment_number = None
     if premise_type == "commercial":
@@ -1509,7 +1510,11 @@ def get_or_update_apartment(
         )
     apartment.premise_type = premise_type or "apartment"
     apartment.building = building or apartment.building
-    if not str(apartment.contract_number or "").strip():
+    contract_number = normalize_number_cell(apartment.contract_number)
+    contract_alias = re.fullmatch(r"\d+\s*\(\s*(\d+)\s*\)", raw_apartment_number or "")
+    if premise_type == "apartment" and contract_alias and contract_number in {None, apartment_number}:
+        apartment.contract_number = contract_alias.group(1)
+    elif not contract_number:
         apartment.contract_number = normalize_number_cell(apartment_number) if apartment.premise_type == "commercial" else contract_number_from_premise_identity(apartment_number, construction_number)
 
     owner_name = str(value_at(row, base_mapping.get("owner_name")) or "").strip() or None

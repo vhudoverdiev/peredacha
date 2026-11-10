@@ -59,6 +59,25 @@ class ExcelImportContractsTests(unittest.TestCase):
         self.assertTrue(all(row.construction_number is None for row in Apartment.query.all()))
         self.assertEqual(Task.query.count(), 1)
 
+    def test_imports_contract_number_from_parentheses_and_repairs_default(self):
+        headers = ["№ кв. проект", "стр. №", "10. Вентиляция"]
+        def sync(number):
+            sync_rows([headers, [number, None, "Замечание"]], sheet_name="Таблица", project_name="Contract alias QA")
+
+        sync("31 (653)")
+        apartment = Apartment.query.one()
+        self.assertEqual((apartment.apartment_number, apartment.contract_number), ("31", "653"))
+        apartment.contract_number = "31"
+        db.session.commit()
+        sync("31 (653)")
+        self.assertEqual(apartment.contract_number, "653")
+        apartment.contract_number = "999"
+        db.session.commit()
+        sync("31 (653)")
+        self.assertEqual(apartment.contract_number, "999")
+        self.assertEqual(Apartment.query.count(), 1)
+        self.assertEqual(Task.query.count(), 1)
+
     def test_imports_multiple_inspection_dates_from_combined_column(self):
         from app.routes import _apartment_inspection_status, _apartment_inspection_values
 
