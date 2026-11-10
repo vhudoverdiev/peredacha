@@ -2153,8 +2153,7 @@ def sync_rows(
             apartment_number_looks_valid = looks_like_apartment_identifier(raw_apartment_number)
             construction_number_looks_valid = looks_like_apartment_identifier(raw_construction_number)
             if (
-                not raw_construction_number
-                or is_service_premise_text(raw_apartment_number)
+                is_service_premise_text(raw_apartment_number)
                 or (not construction_number_looks_valid and not apartment_number_looks_valid)
             ):
                 continue

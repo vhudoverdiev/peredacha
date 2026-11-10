@@ -43,6 +43,20 @@ class ExcelImportContractsTests(unittest.TestCase):
         db.drop_all()
         self.context.pop()
 
+    def test_imports_apartments_with_project_number_and_blank_construction_number(self):
+        rows = [
+            ["№ кв. проект", "стр. №", "10. Вентиляция"],
+            [11, None, "Замечание"],
+            [12, None, None],
+            [None, None, "Без номера помещения"],
+        ]
+        for _ in range(2):
+            sync_rows(rows, sheet_name="Таблица", project_name="City Towers QA")
+
+        self.assertEqual({row.apartment_number for row in Apartment.query.all()}, {"11", "12"})
+        self.assertTrue(all(row.construction_number is None for row in Apartment.query.all()))
+        self.assertEqual(Task.query.count(), 1)
+
     def test_imports_multiple_inspection_dates_from_combined_column(self):
         from app.routes import _apartment_inspection_status, _apartment_inspection_values
 
@@ -157,6 +171,9 @@ class ExcelImportContractsTests(unittest.TestCase):
         unrelated = workbook.create_sheet("Notes")
         unrelated.append(["Name", "Comment"])
         unrelated.append(["Only", "notes"])
+        avr = workbook.create_sheet("АВР")
+        avr.append(["Обозначение в журнале", "Контрольная дата", "Заметка"])
+        avr.append(["266 кв", datetime(2026, 3, 16), "АВР подписан"])
         path = self._save_workbook("remark-detection.xlsx", workbook)
 
         sheets = workbook_sheets_to_rows_with_strikes(path)
@@ -165,7 +182,7 @@ class ExcelImportContractsTests(unittest.TestCase):
 
         self.assertEqual([sheet[0] for sheet in sheets], ["Remarks"])
         self.assertEqual(info["matched_sheets"], ["Remarks"])
-        self.assertEqual(info["sheet_count"], 3)
+        self.assertEqual(info["sheet_count"], 4)
         self.assertEqual(preview["active_sheet"], "Remarks")
         self.assertEqual(len(preview["rows"]), 1)
 

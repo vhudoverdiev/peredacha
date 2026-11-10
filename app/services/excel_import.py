@@ -311,9 +311,14 @@ def _rows_look_like_remark_sheet(rows: list[list[Any]]) -> bool:
 
 
 def _worksheet_looks_importable(sheet_name: str | None, rows: list[list[Any]]) -> bool:
+    normalized_sheet_name = normalize_text(sheet_name or "").replace("ё", "е")
+    if normalized_sheet_name == "авр" and any(
+        [normalize_text(cell) for cell in normalize_header_row(row)[:3]] == ["обозначение в журнале", "контрольная дата", "заметка"]
+        for row in rows[:10]
+    ):
+        return False
     if _rows_look_like_remark_sheet(rows):
         return True
-    normalized_sheet_name = normalize_text(sheet_name or "").replace("ё", "е")
     if not any(
         marker in normalized_sheet_name
         for marker in ("квартир", "коммер", "клад", "паркинг", "парков", "машиномест")
