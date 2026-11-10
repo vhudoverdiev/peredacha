@@ -169,6 +169,7 @@ def updates_archive():
         if hit_rate_limit('developer-news-card',120,60,subject=f'user:{current_user.id}'):abort(429)
         if request.method == 'GET':
             session.pop('developer_personal_alert', None)
+            session.pop('developer_desktop_notice', None)
         card = card_for_user(current_user, start=request.method == 'GET', personal_only=True)
         return render_template('developer_personal_message.html', news_card=card), 200, {'Cache-Control': 'private, no-store'}
     page=max(1,min(request.args.get('page',1,type=int),10000))

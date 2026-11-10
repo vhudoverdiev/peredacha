@@ -990,7 +990,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v361-desktop-news-card', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v363-personal-entry-toast', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1049,7 +1049,7 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='workflows.css') }}?v=32-mobile-shortcuts">
   <link rel="stylesheet" href="{{ url_for('static',filename='remark-suggestions.css') }}?v=3">
   {% endif %}
-  {% if current_user.is_authenticated %}<link rel="stylesheet" href="{{ url_for('static',filename='developer-news.css') }}?v=18">{% endif %}
+  {% if current_user.is_authenticated %}<link rel="stylesheet" href="{{ url_for('static',filename='developer-news.css') }}?v=19">{% endif %}
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-navigation-user="{{ current_user.id if current_user.is_authenticated else 0 }}" data-navigation-project="{{ current_project.id if current_project else 0 }}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <script src="{{ url_for('static', filename='navigation-state.js') }}?v=4"></script>
@@ -1124,6 +1124,11 @@
 {% endif %}
 {% if current_user.is_authenticated %}
 <div class="mobile-fixed-top-scroll-mask" aria-hidden="true"></div>
+{% endif %}
+{% if current_user.is_authenticated and session.get('developer_desktop_notice') %}
+<template id="developer-desktop-notice" data-message-id="{{ session.developer_desktop_notice }}">
+  <a href="{{ url_for('main.updates_archive', personal=1) }}">Перейти к сообщению</a>
+</template>
 {% endif %}
 {% set page_content %}
 {% if current_user.is_authenticated and session.get('developer_personal_alert') %}
@@ -1666,6 +1671,6 @@
   <script src="{{ url_for('static', filename='worker-offline-store.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='worker-offline.js') }}?v=5"></script>
   {% endif %}
-  <script src="{{ url_for('static', filename='script.js') }}?v=v731-group-order"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v732-personal-entry-toast"></script>
 </body>
 </html>

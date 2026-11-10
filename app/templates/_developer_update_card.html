@@ -2,7 +2,7 @@
 <div class="dev-news-icon" aria-hidden="true"><img class="dev-news-brand" src="{{ url_for('static',filename='brand-logo.png') }}" width="42" height="42" alt=""></div>
 <div class="dev-news-copy">
   <div class="dev-news-eyebrow">Худовердиев В · Обновления CRM{% if update %} · {{ update.published_at|msk_datetime('%d.%m.%Y') }}{% endif %}</div>
-  <h2><a href="{{ url_for('main.updates_archive') }}">{{ update.title if update else 'Новости от разработчика' }}</a></h2>
+  <h2>{{ update.title if update else 'Новости от разработчика' }}</h2>
   {% if update %}<p>{{ update.body|truncate(400,True) }}</p>{% endif %}
 </div>
 <div class="dev-news-card-actions"><a class="dev-news-all" href="{{ url_for('main.updates_archive') }}">Посмотреть все <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>

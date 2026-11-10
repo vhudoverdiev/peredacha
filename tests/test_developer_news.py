@@ -176,7 +176,14 @@ class DeveloperNewsTests(unittest.TestCase):
             'password': "Personal-message-test-password-2026!",
         }, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
-        self.assertIn('Вам пришло личное сообщение', response.text)
+        self.assertIn(f'id="developer-desktop-notice" data-message-id="{message.id}"', response.text)
+        self.assertIsNotNone(message.login_notified_at)
+        self.client.post('/logout')
+        repeat = self.client.post('/login', data={
+            'username': self.manager.username,
+            'password': 'Personal-message-test-password-2026!',
+        }, follow_redirects=True)
+        self.assertNotIn('id="developer-desktop-notice"', repeat.text)
         self.assertIn('/updates?personal=1', response.text)
         self.assertIsNone(message.first_seen_at)
 

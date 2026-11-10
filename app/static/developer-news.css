@@ -8,8 +8,8 @@ html body.app-body .dev-news-card {
 .dev-news-personal .dev-news-icon {background:#eaf0fa;color:#426286;}
 .dev-news-copy {min-width:0;}
 html body.app-body .dev-news-copy h2 {margin:5px 0 7px;font-size:18px;line-height:1.35;overflow-wrap:anywhere;}
-.dev-news-copy h2 a {color:inherit;text-decoration:none;}
-.dev-news-copy h2 a:hover {text-decoration:underline;}
+.dev-news-card:has(.dev-news-all) {position:relative;}
+.dev-news-card .dev-news-all::after {content:"";position:absolute;inset:0;cursor:pointer;}
 html body.app-body .dev-news-card p {margin:0;color:#46505a;font-size:14px;line-height:1.55;white-space:pre-line;overflow-wrap:anywhere;}
 .dev-news-eyebrow {color:#66715f;font-size:12px;font-weight:600;}
 .dev-news-card-actions {display:flex;flex-direction:column;align-items:flex-end;gap:9px;}

@@ -1,5 +1,5 @@
 importScripts('/static/worker-offline-store.js?v=1');
-const STATIC_CACHE = 'peredacha-static-v361-desktop-news-card';
+const STATIC_CACHE = 'peredacha-static-v363-personal-entry-toast';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -20,14 +20,14 @@ const STATIC_ASSETS = [
   '/static/desktop-only.css?v=v80-issued-priority-controls',
   '/static/worker-offline-store.js?v=1',
   '/static/worker-offline.js?v=5',
-  '/static/script.js?v=v731-group-order',
+  '/static/script.js?v=v732-personal-entry-toast',
   '/static/navigation-state.js?v=4',
   '/static/page-navigation.js?v=9',
   '/static/form-csrf.js?v=1',
   '/static/remark-suggestions.js?v=5-point-numbering',
   '/static/time-entry.js?v=3',
   '/static/remark-suggestions.css?v=3',
-  '/static/developer-news.css?v=18',
+  '/static/developer-news.css?v=19',
   '/static/developer-news.js?v=4',
 ];
 

@@ -2057,7 +2057,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hashLink) event.preventDefault();
   });
 
-  const showCrmNotice = (message, category = 'warning') => {
+  const showCrmNotice = (message, category = 'warning', action = null) => {
     const safeCategory = ['success', 'warning', 'danger', 'info'].includes(category) ? category : 'info';
     let stack = document.querySelector('.crm-toast-stack');
     if (!stack) {
@@ -2080,10 +2080,11 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <button type="button" class="crm-toast-close" aria-label="Закрыть"><i class="bi bi-x-lg"></i></button>
     `;
+    if (action) toast.querySelector('.crm-toast-body').appendChild(action);
     stack.appendChild(toast);
     const close = () => toast.remove();
     toast.querySelector('.crm-toast-close')?.addEventListener('click', close);
-    window.setTimeout(close, 4500);
+    if (!action) window.setTimeout(close, 4500);
   };
   window.showCrmNotice = showCrmNotice;
 
@@ -2105,6 +2106,18 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (error) {
         delete document.body.dataset.siteEntryNoticeShown;
       }
+      return;
+    }
+    const personalNotice = document.getElementById('developer-desktop-notice');
+    if (personalNotice && !isMobileViewport()) {
+      const messageKey = `crm-personal-notice-${personalNotice.dataset.messageId}`;
+      personalNotice.remove();
+      try {
+        if (window.sessionStorage.getItem(messageKey)) return;
+        window.sessionStorage.setItem(messageKey, '1');
+        window.sessionStorage.setItem(storageKey, '1');
+      } catch (error) {}
+      showCrmNotice('Вам пришло личное сообщение', 'success', personalNotice.content.cloneNode(true));
       return;
     }
     try {

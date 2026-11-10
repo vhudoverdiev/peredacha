@@ -381,6 +381,9 @@ def create_app(config_class=Config):
 
         # Additive migration: old appeals remain readable with unknown caller data.
         if _is_sqlite_database_uri(uri) or _is_mysql_database_uri(uri):
+            if "login_notified_at" not in {column["name"] for column in inspect(db.engine).get_columns("developer_personal_messages")}:
+                db.session.execute(text("ALTER TABLE developer_personal_messages ADD COLUMN login_notified_at DATETIME"))
+                db.session.commit()
             project_columns = {column["name"] for column in inspect(db.engine).get_columns("projects")}
             if "group_id" not in project_columns:
                 db.session.execute(text("ALTER TABLE projects ADD COLUMN group_id INTEGER REFERENCES project_groups(id)"))

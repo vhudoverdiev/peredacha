@@ -28,6 +28,21 @@ def has_unread_personal_message(user):
     return message is not None and message.first_seen_at is None
 
 
+def claim_desktop_login_notice(user):
+    if not eligible(user):
+        return None
+    now = utc_now()
+    message = _next_personal_message(user, now)
+    if message is None or message.first_seen_at is not None or message.login_notified_at is not None:
+        return None
+    message_id = message.id
+    claimed = DeveloperPersonalMessage.query.filter_by(
+        id=message_id, recipient_id=user.id, first_seen_at=None, revoked_at=None, login_notified_at=None,
+    ).update({'login_notified_at': now})
+    db.session.commit()
+    return message_id if claimed else None
+
+
 def card_for_user(user, *, start=True, personal_only=False):
     if not eligible(user):
         return None
