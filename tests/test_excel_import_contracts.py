@@ -11,6 +11,8 @@ from app import create_app, db
 from app.models import Apartment, Project, SyncLog, Task, WorkPoint
 from app.services.task_service import dashboard_stats, sync_rows
 from app.services.excel_import import (
+    SYNC_INTERRUPTED_MESSAGE,
+    _set_sync_log_error,
     inspect_remarks_workbook,
     mark_missing_tasks,
     mark_stale_running_sync_logs,
@@ -88,11 +90,22 @@ class ExcelImportContractsTests(unittest.TestCase):
         workbook.save(path)
         return path
 
+    def test_interrupted_import_records_an_actionable_error(self):
+        log = SyncLog(source_type="excel", status="running")
+        db.session.add(log)
+        db.session.commit()
+
+        _set_sync_log_error(log.id, SystemExit(1))
+
+        self.assertEqual(log.status, "error")
+        self.assertEqual(log.error_message, SYNC_INTERRUPTED_MESSAGE)
+        self.assertIsNotNone(log.finished_at)
+
     def test_mark_stale_running_sync_logs_only_marks_expired_logs_for_selected_project(self):
         project = Project(name="Stale sync project")
         other_project = Project(name="Other project")
         now = datetime(2026, 7, 29, 12, 0)
-        stale = SyncLog(project=project, source_type="excel", status="running", started_at=now - timedelta(minutes=6))
+        stale = SyncLog(project=project, source_type="excel", status="running", started_at=now - timedelta(minutes=13))
         fresh = SyncLog(project=project, source_type="excel", status="running", started_at=now - timedelta(minutes=4))
         other = SyncLog(project=other_project, source_type="excel", status="running", started_at=now - timedelta(minutes=10))
         db.session.add_all([project, other_project, stale, fresh, other])

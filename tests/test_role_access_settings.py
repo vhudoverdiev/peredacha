@@ -75,6 +75,31 @@ class AccessSettingsTests(unittest.TestCase):
         self.assertNotIn("OTHER_HISTORY_MARKER", html)
         self.assertNotIn("История изменений по помещению", self.client.get(f"/apartments/{self.apartment.id}").text)
 
+    def test_admin_can_delete_only_unassigned_custom_roles(self):
+        role = "custom_delete_test"
+        self.configure(role, ["objects"], [])
+        self.login(self.manager)
+        path = "/settings/roles"
+        deletion = {"operation": "delete", "role": role}
+        self.assertEqual(self.client.post(path, data=deletion).status_code, 403)
+
+        self.manager.role = "admin"
+        self.worker.role = role
+        db.session.commit()
+        self.login(self.manager)
+        self.assertEqual(self.client.post(path, data={"operation": "delete", "role": "manager"}).status_code, 400)
+        blocked = self.client.post(path, data=deletion)
+        self.assertEqual(blocked.status_code, 303)
+        self.assertIn(role, blocked.location)
+        self.assertEqual(self.client.get(f"{path}?role={role}").status_code, 200)
+
+        self.worker.role = "painter"
+        db.session.commit()
+        deleted = self.client.post(path, data=deletion)
+        self.assertEqual(deleted.status_code, 303)
+        self.assertEqual(deleted.location, path)
+        self.assertEqual(self.client.get(f"{path}?role={role}").status_code, 400)
+
     def test_manager_cannot_manage_access(self):
         self.login(self.manager)
         self.assertEqual(self.client.get('/settings/roles').status_code,403)

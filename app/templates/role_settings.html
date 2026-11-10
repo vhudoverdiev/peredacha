@@ -8,6 +8,12 @@
 <article class="card content-card settings-card mb-4"><div class="card-body">
 <div class="settings-card-head"><div class="settings-card-icon"><i class="bi bi-person-gear"></i></div><div><h2 class="section-title mb-1">Роль сотрудника</h2><p class="text-muted mb-0">Доступ к объектам назначается каждому сотруднику отдельно.</p></div></div>
 <form method="get" class="mt-3"><label class="form-label" for="accessRole">Выберите роль</label><select id="accessRole" class="form-select" name="role" data-access-role-select><option value="new">Создать новую роль</option>{% for key,label in roles %}<option value="{{ key }}" {% if selected==key %}selected{% endif %}>{{ definitions.get(key,{}).get('name',label) }}</option>{% endfor %}</select></form>
+<form method="post" class="mt-3" data-access-delete {% if not selected.startswith('custom_') %}hidden{% endif %}>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="operation" value="delete">
+  <input type="hidden" name="role" value="{{ selected }}">
+  <button type="submit" class="btn btn-outline-danger">Удалить роль</button>
+</form>
 </div></article>
 <form method="post" class="settings-grid access-settings-grid" data-access-autosave>
 <input type="hidden" name="draft_id" value="{{ draft_id }}">
@@ -16,6 +22,9 @@
 <div class="settings-card-head"><div class="settings-card-icon"><i class="bi bi-person-badge"></i></div><h2 class="section-title mb-1">Название роли</h2></div>
 <input aria-label="Название роли" class="form-control mt-3" name="name" maxlength="80" required value="{{ definitions.get(selected,{}).get('name',dict(roles).get(selected,'')) }}">
 </div></article>
+<div class="settings-card-wide">
+  <button type="button" class="btn btn-outline-secondary" data-access-check-all>Отметить всё</button>
+</div>
 <div class="access-settings-cards settings-card-wide">
 <article class="card content-card settings-card">
   <div class="card-body">
@@ -56,6 +65,7 @@
  const form=document.querySelector('[data-access-autosave]');
  const state=form.querySelector('[data-access-save-state]');
  const selector=document.querySelector('[data-access-role-select]');
+ const deleteForm=document.querySelector('[data-access-delete]');
  let timer,running=null,again=false,last=new URLSearchParams(new FormData(form)).toString();
  async function save(){
   clearTimeout(timer);
@@ -71,6 +81,8 @@
     last=payload;
     if(form.elements.role.value==='new'){
      form.elements.role.value=data.role;
+     deleteForm.elements.role.value=data.role;
+     deleteForm.hidden=false;
      const option=new Option(data.name,data.role,true,true);selector.add(option);selector.value=data.role;
      const url=new URL(location.href);url.searchParams.set('role',data.role);history.replaceState(history.state,'',url);
      const savedPayload=new URLSearchParams(payload);savedPayload.set('role',data.role);last=savedPayload.toString();
@@ -84,6 +96,20 @@
  form.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>save().catch(()=>{}),500);});
  form.addEventListener('change',()=>{void save().catch(()=>{});});
  form.addEventListener('submit',event=>{event.preventDefault();event.stopImmediatePropagation();void save().catch(()=>{});},true);
+ form.querySelector('[data-access-check-all]').addEventListener('click',()=>{
+  form.querySelectorAll('input[type="checkbox"]:enabled').forEach(input=>{input.checked=true;});
+  void save().catch(()=>{});
+ });
+ deleteForm.addEventListener('submit',async event=>{
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if(!window.confirm('Удалить эту роль?'))return;
+  try{
+   await save();
+   while(running)await running;
+   deleteForm.submit();
+  }catch(_){}
+ },true);
  selector.addEventListener('change',async()=>{
   const target=selector.value;
   try{await save();while(running)await running;await save();const url=new URL({{ url_for('main.role_settings')|tojson }},location.origin);url.searchParams.set('role',target);if(window.crmNavigate)void window.crmNavigate(url.href);else location.assign(url.href);}catch(_){}

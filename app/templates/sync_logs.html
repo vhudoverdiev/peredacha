@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Журнал синхронизаций</div>
+{% block title %}Журнал синхронизаций
 {% endblock %}
 {% block content %}
 {% set source_labels = {
@@ -37,7 +37,13 @@
           <tr>
             <td>{{ log.started_at|msk_datetime }}</td>
             <td><span class="text-muted">{{ source_labels.get(log.source_type, log.source_type) }}</span><br><small>{{ log.source_name or '' }}</small></td>
-            <td><span class="sync-status-pill {{ 'sync-status-pill-success' if log.status=='success' else 'sync-status-pill-error' if log.status=='error' else 'sync-status-pill-progress' }}">{{ 'Успешно' if log.status=='success' else 'Ошибка' if log.status=='error' else 'В процессе' }}</span></td>
+            <td><span class="sync-status-pill {{ 'sync-status-pill-success' if log.status=='success' else 'sync-status-pill-error' if log.status=='error' else 'sync-status-pill-progress' }}">{{ 'Успешно' if log.status=='success' else 'Ошибка' if log.status=='error' else 'В процессе' }}</span>
+              {% if log.status == 'error' %}
+                <div class="small text-muted text-break mt-1">
+                  {{ interrupted_message if log.error_message in (interrupted_message, '1') else 'Импорт завершился с ошибкой. Подробности доступны в серверном журнале.' }}
+                </div>
+              {% endif %}
+            </td>
             <td>{{ log.created_count }}</td>
             <td>{{ log.updated_count }}</td>
             <td>

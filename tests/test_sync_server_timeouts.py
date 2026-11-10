@@ -22,8 +22,8 @@ class SyncServerTimeoutTests(unittest.TestCase):
 
         self.assertIsNotNone(worker_timeout)
         self.assertIsNotNone(graceful_timeout)
-        self.assertGreaterEqual(int(worker_timeout.group(1)), 180)
-        self.assertGreaterEqual(int(graceful_timeout.group(1)), 180)
+        self.assertGreaterEqual(int(worker_timeout.group(1)), 600)
+        self.assertGreaterEqual(int(graceful_timeout.group(1)), 600)
 
     def test_nginx_waits_longer_than_gunicorn_for_sync_response(self):
         service = (ROOT / "deploy" / "gunicorn.service").read_text(encoding="utf-8")

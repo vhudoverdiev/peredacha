@@ -58,8 +58,8 @@ ACTIONS = [
  ('record_schedule','records','Настраивать время, открывать и закрывать интервалы',{'main.records_availability','main.records_availability_page','main.record_slot_toggle','main.record_slots_close_interval'}),
  ('record_calls','records','Работать со списком обзвона',{'main.records_call_list','main.records_call_list_comment','main.records_call_list_comment_delete','main.records_call_list_visibility'}),
  ('appeal_create','appeals','Создавать обращения',{'main.appeal_new'}),
- ('appeal_edit','appeals','Комментировать обращения и менять статус',{'main.appeal_detail','main.appeal_edit','main.appeal_status'}),
- ('appeal_delete','appeals','Удалять обращения',{'main.appeal_delete'}),
+ ('appeal_edit','appeals','В карточке обращения: добавлять комментарии, менять статус и редактировать свои обращения',{'main.appeal_detail','main.appeal_edit','main.appeal_status'}),
+ ('appeal_delete','appeals','Удалять созданные вами обращения',{'main.appeal_delete'}),
 ]
 
 
@@ -157,7 +157,7 @@ ACTIONS += [
 
 ACTIONS += [
  ('avr_generate','avr','Формировать АВР',{'main.avr'}),
- ('notifications_archive','notifications','Архивировать уведомления АВР',{'main.archive_apartment_avr'}),
+ ('notifications_archive','notifications','Переносить записи АВР в архив служебных уведомлений',{'main.archive_apartment_avr'}),
 ]
 
 ACTIONS.append(('remark_view_comments','remarks','Просматривать комментарии к замечаниям',set()))

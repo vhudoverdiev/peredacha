@@ -33,7 +33,8 @@ from app.services.task_service import (
 from app.services.changelog_service import log_change
 from app.services.sync_rollback import build_project_rollback_data
 
-STALE_RUNNING_SYNC_AFTER = timedelta(minutes=5)
+STALE_RUNNING_SYNC_AFTER = timedelta(minutes=12)
+SYNC_INTERRUPTED_MESSAGE = "Синхронизация не завершилась: процесс импорта был прерван или превысил допустимое время ожидания."
 
 
 def _set_sync_log_error(sync_log_id: int | None, exc: BaseException) -> None:
@@ -45,7 +46,9 @@ def _set_sync_log_error(sync_log_id: int | None, exc: BaseException) -> None:
         if failed_log is None:
             return
         failed_log.status = "error"
-        failed_log.error_message = str(exc)
+        failed_log.error_message = (
+            SYNC_INTERRUPTED_MESSAGE if isinstance(exc, (SystemExit, KeyboardInterrupt)) else str(exc)
+        )
         failed_log.finished_at = utc_now()
         db.session.commit()
     except Exception:
@@ -73,7 +76,7 @@ def mark_stale_running_sync_logs(
         log.finished_at = log.finished_at or now
         log.error_message = (
             log.error_message
-            or "Синхронизация не завершилась: процесс импорта был прерван или превысил допустимое время ожидания."
+            or SYNC_INTERRUPTED_MESSAGE
         )
     if stale_logs:
         db.session.commit()
