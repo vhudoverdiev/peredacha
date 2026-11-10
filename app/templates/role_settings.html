@@ -8,12 +8,9 @@
 <article class="card content-card settings-card mb-4"><div class="card-body">
 <div class="settings-card-head"><div class="settings-card-icon"><i class="bi bi-person-gear"></i></div><div><h2 class="section-title mb-1">Роль сотрудника</h2><p class="text-muted mb-0">Доступ к объектам назначается каждому сотруднику отдельно.</p></div></div>
 <form method="get" class="mt-3"><label class="form-label" for="accessRole">Выберите роль</label><select id="accessRole" class="form-select" name="role" data-access-role-select><option value="new">Создать новую роль</option>{% for key,label in roles %}<option value="{{ key }}" {% if selected==key %}selected{% endif %}>{{ definitions.get(key,{}).get('name',label) }}</option>{% endfor %}</select></form>
-<form method="post" class="mt-3" data-access-delete {% if not selected.startswith('custom_') %}hidden{% endif %}>
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <input type="hidden" name="operation" value="delete">
-  <input type="hidden" name="role" value="{{ selected }}">
-  <button type="submit" class="btn btn-outline-danger">Удалить роль</button>
-</form>
+<div class="mt-3" data-access-delete-trigger {% if not selected.startswith('custom_') %}hidden{% endif %}>
+  <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAccessRoleModal">Удалить роль</button>
+</div>
 </div></article>
 <form method="post" class="settings-grid access-settings-grid" data-access-autosave>
 <input type="hidden" name="draft_id" value="{{ draft_id }}">
@@ -60,6 +57,24 @@
 </div>
 <p class="settings-card-wide text-muted small" data-access-save-state role="status" aria-live="polite"></p>
 </form></div>
+<div class="modal fade crm-modal" id="deleteAccessRoleModal" tabindex="-1" aria-hidden="true" aria-labelledby="deleteAccessRoleTitle">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="post" action="{{ url_for('main.role_settings') }}" data-access-delete>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="operation" value="delete">
+      <input type="hidden" name="role" value="{{ selected }}">
+      <div class="modal-body">
+        <div class="modal-icon modal-icon-danger"><i class="bi bi-trash" aria-hidden="true"></i></div>
+        <h2 id="deleteAccessRoleTitle">Удалить роль?</h2>
+        <p>Роль и её настройки доступа будут удалены. Если роль назначена сотрудникам, сначала выберите для них другую роль.</p>
+        <div class="modal-actions">
+          <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Отмена</button>
+          <button class="btn btn-danger" type="submit">Удалить роль</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
 <script>
 (() => {
  const form=document.querySelector('[data-access-autosave]');
@@ -82,7 +97,7 @@
     if(form.elements.role.value==='new'){
      form.elements.role.value=data.role;
      deleteForm.elements.role.value=data.role;
-     deleteForm.hidden=false;
+     document.querySelector('[data-access-delete-trigger]').hidden=false;
      const option=new Option(data.name,data.role,true,true);selector.add(option);selector.value=data.role;
      const url=new URL(location.href);url.searchParams.set('role',data.role);history.replaceState(history.state,'',url);
      const savedPayload=new URLSearchParams(payload);savedPayload.set('role',data.role);last=savedPayload.toString();
@@ -103,7 +118,6 @@
  deleteForm.addEventListener('submit',async event=>{
   event.preventDefault();
   event.stopImmediatePropagation();
-  if(!window.confirm('Удалить эту роль?'))return;
   try{
    await save();
    while(running)await running;

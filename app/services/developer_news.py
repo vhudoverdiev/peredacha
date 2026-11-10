@@ -2,7 +2,7 @@
 from datetime import timedelta
 from sqlalchemy import or_
 from app import db
-from app.models import DeveloperUpdate,DeveloperPersonalMessage,User,WORKER_ROLES
+from app.models import DeveloperUpdate,DeveloperPersonalMessage,WORKER_ROLES
 from app.time_utils import utc_now
 
 
@@ -46,19 +46,25 @@ def claim_desktop_login_notice(user):
 def card_for_user(user, *, start=True, personal_only=False):
     if not eligible(user):
         return None
-    # One user lock prevents two tabs from starting two queued messages.
-    if start:
-        User.query.filter_by(id=user.id).with_for_update().one()
     now = utc_now()
     message = _next_personal_message(user, now)
     if message and message.first_seen_at is None:
         if start:
-            message.first_seen_at = now
-            message.expires_at = now + timedelta(minutes=message.duration_minutes)
+            # Claim only the pending message, leaving the recipient row unlocked.
+            claimed = DeveloperPersonalMessage.query.filter_by(
+                id=message.id, recipient_id=user.id, first_seen_at=None, revoked_at=None,
+            ).update({
+                'first_seen_at': now,
+                'expires_at': now + timedelta(minutes=message.duration_minutes),
+            })
+            db.session.commit()
+            if not claimed:
+                # A concurrent request started or revoked this message.
+                message = _next_personal_message(user, now)
+                if message is not None and message.first_seen_at is None:
+                    message = None
         else:
             message = None
-    if start:
-        db.session.commit()
     if personal_only and not message:
         return None
     update = None if personal_only else published_updates(now).order_by(

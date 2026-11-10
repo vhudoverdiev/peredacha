@@ -198,6 +198,14 @@ class DeveloperNewsTests(unittest.TestCase):
         response = self.client.get('/updates/card?personal=1', headers={'Accept': 'application/json'})
         self.assertEqual(response.json['html'].strip(), '')
 
+    def test_dashboard_card_does_not_lock_the_user_row(self):
+        from sqlalchemy.orm import Query
+
+        message = self.message()
+        with patch.object(Query, "with_for_update", side_effect=AssertionError("Unexpected row lock")):
+            self.assertEqual(card_for_user(self.manager)["item"].id, message.id)
+            self.assertEqual(card_for_user(self.manager)["item"].id, message.id)
+
     def test_personal_timer_starts_at_first_home_display_and_does_not_restart(self):
         self.login(self.manager);message=self.message();start=datetime(2026,10,23,10)
         self.client.get('/updates');db.session.refresh(message);self.assertIsNone(message.first_seen_at)

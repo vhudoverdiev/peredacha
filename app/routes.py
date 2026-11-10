@@ -12932,8 +12932,8 @@ def users():
         else:
             project = None
             project_ids, all_projects_access, group_ids, group_scope = _requested_project_access()
-            if not all_projects_access and not project_ids and not group_ids and group_scope != "all":
-                flash("Выберите хотя бы один объект или раздел.", "danger")
+            if request.form.get("limit_group_projects") == "1" or not (group_ids or group_scope == "all"):
+                flash("Для нового пользователя выберите раздел целиком или все разделы.", "danger")
                 users = User.query.order_by(User.created_at.desc()).all()
                 return render_template("users.html", create_mode=True, users=users, form=form, project=project, all_projects=all_projects, project_groups=project_groups, protected_user_ids=_protected_user_ids(users))
             user = User(

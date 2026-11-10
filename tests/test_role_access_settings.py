@@ -100,6 +100,29 @@ class AccessSettingsTests(unittest.TestCase):
         self.assertEqual(deleted.location, path)
         self.assertEqual(self.client.get(f"{path}?role={role}").status_code, 400)
 
+    def test_new_user_can_only_receive_access_by_section(self):
+        from app.models import ProjectGroup
+
+        self.manager.role = "admin"
+        group = ProjectGroup(name="Раздел для нового сотрудника")
+        self.project.group = group
+        db.session.commit()
+        self.login(self.manager)
+        path = "/users/new"
+        page = self.client.get(path)
+        self.assertEqual(page.status_code, 200)
+        self.assertIn('name="access_group"', page.text)
+        self.assertNotIn('name="limit_group_projects"', page.text)
+
+        data = {"username": "section-user", "city": "Архангельск", "role": "manager",
+                "password": "test-password", "access_group": str(group.id)}
+        response = self.client.post(path, data={**data, "limit_group_projects": "1", "project_ids": str(self.project.id)})
+        self.assertIn("выберите раздел целиком", response.text)
+        self.assertIsNone(User.query.filter_by(username="section-user").first())
+        self.assertEqual(self.client.post(path, data=data).status_code, 302)
+        created = User.query.filter_by(username="section-user").one()
+        self.assertEqual(created.project_group_policy["groups"], [group.id])
+
     def test_manager_cannot_manage_access(self):
         self.login(self.manager)
         self.assertEqual(self.client.get('/settings/roles').status_code,403)

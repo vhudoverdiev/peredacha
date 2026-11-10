@@ -12,15 +12,16 @@
       <option value="{{ group.id }}" {% if selected_group|string == group.id|string %}selected{% endif %}>{{ group.name }}</option>
       {% endfor %}
     </select>
-  {% if not access_user %}</label>
+  {% if not access_user %}</label>{% endif %}
+  {% if access_user %}
   <label class="d-block" data-section-limit hidden>
-    <input type="checkbox" name="limit_group_projects" value="1" {% if scope or (not access_user and request.form.get('limit_group_projects')) %}checked{% endif %}>
+    <input type="checkbox" name="limit_group_projects" value="1" {% if scope %}checked{% endif %}>
     Только выбранные объекты раздела
   </label>
   <div data-section-projects hidden>
     {% for item in all_projects if item.group_id %}
     <label class="users-access-project-option" data-access-group="{{ item.group_id }}" hidden>
-      <input type="checkbox" name="project_ids" value="{{ item.id }}" {% if (access_user and item.id in access_user.direct_project_access_ids) or (not access_user and item.id|string in request.form.getlist('project_ids')) %}checked{% endif %}>
+      <input type="checkbox" name="project_ids" value="{{ item.id }}" {% if item.id in access_user.direct_project_access_ids %}checked{% endif %}>
       <span>{{ item.name }}</span>
     </label>
     {% endfor %}
