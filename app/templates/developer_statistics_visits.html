@@ -4,7 +4,7 @@
     <article class="developer-top-users-panel">
       <div class="developer-card-head">
         <div>
-          <h2 class="section-title developer-stat-card-title">Посещения по IP</h2>
+          <h2 class="section-title developer-stat-card-title">Аккаунты и гости</h2>
         </div>
       </div>
       <div class="developer-ranked-list">
@@ -21,8 +21,8 @@
               </div>
             </div>
             <div class="developer-ranked-value">
-              <strong>{{ group.hits }}</strong>
-              <span>запросов</span>
+              {% if group.active_label is not none %}<strong>{{ group.active_label }}</strong><span>активного времени</span>{% endif %}
+              <span>{{ group.hits }} запросов</span>
             </div>
             <span class="developer-visitor-caret" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
           </summary>

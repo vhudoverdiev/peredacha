@@ -70,13 +70,13 @@
         <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-duration developer-stat-summary-link" href="{{ overview_href }}&metric=time" data-statistics-page="overview" data-no-scroll-restore="1">
           <div class="card-body">
             <span class="developer-stat-summary-icon" aria-hidden="true"><i class="bi bi-stopwatch"></i></span>
-            <span class="developer-stat-summary-label">Среднее активное время</span>
-            <strong class="developer-stat-summary-value developer-stat-summary-value-word">{{ avg_duration_label }}</strong>
+            <span class="developer-stat-summary-label">Активное время аккаунтов</span>
+            <strong class="developer-stat-summary-value developer-stat-summary-value-word">{{ active_time_label }}</strong>
           </div>
         </a>
       </section>
-      <p class="text-muted small mt-2 mb-0">Активное время — оценка по интервалам между действиями с одного IP за день. Паузы больше 5 минут исключены. Один общий IP может принадлежать нескольким сотрудникам.</p>
-      <a class="btn btn-outline-secondary mt-2" href="{{ visits_href }}" data-statistics-page="visits">Посещения по IP</a>
+      <p class="text-muted small mt-2 mb-0">Активное время суммируется отдельно для каждого аккаунта по интервалам между запросами. Паузы больше 5 минут исключены. Это оценка активности, гостевые запросы в неё не входят.</p>
+      <a class="btn btn-outline-secondary mt-2" href="{{ visits_href }}" data-statistics-page="visits">Активность сотрудников и гостей</a>
     </div>
   </section>
 

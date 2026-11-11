@@ -64,7 +64,7 @@ class DeveloperStatisticsContractsTests(unittest.TestCase):
                         "/site-errors", "/developer/delete-logs", "/developer/statistics?days=30", "/developer/updates",
                     ])
 
-    def test_guest_and_authenticated_visits_share_one_ip_group(self):
+    def test_guest_and_authenticated_visits_are_separate(self):
         self.user = User(id=1, username="visitor", role=ROLE_ADMIN)
         visits = [
             SiteVisit(id=1, ip_address="203.0.113.20", created_at=datetime(2026, 8, 4, 10)),
@@ -72,25 +72,37 @@ class DeveloperStatisticsContractsTests(unittest.TestCase):
                       created_at=datetime(2026, 8, 4, 10, 2)),
         ]
         groups = _build_site_visit_visitor_groups(visits)
-        self.assertEqual(len(groups), 1)
-        self.assertEqual(groups[0]["hits"], 2)
-        self.assertIn("203.0.113.20", groups[0]["label"])
+        self.assertEqual(len(groups), 2)
+        self.assertEqual([group["hits"] for group in groups], [1, 1])
+        self.assertEqual({group["key"][0] for group in groups}, {"user", "guest"})
 
     def test_activity_time_excludes_long_idle_gaps_and_chart_counts_ips(self):
+        user = User(username="activity-one", role=ROLE_ADMIN, password_hash="unused")
+        other = User(username="activity-two", role=ROLE_ADMIN, password_hash="unused")
+        db.session.add_all([user, other])
+        db.session.flush()
         db.session.add_all([
-            SiteVisit(ip_address="203.0.113.20", created_at=datetime(2026, 8, 4, 10, minute),
+            SiteVisit(user_id=user.id, ip_address="203.0.113.20", created_at=datetime(2026, 8, 4, 10, minute),
                       visit_kind="request", duration_ms=1)
             for minute in (0, 2, 30)
+        ])
+        db.session.add_all([
+            SiteVisit(user_id=other.id, ip_address="203.0.113.20",
+                      created_at=datetime(2026, 8, 4, 10, minute), visit_kind="request")
+            for minute in (1, 4)
         ])
         db.session.commit()
         with self.app.test_request_context("/developer/statistics?start_date=2026-08-04&end_date=2026-08-04"):
             context = _build_developer_statistics_context()
         self.assertEqual(context["unique_visitors"], 1)
         self.assertEqual(context["daily_series"][0]["hits"], 1)
-        self.assertEqual(context["avg_duration_label"], "2 мин")
+        self.assertEqual(context["active_time_label"], "5 мин")
+        account_times = {group["key"][1]: group["active_seconds"] for group in context["visitor_groups"]}
+        self.assertEqual(account_times[str(user.id)], 120)
+        self.assertEqual(account_times[str(other.id)], 180)
         with self.app.test_request_context("/developer/statistics?start_date=2026-08-04&end_date=2026-08-04&metric=time"):
             context = _build_developer_statistics_context()
-        self.assertEqual(context["daily_series"][0]["hits"], 2)
+        self.assertEqual(context["daily_series"][0]["hits"], 5)
 
     def test_statistics_totals_include_guest_request_ips_and_unique_visits_are_unique_ips(self):
         user = User(username="stats-admin", role=ROLE_ADMIN, password_hash="unused")

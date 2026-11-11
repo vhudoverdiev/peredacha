@@ -2805,11 +2805,11 @@ def _build_site_visit_visitor_groups(visits: list[SiteVisit], *, visits_per_grou
 
     for visit in visits:
         guest_ip = (visit.ip_address or "").strip()
-        if not guest_ip:
+        is_account = visit.user_id is not None
+        if not is_account and not guest_ip:
             continue
-        key = ("ip", guest_ip)
-        label = guest_ip
-        is_account = bool(visit.user_id)
+        key = ("user", str(visit.user_id)) if is_account else ("guest", guest_ip)
+        label = _visit_user_label(visit.user) if is_account else f"Гость · {guest_ip}"
         kind_label = "Гость"
         kind_class = "is-guest"
 
@@ -2822,7 +2822,6 @@ def _build_site_visit_visitor_groups(visits: list[SiteVisit], *, visits_per_grou
                 "kind_class": kind_class,
                 "is_account": is_account,
                 "hits": 0,
-                "users": set(),
                 "ip_set": set(),
                 "last_seen": visit.created_at,
                 "visits": [],
@@ -2830,9 +2829,6 @@ def _build_site_visit_visitor_groups(visits: list[SiteVisit], *, visits_per_grou
             groups[key] = group
             ordered_groups.append(group)
 
-        if visit.user_id:
-            group["users"].add(_visit_user_label(visit.user))
-            group["is_account"] = True
         group["hits"] += 1
         if visit.created_at and (group["last_seen"] is None or visit.created_at > group["last_seen"]):
             group["last_seen"] = visit.created_at
@@ -2842,9 +2838,6 @@ def _build_site_visit_visitor_groups(visits: list[SiteVisit], *, visits_per_grou
             group["visits"].append(visit)
 
     for group in ordered_groups:
-        names = sorted(group.pop("users"))
-        if names:
-            group["label"] += " · " + ", ".join(names)
         if group.get("is_account"):
             is_current = bool(group["last_seen"] and group["last_seen"] >= now - ACTIVE_VISITOR_WINDOW)
             group["kind_label"] = "Авторизован" if is_current else "Не авторизован"
@@ -3078,7 +3071,6 @@ def _build_developer_statistics_context() -> dict:
         statistics_query
         .options(selectinload(SiteVisit.user), selectinload(SiteVisit.project))
         .order_by(SiteVisit.created_at.desc(), SiteVisit.id.desc())
-        .limit(10000)
         .all()
     )
     visitor_groups = _build_site_visit_visitor_groups(visitor_group_visits)
@@ -3131,30 +3123,35 @@ def _build_developer_statistics_context() -> dict:
         "device": device_stats[0] if device_stats else None,
     }
     activity_rows = statistics_query.with_entities(
-        SiteVisit.ip_address, SiteVisit.created_at,
-    ).filter(SiteVisit.ip_address.isnot(None), SiteVisit.ip_address != "").order_by(
-        SiteVisit.ip_address, SiteVisit.created_at,
-    ).all()
-    activity_days = {}
+        SiteVisit.user_id, SiteVisit.ip_address, SiteVisit.created_at,
+    ).order_by(SiteVisit.created_at).all()
+    unique_by_day = {}
+    active_by_user = {}
+    active_by_day = {}
     previous = {}
-    for ip, timestamp in activity_rows:
+    for user_id, ip, timestamp in activity_rows:
         day = to_moscow_datetime(timestamp).date()
-        key = (ip, day)
-        activity_days.setdefault(key, 0)
+        if ip:
+            unique_by_day.setdefault(day, set()).add(ip)
+        if user_id is None:
+            continue
+        key = (user_id, day)
+        active_by_user.setdefault(user_id, 0)
         if key in previous:
             seconds = (timestamp - previous[key]).total_seconds()
             if 0 < seconds <= 300:
-                activity_days[key] += seconds
+                active_by_user[user_id] += seconds
+                active_by_day[day] = active_by_day.get(day, 0) + seconds
         previous[key] = timestamp
-    avg_active_seconds = sum(activity_days.values()) / len(activity_days) if activity_days else 0
-    activity_by_day = {}
-    for (_, day), seconds in activity_days.items():
-        activity_by_day.setdefault(day, []).append(seconds)
+    for group in visitor_groups:
+        seconds = active_by_user.get(int(group["key"][1]), 0) if group["key"][0] == "user" else None
+        group["active_seconds"] = seconds
+        group["active_label"] = f"{round(seconds / 60, 1):g} мин" if seconds is not None else None
+    total_active_seconds = sum(active_by_user.values())
     metric = "time" if request.args.get("metric") == "time" else "unique"
     daily_series = _build_site_visit_daily_series(statistics_query, period_start_date, period_end_date)
     for point in daily_series:
-        values = activity_by_day.get(point["date"], [])
-        point["hits"] = (round(sum(values) / len(values) / 60, 1) if values else 0) if metric == "time" else len(values)
+        point["hits"] = round(active_by_day.get(point["date"], 0) / 60, 1) if metric == "time" else len(unique_by_day.get(point["date"], set()))
     peak = max((point["hits"] for point in daily_series), default=0)
     for point in daily_series:
         point["bar"] = round(point["hits"] / peak * 100) if peak else 0
@@ -3168,7 +3165,7 @@ def _build_developer_statistics_context() -> dict:
         "unique_visitors": unique_visitors,
         "unique_ips": unique_ips,
         "avg_duration": int(avg_duration or 0),
-        "avg_duration_label": f"{round(avg_active_seconds / 60, 1):g} мин",
+        "active_time_label": f"{round(total_active_seconds / 60, 1):g} мин",
         "metric": metric,
         "latest_visit_at": latest_visit_at,
         "top_ips": top_ips,
