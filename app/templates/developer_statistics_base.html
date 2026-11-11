@@ -35,6 +35,7 @@
     <div class="card-body">
       <div class="developer-stat-hero-head">
         <form class="developer-stat-head-meta developer-stat-range-form" method="get">
+          <input type="hidden" name="metric" value="{{ metric }}">
           <input type="hidden" name="scope" value="{{ scope }}">
           {% if ip_filter %}<input type="hidden" name="ip" value="{{ ip_filter }}">{% endif %}
           {% if path_filter %}<input type="hidden" name="path" value="{{ path_filter }}">{% endif %}
@@ -57,31 +58,25 @@
         </form>
       </div>
 
-      <section class="developer-stat-summary-grid developer-stat-summary-showcase">
-        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-visits developer-stat-summary-link" href="{{ visits_href }}" data-statistics-page="visits">
-          <div class="card-body">
-            <span class="developer-stat-summary-icon" aria-hidden="true"><i class="bi bi-activity"></i></span>
-            <span class="developer-stat-summary-label">Всего посещений</span>
-            <strong class="developer-stat-summary-value">{{ total_visits }}</strong>
-          </div>
-        </a>
-
-        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-sources developer-stat-summary-link" href="{{ sources_href }}" data-statistics-page="sources" data-no-scroll-restore="1">
+      <section class="developer-stat-summary-grid developer-stat-summary-showcase developer-stat-summary-two">
+        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-sources developer-stat-summary-link" href="{{ overview_href }}&metric=unique" data-statistics-page="overview" data-no-scroll-restore="1">
           <div class="card-body">
             <span class="developer-stat-summary-icon" aria-hidden="true"><i class="bi bi-diagram-3"></i></span>
-            <span class="developer-stat-summary-label">Уникальные посещения</span>
+            <span class="developer-stat-summary-label">Уникальные IP</span>
             <strong class="developer-stat-summary-value">{{ unique_visitors }}</strong>
           </div>
         </a>
 
-        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-duration developer-stat-summary-link" href="{{ overview_href }}" data-statistics-page="overview" data-no-scroll-restore="1">
+        <a class="card content-card developer-stat-summary-card developer-stat-summary-card-unified developer-stat-summary-card-duration developer-stat-summary-link" href="{{ overview_href }}&metric=time" data-statistics-page="overview" data-no-scroll-restore="1">
           <div class="card-body">
             <span class="developer-stat-summary-icon" aria-hidden="true"><i class="bi bi-stopwatch"></i></span>
-            <span class="developer-stat-summary-label">Среднее время</span>
+            <span class="developer-stat-summary-label">Среднее активное время</span>
             <strong class="developer-stat-summary-value developer-stat-summary-value-word">{{ avg_duration_label }}</strong>
           </div>
         </a>
       </section>
+      <p class="text-muted small mt-2 mb-0">Активное время — оценка по интервалам между действиями с одного IP за день. Паузы больше 5 минут исключены. Один общий IP может принадлежать нескольким сотрудникам.</p>
+      <a class="btn btn-outline-secondary mt-2" href="{{ visits_href }}" data-statistics-page="visits">Посещения по IP</a>
     </div>
   </section>
 

@@ -64,6 +64,34 @@ class DeveloperStatisticsContractsTests(unittest.TestCase):
                         "/site-errors", "/developer/delete-logs", "/developer/statistics?days=30", "/developer/updates",
                     ])
 
+    def test_guest_and_authenticated_visits_share_one_ip_group(self):
+        self.user = User(id=1, username="visitor", role=ROLE_ADMIN)
+        visits = [
+            SiteVisit(id=1, ip_address="203.0.113.20", created_at=datetime(2026, 8, 4, 10)),
+            SiteVisit(id=2, user=self.user, user_id=self.user.id, ip_address="203.0.113.20",
+                      created_at=datetime(2026, 8, 4, 10, 2)),
+        ]
+        groups = _build_site_visit_visitor_groups(visits)
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0]["hits"], 2)
+        self.assertIn("203.0.113.20", groups[0]["label"])
+
+    def test_activity_time_excludes_long_idle_gaps_and_chart_counts_ips(self):
+        db.session.add_all([
+            SiteVisit(ip_address="203.0.113.20", created_at=datetime(2026, 8, 4, 10, minute),
+                      visit_kind="request", duration_ms=1)
+            for minute in (0, 2, 30)
+        ])
+        db.session.commit()
+        with self.app.test_request_context("/developer/statistics?start_date=2026-08-04&end_date=2026-08-04"):
+            context = _build_developer_statistics_context()
+        self.assertEqual(context["unique_visitors"], 1)
+        self.assertEqual(context["daily_series"][0]["hits"], 1)
+        self.assertEqual(context["avg_duration_label"], "2 мин")
+        with self.app.test_request_context("/developer/statistics?start_date=2026-08-04&end_date=2026-08-04&metric=time"):
+            context = _build_developer_statistics_context()
+        self.assertEqual(context["daily_series"][0]["hits"], 2)
+
     def test_statistics_totals_include_guest_request_ips_and_unique_visits_are_unique_ips(self):
         user = User(username="stats-admin", role=ROLE_ADMIN, password_hash="unused")
         db.session.add(user)
@@ -246,8 +274,8 @@ class DeveloperStatisticsContractsTests(unittest.TestCase):
             context = _build_developer_statistics_context()
 
         labels = [group["label"] for group in context["visitor_groups"]]
-        self.assertIn("Активный Пользователь", labels)
-        self.assertIn("Старый Пользователь", labels)
+        self.assertTrue(any("Активный Пользователь" in label for label in labels))
+        self.assertTrue(any("Старый Пользователь" in label for label in labels))
 
     def test_user_guest_groups_and_sources_are_sorted_by_latest_visit_first(self):
         frequent_user = User(username="frequent", full_name="Частый Пользователь", role=ROLE_ADMIN, password_hash="unused")
@@ -288,7 +316,7 @@ class DeveloperStatisticsContractsTests(unittest.TestCase):
         with self.app.test_request_context("/developer/statistics/visits?start_date=2026-08-04&end_date=2026-08-04"):
             context = _build_developer_statistics_context()
 
-        self.assertEqual(context["visitor_groups"][0]["label"], "Свежий Пользователь")
+        self.assertIn("Свежий Пользователь", context["visitor_groups"][0]["label"])
         self.assertEqual(context["top_ips"][0]["ip_address"], "203.0.113.99")
 
     def test_authorized_badge_is_used_only_for_current_account_activity(self):

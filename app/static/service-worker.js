@@ -1,5 +1,5 @@
 importScripts('/static/worker-offline-store.js?v=1');
-const STATIC_CACHE = 'peredacha-static-v370-avr-validation';
+const STATIC_CACHE = 'peredacha-static-v371-ip-statistics';
 const STATIC_ASSETS = [
   '/static/site.webmanifest',
   '/static/brand-logo.png',
@@ -14,7 +14,7 @@ const STATIC_ASSETS = [
   '/static/vendor/bootstrap/bootstrap.bundle.min.js?v=5.3.3',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6',
   '/static/vendor/bootstrap/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6',
-  '/static/style.css?v=v814-developer-log-tabs',
+  '/static/style.css?v=v815-ip-statistics',
   '/static/workflows.css?v=32-mobile-shortcuts',
   '/static/mobile-only.css?v=v101-ios-objects-dock',
   '/static/desktop-only.css?v=v80-issued-priority-controls',

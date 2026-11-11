@@ -990,7 +990,7 @@
 
       if ('serviceWorker' in navigator && window.isSecureContext) {
         navigator.serviceWorker
-          .register('/service-worker.js?v=v370-avr-validation', { scope: '/', updateViaCache: 'none' })
+          .register('/service-worker.js?v=v371-ip-statistics', { scope: '/', updateViaCache: 'none' })
           .then(registration => registration.update().catch(() => {}))
           .catch(() => {});
       }
@@ -1031,7 +1031,7 @@
   </script>
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v=5.3.3" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-icons.min.css') }}?v=1.11.3" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v814-developer-log-tabs">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=v815-ip-statistics">
   <link rel="stylesheet" href="{{ url_for('static', filename='mobile-only.css') }}?v=v101-ios-objects-dock">
   <link rel="stylesheet" href="{{ url_for('static', filename='desktop-only.css') }}?v=v80-issued-priority-controls">
   <script>

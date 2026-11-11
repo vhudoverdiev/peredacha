@@ -2,7 +2,7 @@
 {% set entities = {'projects': 'Объект', 'apartments': 'Помещение', 'tasks': 'Замечание',
                    'task_comments': 'Комментарий к замечанию', 'users': 'Пользователь',
                    'inspection_bookings': 'Запись на осмотр', 'appeals': 'Обращение',
-                   'developer_updates': 'Обновление CRM', 'developer_personal_messages': 'Личное сообщение'} %}
+                   'app_settings': 'Настройка CRM', 'developer_updates': 'Обновление CRM', 'developer_personal_messages': 'Личное сообщение'} %}
 <div class="developer-delete-log-list">
 {% for entry, detail in entries %}
   <article class="card content-card developer-delete-log-card">
@@ -12,16 +12,24 @@
         <strong>{{ detail.actor }}{% if entry.task and entry.task.project %} · {{ entry.task.project.name }}{% endif %}</strong>
         <time class="text-muted small">{{ detail.timestamp }}</time>
       </div>
-      <div class="small text-muted text-break mt-2">{% if entry.task and entry.task.apartment %}Помещение № {{ entry.task.apartment.display_number() }} · {% endif %}Замечание № {{ entry.task_id }}{% if detail.point_label %} · {{ detail.point_label }}{% endif %}</div>
+      <div class="small text-muted text-break mt-2">{% if entry.task and entry.task.apartment %}{{ entry.task.apartment.detail_label() }} · {% endif %}{% if entry.task %}{{ entry.task.description or entry.task.source_cell_value or "Текст замечания отсутствует" }}{% endif %}</div>
       <div class="text-break">{{ detail.summary }}</div>
       {% else %}
+      {% set context = audit_context[entry.id] %}
       <div class="developer-delete-log-head flex-wrap">
-        <strong>{{ actions[entry.action] }} · {{ entities.get(entry.entity, entry.entity) }}{% if entry.entity_id %} № {{ entry.entity_id }}{% endif %}</strong>
+        <strong>{{ actions[entry.action] }} · {{ entities.get(entry.entity, entry.entity) }}</strong>
         <time class="text-muted small">{{ entry.created_at|ru_datetime }}</time>
       </div>
-      <div class="mt-2">Пользователь {{ entry.actor }} · № {{ entry.user_id }}{% if entry.project_id %} · Объект № {{ entry.project_id }}{% endif %}</div>
-      <div class="small text-muted text-break">{{ entry.path }}</div>
-      {% if entry.fields %}<div class="small text-break">Изменённые поля: {{ entry.fields }}</div>{% endif %}
+      <div class="mt-2 text-break">{{ entry.actor }}{% if context.project %} · {{ context.project }}{% endif %}{% if context.premise %} · {{ context.premise }}{% endif %}</div>
+      {% if context.remark %}<div class="text-break mt-1">{{ context.remark }}</div>{% endif %}
+      {% if context.point %}<div class="small text-muted text-break">{{ context.point }}</div>{% endif %}
+      {% if context.fields %}<div class="text-break mt-1">Изменено: {{ context.fields }}</div>{% endif %}
+      {% if not context.project and entry.project_id %}<div class="small text-muted">Объект удалён или недоступен.</div>{% endif %}
+      <details class="small text-muted mt-2">
+        <summary>Технические сведения</summary>
+        <div class="text-break">{{ entry.path }}</div>
+        <div>ID пользователя: {{ entry.user_id }}{% if entry.entity_id %} · ID записи: {{ entry.entity_id }}{% endif %}{% if entry.project_id %} · ID объекта: {{ entry.project_id }}{% endif %}</div>
+      </details>
       {% if entry.affected_count is not none %}<div class="small">Записей: {{ entry.affected_count }}</div>{% endif %}
       {% endif %}
     </div>

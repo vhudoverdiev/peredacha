@@ -2674,7 +2674,7 @@ def _build_site_visit_daily_series(base_query, start_date: date, end_date: date)
     use_compact_labels = span >= 21
     rows = (
         base_query
-        .with_entities(func.date(SiteVisit.created_at).label("day"), func.count(SiteVisit.id).label("hits"))
+        .with_entities(func.date(SiteVisit.created_at).label("day"), func.count(distinct(SiteVisit.ip_address)).label("hits"))
         .filter(SiteVisit.created_at >= datetime.combine(chart_start_date, datetime.min.time()))
         .group_by(func.date(SiteVisit.created_at))
         .all()
@@ -2804,19 +2804,14 @@ def _build_site_visit_visitor_groups(visits: list[SiteVisit], *, visits_per_grou
     now = now or utc_now()
 
     for visit in visits:
-        if visit.user_id:
-            key = ("user", str(visit.user_id))
-            label = _visit_user_label(visit.user)
-            is_account = True
-            kind_label = "Не авторизован"
-            kind_class = "is-guest"
-        else:
-            guest_ip = (visit.ip_address or "").strip()
-            key = ("guest", guest_ip or f"guest-{visit.id}")
-            label = f"Гость • {guest_ip}" if guest_ip else "Гость"
-            is_account = False
-            kind_label = "Гость"
-            kind_class = "is-guest"
+        guest_ip = (visit.ip_address or "").strip()
+        if not guest_ip:
+            continue
+        key = ("ip", guest_ip)
+        label = guest_ip
+        is_account = bool(visit.user_id)
+        kind_label = "Гость"
+        kind_class = "is-guest"
 
         group = groups.get(key)
         if group is None:
@@ -2827,6 +2822,7 @@ def _build_site_visit_visitor_groups(visits: list[SiteVisit], *, visits_per_grou
                 "kind_class": kind_class,
                 "is_account": is_account,
                 "hits": 0,
+                "users": set(),
                 "ip_set": set(),
                 "last_seen": visit.created_at,
                 "visits": [],
@@ -2834,6 +2830,9 @@ def _build_site_visit_visitor_groups(visits: list[SiteVisit], *, visits_per_grou
             groups[key] = group
             ordered_groups.append(group)
 
+        if visit.user_id:
+            group["users"].add(_visit_user_label(visit.user))
+            group["is_account"] = True
         group["hits"] += 1
         if visit.created_at and (group["last_seen"] is None or visit.created_at > group["last_seen"]):
             group["last_seen"] = visit.created_at
@@ -2843,6 +2842,9 @@ def _build_site_visit_visitor_groups(visits: list[SiteVisit], *, visits_per_grou
             group["visits"].append(visit)
 
     for group in ordered_groups:
+        names = sorted(group.pop("users"))
+        if names:
+            group["label"] += " · " + ", ".join(names)
         if group.get("is_account"):
             is_current = bool(group["last_seen"] and group["last_seen"] >= now - ACTIVE_VISITOR_WINDOW)
             group["kind_label"] = "Авторизован" if is_current else "Не авторизован"
@@ -3008,7 +3010,7 @@ def _build_developer_statistics_context() -> dict:
     unique_ips = (
         statistics_query
         .with_entities(func.count(distinct(SiteVisit.ip_address)))
-        .filter(SiteVisit.ip_address.isnot(None))
+        .filter(SiteVisit.ip_address.isnot(None), SiteVisit.ip_address != "")
         .scalar()
         or 0
     )
@@ -3128,7 +3130,34 @@ def _build_developer_statistics_context() -> dict:
         "os": os_stats[0] if os_stats else None,
         "device": device_stats[0] if device_stats else None,
     }
+    activity_rows = statistics_query.with_entities(
+        SiteVisit.ip_address, SiteVisit.created_at,
+    ).filter(SiteVisit.ip_address.isnot(None), SiteVisit.ip_address != "").order_by(
+        SiteVisit.ip_address, SiteVisit.created_at,
+    ).all()
+    activity_days = {}
+    previous = {}
+    for ip, timestamp in activity_rows:
+        day = to_moscow_datetime(timestamp).date()
+        key = (ip, day)
+        activity_days.setdefault(key, 0)
+        if key in previous:
+            seconds = (timestamp - previous[key]).total_seconds()
+            if 0 < seconds <= 300:
+                activity_days[key] += seconds
+        previous[key] = timestamp
+    avg_active_seconds = sum(activity_days.values()) / len(activity_days) if activity_days else 0
+    activity_by_day = {}
+    for (_, day), seconds in activity_days.items():
+        activity_by_day.setdefault(day, []).append(seconds)
+    metric = "time" if request.args.get("metric") == "time" else "unique"
     daily_series = _build_site_visit_daily_series(statistics_query, period_start_date, period_end_date)
+    for point in daily_series:
+        values = activity_by_day.get(point["date"], [])
+        point["hits"] = (round(sum(values) / len(values) / 60, 1) if values else 0) if metric == "time" else len(values)
+    peak = max((point["hits"] for point in daily_series), default=0)
+    for point in daily_series:
+        point["bar"] = round(point["hits"] / peak * 100) if peak else 0
     chart_month_label = _build_site_visit_chart_month_label(period_start_date, period_end_date)
     period_display_label = _build_site_visit_period_label(period_start_date, period_end_date)
     future_notice = _build_site_visit_future_notice(period_start_date, period_end_date, filters["today"], total_visits)
@@ -3139,7 +3168,8 @@ def _build_developer_statistics_context() -> dict:
         "unique_visitors": unique_visitors,
         "unique_ips": unique_ips,
         "avg_duration": int(avg_duration or 0),
-        "avg_duration_label": _format_ru_milliseconds(avg_duration),
+        "avg_duration_label": f"{round(avg_active_seconds / 60, 1):g} мин",
+        "metric": metric,
         "latest_visit_at": latest_visit_at,
         "top_ips": top_ips,
         "top_users": top_users,
@@ -3524,6 +3554,43 @@ def developer_delete_logs():
             selectinload(ChangeLog.task).selectinload(Task.work_point),
             selectinload(ChangeLog.task).selectinload(Task.apartment),
         )}
+        task_ids = {entry.entity_id for entry in audits.values() if entry.entity == "tasks"}
+        comment_ids = {entry.entity_id for entry in audits.values() if entry.entity == "task_comments"}
+        comments = TaskComment.query.filter(TaskComment.id.in_(comment_ids)).all()
+        task_ids.update(comment.task_id for comment in comments)
+        audit_tasks = {task.id: task for task in Task.query.filter(Task.id.in_(task_ids)).options(
+            selectinload(Task.project), selectinload(Task.apartment), selectinload(Task.work_point),
+        )}
+        comment_tasks = {comment.id: audit_tasks.get(comment.task_id) for comment in comments}
+        apartment_ids = {entry.entity_id for entry in audits.values() if entry.entity == "apartments"}
+        audit_apartments = {item.id: item for item in Apartment.query.filter(Apartment.id.in_(apartment_ids)).options(
+            selectinload(Apartment.project),
+        )}
+        project_ids = {entry.project_id for entry in audits.values() if entry.project_id}
+        project_ids.update(entry.entity_id for entry in audits.values() if entry.entity == "projects")
+        audit_projects = {item.id: item for item in Project.query.filter(Project.id.in_(project_ids))}
+        audit_context = {}
+        field_labels = {
+            "status": "статус", "completed_date": "дата выполнения", "is_done": "отметка о выполнении",
+            "manually_edited": "признак ручного изменения", "description": "текст замечания",
+            "responsible_id": "исполнитель", "planned_date": "плановая дата", "comment": "комментарий",
+            "body": "текст комментария", "owner_name": "ФИО собственника", "phone": "телефон",
+            "apartment_number": "номер помещения", "construction_number": "строительный номер",
+            "contract_number": "номер по договору", "finishing_type": "отделка", "name": "название",
+        }
+        for entry in audits.values():
+            task = audit_tasks.get(entry.entity_id) if entry.entity == "tasks" else comment_tasks.get(entry.entity_id)
+            apartment = task.apartment if task else audit_apartments.get(entry.entity_id) if entry.entity == "apartments" else None
+            project = task.project if task else apartment.project if apartment else audit_projects.get(
+                entry.entity_id if entry.entity == "projects" else entry.project_id
+            )
+            audit_context[entry.id] = {
+                "project": project.name if project else None,
+                "premise": apartment.detail_label() if apartment else None,
+                "remark": (task.description or task.source_cell_value) if task else None,
+                "point": task.work_point.display_name if task and task.work_point else None,
+                "fields": ", ".join(field_labels.get(field.strip(), field.strip()) for field in (entry.fields or "").split(",") if field.strip()),
+            }
         entries = []
         users_cache = {}
         for row in rows:
@@ -3532,7 +3599,7 @@ def developer_delete_logs():
                     entries.append((audits[row.event_id], None))
             elif (change := changes.get(row.event_id)) is not None:
                 entries.append((change, _build_change_history_entry(change, change.task, users_cache)))
-        return render_template("developer_delete_logs.html", history=history, entries=entries, view="history"), 200, {
+        return render_template("developer_delete_logs.html", history=history, entries=entries, audit_context=audit_context, view="history"), 200, {
             "Cache-Control": "private, no-store",
         }
     project = None

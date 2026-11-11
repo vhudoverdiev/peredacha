@@ -33,7 +33,7 @@ class CrmAuditTests(unittest.TestCase):
         self.assertIn("private, no-store", response.headers["Cache-Control"])
         self.assertIn("Создание · Объект", response.text)
         self.assertIn(self.manager.username, response.text)
-        self.assertNotIn(project.name, response.text.split('class="developer-delete-log-list"', 1)[1])
+        self.assertIn(project.name, response.text.split('class="developer-delete-log-list"', 1)[1])
 
     def test_journal_tabs_have_a_separate_ajax_content_region(self):
         self.manager.role = "admin"
@@ -79,6 +79,7 @@ class CrmAuditTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Комментарий из истории объекта", response.text)
         self.assertIn(self.project.name, response.text)
-        self.assertIn(f"Замечание № {task.id}", response.text)
+        self.assertIn(task.apartment.detail_label(), response.text)
+        self.assertIn(task.description, response.text)
         self.assertIn("Пункт исправлен по заголовку исходной таблицы", response.text)
         self.assertIn("было № 12, стало № 34", response.text)

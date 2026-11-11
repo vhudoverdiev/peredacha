@@ -5,7 +5,7 @@
       <div class="card-body">
         <div class="developer-card-head developer-overview-card-head">
           <div class="developer-overview-card-copy">
-            <h2 class="section-title developer-stat-card-title">Обзор</h2>
+            <h2 class="section-title developer-stat-card-title">{{ "Среднее активное время, мин" if metric == "time" else "Уникальные IP по дням" }}</h2>
             <p class="developer-stat-chart-month">{{ chart_month_label }}</p>
           </div>
           <span class="developer-stat-panel-chip developer-stat-panel-chip-soft">
@@ -16,7 +16,7 @@
         {% if future_notice %}
         <div class="developer-empty-state">{{ future_notice }}</div>
         {% else %}
-        <div class="developer-daily-chart{% if daily_series|length == 1 %} developer-daily-chart-single{% endif %}" style="--developer-daily-columns: {{ daily_series|length }};" aria-label="График открытий вкладок по дням">
+        <div class="developer-daily-chart{% if daily_series|length == 1 %} developer-daily-chart-single{% endif %}" style="--developer-daily-columns: {{ daily_series|length }};" aria-label="{{ 'Среднее активное время по дням' if metric == 'time' else 'Уникальные IP по дням' }}">
           {% for point in daily_series %}
           <div class="developer-daily-chart-col">
             <span class="developer-daily-chart-value">{{ point.hits }}</span>
