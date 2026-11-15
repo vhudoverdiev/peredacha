@@ -172,13 +172,39 @@ class SyncRollbackContractsTests(unittest.TestCase):
         self.assertFalse(db.session.get(Task, self.task.id).is_missing_in_latest_sync)
         self.assertIsNotNone(log.rolled_back_at)
 
+    def test_snapshot_removes_conflict_references_outside_import_window(self):
+        from sqlalchemy import text
+
+        snapshot = build_project_rollback_data(self.project.id)
+        started_at = utc_now()
+        new_apartment = Apartment(project=self.project, apartment_number="999")
+        new_task = Task(project=self.project, apartment=new_apartment, work_point=self.point,
+                        source_uid="rollback-conflict-new-task")
+        db.session.add_all([new_apartment, new_task])
+        db.session.flush()
+        conflicts = [
+            SyncConflict(task=new_task, target_type="task", source_type="excel",
+                         created_at=started_at + timedelta(hours=2)),
+            SyncConflict(apartment=new_apartment, target_type="apartment", source_type="excel",
+                         created_at=started_at - timedelta(days=1)),
+        ]
+        log = SyncLog(project=self.project, source_type="excel", status="success",
+                      started_at=started_at, rollback_data=snapshot)
+        db.session.add_all([log, *conflicts])
+        db.session.commit()
+        task_id, apartment_id = new_task.id, new_apartment.id
+        db.session.execute(text("PRAGMA foreign_keys=ON"))
+
+        ok, message = apply_sync_rollback(log)
+
+        self.assertTrue(ok, message)
+        self.assertIsNone(db.session.get(Task, task_id))
+        self.assertIsNone(db.session.get(Apartment, apartment_id))
+        self.assertEqual(SyncConflict.query.count(), 0)
+        self.assertIsNotNone(db.session.get(Task, self.task.id))
+
     def test_rollback_conflict_query_only_closes_conflicts_for_selected_project_window(self):
-        rollback_data = json.dumps({
-            "version": 1,
-            "project_id": self.project.id,
-            "apartments": [],
-            "tasks": [],
-        })
+        rollback_data = build_project_rollback_data(self.project.id)
         started_at = utc_now()
         log = SyncLog(project=self.project, source_type="excel", status="success", started_at=started_at, rollback_data=rollback_data)
         in_window = SyncConflict(

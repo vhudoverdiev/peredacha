@@ -418,19 +418,32 @@ def _rollback_from_snapshot(log: SyncLog) -> tuple[bool, str]:
     new_tasks_query = Task.query.filter(Task.project_id == project_id)
     if task_ids_before:
         new_tasks_query = new_tasks_query.filter(~Task.id.in_(task_ids_before))
-    deleted_tasks = 0
-    for task in new_tasks_query.all():
-        db.session.delete(task)
-        deleted_tasks += 1
-    db.session.flush()
-
+    new_tasks = new_tasks_query.all()
     new_apartments_query = Apartment.query.filter(Apartment.project_id == project_id)
     if apartment_ids_before:
         new_apartments_query = new_apartments_query.filter(~Apartment.id.in_(apartment_ids_before))
-    deleted_apartments = 0
-    for apartment in new_apartments_query.all():
+    new_apartments = new_apartments_query.all()
+    # References created before or after this import still block deletion.
+    # Remove every conflict referring to an entity the snapshot discards.
+    removed_task_ids = [task.id for task in new_tasks]
+    removed_apartment_ids = [apartment.id for apartment in new_apartments]
+    references = SyncConflict.query.filter(or_(
+        SyncConflict.task_id.in_(removed_task_ids),
+        SyncConflict.apartment_id.in_(removed_apartment_ids),
+    )).all()
+    for conflict in references:
+        db.session.delete(conflict)
+    deleted_conflicts += len(references)
+    db.session.flush()
+
+    deleted_tasks = len(new_tasks)
+    for task in new_tasks:
+        db.session.delete(task)
+    db.session.flush()
+
+    deleted_apartments = len(new_apartments)
+    for apartment in new_apartments:
         db.session.delete(apartment)
-        deleted_apartments += 1
     db.session.flush()
 
     restored_apartments = 0
@@ -508,7 +521,11 @@ def _rollback_from_legacy_change_log(log: SyncLog) -> tuple[bool, str]:
         if task is None:
             continue
         if change.action == "created_from_sync" and task.created_at >= start:
+            for conflict in SyncConflict.query.filter_by(task_id=task.id).all():
+                db.session.delete(conflict)
+            db.session.flush()
             db.session.delete(task)
+            db.session.flush()
             deleted_tasks += 1
         elif change.action == "missing_in_latest_sync" and change.field_name == "is_missing_in_latest_sync":
             task.is_missing_in_latest_sync = False
