@@ -43,6 +43,7 @@ from app.models import (
     Apartment,
     Appeal,
     ChatMessage,
+    InspectionCallNote,
     Contractor,
     MaterialRequest,
     MaterialRequestItem,
@@ -2445,10 +2446,16 @@ def object_delete(project_id: int):
     task_ids = [task_id for (task_id,) in db.session.query(Task.id).filter(Task.project_id == project.id).all()]
     if task_ids:
         SyncConflict.query.filter(SyncConflict.task_id.in_(task_ids)).delete(synchronize_session=False)
+    # Historical records survive object deletion without a dangling foreign key.
+    for model in (DeletionActionLog, SyncLog, SiteVisit, ChatMessage, User):
+        model.query.filter(model.project_id == project.id).update(
+            {"project_id": None}, synchronize_session="fetch",
+        )
+    InspectionCallNote.query.filter_by(project_id=project.id).delete(synchronize_session=False)
     db.session.delete(project)
+    db.session.commit()
     if session.get("current_project_id") == project_id:
         session.pop("current_project_id", None)
-    db.session.commit()
     flash("Объект удалён", "success")
     return redirect(url_for("main.objects"))
 

@@ -27,6 +27,52 @@ class ObjectCreationLimitTests(unittest.TestCase):
         db.drop_all()
         self.context.pop()
 
+    def test_deleting_project_detaches_history_and_clears_selection_after_commit(self):
+        from app.models import DeletionActionLog, SyncLog, SiteVisit
+        from sqlalchemy import text
+
+        admin = self._create_user("delete-project-admin", ROLE_ADMIN)
+        project = Project(name="Объект с историей")
+        db.session.add(project)
+        db.session.flush()
+        project_id = project.id
+        history = DeletionActionLog(project=project, action_key="sync_log_delete", entity_type="sync_log")
+        sync = SyncLog(project=project, source_type="excel", status="success")
+        visit = SiteVisit(project=project, user=admin, path="/")
+        db.session.add_all([history, sync, visit])
+        db.session.commit()
+        history_id, sync_id, visit_id = history.id, sync.id, visit.id
+        self._login(admin.username)
+        with self.client.session_transaction() as session:
+            session["current_project_id"] = project_id
+        db.session.execute(text("PRAGMA foreign_keys=ON"))
+        response = self.client.post(f"/objects/{project_id}/delete")
+        self.assertEqual(response.status_code, 302)
+        self.assertIsNone(db.session.get(Project, project_id))
+        for model, record_id in ((DeletionActionLog, history_id), (SyncLog, sync_id), (SiteVisit, visit_id)):
+            self.assertIsNone(db.session.get(model, record_id).project_id)
+        with self.client.session_transaction() as session:
+            self.assertNotIn("current_project_id", session)
+
+    def test_failed_project_deletion_keeps_selected_project(self):
+        from unittest.mock import patch
+
+        admin = self._create_user("delete-failure-admin", ROLE_ADMIN)
+        project = Project(name="Сохранить при ошибке")
+        db.session.add(project)
+        db.session.commit()
+        project_id = project.id
+        self._login(admin.username)
+        with self.client.session_transaction() as session:
+            session["current_project_id"] = project_id
+        with patch.object(db.session, "commit", side_effect=RuntimeError("Simulated save failure")):
+            response = self.client.post(f"/objects/{project_id}/delete")
+        self.assertEqual(response.status_code, 500)
+        db.session.rollback()
+        self.assertIsNotNone(db.session.get(Project, project_id))
+        with self.client.session_transaction() as session:
+            self.assertEqual(session["current_project_id"], project_id)
+
     def _create_user(self, username: str, role: str) -> User:
         user = User(username=username, role=role, all_projects_access=True, captcha_disabled=True)
         user.set_password("Strong-test-password-2026!")
