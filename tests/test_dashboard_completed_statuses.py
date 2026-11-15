@@ -151,6 +151,18 @@ class DashboardCompletedStatusesTests(unittest.TestCase):
         self.assertIn("<b>5</b>", main_card.group(0))
         self.assertIn("<b>2</b>", main_card.group(0))
 
+    def test_enabled_empty_premise_types_are_shown_on_desktop_and_phone(self):
+        self.project.has_commercial = self.project.has_storerooms = self.project.has_parking = True
+        db.session.commit()
+        for agent in ("Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)"):
+            with self.subTest(agent=agent):
+                response = self.client.get("/", headers={"User-Agent": agent})
+                self.assertEqual(response.status_code, 200)
+                handover = response.text.split('aria-label="Передано помещений">', 1)[1].split("</section>", 1)[0]
+                for kind in ("apartment", "commercial", "storeroom", "parking"):
+                    self.assertIn(f'data-handover-type="{kind}"', handover)
+                self.assertEqual(handover.count("Нет помещений"), 3)
+
     def test_handover_uses_sold_premises_and_keeps_task_progress_in_task_card(self):
         self.project.has_commercial = self.project.has_parking = self.project.has_storerooms = True
         self.apartment.is_app_mode = True
@@ -171,11 +183,11 @@ class DashboardCompletedStatusesTests(unittest.TestCase):
                 self.assertRegex(handover, r'data-handover-type="apartment">\s*<div[^>]*>Квартиры</div>\s*<div class="dashboard-handover-ring"[^>]*>\s*<strong>50%</strong>')
                 self.assertNotIn("Передано помещений", handover)
                 self.assertNotIn("От проданных помещений", handover)
-                self.assertIn("Передано 1 из 2", handover)
+                self.assertIn('Передано <span class="dashboard-handover-count">1 из 2</span>', handover)
                 self.assertIn("<strong>100%</strong>", handover)
                 self.assertIn("Нет проданных", handover)
-                self.assertNotIn('data-handover-type="storeroom"', handover)
-                self.assertEqual(handover.count('class="dashboard-handover-ring"'), 3)
+                self.assertIn('data-handover-type="storeroom"', handover)
+                self.assertEqual(handover.count('class="dashboard-handover-ring"'), 4)
                 task_card = html.split('class="dashboard-focus-card dashboard-focus-primary">', 1)[1].split("</article>", 1)[0]
                 self.assertNotIn("dashboard-progress-ring", task_card)
                 self.assertNotIn("dashboard-progress-meta", task_card)
@@ -202,7 +214,7 @@ class DashboardCompletedStatusesTests(unittest.TestCase):
         db.session.commit()
         parking = handover().split('data-handover-type="parking">', 1)[1]
         self.assertIn('<strong>50%</strong>', parking)
-        self.assertIn('Передано 1 из 2', parking)
+        self.assertIn('Передано <span class="dashboard-handover-count">1 из 2</span>', parking)
 
     def test_dashboard_accepted_heading_matches_inspections_and_completed_storeroom_feature_is_removed(self):
         response = self.client.get("/")

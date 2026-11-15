@@ -725,6 +725,15 @@ def create_app(config_class=Config):
                     db.session.execute(text("ALTER TABLE contractors ADD COLUMN email VARCHAR(255)"))
                 db.session.commit()
 
+            if "deletion_action_logs" in inspector.get_table_names() and _is_mysql_database_uri(uri):
+                snapshot_column = next(
+                    (column for column in inspector.get_columns("deletion_action_logs")
+                     if column["name"] == "snapshot_json"), None,
+                )
+                if snapshot_column and str(snapshot_column["type"]).upper() != "LONGTEXT":
+                    db.session.execute(text("ALTER TABLE deletion_action_logs MODIFY COLUMN snapshot_json LONGTEXT"))
+                    db.session.commit()
+
             if "sync_logs" in inspector.get_table_names():
                 sync_log_columns = {column["name"] for column in inspector.get_columns("sync_logs")}
                 if "project_id" not in sync_log_columns:

@@ -31,9 +31,9 @@
     </div>
     {% set handover_types = [
       ('apartment', 'Квартиры', project.has_apartments or stats.apartment_count),
-      ('commercial', 'Коммерции', project.has_commercial and stats.commercial_count),
+      ('commercial', 'Коммерции', project.has_commercial or stats.commercial_count),
       ('parking', 'Парковки', show_parking),
-      ('storeroom', 'Кладовки', project.has_storerooms and stats.storeroom_count),
+      ('storeroom', 'Кладовки', project.has_storerooms or stats.storeroom_count),
     ] %}
     <section class="dashboard-handover dashboard-handover-grid" aria-label="Передано помещений">
       {% for premise_type, label, shown in handover_types if shown %}

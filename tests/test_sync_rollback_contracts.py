@@ -6,7 +6,7 @@ from sqlalchemy.dialects import mysql
 
 from config import Config
 from app import create_app, db
-from app.models import Apartment, ChangeLog, Project, SyncConflict, SyncLog, Task, WorkPoint
+from app.models import DeletionActionLog, Apartment, ChangeLog, Project, SyncConflict, SyncLog, Task, WorkPoint
 from app.services.sync_rollback import (
     build_project_rollback_data,
     _deserialize_value,
@@ -43,6 +43,20 @@ class SyncRollbackContractsTests(unittest.TestCase):
         db.session.remove()
         db.drop_all()
         self.context.pop()
+
+    def test_deletion_snapshot_supports_large_sync_rollback_data(self):
+        from sqlalchemy.dialects.mysql.mariadb import MariaDBDialect
+
+        column = DeletionActionLog.__table__.c.snapshot_json
+        for dialect in (mysql.dialect(), MariaDBDialect()):
+            self.assertEqual(column.type.compile(dialect=dialect), "LONGTEXT")
+        payload = json.dumps({"rollback_data": "Замечание " * 100000}, ensure_ascii=False)
+        log = DeletionActionLog(project=self.project, action_key="sync_log_delete",
+                                entity_type="sync_log", snapshot_json=payload)
+        db.session.add(log)
+        db.session.commit()
+        db.session.expire_all()
+        self.assertEqual(db.session.get(DeletionActionLog, log.id).snapshot_json, payload)
 
     def test_snapshot_payload_rejects_missing_invalid_and_non_object_json(self):
         self.assertEqual(_snapshot_payload(None), {})

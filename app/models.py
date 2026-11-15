@@ -982,7 +982,7 @@ class DeletionActionLog(TimestampMixin, db.Model):
     entity_id = db.Column(db.Integer, nullable=True, index=True)
     entity_title = db.Column(db.String(255), nullable=True)
     description = db.Column(db.Text, nullable=True)
-    snapshot_json = db.Column(db.Text, nullable=True)
+    snapshot_json = db.Column(db.Text().with_variant(mysql.LONGTEXT(), "mysql", "mariadb"), nullable=True)
     is_undone = db.Column(db.Boolean, default=False, nullable=False, index=True)
     undone_at = db.Column(db.DateTime, nullable=True)
     undone_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
