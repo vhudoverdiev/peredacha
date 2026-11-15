@@ -60508,7 +60508,8 @@ html body.app-body .settings-standalone-layout :is(.settings-page-head, .setting
   }
 }
 
-body.app-body > .object-delete-overlay {
+body.app-body > .object-delete-overlay,
+body.app-body > .user-delete-overlay {
   position: fixed;
   inset: 0;
   z-index: 1055;
@@ -60516,7 +60517,8 @@ body.app-body > .object-delete-overlay {
   overflow: auto;
 }
 
-body.app-body > .object-delete-overlay .confirm-modal-backdrop {
+body.app-body > .object-delete-overlay .confirm-modal-backdrop,
+body.app-body > .user-delete-overlay .confirm-modal-backdrop {
   width: auto !important;
   height: auto !important;
 }
