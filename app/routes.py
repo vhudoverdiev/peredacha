@@ -288,7 +288,7 @@ SECTION_LOCK_CHOICES = [
         "endpoints": {
             "main.task_list", "main.task_detail", "main.task_new", "main.task_delete", "main.remark_suggestions",
             "main.task_recognition", "main.update_task", "main.add_task_comment", "main.delete_task_comment", "main.quick_status",
-            "main.inline_update_text", "main.split_task_remark",
+            "main.inline_update_text", "main.split_task_remark", "main.update_task_point",
             "main.remarks_excel_selection", "main.export_tasks", "main.export_category_tasks",
             "main.export_category_tasks_pdf", "main.export_source_with_strikes",
         },
@@ -12113,6 +12113,7 @@ def task_detail(task_id: int):
         other_open_tasks=other_tasks,
         back_url=back_url,
         can_delete_task=current_user.role != "viewer",
+        can_change_point=role_section_access("main.update_task_point") and can_change_task(current_user, task),
         can_manage_comments=can_view_task_comments(current_user) and can_change_task(current_user, task),
     )
 

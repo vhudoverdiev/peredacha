@@ -203,6 +203,27 @@ class SyncRollbackContractsTests(unittest.TestCase):
         self.assertEqual(SyncConflict.query.count(), 0)
         self.assertIsNotNone(db.session.get(Task, self.task.id))
 
+    def test_snapshot_clears_conflicts_for_tasks_cascaded_from_removed_apartment(self):
+        from sqlalchemy import text
+
+        payload = json.loads(build_project_rollback_data(self.project.id))
+        payload["apartments"] = []
+        log = SyncLog(project=self.project, source_type="excel", status="success",
+                      started_at=utc_now(), rollback_data=json.dumps(payload))
+        conflict = SyncConflict(task=self.task, target_type="task", source_type="excel",
+                                created_at=utc_now() - timedelta(days=1))
+        db.session.add_all([log, conflict])
+        db.session.commit()
+        task_id, apartment_id = self.task.id, self.apartment.id
+        db.session.execute(text("PRAGMA foreign_keys=ON"))
+
+        ok, message = apply_sync_rollback(log)
+
+        self.assertTrue(ok, message)
+        self.assertIsNone(db.session.get(Task, task_id))
+        self.assertIsNone(db.session.get(Apartment, apartment_id))
+        self.assertEqual(SyncConflict.query.count(), 0)
+
     def test_rollback_conflict_query_only_closes_conflicts_for_selected_project_window(self):
         rollback_data = build_project_rollback_data(self.project.id)
         started_at = utc_now()

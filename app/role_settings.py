@@ -44,7 +44,7 @@ ACTIONS = [
  ('premise_internal','apartments','Изменять внутренний статус помещения',{'main.update_apartment_po_status'}),
  ('premise_documents','apartments','Изменять статусы АВР и соглашений',{'main.update_apartment_avr_status','main.update_apartment_addendum_status'}),
  ('remark_create','remarks','Добавлять замечания и распознавать акты',{'main.task_new','main.task_recognition'}),
- ('remark_edit','remarks','Редактировать и разделять замечания',{'main.update_task','main.inline_update_text','main.split_task_remark'}),
+ ('remark_edit','remarks','Редактировать замечания, менять пункт и разделять текст',{'main.update_task','main.update_task_point','main.inline_update_text','main.split_task_remark'}),
  ('remark_status','remarks','Менять статус замечаний',{'main.quick_status'}),
  ('remark_delete','remarks','Удалять замечания',{'main.task_delete'}),
  ('remark_comments','remarks','Добавлять и удалять комментарии к замечаниям',{'main.add_task_comment','main.delete_task_comment'}),

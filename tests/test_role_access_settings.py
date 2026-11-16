@@ -160,6 +160,29 @@ class AccessSettingsTests(unittest.TestCase):
         self.assertEqual(self.client.post(f"{path}/office-manager-comment", data={"office_manager_comment": "Менеджер"}).status_code, 403)
         self.assertEqual(self.client.post(f"{path}/inspection-note", data={"inspection_note": "Инженер"}).status_code, 302)
 
+    def test_configured_role_can_change_remark_point_only_with_edit_permission(self):
+        from app.models import WorkPoint
+
+        point = WorkPoint(point_number="12", short_name="Тестовый пункт")
+        db.session.add(point)
+        db.session.commit()
+        role = "custom_point_editor"
+        self.configure(role, ["remarks"], ["remark_edit"])
+        self.manager.role = role
+        db.session.commit()
+        self.login(self.manager)
+        path = f"/tasks/{self.task.id}/point"
+        response = self.client.post(path, data={"point_number": "12"},
+                                    headers={"Accept": "application/json"})
+        self.assertEqual(response.status_code, 200)
+        db.session.refresh(self.task)
+        self.assertEqual(self.task.work_point.point_number, "12")
+        self.assertIn("data-task-detail-point-autosave", self.client.get(f"/tasks/{self.task.id}").text)
+
+        self.configure(role, ["remarks"], [])
+        self.assertEqual(self.client.post(path, data={"point_number": "11"}).status_code, 403)
+        self.assertNotIn("data-task-detail-point-autosave", self.client.get(f"/tasks/{self.task.id}").text)
+
     def test_manager_cannot_manage_access(self):
         self.login(self.manager)
         self.assertEqual(self.client.get('/settings/roles').status_code,403)

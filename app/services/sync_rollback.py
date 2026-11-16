@@ -425,8 +425,13 @@ def _rollback_from_snapshot(log: SyncLog) -> tuple[bool, str]:
     new_apartments = new_apartments_query.all()
     # References created before or after this import still block deletion.
     # Remove every conflict referring to an entity the snapshot discards.
-    removed_task_ids = [task.id for task in new_tasks]
     removed_apartment_ids = [apartment.id for apartment in new_apartments]
+    removed_task_ids = {task.id for task in new_tasks}
+    removed_task_ids.update(
+        task_id for (task_id,) in db.session.query(Task.id).filter(
+            Task.apartment_id.in_(removed_apartment_ids),
+        ).all()
+    )
     references = SyncConflict.query.filter(or_(
         SyncConflict.task_id.in_(removed_task_ids),
         SyncConflict.apartment_id.in_(removed_apartment_ids),

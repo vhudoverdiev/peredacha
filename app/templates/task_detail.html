@@ -22,7 +22,7 @@
           <dd class="col-sm-9">{{ (task.apartment.finishing_type or '—') if task.apartment else '—' }}</dd>
           <dt class="col-sm-3">Пункт</dt>
           <dd class="col-sm-9">
-            {% if current_user.role != 'viewer' %}
+            {% if can_change_point %}
             <form class="task-detail-point-form d-flex flex-wrap align-items-center gap-2" method="post" action="{{ url_for('main.update_task_point', task_id=task.id) }}" data-task-detail-point-autosave>
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="next" value="{{ request.full_path }}">
