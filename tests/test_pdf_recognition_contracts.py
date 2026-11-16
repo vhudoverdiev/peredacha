@@ -9,6 +9,97 @@ from app.services import pdf_recognition as recognition
 
 
 class PdfRecognitionContractsTests(unittest.TestCase):
+    def test_arch_expert_scanned_schedule_excludes_norms_and_preserves_rooms(self):
+        text = """ООО «АрхОблЭкспертиза»
+АКТ ОСМОТРА № 139/26-СЭ от 08 сентября 2026 г.
+Адрес объекта: г. Архангельск, ул. Нагорная, д. 1, корп. 1, wo 5
+Собственник: Иванов
+[ARCH_RESULTS]
+Жилая комната площадью 10,0 кв.м.:
+- на стене слева от окна трещины в штукатурке
+
+Жилая комната площадью 10,0 кв.м.:
+
+- на стене справа трещины
+[/ARCH_RESULTS]
+СП 71.13330 Требования к штукатурке
+[ARCH_RESULTS]
+Во всех помещениях у радиаторов отопления стяжка крошится
+
+Устройство оконных отливов без прокладок
+[/ARCH_RESULTS]
+[ARCH_RESULTS]
+Кратность воздухообмена в санузле не соответствует нормативной
+[/ARCH_RESULTS]
+[ARCH_RESULTS]
+Гнезда подрозетников устроены некорректно
+[/ARCH_RESULTS]
+"""
+        with patch.object(recognition, "_extract_text_layer", return_value=("", None)), patch.object(
+            recognition, "_extract_text_via_ocr", return_value=(text, None)
+        ):
+            preview = recognition.recognize_pdf_act(BytesIO(), "225.pdf", "ЖК Роса")
+        self.assertTrue(preview.template_ok)
+        self.assertTrue(preview.used_ocr)
+        self.assertFalse(preview.project_ok)
+        self.assertIsNone(preview.apartment_number)
+        self.assertEqual(preview.inspection_date, date(2026, 9, 8))
+        self.assertEqual([r.point_number for r in preview.remarks], ["11", "11", "13", "17", "10", "24"])
+        self.assertTrue(all("СП 71" not in r.description for r in preview.remarks))
+        self.assertIn("Жилая комната", preview.remarks[0].description)
+
+    def test_arch_expert_requires_organization_and_results_markers(self):
+        self.assertFalse(recognition._is_arch_expert_act("АКТ ОСМОТРА"))
+        self.assertEqual(recognition._arch_expert_remarks("Фото 1. Трещина. СП 71"), [])
+        self.assertTrue(recognition._is_arch_expert_act("Архангельский Областной\nЦентр Экспертизы"))
+
+    def test_arch_expert_does_not_read_non_table_pages(self):
+        from PIL import Image
+        with patch.object(recognition, "_ocr_image", return_value="План помещения") as ocr:
+            self.assertEqual(recognition._arch_expert_table_text(Image.new("RGB", (600, 800)), "tesseract"), "")
+        self.assertEqual(ocr.call_count, 1)
+
+    def test_step_defect_schedule_uses_section_titles_and_ignores_reference_documents(self):
+        text = """
+АКТ ОСМОТРА
+КАЧЕСТВА ЖИЛОГО ПОМЕЩЕНИЯ
+1 этап, квартира 492 (11 этаж)
+Содержание:
+2. Дефектная ведомость 3
+1. ИСХОДНЫЕ ДАННЫЕ.
+В рамках договора от 05.06.2026 составили настоящий акт о том, что «8» июня 2026 г.
+в жилом комплексе «Роса» произведен осмотр.
+2. ДЕФЕКТНАЯ ВЕДОМОСТЬ
+Полы:
+1. Гидроизоляция в туалетной комнате отсутствует. Нарушены требования п. 7.2 СП 29.13330.2011
+«Полы». Санузел относится к мокрым помещениям.
+2. Требуется удалить наплывы строительных смесей на стяжке. Повсеместно
+Потолки:
+3 Сколы с оголением рабочей арматуры. Нарушение требований ГОСТ (номер 1,2 на схеме)
+Стены:
+4 ( Требуется ремонт штукатурки (трещины). (номер 3-9 на схеме)
+ОО ee ПО ПО ПО ПО
+Оконные блоки:
+5 Требуется регулировка ручки окна. (номер 13 на схеме)
+Лоджия:
+6 Повреждение тонировки витражного остекления.
+3. ИСПОЛЬЗУЕМЫЙ ССЫЛОЧНЫЕ ДОКУМЕНТЫ.
+1. СП 29.13330.2011 «Полы».
+"""
+        with patch.object(recognition, "_extract_text_layer", return_value=("", None)), patch.object(
+            recognition, "_extract_text_via_ocr", return_value=(text, None)
+        ):
+            preview = recognition.recognize_pdf_act(BytesIO(b"scan"), "492.pdf", "ЖК Роса")
+        self.assertTrue(preview.template_ok)
+        self.assertTrue(preview.project_ok)
+        self.assertTrue(preview.used_ocr)
+        self.assertEqual(preview.apartment_number, "492")
+        self.assertEqual(preview.inspection_date, date(2026, 6, 8))
+        self.assertEqual([row.point_number for row in preview.remarks], ["13", "13", "11", "11", "17", "20"])
+        self.assertEqual(len(preview.remarks), 6)
+        self.assertEqual(preview.remarks[0].description.rstrip("."), "Гидроизоляция в туалетной комнате отсутствует")
+        self.assertNotIn("схеме", preview.remarks[3].description)
+
     def test_recognition_review_page_allows_manual_rows_and_po_mode(self):
         template = Path("app/templates/task_recognition.html").read_text(encoding="utf-8")
 

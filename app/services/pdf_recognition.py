@@ -6,6 +6,8 @@ from datetime import date
 from difflib import SequenceMatcher
 from io import BytesIO
 import re
+import shutil
+import subprocess
 from typing import BinaryIO
 
 from app.services.task_service import VISIBLE_WORK_POINT_NUMBERS, parse_date
@@ -115,6 +117,7 @@ PDF_POINT_TITLE_ALIASES = (
     ("гви", "21"),
     ("хв", "21"),
     ("окн", "17"),
+    ("окон", "17"),
     ("пвх", "17"),
     ("балкон", "20"),
     ("лоджи", "20"),
@@ -305,10 +308,125 @@ def _get_ocr_engine():
     return _OCR_ENGINE, _OCR_ENGINE_ERROR
 
 
+def _is_arch_expert_act(text: str) -> bool:
+    compact = re.sub(r"[^а-яё]", "", text.lower())
+    return "архоблэкспертиза" in compact or "архангельскийобластнойцентрэкспертизы" in compact
+
+
+def _ocr_image(image, executable: str, psm: str = "6") -> str:
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    result = subprocess.run(
+        [executable, "stdin", "stdout", "-l", "rus+eng", "--psm", psm],
+        input=buffer.getvalue(), capture_output=True, timeout=90, check=True,
+    )
+    return result.stdout.decode("utf-8")
+
+
+def _arch_expert_table_text(image, executable: str) -> str:
+    """This form has a sideways schedule: results, photos, then regulations.
+
+    Verify the results-column heading before cropping the standard form. Never
+    treat arbitrary pages (plans, signatures) as a defect schedule.
+    """
+    image = image.rotate(-90, expand=True)
+    width, height = image.size
+    heading = _ocr_image(image.crop((int(width * .105), int(height * .10),
+                                     int(width * .35), int(height * .20))), executable)
+    if not re.search(r"результат\w*\s+осмотр", heading, re.I):
+        return ""
+    body = _ocr_image(image.crop((int(width * .112), int(height * .20),
+                                  int(width * .345), int(height * .91))), executable)
+    return "\n[ARCH_RESULTS]\n" + body + "\n[/ARCH_RESULTS]\n"
+
+
+def _arch_expert_remarks(text: str) -> list[PdfRemarkPreview]:
+    remarks = []
+    for block in re.findall(r"\[ARCH_RESULTS\](.*?)\[/ARCH_RESULTS\]", text, re.S):
+        pending = []
+        def append() -> None:
+            description = " ".join(" ".join(pending).split()).strip(" -—|")
+            if not description or is_no_remark_text(description):
+                return
+            # Classify the defect, rather than incidental room/location words.
+            if re.search(r"розет|электр|провод", description, re.I):
+                point = "24"
+            elif re.search(r"воздухообмен|вентиляц", description, re.I):
+                point = "10"
+            elif re.search(r"стяжк|гидроизоляц|покрыти[яе]", description, re.I):
+                point = "13"
+            elif re.search(r"трещин|штукатур", description, re.I):
+                point = "11"
+            elif re.search(r"окон|створк|отлив", description, re.I):
+                point = "17"
+            else:
+                point = _map_pdf_point_to_work_point("", description)
+            remarks.append(PdfRemarkPreview(point, description))
+        for paragraph in re.split(r"\n\s*\n", block.strip()):
+            paragraph = paragraph.strip()
+            if not paragraph:
+                continue
+            location = re.match(r"(?:Жилая\s+комната|Коридор|Кухня|Санузел)\s+площадью", paragraph, re.I)
+            if pending and (location or (not paragraph.startswith(("-", "—")) and not pending[-1].rstrip().endswith(":"))):
+                append()
+                pending = []
+            pending.append(paragraph)
+        append()
+    return remarks
+
+
+def _extract_text_via_russian_ocr(stream: BinaryIO) -> tuple[str, str | None]:
+    executable = shutil.which("tesseract")
+    if not executable:
+        return "", None
+    try:
+        languages = subprocess.run(
+            [executable, "--list-langs"], capture_output=True, text=True, timeout=10, check=True,
+        ).stdout.splitlines()
+        if "rus" not in languages:
+            return "", None
+        import pypdfium2 as pdfium
+        stream.seek(0)
+        chunks = []
+        with closing(pdfium.PdfDocument(stream.read())) as document:
+            for index in range(len(document)):
+                with closing(document[index]) as page:
+                    with closing(page.render(scale=3)) as bitmap:
+                        image = bitmap.to_pil()
+                        if _is_arch_expert_act("\n".join(chunks)):
+                            table = _arch_expert_table_text(image, executable)
+                            if table:
+                                chunks.append(table)
+                            continue
+                        buffer = BytesIO()
+                        image.save(buffer, format="PNG")
+                        step_cover = re.search(
+                            r"акт\s+осмотра\s+качества\s+жилого\s+помещения", "\n".join(chunks), re.I,
+                        )
+                        result = subprocess.run(
+                            [executable, "stdin", "stdout", "-l", "rus+eng", "--psm", "6" if step_cover else "3"],
+                            input=buffer.getvalue(), capture_output=True, timeout=90, check=True,
+                        )
+                        chunks.append(result.stdout.decode("utf-8"))
+                combined = "\n".join(chunks)
+                # Certificates and drawings after the STEP schedule contain no remarks.
+                step_fields = _step_act_fields(combined)
+                if step_fields and _extract_step_act_remarks(step_fields[3]) and re.search(
+                    r"используем\w*\s+ссылочные\s+документы", chunks[-1], re.I,
+                ):
+                    break
+        return _clean_recognized_text("\n".join(chunks)), None
+    except (subprocess.SubprocessError, OSError, ImportError, ValueError) as exc:
+        return "", f"Не удалось распознать русский PDF-скан: {exc}"
+
+
 def _extract_text_via_ocr(stream: BinaryIO) -> tuple[str, str | None]:
+    russian_text, russian_error = _extract_text_via_russian_ocr(stream)
+    if russian_text:
+        return russian_text, None
     engine, engine_error = _get_ocr_engine()
     if engine is None:
-        return "", engine_error
+        return "", russian_error or engine_error
     try:
         import pypdfium2 as pdfium
     except ModuleNotFoundError:
@@ -319,21 +437,20 @@ def _extract_text_via_ocr(stream: BinaryIO) -> tuple[str, str | None]:
         pdf_bytes = stream.read()
         if not pdf_bytes:
             return "", "Файл PDF пустой."
-        document = pdfium.PdfDocument(pdf_bytes)
         page_texts: list[str] = []
-        for page_index in range(len(document)):
-            page = document[page_index]
-            bitmap = page.render(scale=2.5)
-            image = bitmap.to_pil()
-            image_buffer = BytesIO()
-            image.save(image_buffer, format="PNG")
-            result, _elapsed = engine(image_buffer.getvalue())
-            lines: list[str] = []
-            for item in result or []:
-                if len(item) >= 2 and str(item[1]).strip():
-                    lines.append(str(item[1]).strip())
-            if lines:
-                page_texts.append("\n".join(lines))
+        with closing(pdfium.PdfDocument(pdf_bytes)) as document:
+            for page_index in range(len(document)):
+                with closing(document[page_index]) as page:
+                    with closing(page.render(scale=2.5)) as bitmap:
+                        image_buffer = BytesIO()
+                        bitmap.to_pil().save(image_buffer, format="PNG")
+                        result, _elapsed = engine(image_buffer.getvalue())
+                lines: list[str] = []
+                for item in result or []:
+                    if len(item) >= 2 and str(item[1]).strip():
+                        lines.append(str(item[1]).strip())
+                if lines:
+                    page_texts.append("\n".join(lines))
         return _clean_recognized_text("\n\n".join(page_texts)), None
     except Exception as exc:
         return "", f"OCR не смог обработать PDF-скан: {exc}"
@@ -490,13 +607,69 @@ def _extract_technical_act_remarks(block: str) -> list[PdfRemarkPreview]:
     return remarks
 
 
+def _step_act_fields(text: str) -> tuple[str | None, str | None, date | None, str] | None:
+    """Read the numbered defect schedule, excluding the drawing and certificates."""
+    if not re.search(r"акт\s+осмотра\s+качества\s+жилого\s+помещения", text, re.I):
+        return None
+    headings = list(re.finditer(r"(?im)^\s*2[.)]?\s*дефектная\s+ведомость\s*[.:]?\s*$", text))
+    if not headings:
+        return None
+    start = headings[-1].end()
+    tail = text[start:]
+    end = re.search(r"(?im)^\s*3[.)]?\s*используем\w*\s+ссылочные\s+документы", tail)
+    block = tail[:end.start()] if end else tail
+    project = re.search(r"жилом\s+комплексе\s+[«\"]([^»\"\n]+)", text, re.I)
+    apartment = _find_apartment_number(text)
+    # The contract date precedes the inspection date on this form.
+    inspection_date = None
+    months = ("января", "февраля", "марта", "апреля", "мая", "июня",
+              "июля", "августа", "сентября", "октября", "ноября", "декабря")
+    match = re.search(r"[«\"“]?\s*(\d{1,2})\s*[»\"”]?\s+(" + "|".join(months) + r")\s+(\d{4})\s*г", text[text.lower().find("составили"):], re.I)
+    if match:
+        try:
+            inspection_date = date(int(match[3]), months.index(match[2].lower()) + 1, int(match[1]))
+        except ValueError:
+            pass
+    return project[1] if project else None, apartment, inspection_date, block
+
+
+def _extract_step_act_remarks(block: str) -> list[PdfRemarkPreview]:
+    result = []
+    section = ""
+    pending = []
+    def append_remark() -> None:
+        description = " ".join(pending).strip()
+        description = re.split(r"\bНаруш(?:ены|ено|ение|ения)\s+требовани", description, maxsplit=1, flags=re.I)[0]
+        description = re.split(r"\(\s*номер[^)]*(?:на\s+схеме|схеме)\s*\)", description, maxsplit=1, flags=re.I)[0]
+        description = _clean_point_description(description)
+        if section and description and not is_no_remark_text(description):
+            result.append(PdfRemarkPreview(_map_pdf_point_to_work_point("", section), description))
+    for line in block.splitlines():
+        line = line.strip()
+        heading = re.fullmatch(r"(Полы|Потолки|Стены|Оконные\s+блоки|Лоджия)\s*:", line, re.I)
+        if heading:
+            append_remark()
+            pending = []
+            section = heading[1]
+            continue
+        item = re.match(r"^\s*\d{1,2}[.)]?\s*\(?\s*([А-Яа-яЁё].*)", line)
+        if item:
+            append_remark()
+            pending = [item[1]]
+        elif pending and not re.search(r"26-31|Пояснительная|Изм[.]|Кол[.]|Лист|Подп[.]|Дата|Контроль", line, re.I) and not re.fullmatch(r"[\d\W]+", line):
+            pending.append(line)
+    append_remark()
+    return result
+
+
 def recognize_pdf_act(stream: BinaryIO, filename: str, project_name: str) -> PdfActPreview:
     text, text_error = _extract_text_layer(stream)
     used_ocr = False
     ocr_error: str | None = None
     ocr_text = ""
     technical_act = _technical_act_fields(text)
-    needs_ocr = technical_act is None and (
+    step_act = _step_act_fields(text)
+    needs_ocr = technical_act is None and step_act is None and (
         not text
         or _template_marker_score(text) < 3
         or not _find_apartment_number(text)
@@ -538,6 +711,30 @@ def recognize_pdf_act(stream: BinaryIO, filename: str, project_name: str) -> Pdf
         template_ok = True
         # The technical act cover may omit the word «этап» after the same number.
         comparison_project_name = re.sub(r"(?<=\d)\s*этап\s*$", "", project_name, flags=re.I)
+    step_fields = step_act or _step_act_fields(ocr_text)
+    if step_fields:
+        detected_project_name, apartment_number, inspection_date, block = step_fields
+        remarks = _extract_step_act_remarks(block)
+        template_ok = True
+        used_ocr = step_act is None
+    arch_text = ocr_text if _is_arch_expert_act(ocr_text) else text
+    if _is_arch_expert_act(arch_text):
+        remarks = _arch_expert_remarks(arch_text)
+        template_ok = bool(remarks)
+        used_ocr = bool(ocr_text)
+        detected_project_name = None
+        # Handwritten apartment numbers must not be guessed from unrelated digits.
+        cover = arch_text.split("[ARCH_RESULTS]", 1)[0]
+        address = re.search(r"Адрес\s+объекта(.*?)(?:Собственник|Обследование)", cover, re.I | re.S)
+        apartment_number = _find_apartment_number(address[1]) if address else None
+        months = ("января", "февраля", "марта", "апреля", "мая", "июня",
+                  "июля", "августа", "сентября", "октября", "ноября", "декабря")
+        match = re.search(r"(?:Дата\s+осмотра|от)\W*(\d{1,2})\s+(" + "|".join(months) + r")\s+(\d{4})", cover, re.I)
+        if match:
+            try:
+                inspection_date = date(int(match[3]), months.index(match[2].lower()) + 1, int(match[1]))
+            except ValueError:
+                inspection_date = None
     prefix = _project_prefix(project_name)
     project_ok = _project_names_match(comparison_project_name, detected_project_name)
     preview = PdfActPreview(
@@ -570,8 +767,13 @@ def recognize_pdf_act(stream: BinaryIO, filename: str, project_name: str) -> Pdf
         preview.warnings.append("Текст извлечён через OCR из скана. Обязательно проверьте квартиру, дату и каждый пункт перед сохранением.")
 
     if not preview.template_ok:
+        if needs_ocr and not text:
+            preview.warnings.append(
+                "Для русскоязычных сканов, включая акты СТЭП, установите на сервере "
+                "Tesseract OCR и языковые пакеты rus и eng."
+            )
         preview.warnings.append(
-            "Файл не похож на PDF-акт нужного шаблона. Загрузите акт, где есть поля «Название ЖК», «Номер квартиры», «ФИО клиента» и блок «Выявленные недостатки», либо акт технического осмотра с перечнем нарушений."
+            "Файл не похож на PDF-акт нужного шаблона. Загрузите акт, где есть поля «Название ЖК», «Номер квартиры», «ФИО клиента» и блок «Выявленные недостатки», либо акт технического осмотра с перечнем нарушений или акт СТЭП с дефектной ведомостью."
         )
         preview.apartment_number = None
         preview.inspection_date = None
