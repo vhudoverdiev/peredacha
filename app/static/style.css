@@ -60422,67 +60422,6 @@ html body.app-body .settings-page-shell > .settings-page-head {
   transform: none;
 }
 
-.objects-support-card {
-  display: none;
-  align-items: center;
-  gap: 7px;
-  box-sizing: border-box;
-  height: 42px;
-  font-size: 10px;
-  line-height: 11px;
-  max-width: min(280px, calc(100vw - 32px));
-  width: max-content;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, .09);
-  padding: 3px 9px;
-  border: 1px solid #e1e8da;
-  border-radius: 14px;
-  background: #fff;
-}
-
-.objects-support-card > i {
-  color: #568d20;
-  font-size: 14px;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .objects-support-card {
-    transform-origin: right center;
-    transition: transform .2s ease;
-  }
-
-  .objects-support-card:is(:hover, :active) {
-    transform: scale(1.12);
-  }
-}
-
-.objects-support-card > div {
-  display: grid;
-}
-
-.objects-support-card > div > span:not(.objects-support-phone) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #555e66;
-}
-
-.objects-support-phone {
-  color: #365d13;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.objects-support-card > div {
-  min-width: 0;
-}
-
-
-@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
-  html:not(.mobile-viewport, .adaptive-mobile-viewport, .touch-app-device) .objects-support-card {
-    display: flex;
-  }
-}
-
 .settings-support-fields {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);

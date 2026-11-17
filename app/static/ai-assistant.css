@@ -1,0 +1,60 @@
+/* Shared tools use one flex row: ПО, AI agent, inspections (objects), report. */
+html body.app-body .floating-error-corner.crm-floating-tools{display:flex!important;align-items:center!important;gap:10px!important;max-width:calc(100vw - 24px)!important;width:max-content!important}
+html body.app-body .floating-error-corner.crm-floating-tools>.po-notification-widget{position:relative!important;inset:auto!important;transform:none!important;margin:0!important;width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0!important;flex:none!important}
+html body.app-body .floating-error-corner.crm-floating-tools>.crm-ai-launch{display:inline-flex!important;align-items:center;justify-content:center;gap:8px;height:44px!important;min-height:44px!important;width:auto!important;min-width:104px!important;margin:0!important;padding:0 14px!important;border-radius:14px!important;border:1px solid #6aa81f!important;background:linear-gradient(180deg,#79bf25,#6aa81f)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;font-size:13px!important;font-weight:700;box-shadow:0 12px 26px #79bf2533;transition:transform .16s,box-shadow .16s}
+html body.app-body .floating-error-corner.crm-floating-tools>.crm-ai-launch:hover{transform:translateY(-2px);box-shadow:0 14px 28px #79bf2540}
+html body.app-body .crm-ai-launch i{font-size:18px!important;color:white!important;-webkit-text-fill-color:white!important}
+.crm-ai-dialog{position:fixed!important;inset:auto 20px 80px auto!important;margin:0!important;padding:0!important;border:1px solid #e4ebdc!important;border-radius:22px!important;width:410px!important;max-width:calc(100vw - 32px)!important;height:600px;max-height:calc(100dvh - 104px)!important;overflow:hidden!important;background:#fff;color:#33415c;box-shadow:0 18px 48px #1f345a26;font:13px/1.55 Inter,"Segoe UI",system-ui,-apple-system,sans-serif;z-index:10000}
+.crm-ai-dialog::backdrop{background:rgba(25,33,38,.14)}
+.crm-ai-dialog .crm-ai-shell{height:100%;display:flex;flex-direction:column;background:#f6f8f3}
+.crm-ai-dialog .crm-ai-header{display:flex;align-items:flex-start;gap:12px;padding:18px;background:#fff;border-bottom:1px solid #e4ebdc;flex-shrink:0}
+.crm-ai-dialog .crm-ai-mark{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:linear-gradient(180deg,#79bf25,#6aa81f);color:white;font-size:22px;flex:none}
+.crm-ai-dialog .crm-ai-header>div{min-width:0;flex:1}
+.crm-ai-dialog h2{font-size:16px!important;line-height:1.4!important;margin:0 0 5px!important;color:#16233b;font-weight:750}
+.crm-ai-dialog .crm-ai-header p{margin:0;font-size:12px;color:#565d62;line-height:1.5}
+.crm-ai-dialog #crm-ai-close{flex:none;background:#f3f6ef;border:0;border-radius:10px;color:#737e6c;font-size:25px;line-height:1;width:34px;height:34px;cursor:pointer;padding:0}
+.crm-ai-dialog .crm-ai-support{display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #edf1e7;color:#63893d;font-size:14px}
+.crm-ai-dialog .crm-ai-support>div{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:center}
+.crm-ai-dialog .crm-ai-support span{font-size:11px;color:#737c6e;overflow-wrap:anywhere}
+.crm-ai-dialog .crm-ai-support a{font-size:12px;color:#426d22;font-weight:650;text-decoration:none;white-space:nowrap}
+.crm-ai-dialog .crm-ai-toolbar{padding:11px 18px;display:flex;justify-content:space-between;gap:12px;align-items:center;background:#fff;border-bottom:1px solid #e4ebdc;flex-shrink:0}
+.crm-ai-dialog .crm-ai-toolbar button{background:white;border:1px solid #dfe8d4;border-radius:10px;padding:9px 12px;color:#33415c;font-family:inherit;font-size:12px!important;font-weight:650;line-height:1.4;cursor:pointer;white-space:nowrap}
+.crm-ai-dialog .crm-ai-toolbar>span{font-size:10px;color:#7c8589}
+.crm-ai-dialog .crm-ai-messages{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:16px 18px;scrollbar-width:thin;scrollbar-color:#cdd5c4 transparent}
+.crm-ai-dialog .crm-ai-message{margin:0 0 14px;padding:16px;background:white;border:1px solid #e4ebdc;border-radius:15px;color:#33415c;overflow-wrap:anywhere;font-size:13px!important;line-height:1.55!important}
+.crm-ai-dialog .crm-ai-message h3{font-size:15px!important;line-height:1.5!important;font-weight:750;color:#16233b;margin:8px 0 12px!important}
+.crm-ai-dialog .crm-ai-message p{font-size:13px!important;line-height:1.55!important;margin:8px 0}
+.crm-ai-dialog .crm-ai-message ol{padding-left:20px;margin:10px 0}
+.crm-ai-dialog .crm-ai-message li{padding-left:3px;margin:9px 0;font-size:13px!important;line-height:1.55!important}
+.crm-ai-dialog .crm-ai-user{margin-left:40px;background:#edf6e3;border-color:#dcebc9;border-bottom-right-radius:4px}
+.crm-ai-dialog .crm-ai-label{font-size:9px;font-weight:700;letter-spacing:1.2px;color:#719348}
+.crm-ai-dialog .crm-ai-related{font-size:11px!important;color:#7c8589;margin-top:16px!important}
+.crm-ai-dialog .crm-ai-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.crm-ai-dialog .crm-ai-suggestions button{background:#f7faf3;border:1px solid #dfe8d4;border-radius:9px;padding:9px 11px;color:#486832;font-size:11px!important;line-height:1.5;cursor:pointer;text-align:left}
+.crm-ai-dialog .crm-ai-suggestions button:hover,.crm-ai-dialog .crm-ai-toolbar button:hover{background:#edf5e3;border-color:#abc98d}
+.crm-ai-dialog .crm-ai-faq-list details{padding:12px 0;border-bottom:1px solid #e4ebdc}
+.crm-ai-dialog .crm-ai-faq-list summary{font-size:13px;font-weight:650;cursor:pointer;text-transform:none}
+.crm-ai-dialog .crm-ai-faq-list .crm-ai-suggestions{flex-direction:column;align-items:stretch}
+.crm-ai-dialog .crm-ai-status{font-size:11px;color:#738c5b;padding:0 20px;min-height:19px;flex-shrink:0}
+.crm-ai-dialog .crm-ai-status.is-error{color:#ab4848}
+.crm-ai-dialog #crm-ai-form{border-top:1px solid #e4ebdc;padding:14px 18px 12px;background:white;flex-shrink:0;display:block!important}
+.crm-ai-dialog .crm-ai-composer{display:flex;align-items:flex-end;gap:8px;padding:8px;border:1px solid #dfe7d7;border-radius:13px;background:#f8faf5}
+.crm-ai-dialog .crm-ai-composer:focus-within{border-color:#8cb864;box-shadow:0 0 0 2px #79bf251a}
+.crm-ai-dialog #crm-ai-question{font-family:inherit;font-size:13px!important;line-height:1.5;flex:1;min-width:0;min-height:36px;height:auto!important;max-height:90px;resize:none;background:transparent!important;border:0!important;box-shadow:none!important;outline:0!important;border-radius:0!important;padding:8px 4px!important;color:#33415c}
+.crm-ai-dialog #crm-ai-send{display:grid;place-items:center;flex:none;width:36px;height:36px;padding:0;border:1px solid #6aa81f;border-radius:10px;background:linear-gradient(180deg,#79bf25,#6aa81f);color:white;font-size:20px;cursor:pointer}
+.crm-ai-dialog #crm-ai-send:disabled{opacity:.5;cursor:wait}
+.crm-ai-dialog #crm-ai-form>p{font-size:9px!important;color:#8d9782;margin:8px 0 0!important;text-align:center;line-height:1.4}
+.crm-ai-dialog button:focus-visible,.crm-ai-dialog a:focus-visible{outline:3px solid #638e2e;outline-offset:2px}
+.crm-ai-dialog .crm-ai-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:767px){.crm-ai-dialog{inset:auto 12px calc(12px + env(safe-area-inset-bottom)) 12px!important;width:auto!important;max-width:520px!important;margin:0 auto!important;height:600px;max-height:calc(100dvh - 24px - env(safe-area-inset-bottom))!important}.crm-ai-dialog .crm-ai-toolbar>span{display:none}.crm-ai-dialog #crm-ai-question{font-size:16px!important}.crm-ai-dialog #crm-ai-question::placeholder{font-size:12px}.crm-ai-dialog .crm-ai-header{padding:16px}.crm-ai-dialog .crm-ai-toolbar{padding:10px 16px}.crm-ai-dialog .crm-ai-messages{padding:14px 16px}html body.app-body .floating-error-corner.crm-floating-tools{gap:8px!important}html body.app-body .floating-error-corner.crm-floating-tools>.crm-ai-launch{min-width:94px!important;padding:0 12px!important}}
+@media(prefers-reduced-motion:reduce){html body.app-body .crm-ai-launch{transition:none!important}.crm-ai-launch:hover{transform:none!important}}
+/* AI assistance is a desktop feature; phones retain only their existing tools. */
+@media(max-width:767px){html body.app-body .floating-error-corner.crm-floating-tools>.crm-ai-launch{display:none!important}.crm-ai-dialog{display:none!important}}
+
+html body.app-body .floating-error-corner.crm-floating-tools>.crm-ai-launch{min-width:66px!important;padding:0 12px!important}
+.crm-ai-dialog .crm-ai-toolbar{gap:8px}
+.crm-ai-dialog .crm-ai-report{display:flex;align-items:center;gap:9px;width:100%;border:1px solid #dfe8d4;background:#f7faf3;border-radius:10px;padding:12px;color:#486832;font:inherit;font-weight:650;text-align:left;cursor:pointer;margin-top:16px}
+.crm-ai-dialog .crm-ai-report>span{flex:1}
+.crm-ai-dialog .crm-ai-report:hover{background:#edf5e3;border-color:#abc98d}
+
+

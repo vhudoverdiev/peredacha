@@ -1050,6 +1050,7 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='remark-suggestions.css') }}?v=3">
   {% endif %}
   {% if current_user.is_authenticated %}<link rel="stylesheet" href="{{ url_for('static',filename='developer-news.css') }}?v=22">{% endif %}
+{% if current_user.is_authenticated %}<link rel="stylesheet" href="{{ url_for('static', filename='ai-assistant.css') }}?v=5">{% endif %}
 </head>
 <body class="{% if current_user.is_authenticated %}app-body{% else %}auth-body{% endif %}{% if current_user.is_authenticated and (current_user.role in ['executor', 'painter', 'handyman', 'glazier'] or (current_user.role not in ['executor', 'painter', 'handyman', 'glazier'] and ((current_project and request.endpoint not in ['main.object_new', 'main.object_edit', 'main.object_delete', 'main.object_delete_confirm', 'main.site_settings']) or request.endpoint in ['main.account', 'main.objects']))) %} has-mobile-project-topbar{% endif %}" data-navigation-user="{{ current_user.id if current_user.is_authenticated else 0 }}" data-navigation-project="{{ current_project.id if current_project else 0 }}" data-tab-visit-url="{{ url_for('main.analytics_tab_open') }}">
 <script src="{{ url_for('static', filename='navigation-state.js') }}?v=4"></script>
@@ -1342,9 +1343,6 @@
 {% elif request.endpoint == 'main.site_settings' %}
   {% set mobile_title = 'Настройки' %}
   {% set mobile_active = 'objects' %}
-{% elif request.endpoint in ['main.notifications', 'main.notification_avr_status'] %}
-  {% set mobile_title = 'Уведомления' %}
-  {% set mobile_active = 'objects' %}
 {% endif %}
 
 {% if current_user.is_authenticated and layout_mode.strip() == 'objects' %}
@@ -1588,13 +1586,15 @@
 {% endif %}
 
 {% block floating_content %}{% endblock %}
-<div class="floating-error-corner{% if request.endpoint == 'main.objects' %} objects-floating-actions{% endif %}">
+<div class="floating-error-corner{% if current_user.is_authenticated %} crm-floating-tools{% endif %}{% if request.endpoint == 'main.objects' %} objects-floating-actions{% endif %}">
+{% if current_user.is_authenticated and not is_mobile_phone_request %}<button type="button" class="btn btn-sm crm-ai-launch" title="AI агент" data-bs-placement="left" data-bs-custom-class="objects-action-tooltip" data-ai-open aria-haspopup="dialog" aria-controls="crm-ai-dialog" aria-label="Открыть AI агента"><i class="bi bi-stars" aria-hidden="true"></i><span>AI</span></button>{% endif %}
 {% block floating_support %}{% endblock %}
 {% if request.endpoint == 'main.objects' and can_use_project_workflows and not is_mobile_phone_request %}
 <a href="{{ url_for('main.inspections', hub=1) }}" class="btn btn-sm report-error-btn report-error-floating inspections-hub-floating" title="Осмотры" aria-label="Осмотры" data-bs-placement="left" data-bs-custom-class="objects-action-tooltip"><i class="bi bi-calendar2-week" aria-hidden="true"></i></a>
 {% endif %}
-  {{ report_error_button('report-error-floating') }}
+  {% if current_user.is_authenticated and is_mobile_phone_request %}{{ report_error_button('report-error-floating') }}{% endif %}
 </div>
+{% include '_ai_assistant.html' %}
 {% block page_modal %}{% endblock %}
 <div class="modal fade" id="reportErrorModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -1671,6 +1671,7 @@
   <script src="{{ url_for('static', filename='worker-offline-store.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='worker-offline.js') }}?v=5"></script>
   {% endif %}
-  <script src="{{ url_for('static', filename='script.js') }}?v=v735-avr-validation"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=v736-developer-status"></script>
+{% if current_user.is_authenticated %}<script src="{{ url_for('static', filename='ai-assistant.js') }}?v=6"></script>{% endif %}
 </body>
 </html>

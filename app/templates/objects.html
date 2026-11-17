@@ -100,17 +100,3 @@
   {% endif %}
 </section>
 {% endblock %}
-
-{% block floating_support %}
-  {% if support_phone and support_tel %}
-  <aside class="objects-support-card" aria-label="Контакты поддержки">
-    <i class="bi bi-headset" aria-hidden="true"></i>
-    <div>
-      <strong>Поддержка</strong>
-      {% if support_text %}<span>{{ support_text }}</span>{% endif %}
-      <span class="objects-support-phone">{{ support_phone }}</span>
-    </div>
-  </aside>
-  {% endif %}
-
-{% endblock %}

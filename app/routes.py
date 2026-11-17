@@ -356,12 +356,6 @@ SECTION_LOCK_CHOICES = [
         },
     },
     {
-        "key": "notifications",
-        "label": "Служебные уведомления (ПО и 60 к.д.)",
-        "icon": "bi-bell",
-        "endpoints": {"main.notifications", "main.archive_apartment_avr"},
-    },
-    {
         "key": "users",
         "label": "Пользователи",
         "icon": "bi-people",
@@ -415,7 +409,7 @@ SECTION_LOCK_CHOICES = [
 # Existing saved sub-section locks are retained and shown on their parent control.
 SECTION_LOCK_GROUPS = [
     ("dashboard", "Главная", {"dashboard"}),
-    ("remarks", "Замечания", {"remarks", "notifications"}),
+    ("remarks", "Замечания", {"remarks"}),
     ("contractors", "Подрядчики", {"contractors"}),
     ("apartments", "Помещения", {"apartments"}),
     ("avr", "АВР", {"avr"}),
@@ -2283,16 +2277,8 @@ def objects():
         groups.setdefault(group, []).append(card)
     group_order = _project_group_sort_key()
     object_groups = sorted(groups.items(), key=lambda item: (item[0] is None, group_order(item[0]) if item[0] else ()))
-    show_support = (
-        _setting_bool("objects_support_enabled")
-        and not _is_mobile_phone_request()
-        and _role_shows_support(current_user.role)
-    )
-    support_phone = (get_setting("objects_support_phone", "") or "") if show_support else ""
     return render_template(
         "objects.html", project_cards=project_cards, object_groups=object_groups,
-        support_text=get_setting("objects_support_text", "По вопросам работы с CRM") or "",
-        support_phone=support_phone, support_tel=re.sub(r"[^+0-9]", "", support_phone),
     )
 
 
@@ -2517,19 +2503,26 @@ def report_error():
     subject = f"user:{current_user.id}" if authenticated else None
     if hit_rate_limit("report-error", 6, 300, subject=subject):
         security_event("report_error_rate_limited", "Слишком много сообщений об ошибке", severity="warning")
+        if _wants_json_response():
+            return jsonify(error="Слишком много сообщений. Повторите попытку позже."), 429
         abort(429)
     message = (request.form.get("message") or "").strip()
+    error_message = None
+    status_code = 200
     if not message:
-        flash("Опишите ошибку текстом", "warning")
+        error_message, status_code = "Опишите ошибку текстом", 400
     elif authenticated and site_error_daily_user_limit_reached(current_user.id, 3):
         security_event("report_error_daily_user_limited", "Достигнут суточный лимит сообщений пользователя", severity="warning")
-        flash("Вы уже отправили 3 сообщения об ошибке за сутки. Повторить можно позже.", "warning")
+        error_message, status_code = "Вы уже отправили 3 сообщения об ошибке за сутки. Повторить можно позже.", 429
     elif not authenticated and site_error_daily_ip_limit_reached("user", 3, anonymous_only=True):
         security_event("report_error_daily_ip_limited", "Достигнут суточный лимит сообщений об ошибке с IP", severity="warning")
-        flash("С этого IP адреса уже отправлено 3 сообщения об ошибке за сутки. Повторить можно позже.", "warning")
-    else:
+        error_message, status_code = "С этого IP адреса уже отправлено 3 сообщения об ошибке за сутки. Повторить можно позже.", 429
+    if error_message is None:
         _save_site_error(message[:5000], kind="user")
-        flash("Ошибка отправлена. Спасибо, разберём.", "success")
+    if _wants_json_response():
+        payload = {"error": error_message} if error_message else {"message": "Сообщение отправлено разработчику. Спасибо!"}
+        return jsonify(payload), status_code
+    flash(error_message or "Ошибка отправлена. Спасибо, разберём.", "warning" if error_message else "success")
     return _safe_redirect(request.form.get("page_url") or request.referrer, "auth.login")
 
 
@@ -3318,8 +3311,11 @@ def site_errors():
 def site_error_close(report_id: int):
     if current_user.role != ROLE_ADMIN:
         abort(403)
-    report = db.session.get(SiteErrorReport, report_id) or abort(404)
-    report.status = "closed" if report.status != "closed" else "new"
+    report = db.session.query(SiteErrorReport).filter_by(id=report_id).with_for_update().populate_existing().one_or_none() or abort(404)
+    target_status = request.form.get("status")
+    if target_status and target_status not in {"new", "closed"}:
+        abort(400)
+    report.status = target_status or ("closed" if report.status != "closed" else "new")
     db.session.commit()
     if _wants_json_response():
         return jsonify(ok=True, status=report.status, message="Статус ошибки обновлен")
@@ -11905,64 +11901,6 @@ def work_report_export():
     )
     return send_file(path, as_attachment=True, download_name=download_name)
 
-
-def _apartment_task_groups(query):
-    rows = []
-    for apartment in query.order_by(_premise_type_sort_expression(), cast(Apartment.apartment_number, Integer).asc(), Apartment.apartment_number.asc()).all():
-        tasks = [task for task in apartment.tasks if not task.is_archived]
-        visible = [task for task in tasks if task.work_point and task.work_point.point_number in VISIBLE_WORK_POINT_NUMBERS]
-        done = [task for task in visible if task.is_done]
-        left = [task for task in visible if not task.is_done]
-        painter_tasks = [task for task in visible if task.work_point and task.work_point.point_number in {"10", "11", "12"}]
-        painter_done = bool(painter_tasks) and all(task.is_done for task in painter_tasks)
-        rows.append({"apartment": apartment, "done": done, "left": left, "total": len(visible), "painter_done": painter_done})
-    return rows
-
-
-@bp.route("/notifications")
-@login_required
-def notifications():
-    project = selected_project()
-    if project is None:
-        return redirect(url_for("main.objects"))
-    tab = request.args.get("tab", "po")
-    today = date.today()
-    base = Apartment.query.filter(Apartment.project_id == project.id)
-    if tab == "archive":
-        apartments = base.filter(Apartment.avr_archived_at.isnot(None))
-        rows = _apartment_task_groups(apartments)
-    elif tab == "60":
-        apartments = base.filter(
-            Apartment.app_deadline_date.isnot(None),
-            Apartment.app_deadline_date <= today + timedelta(days=15),
-            Apartment.avr_archived_at.is_(None),
-        )
-        rows = _apartment_task_groups(apartments)
-    else:
-        apartments = base.filter(Apartment.deadline_date.is_(None), Apartment.finishing_type.ilike("%бел%"), Apartment.avr_archived_at.is_(None))
-        rows = [
-            row
-            for row in _apartment_task_groups(apartments)
-            if row["total"] > 0 and (len(row["done"]) > row["total"] / 2 or row["painter_done"])
-        ]
-    return render_template("notifications.html", rows=rows, tab=tab, today=today)
-
-
-@bp.route("/notifications/<int:apartment_id>/avr", methods=["POST"])
-@login_required
-def archive_apartment_avr(apartment_id: int):
-    project = selected_project()
-    if project is None:
-        return redirect(url_for("main.objects"))
-    apartment = db.session.get(Apartment, apartment_id) or abort(404)
-    if apartment.project_id != project.id:
-        abort(404)
-    apartment.avr_archived_at = utc_now()
-    for task in apartment.tasks:
-        task.is_archived = True
-    db.session.commit()
-    flash("Квартира перенесена в архив АВР.", "success")
-    return redirect(url_for("main.notifications", tab="60"))
 
 def _delete_task_with_relations(task: Task, project_id: int) -> None:
     repeat_tasks = Task.query.filter(

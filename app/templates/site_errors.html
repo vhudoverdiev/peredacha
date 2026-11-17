@@ -121,6 +121,7 @@
 
       <div class="site-error-actions mt-3">
         <form method="post" action="{{ url_for('main.site_error_close', report_id=report.id) }}" data-site-error-close-form="1" data-report-id="{{ report.id }}">
+          <input type="hidden" name="status" value="{{ 'new' if report.status == 'closed' else 'closed' }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn btn-sm site-error-action-btn {% if report.status == 'closed' or report.kind == 'registration' %}site-error-action-btn-success{% else %}site-error-action-btn-close{% endif %}" type="submit" data-site-error-close-btn="1">
             {{ 'Вернуть в новые' if report.status == 'closed' else ('Принять' if report.kind == 'registration' else 'Закрыть ошибку') }}
@@ -334,6 +335,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
   document.querySelectorAll('[data-site-error-close-form="1"]').forEach(function (form) {
+    if (form.dataset.asyncBound === '1') return;
+    form.dataset.asyncBound = '1';
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       const button = form.querySelector('[data-site-error-close-btn="1"]');
@@ -360,6 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const data = await response.json().catch(function () { return {}; });
         if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
         const isClosed = data.status === 'closed';
+        form.elements.status.value = isClosed ? 'new' : 'closed';
         const isRegistration = card && card.dataset.siteErrorKind === 'registration';
         if (card) {
           card.dataset.siteErrorStatus = data.status || '';

@@ -9,11 +9,9 @@ from app.services.apartment_overview import (
     apartment_main_tasks,
     apartment_sort_key,
     apartment_stats,
-    build_60kd_rows,
     build_po_rows,
     build_primary_rows,
     deadline_marker,
-    notification_counts,
     task_sort_key,
 )
 from app.routes import _premise_options_from_apartments, _project_apartment_options
@@ -163,20 +161,6 @@ class ApartmentOverviewContractsTests(unittest.TestCase):
         self.assertEqual({row["apartment"] for row in archived_rows}, {accepted, with_tasks})
         self.assertNotIn(unsold, [row["apartment"] for row in active_rows + archived_rows])
 
-    def test_kd60_rows_sort_by_deadline_and_notifications_count_visible_risks(self):
-        soon = self._apartment("11", deadline_date=date.today() + timedelta(days=3), owner_name="Owner")
-        later = self._apartment("12", deadline_date=date.today() + timedelta(days=20), owner_name="Owner")
-        primary = self._apartment("13", owner_name="Owner")
-        for apartment, uid in [(later, "kd-later"), (soon, "kd-soon")]:
-            self._task(apartment, self.wall_point, uid)
-        db.session.commit()
-
-        kd_rows = build_60kd_rows(self.project.id)
-        counts = notification_counts(self.project.id)
-
-        self.assertEqual([row["apartment"] for row in kd_rows], [soon, later])
-        self.assertEqual(counts, {"kd60": 1, "primary": 1})
-        self.assertEqual(notification_counts(None), {"kd60": 0, "primary": 0})
 
 
 if __name__ == "__main__":

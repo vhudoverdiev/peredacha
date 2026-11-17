@@ -777,6 +777,8 @@ def create_app(config_class=Config):
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
+    from app.ai_assistant import bp as ai_bp
+    app.register_blueprint(ai_bp)
 
     from app.cli import register_cli
 

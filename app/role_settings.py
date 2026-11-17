@@ -167,7 +167,6 @@ ACTIONS += [
 
 ACTIONS += [
  ('avr_generate','avr','Формировать АВР',{'main.avr'}),
- ('notifications_archive','notifications','Переносить записи АВР в архив служебных уведомлений',{'main.archive_apartment_avr'}),
 ]
 
 ACTIONS.append(('remark_view_comments','remarks','Просматривать комментарии к замечаниям',set()))

@@ -1,0 +1,13 @@
+{% if current_user.is_authenticated and not is_mobile_phone_request %}
+<dialog class="crm-ai-dialog" id="crm-ai-dialog" aria-labelledby="crm-ai-title" data-report-url="{{ url_for('main.report_error') }}" data-info-url="{{ url_for('ai_assistant.info') }}" data-ask-url="{{ url_for('ai_assistant.ask') }}">
+ <div class="crm-ai-shell">
+  <header class="crm-ai-header"><span class="crm-ai-mark" aria-hidden="true"><i class="bi bi-stars"></i></span><div><h2 id="crm-ai-title">AI агент</h2><p>Помогу разобраться с CRM</p>
+  {% if ai_support.phone %}<div class="crm-ai-support"><i class="bi bi-headset" aria-hidden="true"></i><div><span>{{ ai_support.text }}</span><a href="tel:{{ ai_support.tel }}">{{ ai_support.phone }}</a></div></div>{% endif %}
+  </div><button type="button" id="crm-ai-close" aria-label="Закрыть AI агента">×</button></header>
+  <nav class="crm-ai-toolbar"><button type="button" id="crm-ai-faq">Частые вопросы</button></nav>
+  <div class="crm-ai-messages" id="crm-ai-messages" role="log" aria-live="polite" aria-label="Чат с AI агентом"><article class="crm-ai-message" id="crm-ai-intro"><h3>Чем помочь?</h3><p>Подскажу, где найти нужное действие и как выполнить его. Выберите частый вопрос или напишите свой.</p><div id="crm-ai-welcome"></div><button type="button" class="crm-ai-report" data-ai-report><i class="bi bi-bug" aria-hidden="true"></i><span>Сообщить об ошибке</span><i class="bi bi-arrow-up-right" aria-hidden="true"></i></button></article></div>
+  <div class="crm-ai-status" id="crm-ai-status" role="status"></div>
+  <form id="crm-ai-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="crm-ai-composer"><label class="crm-ai-sr" for="crm-ai-question">Ваш вопрос</label><textarea id="crm-ai-question" name="question" maxlength="1000" rows="1" required></textarea><button type="submit" id="crm-ai-send" aria-label="Отправить вопрос"><i class="bi bi-arrow-up" aria-hidden="true"></i></button></div></form>
+ </div>
+</dialog>
+{% endif %}

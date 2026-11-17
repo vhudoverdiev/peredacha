@@ -155,28 +155,6 @@ def build_po_rows(project_id: int) -> list[dict[str, Any]]:
     return rows
 
 
-def build_60kd_rows(project_id: int) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    for apartment in apartment_task_rows(project_id):
-        if not apartment.deadline_date:
-            continue
-        tasks = apartment_main_tasks(apartment)
-        if not tasks:
-            continue
-        stats = apartment_stats(apartment, tasks)
-        rows.append(
-            {
-                "apartment": apartment,
-                "tasks": tasks,
-                "done_tasks": [task for task in tasks if task.is_done],
-                "left_tasks": [task for task in tasks if not task.is_done],
-                "stats": stats,
-                "deadline_marker": deadline_marker(apartment),
-            }
-        )
-    return sorted(rows, key=lambda row: (row["apartment"].deadline_date or date.max, apartment_sort_key(row["apartment"])))
-
-
 def primary_archive_reason(apartment: Apartment, tasks: list[Task]) -> str | None:
     if apartment.deadline_date:
         return "квартира принята"
@@ -219,12 +197,3 @@ def update_primary_state(apartment: Apartment, status: str, comment: str) -> Non
     apartment.primary_status = status if status in PRIMARY_STATUS_LABELS else PRIMARY_STATUS_NOT_READY
     apartment.primary_comment = (comment or "").strip() or None
     db.session.commit()
-
-
-def notification_counts(project_id: int | None) -> dict[str, int]:
-    if not project_id:
-        return {"kd60": 0, "primary": 0}
-    kd60_rows = build_60kd_rows(project_id)
-    kd60_alerts = [row for row in kd60_rows if row.get("deadline_marker")]
-    primary_rows = build_primary_rows(project_id, archived=False)
-    return {"kd60": len(kd60_alerts), "primary": len(primary_rows)}

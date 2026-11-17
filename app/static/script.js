@@ -8707,6 +8707,7 @@ const initSiteErrorCloseForms = (scope = document) => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.ok === false) throw new Error(data.message || 'Не удалось обновить статус');
         const isClosed = data.status === 'closed';
+        if(form.elements.status)form.elements.status.value=isClosed?'new':'closed';
         card?.classList.toggle('closed', isClosed);
         card?.classList.toggle('site-error-card-open', !isClosed);
         card?.classList.toggle('site-error-card-accepted', isClosed && isRegistration);
